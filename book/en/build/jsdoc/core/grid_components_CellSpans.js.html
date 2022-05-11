@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: grid/components/CellSpans.js</title>
+
+    <script src="scripts/prettify.js"> </script>
+    <script src="scripts/lang-css.js"> </script>
+    <!--[if lt IE 9]&gt;
+      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
+    &lt;![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/default.css">
+    <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
+</head>
+
+<body>
+
+<div id="main-template" class="elf-template">
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import CellSpan from "./CellSpan.js";
+
+/** @constructor */
+var CellSpans = function () {
+	this._spans = [];
+	this._occupiedMap = {};
+};
+
+/** @public
+* @param {number} at
+* @return {boolean} Return true if there is any change
+*/
+CellSpans.prototype.removeColumn = function (at) { // Use when a column is removed
+	var dirty = false;
+	if(this.removeSpanByColIndex(at)) {
+		dirty = true;
+	}
+	if(this.shiftColumn(at, -1)) {
+		dirty = true;
+	}
+	return dirty;
+};
+/** @public
+* @param {number} from
+* @param {number} amount This can be negative number
+* @return {boolean} Return true if there is any change
+*/
+CellSpans.prototype.shiftColumn = function (from, amount) { // Use when a column is inserted or removed
+	if(this._spans.length &lt;= 0 || amount === 0) { return false; }
+
+	var dirty = false;
+	for (var i = this._spans.length; --i &gt;= 0;) {
+		var cellSpan = this._spans[i];
+		if(cellSpan.indexX &gt;= from) {
+			dirty = true;
+			cellSpan.indexX += amount;
+		}
+	}
+	if(!dirty) { return false; }
+
+	// Re-registers all cellspans. Some of the cellspans may be lost due to shifting
+	var cellSpans = this._spans;
+	this._spans = [];
+	this._occupiedMap = {};
+	for(i = cellSpans.length; --i &gt;= 0;) {
+		cellSpan = cellSpans[i];
+		if(cellSpan.indexX &gt;= 0) {
+			cellSpan.register(this._spans, this._occupiedMap);
+		}
+	}
+	return true;
+};
+/** @public
+ * @param {number} indexX
+ * @param {number} indexY
+* @return {CellSpan}
+*/
+CellSpans.prototype.removeSpan = function (indexX, indexY) {
+	if(this._spans.length &lt;= 0) { return null; }
+
+	var key = indexX + "," + indexY;
+	var cellSpan = this._occupiedMap[key];
+	if(!cellSpan || cellSpan.isOccupiedIndices(indexX, indexY)) { return null; }
+
+	cellSpan.unregister(this._spans, this._occupiedMap);
+	return cellSpan;
+};
+/** @public
+* @param {number} at
+* @param {Array.&lt;CellSpan&gt;=} opt_ary Array that contains removed CellSpan.
+* @return {Array.&lt;CellSpan&gt;} Return null if no CellSpan is removed
+*/
+CellSpans.prototype.removeSpanByColIndex = function (at, opt_ary) {
+	var len = this._spans.length;
+	if(len &lt;= 0) { return null; }
+
+	var cellSpan;
+	var removedCellSpans = opt_ary || [];
+	var count = 0;
+	for (var i = 0; i &lt; len; ++i) {
+		cellSpan = this._spans[i];
+		if(cellSpan &amp;&amp; cellSpan.indexX === at) {
+			removedCellSpans.push(cellSpan);
+			count++;
+		}
+	}
+	if(count &lt;= 0) { return null; }
+
+	len = removedCellSpans.length;
+	for(i = 0; i &lt; count; ++i) {
+		removedCellSpans[len - i - 1].unregister(this._spans, this._occupiedMap);
+	}
+	return removedCellSpans;
+};
+/** @public
+* @param {number} at
+* @param {Array.&lt;CellSpan&gt;=} opt_ary Array that contains removed CellSpan.
+* @return {Array.&lt;CellSpan&gt;} Return null if no CellSpan is removed
+*/
+CellSpans.prototype.removeSpanStartedFromRowIndex = function (at, opt_ary) {
+	var len = this._spans.length;
+	if(len &lt;= 0) { return null; }
+
+	var cellSpan;
+	var removedCellSpans = opt_ary || [];
+	var count = 0;
+	for (var i = 0; i &lt; len; ++i) {
+		cellSpan = this._spans[i];
+		if(cellSpan &amp;&amp; cellSpan.indexY &gt;= at) {
+			removedCellSpans.push(cellSpan);
+			count++;
+		}
+	}
+	if(count &lt;= 0) { return null; }
+
+	len = removedCellSpans.length;
+	for(i = 0; i &lt; count; ++i) {
+		removedCellSpans[len - i - 1].unregister(this._spans, this._occupiedMap);
+	}
+	return removedCellSpans;
+};
+
+/** @public
+* @return {Array.&lt;CellSpan&gt;}
+*/
+CellSpans.prototype.clearAllSpans = function () {
+	if(this._spans.length &lt;= 0) { return null; }
+
+	var allCellSpans = this._spans;
+	this._spans = [];
+	this._occupiedMap = {};
+	return allCellSpans;
+};
+/** @public
+* @return {boolean}
+*/
+CellSpans.prototype.hasSpan = function () {
+	return (this._spans.length  &gt; 0);
+};
+
+/** @public
+* @param {number} indexX
+* @param {number} indexY
+* @return {CellSpan|null}
+*/
+CellSpans.prototype.getSpan = function (indexX, indexY) {
+	var cellSpan = this.getOccupyingSpan(indexX, indexY);
+	if(cellSpan &amp;&amp; cellSpan.isSpanIndices(indexX, indexY)) {
+		return cellSpan;
+	}
+	return null;
+};
+/** @public
+* @param {number} indexX
+* @param {number} indexY
+* @return {CellSpan|null}
+*/
+CellSpans.prototype.getOccupyingSpan = function (indexX, indexY) {
+	if(this._spans.length &lt;= 0) { return null; }
+	return this._occupiedMap[indexX + "," + indexY] || null;
+};
+/** Shallow copy is used for better performance. The returned cellspans are still referenced.
+* @public
+* @return {!Array.&lt;CellSpan&gt;}
+*/
+CellSpans.prototype.getAllSpans = function () {
+	return this._spans;
+};
+/** @description Returns zero or negative value, if the cell is spanned over (i.e. occupied by the spanning cell). &lt;br&gt;
+* Negative value is distance from the spanning cell (i.e. -1 means one cell from the spanning cell and -2 means two cells from the spanning cell) &lt;br&gt;
+* Return one, if the cell has no span (normal cell). &lt;br&gt;
+* Return value greater than one, if the cell is spanning (getting expanded)
+* @public
+* @param {number} indexX
+* @param {number} indexY
+* @return {number}
+*/
+CellSpans.prototype.getColSpan = function (indexX, indexY) {
+	var cellSpan = this._occupiedMap[indexX + "," + indexY];
+	if(cellSpan == null) {
+		return 1;
+	}
+	if (cellSpan.isOccupiedIndices(indexX, indexY)) {
+		return cellSpan.indexX - indexX;
+	}
+	return cellSpan.colSpan;
+};
+/** @description Returns zero or negative value, if the cell is spanned over (i.e. occupied by the spanning cell). &lt;br&gt;
+* Negative value is distance from the spanning cell (i.e. -1 means one cell from the spanning cell and -2 means two cells from the spanning cell) &lt;br&gt;
+* Return one, if the cell has no span (normal cell). &lt;br&gt;
+* Return value greater than one, if the cell is spanning (getting expanded)
+* @public
+* @param {number} indexX
+* @param {number} indexY
+* @return {number}
+*/
+CellSpans.prototype.getRowSpan = function (indexX, indexY) {
+	var cellSpan = this._occupiedMap[indexX + "," + indexY];
+	if(cellSpan == null) {
+		return 1;
+	}
+	if (cellSpan.isOccupiedIndices(indexX, indexY)) {
+		return cellSpan.indexY - indexY;
+	}
+	return cellSpan.rowSpan;
+};
+
+/** @public
+* @param {number} indexX
+* @param {number} indexY
+* @param {number} spanVal
+* @return {CellSpan} Return effected CellSpan definition
+*/
+CellSpans.prototype.setColSpan = function (indexX, indexY, spanVal) {
+	return this._updateSpan(indexX, indexY, true, spanVal);
+};
+/** @public
+* @param {number} indexX
+* @param {number} indexY
+* @param {number} spanVal
+* @return {CellSpan} Return effected CellSpan definition
+*/
+CellSpans.prototype.setRowSpan = function (indexX, indexY, spanVal) {
+	return this._updateSpan(indexX, indexY, false, spanVal);
+};
+
+/** @private
+* @param {number} c0
+* @param {number} r0
+* @param {boolean} isColumn
+* @param {number} spanVal
+* @return {CellSpan} Return effected CellSpan definition
+*/
+CellSpans.prototype._updateSpan = function (c0, r0, isColumn, spanVal) {
+	if (spanVal &lt; 1) { spanVal = 1; }
+	var cellSpan = this.getSpan(c0, r0);
+	if(cellSpan) { cellSpan.retVal = 0; }
+
+	var c1 = c0;
+	var r1 = r0;
+	var cs = (cellSpan) ? cellSpan.colSpan : 1;
+	var rs = (cellSpan) ? cellSpan.rowSpan : 1;
+	var c2, r2, target, key;
+	var isExpanding = true;
+	if (isColumn) {
+		if (cs === spanVal) { return cellSpan; }
+		if (cs &gt; spanVal) {
+			c1 = c0 + spanVal;
+			c2 = c0 + cs;
+			isExpanding = false;
+		} else {
+			target = this._occupiedMap[c0 + "," + r0];
+			if (target &amp;&amp; target !== cellSpan) {
+				return cellSpan;
+			}
+			c1 = c0 + cs;
+			c2 = c0 + spanVal;
+		}
+		r2 = r0 + rs;
+	} else {
+		if (rs === spanVal) { return cellSpan; }
+		if (rs &gt; spanVal) {
+			r1 = r0 + spanVal;
+			r2 = r0 + rs;
+			isExpanding = false;
+		} else {
+			target = this._occupiedMap[c0 + "," + r0];
+			if (target &amp;&amp; target !== cellSpan) {
+				return cellSpan;
+			}
+			r1 = r0 + rs;
+			r2 = r0 + spanVal;
+		}
+		c2 = c0 + cs;
+	}
+
+	// Collecting affected cells
+	var c, r;
+	if (isExpanding) { // Check all affected cells for occupying
+		var keys = [];
+		for (c = c1; c &lt; c2; ++c) {
+			for (r = r1; r &lt; r2; ++r) {
+				key = c + "," + r;
+				if (this._occupiedMap[key]) { //Invalid input is given
+					return cellSpan;
+				}
+				keys.push(key);
+			}
+		}
+
+		if (cellSpan == null) {
+			cellSpan = new CellSpan(c0, r0);
+			key = c0 + "," + r0;
+			this._spans.push(cellSpan);
+			this._occupiedMap[key] = cellSpan;
+		}
+
+		for (c = keys.length; --c &gt;= 0; ) { // Update occupied cell map
+			this._occupiedMap[keys[c]] = cellSpan;
+		}
+	} else {
+		var noLongerSpan = (isColumn) ? (spanVal + rs &lt;= 2) : (spanVal + cs &lt;= 2);
+		if (noLongerSpan) {
+			key = c0 + "," + r0;
+			var at = this._spans.indexOf(cellSpan);
+			this._spans.splice(at, 1);
+			this._occupiedMap[key] = null;
+		}
+
+		for (c = c1; c &lt; c2; ++c) { // Update occupied cell map
+			for (r = r1; r &lt; r2; ++r) {
+				this._occupiedMap[c + "," + r] = null;
+			}
+		}
+	}
+
+	if (isColumn) {
+		cellSpan.prevColSpan = cellSpan.colSpan;
+		cellSpan.colSpan = spanVal;
+	} else {
+		cellSpan.prevRowSpan = cellSpan.rowSpan;
+		cellSpan.rowSpan = spanVal;
+	}
+	cellSpan.retVal = isExpanding ? 1 : -1;
+	return cellSpan;
+};
+
+/** A list contains all CellSpan definitions
+* @private
+* @type {!Array.&lt;CellSpan&gt;}
+*/
+CellSpans.prototype._spans;
+/** Map of occupied cells using string as key : _occupiedMap[colIndex + "," +rowIndex]
+* @private
+* @type {!Object.&lt;string, CellSpan&gt;}
+*/
+CellSpans.prototype._occupiedMap;
+
+export default CellSpans;
+export { CellSpans };
+
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="ElementFrameWork.html">ElementFrameWork</a></li><li><a href="Util.html">Util</a></li></ul><h3>Classes</h3><ul><li><a href="Cell.html">Cell</a></li><li><a href="CellFloatingPanel.html">CellFloatingPanel</a></li><li><a href="CellSpan.html">CellSpan</a></li><li><a href="CellSpans.html">CellSpans</a></li><li><a href="ColumnStats.html">ColumnStats</a></li><li><a href="Conflator.html">Conflator</a></li><li><a href="DataCache.html">DataCache</a></li><li><a href="DataTable.html">DataTable</a></li><li><a href="DataView.html">DataView</a></li><li><a href="DragAndDropTitlePlugin.html">DragAndDropTitlePlugin</a></li><li><a href="ElementWrapper.html">ElementWrapper</a></li><li><a href="EventDispatcher.html">EventDispatcher</a></li><li><a href="EventListeners.html">EventListeners</a></li><li><a href="Grid.html">Grid</a></li><li><a href="HScrollbar.html">HScrollbar</a></li><li><a href="HttpRequest.html">HttpRequest</a></li><li><a href="LayoutGrid.html">LayoutGrid</a></li><li><a href="PercentBar.html">PercentBar</a></li><li><a href="PercentBarRenderer.html">PercentBarRenderer</a></li><li><a href="Plugin.html">Plugin</a></li><li><a href="RangeBar.html">RangeBar</a></li><li><a href="Reverter.html">Reverter</a></li><li><a href="Scrollbar.html">Scrollbar</a></li><li><a href="SectionSettings.html">SectionSettings</a></li><li><a href="Segment.html">Segment</a></li><li><a href="SegmentCollection.html">SegmentCollection</a></li><li><a href="SortableTitlePlugin.html">SortableTitlePlugin</a></li><li><a href="Virtualizer.html">Virtualizer</a></li><li><a href="VScrollbar.html">VScrollbar</a></li></ul><h3>Interfaces</h3><ul><li><a href="ILayoutGrid.html">ILayoutGrid</a></li></ul><h3>Events</h3><ul><li><a href="DataCache.html#event:dataChanged">dataChanged</a></li><li><a href="DataCache.html#event:dataComposed">dataComposed</a></li><li><a href="DataTable.html#event:dataChanged">dataChanged</a></li><li><a href="DataTable.html#event:dataComposed">dataComposed</a></li><li><a href="DataView.html#event:beforeFiltering">beforeFiltering</a></li><li><a href="DataView.html#event:beforeGroupAdded">beforeGroupAdded</a></li><li><a href="DataView.html#event:dataChanged">dataChanged</a></li><li><a href="DataView.html#event:groupAdded">groupAdded</a></li><li><a href="DataView.html#event:groupCriteriaChanged">groupCriteriaChanged</a></li><li><a href="DataView.html#event:pageCountChanged">pageCountChanged</a></li><li><a href="DataView.html#event:pageIndexChanged">pageIndexChanged</a></li><li><a href="DataView.html#event:preDisposed">preDisposed</a></li><li><a href="DragAndDropTitlePlugin.html#event:columnMoved">columnMoved</a></li><li><a href="DragAndDropTitlePlugin.html#event:dragged">dragged</a></li><li><a href="Grid.html#event:columnAdded">columnAdded</a></li><li><a href="Grid.html#event:columnRemoved">columnRemoved</a></li><li><a href="Grid.html#event:columnVisibilityChanged">columnVisibilityChanged</a></li><li><a href="Grid.html#event:dataSourceChanged">dataSourceChanged</a></li><li><a href="Grid.html#event:postSectionDataBinding">postSectionDataBinding</a></li><li><a href="Grid.html#event:rowExpansionBinding">rowExpansionBinding</a></li><li><a href="Grid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="Grid.html#event:sectionAdded">sectionAdded</a></li><li><a href="Grid.html#event:widthChanged">widthChanged</a></li><li><a href="HttpRequest.html#event:abort">abort</a></li><li><a href="HttpRequest.html#event:error">error</a></li><li><a href="HttpRequest.html#event:load">load</a></li><li><a href="HttpRequest.html#event:loadend">loadend</a></li><li><a href="HttpRequest.html#event:loadstart">loadstart</a></li><li><a href="HttpRequest.html#event:timeout">timeout</a></li><li><a href="LayoutGrid.html#event:rowCountChanged">rowCountChanged</a></li><li><a href="LayoutGrid.html#event:rowHeightChanged">rowHeightChanged</a></li><li><a href="LayoutGrid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="SortableTitlePlugin.html#event:clicked">clicked</a></li><li><a href="SortableTitlePlugin.html#event:columnSorted">columnSorted</a></li><li><a href="SortableTitlePlugin.html#event:preClicked">preClicked</a></li><li><a href="SortableTitlePlugin.html#event:preDataSorting">preDataSorting</a></li></ul><h3>Global</h3><ul><li><a href="global.html#get">get</a></li><li><a href="global.html#sortingDef%255B1%255D">sortingDef[1]</a></li></ul>
+</nav>
+
+
+<script src="scripts/linenumber.js"> </script>
+<script src="scripts/prettify.js"> </script>
+<script> prettyPrint(); </script>
+</body>
+</html>

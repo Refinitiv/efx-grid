@@ -1,0 +1,2924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Grid.js</title>
+
+    <script src="scripts/prettify.js"> </script>
+    <script src="scripts/lang-css.js"> </script>
+    <!--[if lt IE 9]&gt;
+      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
+    &lt;![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/default.css">
+    <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
+</head>
+
+<body>
+
+<div id="main-template" class="elf-template">
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/* eslint-disable */
+import {Dom} from "../../node_modules/tr-grid-util/es6/Dom.js";
+import {Conflator} from "../../node_modules/tr-grid-util/es6/Conflator.js";
+import {Ext} from "../../node_modules/tr-grid-util/es6/Ext.js";
+import { EventDispatcher } from "../../node_modules/tr-grid-util/es6/EventDispatcher.js";
+import { Engine } from "../../node_modules/tr-grid-util/es6/formula/Engine.js";
+import { cloneObject, extendObject, arrayToObject } from "../../node_modules/tr-grid-util/es6/Util.js";
+import { DateTime } from "../../node_modules/tr-grid-util/es6/DateTime.js";
+
+import {RowDefinition, ROW_DEF} from "./RowDefinition.js";
+import {ColumnDefinition, COL_DEF} from "./ColumnDefinition.js";
+import SnapshotFiller from "./SnapshotFiller.js";
+import StyleLoader from "./StyleLoader.js";
+import FieldDefinition from "./FieldDefinition.js";
+import DataConnector from "./DataConnector.js";
+
+import { Core } from "../../node_modules/@grid/core/es6/grid/Core.js";
+import { SortableTitlePlugin } from "../../node_modules/@grid/core/es6/grid/plugins/SortableTitlePlugin.js";
+import { DragAndDropTitlePlugin } from "../../node_modules/@grid/core/es6/grid/plugins/DragAndDropTitlePlugin.js";
+import { DataCache } from "../../node_modules/@grid/core/es6/data/DataCache.js";
+import { DataTable } from "../../node_modules/@grid/core/es6/data/DataTable.js";
+import { DataView } from "../../node_modules/@grid/core/es6/data/DataView.js";
+import { ElementWrapper } from "../../node_modules/@grid/core/es6/grid/components/ElementWrapper.js";
+/* eslint-enable */
+
+/** @typedef {Object} Grid~SynapseConfig
+* @description Configuration object that can be provided directly at the initialization phase
+* @property {string} apiKey Synapse api key
+* @property {string} contextApp Synapse context app name
+* @property {string=} auth Synapse authen token
+* @property {boolean=} debug=false If true, Synapse response will be mock
+*/
+
+/** @typedef {Object} Grid~GridOptions
+* @description Configuration object that can be provided directly at the initialization phase
+* @property {Array.&lt;ColumnDefinition~Options|string&gt;=} columns Collection of the column definitions
+* @property {ColumnDefinition~Options=} defaultColumnOptions All Columns will inherit from this default object
+* @property {Array.&lt;RowDefinition~Options&gt;=} rows Collection of the row definitions
+* @property {Array.&lt;string&gt;=} fields Shorthand for setting fields
+* @property {Array.&lt;string&gt;=} rics Shorthand for creating row definition
+* @property {Array=} plugins Additional plugins for core grid (from getBlotter()/getCoreGrid())
+* @property {Array=} extensions Alias to `plugins`
+* @property {boolean=} scrollbar=true Enable both vertical and horizontal scrollbar in grid
+* @property {boolean=} linearWheelScrolling=false If enabled, wheel scrolling will move the content linearly regardless of how long the content is (i.e. no skipping).
+* @property {boolean=} stepScroll=false If enabled, a full row will be scrolled at a time instead of actual scroll value.
+* @property {boolean=} autoHideScrollbar=true Fading in/out Scrollbar on hover.
+* @property {string=} pageSize=0 Make grid show specified number of row
+* @property {number=} rowHeight=32 Set default row height for body (content) section
+* @property {number=} headerRowHeight=32 Set default row height for header section
+* @property {boolean=} noColumnDragging=false All columns can be moved by dragging. If this option is true, the feature is disabled
+* @property {boolean=} columnReorder=true Alias with noColumnDragging but in opposite value. This property deprecated in favor of noColumnDragging.
+* @property {boolean=} rowHighlighting=true Highlight a row when hovering mouse over grid
+* @property {(boolean|number)=} autoLayoutUpdate=false Grid will check for layout change periodically.
+* @property {number=} columnFreezing Enable horizontal scrollbar after `columnFreezing` index
+* @property {number=} freezeColumn An alias to columnFreezing
+* @property {number=} pinnedRightColumns=0 Number of columns to be frozen/pinned on the right side.
+* @property {Array=} staticDataRows Shorthand for calling {@link Grid#addStaticDataRows}
+* @property {Array.&lt;string&gt;=} dataFields Shorthand for calling {@link Grid#addDataFields}
+* @property {boolean=} rowVirtualization=true If disabled, all data rows will be rendered. This will greatly impact grid's performance if the data set is huge.
+* @property {boolean=} columnVirtualization=false If enabled, all columns will be rendered. This will greatly impact grid's performance if the column set is huge.
+* @property {(number|null|boolean)=} topFreezingCount=null If number &gt;= 0 will fix number of frozen title section, If false = disabled scrollbar, if null then title section will freeze auto when new section added, this option will not work with scrollbar option.
+* @property {(number|null)=} bottomFreezingCount=null If number &gt;= 0 will fix nuber of frozen footer section, if null then footer section will freeze auto when new section added, this option will not work with scrollbar option.
+* @property {boolean=} borders=true Lines around grid element
+* @property {boolean=} gridlines=true Horizontal and Vertical lines for ONLY content sections
+* @property {boolean=} verticalLines=true Vertical lines for all sections
+* @property {boolean=} horizontalLines=true Horizontal lines for all sections
+* @property {*=} RTK=null rtk toolkit instance
+* @property {Grid~SynapseConfig=} synapse=null synapse config object
+* @property {number=} contentRightPadding=0 Padding that is added next to the right most column. The padding is still a part of scrollable content.
+* @property {number=} contentBottomPadding=0 Padding that is added below the last section. The padding is still a part of scrollable content.
+* @property {number=} dataConflationRate=0 set delay for data to avoid to much sorting operation when data changed
+* @property {Function=} dataComposed Handler for dataComposed event
+* @property {boolean=} autoDateConversion=false If enabled, date-time field with numeric value will be automatically converted to native date object.
+* @property {boolean=} textSelect=false If enabled, user can select text
+*/
+
+/** @typedef {number|string|RowDefinition} Grid~RowReference
+* @description A row in Grid can be referred by the following values: &lt;br&gt;
+* &lt;b&gt;number&lt;/b&gt; : Row index of a visible rows, excluding invisible (hidden) rows&lt;br&gt;
+* &lt;b&gt;RowDefinition&lt;/b&gt; : Row definition object&lt;br&gt;
+* &lt;b&gt;string&lt;/b&gt; : Unique row Id existing in current data table, including invisible rows&lt;br&gt;
+*/
+
+/** @typedef {number|string|ColumnDefinition} Grid~ColumnReference
+* @description A column in Grid can be referred by the following values:&lt;br&gt;
+* &lt;b&gt;number&lt;/b&gt; : Column index including all invisible (hidden) columns&lt;br&gt;
+* &lt;b&gt;string&lt;/b&gt; : Field name of the column&lt;br&gt;
+* &lt;b&gt;ColumnDefinition&lt;/b&gt; : Column definition object&lt;br&gt;
+*/
+
+/** @event Grid#fieldAdded
+* @description Fired after the field has been added to the data table.
+* @property {string} type "fieldAdded"
+* @property {Array.&lt;string&gt;} addedFields An array of newly added fields
+* @property {Array.&lt;string&gt;} fields All fields
+* @property {Array.&lt;string&gt;} rics All rics
+* @property {Array.&lt;RowDefinition&gt;} rowDefs All row definitions
+*/
+/** @event Grid#fieldRemoved
+* @description Fired after the field has been removed from the data table.
+* @property {string} type "fieldRemoved"
+* @property {Array.&lt;string&gt;} removedFields An array of recently removed fields
+* @property {Array.&lt;string&gt;} fields All fields
+* @property {Array.&lt;string&gt;} rics All rics
+* @property {Array.&lt;RowDefinition&gt;} rowDefs All row definitions
+*/
+/** @event Grid#ricAdded
+* @description Fired after the ric has been added to the data table.
+* @property {string} type "ricAdded"
+* @property {Array.&lt;string&gt;} addedRics An array of newly added rics
+* @property {Array.&lt;string&gt;} fields All fields
+* @property {Array.&lt;string&gt;} rics All rics
+* @property {Array.&lt;RowDefinition&gt;} rowDefs All row definitions
+*/
+/** @event Grid#ricRemoved
+* @description Fired after the ric has been removed from the data table.
+* @property {string} type "ricRemoved"
+* @property {Array.&lt;string&gt;} removedRics An array of recently removed rics
+* @property {Array.&lt;string&gt;} fields All fields
+* @property {Array.&lt;string&gt;} rics All rics
+* @property {Array.&lt;RowDefinition&gt;} rowDefs All row definitions
+*/
+
+/** @event Grid#adcDataReceived
+* @description Fired after ADC data or response received from the server
+* @property {Array.&lt;Array&gt;} data Data part of the server response
+*/
+
+/** @event Grid#pageIndexChanged
+* @description Fired after page index in the data view is changed during the active pagination mode
+*/
+
+/** @event Grid#pageCountChanged
+* @description Fired after page count in the data view is changed during the active pagination mode
+*/
+
+/** @event Grid#dataComposed
+* @description Trigger before dataChanged. Perform any data update during the event will NOT cause more dataChanged events
+* @property {Grid} grid
+* @property {RowDefinition} rowDef
+*/
+
+/** @event Grid#beforeRowRemoved
+* @description Fired only when a row will be removed through Grid's API and before occurring of the actual removal
+*/
+
+/** @type {string}
+* @private
+* @const
+*/
+var SUB_ID = "SUB_ID";
+
+/** @private
+* @param {*} rowDef
+* @return {Object}
+*/
+var toRowData = function(rowDef) {
+	return rowDef ? rowDef.getRowData() : null;
+};
+
+/** @private
+* @const
+* @type {Object.&lt;string, number&gt;}
+*/
+var _unclonableFields = {
+	"ROW_DEF": 1,
+	"SUB_ID": 1
+};
+/** @private
+* @param {RowDefinition} fromRowDef
+* @param {RowDefinition} toRowDef
+*/
+var cloneRowData = function(fromRowDef, toRowDef) {
+	var from = toRowData(fromRowDef);
+	var to = toRowData(toRowDef);
+	for(var key in from) {
+		if(!_unclonableFields[key]) {
+			to[key] = from[key];
+		}
+	}
+};
+
+/** @private
+* @param {number} a
+* @param {number} b
+* @return {number}
+*/
+var ascNumberSorter = function (a, b) {
+	return a - b;
+};
+
+/** @private
+* @param {number} min
+* @param {number} max
+* @param {number} elem
+* @return {boolean}
+*/
+var inRangeFilter = function (min, max, elem) {
+	return elem &gt;= min &amp;&amp; elem &lt;= max;
+};
+
+/** @private
+* @param {string} sortField
+* @param {Object} elemData
+* @param {number} index
+*/
+var mapRowOrder = function (sortField, elemData, index) { // edit name
+	elemData[sortField] = index; // Make column for sort with user data array
+};
+
+/** @private
+* @param {string} rowDefA
+* @param {string} rowDefB
+* @param {string} sortOrder
+* @param {string} fieldName
+* @return {number} The outcome of the value comparison
+*/
+var compareNumber = function(rowDefA, rowDefB, sortOrder, fieldName) { // edit name
+	return (rowDefA.getData(fieldName) - rowDefB.getData(fieldName)) * sortOrder; // for numeric comparison
+};
+
+/** @constructor
+* @extends {EventDispatcher}
+* @param {(Element|null)=} placeholder
+* @param {Grid~GridOptions=} config
+*/
+var Grid = function(placeholder, config) {
+	var t = this; // This is to primarily reduce file size
+
+	t._onDataChanged = t._onDataChanged.bind(t);
+	t._onDataComposed = t._onDataComposed.bind(t);
+	t._recalculateFormulas = t._recalculateFormulas.bind(t);
+	t._updateStreamingData = t._updateStreamingData.bind(t);
+	t.updateColumnTitle = t.updateColumnTitle.bind(t);
+
+	t._onPostSectionDataBinding = t._onPostSectionDataBinding.bind(t);
+	t._asyncClearDataUpdates = t._asyncClearDataUpdates.bind(t);
+	t._clearDataUpdates = t._clearDataUpdates.bind(t);
+	t._onPreDataSorting = t._onPreDataSorting.bind(t);
+	t._mainSorter = t._mainSorter.bind(t);
+	t._updateRowData = t._updateRowData.bind(t);
+	t._onFormulaDataChanged = t._onFormulaDataChanged.bind(t);
+	t._onFormulaDataRequired = t._onFormulaDataRequired.bind(t);
+	t._addMemberOfChain = t._addMemberOfChain.bind(t);
+	t._onColumnAdded = t._onColumnAdded.bind(t);
+	t._onRowExpansionBinding = t._onRowExpansionBinding.bind(t);
+	t._onColumnHeaderBinding = t._onColumnHeaderBinding.bind(t);
+	t._getRowId = t._getRowId.bind(t);
+	t._onFieldLoadedError = t._onFieldLoadedError.bind(t);
+
+	t._snapshotFillerDataChanged = t._snapshotFillerDataChanged.bind(t);
+
+	t._streamingConflator = new Conflator(50, t._updateStreamingData);
+	t._formulaConflator = new Conflator(300, t._onFormulaDataChanged);
+	t._chainConflator = new Conflator(100, t._addMemberOfChain);
+	t._columnTitleConflator = new Conflator(0, t.updateColumnTitle);
+
+	t._defaultColumnOptions = {};
+
+	t._topNode = placeholder || Dom.div();
+	t._topNode.classList.add("rt-grid");
+	t._grid = new Core();
+	t._grid._wrapper = this; // For back referencing
+
+	t._grid.listen("columnAdded", t._onColumnAdded); // Columns could be added by some plugins
+
+	t._stp = new SortableTitlePlugin({
+		"userManagedLogic": true,
+		"sortableColumns": true,
+		"disableDoubleClickToSort": true,
+		"ROW_DEF": true // Enable Row Definition Mode
+	});
+	t._stp.listen("preDataSorting", t._onPreDataSorting);
+
+	t._dtp = new DragAndDropTitlePlugin();
+
+	// WARNING: These two plugins don't have normal workflow unlike other extensions. defaultColumnOptions property does not work with these two.
+	// beforeInit does not get called.
+	t._grid.loadPlugin(t._stp, config);
+	t._grid.loadPlugin(t._dtp);
+
+	t._grid.listen("preSectionRender", t._onColumnHeaderBinding);
+	t._grid.listen("postSectionDataBinding", t._onPostSectionDataBinding);
+	t._grid.listen("rowExpansionBinding", t._onRowExpansionBinding);
+
+	t._grid.enableRowHighlighting(true);
+
+	t._dc = new DataCache();
+	t._dc.listen("dataChanged", t._onDataChanged);
+	t._dc.listen("dataComposed", t._onDataComposed);
+	t._dc.listen("dataComposed", t._recalculateFormulas); // This will be called after _onDataComposed
+
+	t._dt = new DataTable();
+	t._dt.setSortingLogic(/** @type{Function} */(t._mainSorter));
+	t._dv = new DataView(t._dt);
+	t._dv.listen("pageIndexChanged", t._dispatch.bind(t, "pageIndexChanged"));
+	t._dv.listen("pageCountChanged", t._dispatch.bind(t, "pageCountChanged")); // TODO: When implementing filtered row, it may need to implement the conflator
+
+	t._addGridSections();
+	t._grid.setDataSource(t._dv);
+	t._grid.setParent(t._topNode);
+
+	t._snapshot = new SnapshotFiller();
+	t._snapshot.addEventListener("adcDataReceived", t._dispatch.bind(t, "adcDataReceived"));
+	t._snapshot.addEventListener("dataChanged", this._snapshotFillerDataChanged);
+
+	t._connector = new DataConnector();
+	t._connector.addEventListener("ricAdded", t._onRicAdded.bind(t));
+	t._connector.addEventListener("ricRemoved", t._onRicRemoved.bind(t));
+	t._connector.addEventListener("fieldAdded", t._onFieldAdded.bind(t));
+	t._connector.addEventListener("fieldRemoved", t._onFieldRemoved.bind(t));
+
+	t._fnEngine = new Engine();
+	t._fnEngine.addEventListener("dataChanged", t._onFormulaDataChanged);
+	t._fnEngine.addEventListener("dataRequired", t._onFormulaDataRequired);
+
+	t.initialize(config);
+	t.initSubscription();
+
+	StyleLoader.applyStyle(t._grid);
+};
+Ext.inherits(Grid, EventDispatcher);
+
+/** @private
+ * @type {Element}
+ */
+Grid.prototype._topNode = null;
+/** @private
+ * @type {Core}
+ */
+Grid.prototype._grid = null;
+/** Store all actual data including streaming data, ADC data, snapshot data, user input data.
+ * @type {DataCache}
+ * @private
+ */
+Grid.prototype._dc = null;
+/** Used for hiding and filtering out rows. Always have greater or equal number of rows than that in grid
+ * @type {DataTable}
+ * @private
+ */
+Grid.prototype._dt = null;
+/** Used for sorting. Number of rows is always the same as that in grid
+ * @type {DataView}
+ * @private
+ */
+Grid.prototype._dv = null;
+/** JET.Quotes2 Subscription
+ * @type {Object}
+ * @private
+ */
+Grid.prototype._subs = null;
+
+/** @type {SortableTitlePlugin}
+ * @private
+ */
+Grid.prototype._stp = null;
+/** @type {DragAndDropTitlePlugin}
+* @private
+*/
+Grid.prototype._dtp = null;
+/** @type {Function}
+ * @private
+ */
+Grid.prototype._columnSorter = null;
+
+/** @private
+* @type {Conflator}
+*/
+Grid.prototype._streamingConflator = null;
+/** @private
+* @type {SnapshotFiller}
+*/
+Grid.prototype._snapshot = null;
+/** @private
+* @type {DataConnector}
+*/
+Grid.prototype._connector = null;
+
+/** @private
+* @type {Engine}
+*/
+Grid.prototype._fnEngine = null;
+/** @private
+* @type {Conflator}
+*/
+Grid.prototype._formulaConflator = null;
+
+/** @private
+* @type {Object.&lt;string, Object&gt;}
+*/
+Grid.prototype._chainMembers = null;
+/** @private
+* @type {Conflator}
+*/
+Grid.prototype._chainConflator = null;
+/** @private
+* @type {boolean}
+*/
+Grid.prototype._hasGroup = false;
+/** @private
+* @type {number}
+*/
+Grid.prototype._clientWidth = NaN;
+/** @private
+* @type {number}
+*/
+Grid.prototype._autoLayoutTimer = 0;
+/** @private
+ * @type {ColumnDefinition~Options}
+ */
+Grid.prototype._defaultColumnOptions = null;
+/** @private
+* @type {*}
+*/
+Grid.prototype._RTK = null;
+/** use for synapse service
+* @private
+* @type {string}
+*/
+Grid.prototype._synapse = null;
+/** @private
+* @type {boolean}
+*/
+Grid.prototype._autoDateConversion = false;
+/** @private
+* @type {boolean}
+*/
+Grid.prototype._textSelect = false;
+/**
+* @private
+* @type {boolean}
+*/
+Grid.prototype._initializing = false;
+
+
+/** @public
+*/
+Grid.prototype.dispose = function() {
+	this.removeAllEventListeners();
+	if(this._autoLayoutTimer) {
+		clearInterval(this._autoLayoutTimer);
+		this._autoLayoutTimer = 0;
+	}
+	this.removeAllColumns(); // Some conflators are reset
+	this.removeAllRows(); // Some conflators are reset
+	this._grid.dispose();
+	this._connector.reset();
+
+	if(this._subs) {
+		this._subs["dispose"]();
+		this._subs = null;
+	}
+};
+/** @public
+* @return {Element}
+*/
+Grid.prototype.getElement = function() {
+	return this._topNode;
+};
+/** Alias to {@link EventDispatcher#removeAllEventListeners}
+* @public
+* @function
+*/
+Grid.prototype.removeEventListeners = Grid.prototype.removeAllEventListeners;
+/** Alias to {@link EventDispatcher#addEventListener}
+* @public
+* @function
+* @param {string} type Event name
+* @param {Function} handler Event handler
+*/
+Grid.prototype.listen = Grid.prototype.addEventListener;
+/** @public
+*/
+Grid.prototype.initSubscription = function() {
+	if(this._dc.getSubscriptions()) { // Subscription is already initialized
+		return;
+	}
+
+	var jet, q, s;
+	jet = window["JET"]; // Assume that JET is already exist.
+	if (this._RTK) {
+		q = this._RTK.Quotes;
+	} else if(jet) {
+		q = jet["Quotes2"];
+	}
+	if(q) {
+		s = q["create"]();
+	}
+	if(!s) {
+		return;
+	}
+	if(s["filter"]) {
+		s["filter"](-2, -1); // Enable skip header for chains
+	}
+
+	this._subs = s;
+	this._subs["start"]();
+	this._dc.setSubscriptions(s);
+
+	// TODO: Subscriptions should be registered per row.
+	// However, chain subscription cannot be integrated with DataConnector in this current implementation.
+	var rowDefs = this._getAllRowDefinitions();
+	var len = rowDefs.length;
+	for(var i = 0; i &lt; len; ++i) {
+		var rowDef = rowDefs[i];
+		if(rowDef) {
+			rowDef.subscribeForUpdates();
+		}
+	}
+};
+
+/** @public
+*/
+Grid.prototype.updateLayout = function() {
+	this._grid.updateLayout();
+	this._stp.updateSortSymbols(); // HACK: There is a chance that grid may not yet be in the document
+};
+/** Force rerender of grid row. TODO: Check this could be deprecated in favor of Core's requestRowRefresh method
+* @private
+* @param {number=} rowIndex
+*/
+Grid.prototype._updateRowData = function(rowIndex) {
+	if(rowIndex &gt;= 0) {
+		var rowId = this._dv.getRowId(rowIndex);
+		if(rowId) {
+			this._dt.setRowData(rowId, {});
+		}
+	} else {
+		this._dt.dispatchGlobalChange(); // Trigger sorting too
+	}
+};
+/** @public
+* @function
+* @param {number=} opt_rowIndex
+*/
+Grid.prototype.updateRowData = Grid.prototype._updateRowData;
+
+/** @private
+ */
+Grid.prototype._addGridSections = function () {
+	var title = this._grid.addSection("title");
+	title.setRowCount(1);
+	this._grid.addSection("content");
+
+	var titleSettings = this._grid.getSectionSettings("title");
+	titleSettings.disableDataBinding();
+
+	var contentSettings = this._grid.getSectionSettings("content");
+	contentSettings.setAutoSyncRowCount(true);
+	contentSettings.setParent(titleSettings);
+};
+/** @public
+* @param {string=} sectionName
+* @return {*} Return Section instance
+ */
+Grid.prototype.addHeaderSection = function (sectionName) {
+	var titleSects = this._grid.getAllSections("title");
+
+	var headerSect = this._grid.addSectionAt(titleSects.length, "title", sectionName);
+	if(headerSect) {
+		headerSect.setRowCount(1);
+
+		var headerSettings = this._grid.getSectionSettings(headerSect);
+		headerSettings.disableDataBinding();
+	}
+
+	return headerSect;
+};
+/** @public
+* @param {string=} sectionName
+* @return {*} Return Section instance
+*/
+Grid.prototype.addFooterSection = function (sectionName) {
+	var footerSect = this._grid.addSection("footer", sectionName);
+	if(footerSect) {
+		footerSect.setRowCount(1);
+
+		var footerSettings = this._grid.getSectionSettings(footerSect);
+		footerSettings.disableDataBinding();
+	}
+
+	return footerSect;
+};
+
+/** @public
+* @param {Element} elem Parent element
+*/
+Grid.prototype.setParent = function (elem) {
+	Dom.appendChild(elem, this._topNode);
+	this.updateLayout();
+};
+/** @public
+* @param {Element} elem Sibling element
+*/
+Grid.prototype.insertBefore = function (elem) {
+	if(elem) {
+		var pn = elem.parentNode;
+		if(pn) {
+			pn.insertBefore(this._topNode, elem);
+			this.updateLayout();
+		}
+	}
+};
+/** The returned object contains &lt;br&gt;
+* `boolean` hit : Indicates whether the given position is on the grid &lt;br&gt;
+* `number` x : Horizontal coordinate that is relative to the top-left of the grid (Zero means left-most) &lt;br&gt;
+* `number` y : Vertical coordinate that is relative to the top-left of the grid (Zero means top-most) &lt;br&gt;
+* `number` colIndex &lt;br&gt;
+* `number` sectionIndex &lt;br&gt;
+* `number` rowIndex &lt;br&gt;
+* and other related property to the given position.
+* @public
+* @param {!ElementWrapper|Element|Event|MouseEvent} obj Element, Browser's Event object, Browser's Mouse Event object are all valid
+* @return {!Object}
+*/
+Grid.prototype.getRelativePosition = function (obj) {
+	return this._grid.getRelativePosition(obj);
+};
+/** The returned core grid
+* @public
+* @return {Core}
+*/
+Grid.prototype.getCoreGrid = function () {
+	return this._grid;
+};
+
+/** @public
+* @param {Grid~GridOptions=} gridOption
+*/
+Grid.prototype.initialize = function(gridOption) {
+	if (!gridOption) { return; }
+	// TODO: clear all data before re-initialization
+	var t = this; // For minimizing file size
+	t._initializing = true;
+	var grid = t._grid; // core grid
+	var exts = gridOption["plugins"] || gridOption["extensions"];
+
+	var cols = /** @type{Array} */(gridOption["fields"] || gridOption["columns"]);
+	if (gridOption["defaultColumnOptions"]) {
+		t._defaultColumnOptions = gridOption["defaultColumnOptions"];
+		t._defaultColumnSetup(t._defaultColumnOptions, cols);
+	}
+
+	// Tell all plugins that the initialization phase has started
+	t._processExtension(exts, "beforeInit", [grid.getElement(), gridOption]);
+
+	// option flag text-select
+	// allow user to select text for copy or so something
+	if (gridOption['textSelect']) {
+		t._textSelect = true;
+		grid.addClass('tr-text-select');
+	}
+
+	if (gridOption["RTK"]) {
+		t._RTK = gridOption["RTK"];
+		t._snapshot.setRTK(t._RTK);
+	}
+	if (gridOption["synapse"]) {
+		t._synapse = gridOption["synapse"];
+		FieldDefinition.setSynapseConfig(t._synapse);
+	}
+
+	if (gridOption["icons"] &amp;&amp; gridOption["icons"]["rowGrouping"] &amp;&amp; gridOption["icons"]["rowGrouping"]["expander"]) {
+		StyleLoader.chainIcon = gridOption["icons"]["rowGrouping"]["expander"];
+	}
+
+	var borders = gridOption["borders"];
+	if (borders != null) {
+		grid.toggleBorders(borders);
+	}
+	var gridlines = gridOption["gridlines"];
+	if (gridlines != null) {
+		grid.toggleGridlines(gridlines);
+	}
+	var vLines = gridOption["verticalLines"];
+	if (vLines != null) {
+		grid.toggleVerticalLines(vLines);
+	}
+	var hLines = gridOption["horizontalLines"];
+	if (hLines != null) {
+		grid.toggleHorizontalLines(hLines);
+	}
+
+	if(gridOption["pageSize"]) {
+		t._dv.setPageSize(+gridOption["pageSize"]);
+	}
+
+	var rowHeight = +gridOption["rowHeight"];
+	if(rowHeight) { // Non empty or zero
+		grid.setDefaultRowHeight(rowHeight);
+	}
+	var hRowHeight = +gridOption["headerRowHeight"];
+	if(hRowHeight) { // Non empty or zero
+		grid.getSection("title").setDefaultRowHeight(hRowHeight);
+	}
+
+	var noColumnDragging = gridOption["noColumnDragging"];
+	if (noColumnDragging == null &amp;&amp; gridOption["columnReorder"] != null) {
+		noColumnDragging = !gridOption["columnReorder"];
+	}
+	if (noColumnDragging) {
+		t._dtp.disable();
+	}
+
+	var val = gridOption["autoLayoutUpdate"];
+	if(!t._autoLayoutTimer &amp;&amp; val) {
+		if(val !== "0" &amp;&amp; val !== "false") { // HACK: Temporarily support incorrect data type
+			t._autoLayoutTimer = setInterval(t._onAutoLayoutUpdate.bind(t), 2000);
+		}
+	}
+
+	var bool = gridOption["rowHighlighting"];
+	if(bool != null) {
+		grid.enableRowHighlighting(!!bool);
+	}
+
+	var rowExpansionBinding = gridOption["rowExpansionBinding"];
+	if(typeof rowExpansionBinding === "function") {
+		t.listen("rowExpansionBinding", rowExpansionBinding);
+	}
+
+	var dataComposedHandler = gridOption["dataComposed"];
+	if(typeof dataComposedHandler === "function") {
+		t.listen("dataComposed", dataComposedHandler);
+	}
+
+	if(gridOption["autoDateConversion"]) {
+		t._autoDateConversion = true;
+	}
+
+	if(gridOption["stepScroll"]) {
+		grid.setRowScrollingStep(1);
+	}
+	if(gridOption["linearWheelScrolling"]) {
+		grid.getVScrollbar().setMouseWheelSpeed("linear");
+	}
+	if(gridOption["autoHideScrollbar"] != null) {
+		grid.autoHideScrollbars(gridOption["autoHideScrollbar"] ? true : false);
+	}
+
+	// Column operations
+	t.setColumns(cols);
+
+	var columnFreezing = gridOption["columnFreezing"] || gridOption["freezeColumn"];
+	if(columnFreezing == null) {
+		columnFreezing = -1; // Prevent disable scroll when passing null
+	}
+
+	var pinnedRightColumns = gridOption["pinnedRightColumns"];
+
+	var rowVir = true;
+	if (gridOption["rowVirtualRendering"] != null) {
+		rowVir = gridOption["rowVirtualRendering"];
+	}
+	if (gridOption["rowVirtualization"] != null) {
+		rowVir = gridOption["rowVirtualization"];
+	}
+	grid.enableRowVirtualization(!!rowVir);
+
+	if (!pinnedRightColumns) {
+		var colVir = false;
+		if (gridOption["columnVirtualRendering"] != null) {
+			colVir = gridOption["columnVirtualRendering"];
+		}
+		if (gridOption["columnVirtualization"] != null) {
+			colVir = gridOption["columnVirtualization"];
+		}
+		grid.enableColumnVirtualization(!!colVir);
+	}
+
+	var scrollbar = gridOption["scrollbar"] != null ? gridOption["scrollbar"] : true;
+	if (scrollbar) {
+		t._topNode.style.overflow = "hidden"; // TODO: Move this to CSS Class
+		grid.freezeColumn(columnFreezing, pinnedRightColumns); // Enable horizontal scrollbar
+	} else {
+		grid.freezeSection(null); // Disable vertical scrollbar
+		t._topNode.style.overflow = "";
+	}
+
+	var topFreezingCount = gridOption["topFreezingCount"];
+	if (typeof topFreezingCount === "number") {
+		topFreezingCount = (topFreezingCount &gt; 0) ? topFreezingCount : 0;
+		var sectionIndex = topFreezingCount - 1;
+		grid.freezeSection(sectionIndex);
+	} else if (topFreezingCount === false) {
+		grid.freezeSection(null);
+	}
+
+	var bottomFreezingCount = gridOption["bottomFreezingCount"];
+	if (typeof bottomFreezingCount === "number") {
+		bottomFreezingCount = (bottomFreezingCount &gt; 0) ? bottomFreezingCount : 0;
+		grid.freezeFooter(bottomFreezingCount);
+	}
+
+	t.addDataFields(gridOption["dataFields"]);
+
+	// Plugins
+	gridOption[ROW_DEF] = true; // Enable ROW_DEF mode
+	if (Array.isArray(exts)) {
+		for (var i = 0; i &lt; exts.length; ++i) {
+			var ext = exts[i];
+			var extInstance = null;
+			if (ext) {
+				var extName = ext["name"];
+				if(extName) {
+					extInstance = grid.loadPlugin(extName, ext); // pass plugin object as an argument for initialization
+				} else {
+					extInstance = grid.loadPlugin(ext, gridOption);
+				}
+			}
+			if (extInstance &amp;&amp; extInstance["setGridWrapper"]) {
+				var hasApi = (typeof extInstance["getGridApi"] === "function") ? extInstance["getGridApi"]() : false;
+				if(!hasApi) {
+					extInstance["setGridWrapper"]("realTimeGrid", t);
+				}
+			}
+		}
+		t._initializing = false;
+	}
+
+	// Row operations
+	var rows = gridOption["rows"];
+	if(!rows) {
+		rows = gridOption["rics"] || null; // Make "rics" an alias to "rows"
+	}
+	var bodies = /** @type{Array} */(gridOption["bodies"]);
+	if(!bodies) {
+		bodies = [];
+		if(gridOption["body"]) {
+			bodies.push(gridOption["body"]);
+		}
+		if(rows) {
+			for(var m = 0; m &lt; rows.length; m++) {
+				if(typeof rows[m] === "string") {
+					rows[m] = { "ric": rows[m] };
+				}
+			}
+			bodies.push({ "rows": rows });
+		}
+	}
+
+	// Merge rows with static data rows
+	var staticRows = gridOption["staticDataRows"] || gridOption["dataModel"];
+	if(rows &amp;&amp; staticRows) {
+		var ary = staticRows["data"] ? staticRows["data"] : staticRows;
+		var fields = staticRows["fields"] || t.getColumnFields();
+		var values, data;
+		var len = rows.length;
+		for(var n = 0; n &lt; len; n++) {
+			if(rows[n]["values"]) { // merge row's values, values can be object or array
+				values = arrayToObject(rows[n]["values"], fields);
+				data = arrayToObject(ary[n], fields);
+				rows[n]["values"] = extendObject(values, data);
+			} else {
+				rows[n]["values"] = ary[n];
+			}
+		}
+		ary = ary.slice(len, ary.length);
+		if(staticRows["data"]) {
+			staticRows["data"] = ary;
+		} else {
+			staticRows = ary;
+		}
+	}
+
+	for(var j = 0; j &lt; bodies.length; ++j) {
+		t.insertRows(bodies[j]["rows"]);
+		// break; // TODO: The first version supports only 1 grid
+	}
+
+	t.addStaticDataRows(staticRows);
+
+	if(gridOption.contentBottomPadding) {
+		grid.setBottomPaddingSection(gridOption.contentBottomPadding);
+	}
+
+	var contentRightPadding = gridOption.contentRightPadding;
+	if(contentRightPadding) {
+		if (typeof contentRightPadding !== "number") {
+			contentRightPadding = 6;
+		}
+
+		grid.reserveRightSpace(contentRightPadding);
+	}
+
+	// Let everything init first
+	// then set conflationRate to grid for better perfomance on rapidly updating
+	var dataConflationRate = gridOption['dataConflationRate'];
+	if (dataConflationRate != null) {
+		grid.setDataConflationRate(dataConflationRate);
+	}
+
+	// Tell all plugins that the initialization phase has ended
+	var extObjects = grid.getPluginList().map(grid.getPlugin.bind(grid));
+	t._processExtension(extObjects, "afterInit");
+};
+
+/** @public
+* @param {Object=} gridOptions
+* @return {!Object}
+*/
+Grid.prototype.getConfigObject = function (gridOptions) {
+	var obj = gridOptions || {};
+
+	var columns = obj.columns;
+	if(!columns) {
+		columns = obj.columns = [];
+	}
+
+	var grid = this._grid;
+	if(grid.getConfigObject) {
+		grid.getConfigObject(obj);
+	}
+
+	var len = this.getColumnCount();
+	for (var i = 0; i &lt; len; ++i) {
+		var column = columns[i];
+		if(!column) {
+			column = columns[i] = {};
+		}
+		var colDef = this.getColumnDefinition(i);
+		// TODO: Update width and scalability changed by the extensions
+		colDef.getConfigObject(column);
+	}
+
+	if(this._topNode.style.overflow === "") {
+		obj["scrollbar"] = false;
+	}
+
+	var val = this._dv.getPageSize();
+	if(val &gt; 0) {
+		obj["pageSize"] = val;
+	}
+
+	val = grid.getDefaultRowHeight();
+	if(val !== 32) {
+		obj["rowHeight"] = val;
+	}
+
+	val = grid.getSection("title").getDefaultRowHeight();
+	if(val !== 32) {
+		obj["headerRowHeight"] = val;
+	}
+
+	if(this._autoLayoutTimer) {
+		obj["autoLayoutUpdate"] = true;
+	}
+
+	val = grid.getHScrollStartIndex();
+	if(val &gt; 0) {
+		obj["columnFreezing"] = val - 1;
+	}
+
+	if (this._defaultColumnOptions) {
+		obj["defaultColumnOptions"] = this._defaultColumnOptions;
+	}
+
+	if(this._autoDateConversion) {
+		obj["autoDateConversion"] = true;
+	}
+
+	if (this._textSelect) {
+		obj["textSelect"] = true;
+	}
+
+	// TODO: The following states need to be retrieved
+	// noColumnDragging
+	// rowHighlighting
+	// pinnedRightColumns
+	// columnVirtualization
+	// topFreezingCount, bottomFreezingCount
+
+	// NOTE: no need to export synapseApiKey and RTK
+
+	return obj;
+};
+
+/** @private
+* @param {Object} defaultCol
+* @param {Array.&lt;Object&gt;} userColumns
+*/
+Grid.prototype._defaultColumnSetup = function (defaultCol, userColumns) {
+	var c = userColumns.length;
+	for (var i = 0; i &lt; c; i++) {
+		var column = userColumns[i];
+		if (typeof column === 'object') {
+			for (var key in defaultCol) {
+				if (column[key] == null) {
+					column[key] = defaultCol[key];
+				}
+			}
+		}
+		// TODO: Handle columnOption type string
+		// else if (typeof column === 'string') { }
+	}
+};
+
+/** @private
+* @param {Array.&lt;Object&gt;} exts List of plugin instance
+* @param {string} field A function name of plugin instance
+* @param {Array.&lt;*&gt;} params Inputs that will pass to a function call
+*/
+Grid.prototype._processExtension = function (exts, field, params) {
+	if(Array.isArray(exts)) {
+		for (var i = 0; i &lt; exts.length; i++) {
+			if (exts[i][field]) {
+				exts[i][field].apply(exts[i], params);
+			}
+		}
+	}
+};
+
+/** @private
+* @param {Object} e
+*/
+Grid.prototype._onRicAdded = function(e) {
+	var addedRics = e.addedRics;
+	this._snapshot.addFields(e.fields);
+	var len = addedRics.length;
+	for (var i = 0; i &lt; len; ++i) {
+		var ric = addedRics[i];
+		var rowDefs = this._connector.getRowDefByRic(ric);
+		var jLen = rowDefs ? rowDefs.length : 0;
+		for (var j = 0; j &lt; jLen; ++j) {
+			var rowDef = rowDefs[j];
+			if (rowDef.getRic() === ric) {
+				this._snapshot.addRic(ric); // ADC
+			}
+		}
+	}
+
+	this._dispatch(e.type, e);
+};
+
+/** @private
+* @param {Object} e
+*/
+Grid.prototype._onRicRemoved = function(e) {
+	this._dispatch(e.type, e);
+};
+
+/** @private
+* @param {Object} e
+*/
+Grid.prototype._onFieldAdded = function(e) {
+	var rowDefs = e.rowDefs;
+	var addedFields = e.addedFields;
+
+	// ADC
+	for (var i in rowDefs) {
+		this._snapshot.addRic(rowDefs[i].getRic());
+	}
+	this._snapshot.addFields(addedFields);
+
+	// JET
+	if (this._subs) {
+		var colDefs = this._getAllColumnDefinitions();
+		var fields = colDefs.reduce(ColumnDefinition.getRealTimeFields, []);
+		this._subs["addFields"](fields);
+	}
+
+	this._dispatch(e.type, e);
+};
+/** @private
+* @param {Object} e
+*/
+Grid.prototype._onFieldRemoved = function(e) {
+	var removedFields = e.removedFields;
+
+	// JET
+	if(this._subs) {
+		this._subs["removeFields"](removedFields);
+	}
+
+	this._dispatch(e.type, e);
+};
+
+/** @public
+* @param {ColumnDefinition~Options|string} columnOption String will be treated as field, while object is treated as the column options
+* @param {number=} idx
+*/
+Grid.prototype.insertColumn = function (columnOption, idx) {
+	if (typeof columnOption === "string") {
+		columnOption = { field: columnOption };
+	}
+
+	var colCount = this.getColumnCount();
+	if(idx == null || idx &gt; colCount) {
+		idx = colCount;
+	}
+
+	// no need to merge defaultColumn during initialize process
+	// because columnOption already mutate by initialize function
+	var userOptions = (this._initializing) ? {} : cloneObject(this._defaultColumnOptions);
+	Grid._objectAssign(userOptions, columnOption);
+	userOptions["formulaEngine"] = this._fnEngine; // Adding extra option
+
+	var colDef = new ColumnDefinition(userOptions, this);
+	userOptions[COL_DEF] = colDef;
+
+	// WARNING: width is processed twice by tr-grid and rt-grid
+	// Inserting column also initializes prefined formatter
+	this._grid.insertColumn(idx, userOptions); // columnAdded is fired
+};
+
+
+/** to update column name when field info is loaded
+ * @private
+ * @param {string} field
+ * @param {ColumnDefinition} colDef
+ * @param {Object} response
+ */
+Grid.prototype._onFieldLoadedSuccess = function (field, colDef, response) {
+	if (response &amp;&amp; response.fieldDefinition) {
+		var fieldDef = response.fieldDefinition;
+		if (colDef &amp;&amp; colDef.getField() === field) {
+			if (colDef.isDefaultName() &amp;&amp; fieldDef.name) {
+				colDef.setName(fieldDef.name);
+				this.updateColumnTitle(); // has conflator -&gt; async operation
+			}
+		}
+	}
+};
+
+/**
+ * @private
+ * @param {Object} err
+ */
+Grid.prototype._onFieldLoadedError = function (err) {
+	// TODO: May implement retry mechanism here, if need
+};
+
+/**
+ * @private
+ * @param {string} field
+ * @param {string} referrer
+ */
+Grid.prototype._onFieldLoaded = function (field, referrer) {
+	this._connector.addFields(field, referrer);
+};
+
+/**
+* @private
+* @param {string} field
+* @param {boolean} isRealTime
+* @returns {boolean}
+*/
+Grid.prototype._shouldLoadFieldInfo = function (field, isRealTime) {
+	var fieldDef = FieldDefinition.get(field);
+	if (!fieldDef &amp;&amp;
+		field !== 'X_RIC_NAME' &amp;&amp; // ignore X_RIC_NAME
+		(isRealTime || ColumnDefinition.isAdcField(field)) &amp;&amp;
+		(this._RTK || window["JET"])
+	) {
+		return true;
+	}
+	return false;
+};
+/** Remove all existing columns and add new columns based on the given objects
+* @public
+* @param {Array.&lt;Object&gt;} columns Array of column options
+*/
+Grid.prototype.setColumns = function(columns) {
+	var colCount = (columns) ? columns.length : 0;
+
+	this.removeAllColumns();
+	if(colCount &gt; 0) {
+		var prevState = false;
+		if(colCount &gt; 1) {
+			prevState = this._grid.freezeLayout(true); // Insert multiple columns can be a huge time consuming
+		}
+		for(var i = 0; i &lt; colCount; ++i) {
+			this.insertColumn(columns[i], i);
+		}
+		if(colCount &gt; 1) {
+			this._grid.freezeLayout(prevState);
+		}
+	}
+};
+/** Remove all existing columns and add new columns based on the given texts/fields
+* @public
+* @function
+* @param {Array.&lt;string&gt;} ary Array of fields (string)
+* @see {@link Grid#setColumns}
+*/
+Grid.prototype.setFields = Grid.prototype.setColumns;
+
+/** @private
+* @param {Object} e
+*/
+Grid.prototype._onColumnAdded = function(e) {
+	var colDef = e.context[COL_DEF];
+	delete e.context[COL_DEF];
+	var idx = e.colIndex;
+
+	var colData = this._grid.getColumnData(idx);
+	if(!colData) { // Save column inside grid
+		colData = this._grid.setColumnData(idx, {});
+	}
+	colData[COL_DEF] = colDef;
+	var userModel = colDef.getUserModel();
+	// binding
+	this._grid.setColumnDataBindingHandler(idx, colDef.getRenderer());
+	// width and scalable
+	var value = userModel["width"];
+	// eslint-disable-next-line no-undefined
+	if(value !== undefined) {
+		value = +value;
+		var scalable;
+		if(userModel["scalable"] != null) {
+			scalable = userModel["scalable"] ? true : false;
+		} else {
+			scalable = value !== value; // NaN means scalable
+		}
+		this._grid.setColumnWidth(idx, value, scalable);
+	} else {
+		this._grid.setColumnWidth(idx, 1, true);
+	}
+	// minWidth
+	value = userModel["minWidth"];
+	if(value &gt;= 0) {
+		this._grid.setMinimumColumnWidth(idx, value);
+	}
+	// hidden
+	value = userModel["hidden"];
+	if(value) {
+		this._grid.hideColumn(idx, true);
+	}
+	// textAlign
+	value = userModel["textAlign"] || userModel["alignment"];
+	if(typeof value === "string") {
+		this._grid.setColumnAlignment(idx, value);
+	}
+	if(!userModel["keepModel"]) {
+		colDef.clearUserModel();
+	}
+
+	// text select flag per column
+	// with this flag enabled user can select text in cell of this column
+	if (colDef.isTextSelect()) {
+		this._grid.enableColumnClass(idx, 'tr-text-select', true, "content");
+	}
+
+	// className
+	var i, classes = colDef.getClasses();
+	for(i = 0; i &lt; classes.length; i++) {
+		this._grid.enableColumnClass(idx, classes[i]);
+	}
+	var colField = colDef.getField();
+	if (!colDef.isRealTimeField()) {
+		// not realtime filed
+		this._dc.addStaticFields([colField]);
+	}
+	this._grid.setDataColumnName(idx, ROW_DEF); // This make ColumnDefinition renderer work
+
+	var fields = colDef.getAllFields();
+	var referrer = colDef.getId();
+	var len = fields.length;
+	var field, dataType, prom, isRealTimeField, onLoaded;
+	for(i = 0; i &lt; len; i++) {
+		field = fields[i];
+		isRealTimeField = ColumnDefinition.isRealTimeField(field);
+		if(this._shouldLoadFieldInfo(field, isRealTimeField)) {
+			if(field === colField) {
+				dataType = colDef.getDataType(); // Data-type from user's column options
+			} else { // Other required fields
+				dataType = ColumnDefinition.getDataType(field); // Data-type evaluated from FieldDefinition
+			}
+			prom = FieldDefinition.loadFieldInfo(field)
+				.then(this._onFieldLoadedSuccess.bind(this, field, colDef))
+				.catch(this._onFieldLoadedError);
+
+			if(!dataType) {
+				// wait field-info to be loaded before adding field
+				onLoaded = this._onFieldLoaded.bind(this, field, referrer);
+				prom = prom.then(onLoaded).catch(onLoaded);
+			} else {
+				this._connector.addFields(field, referrer);
+			}
+		} else {
+			this._connector.addFields(field, referrer);
+		}
+	}
+};
+
+/** @public
+* @param {Grid~ColumnReference} colRef
+* @see {@link Grid#removeColumns}
+* @see {@link Grid#removeAllColumns}
+*/
+Grid.prototype.removeColumn = function(colRef) {
+	var colIndex = this.getColumnIndex(colRef);
+	if(colIndex &lt; 0) {
+		return;
+	}
+
+	var colDef = this.getColumnDefinition(colIndex);
+	if(!colDef.isRealTimeField()) {
+		this._dc.removeStaticFields([colDef.getField()]);
+	}
+	colDef.dispose();
+	this._grid.removeColumnAt(colIndex);
+
+	this._connector.removeFields(colDef);
+	// TODO: Remove fields that are related to the column (e.g. fields for coloring)
+};
+/** Remove multiple columns through array. To remove all columns, use removeAllColumns() instead of this method
+* @public
+* @param {Array.&lt;Grid~ColumnReference&gt;} colRefs
+* @see {@link Grid#removeColumn}
+* @see {@link Grid#removeAllColumns}
+*/
+Grid.prototype.removeColumns = function(colRefs) {
+	var indices = this.getColumnIndices(colRefs);
+	var len = indices.length;
+	if(len &lt;= 1) {
+		if(len === 1) {
+			this.removeColumn(indices[0]);
+		}
+		return;
+	}
+	indices.sort(Grid._descendingOrder); // Removal must be done from the back
+
+	var staticFields = []; // For clearing any data stored in our cache
+	var prevState = this._grid.freezeLayout(); // To prevent multiple UI updates
+
+	for(var i = 0; i &lt; len; ++i) {
+		var colIndex = indices[i];
+		var colDef = this.getColumnDefinition(colIndex);
+		if(!colDef.isRealTimeField()) {
+			staticFields.push(colDef.getField());
+		}
+		colDef.dispose();
+		this._grid.removeColumnAt(colIndex);
+		this._connector.removeFields(colDef);
+	}
+
+	if(staticFields.length) {
+		this._dc.removeStaticFields(staticFields);
+	}
+	this._grid.freezeLayout(prevState);
+};
+/** Sorting is also cleared.
+* @public
+* @see {@link Grid#removeColumn}
+* @see {@link Grid#removeColumns}
+*/
+Grid.prototype.removeAllColumns = function() {
+	var colCount = this.getColumnCount();
+	if(colCount &lt;= 0) {
+		return;
+	}
+
+	this.clearSort();
+	for(var i = colCount; --i &gt;= 0;) {
+		// WARNING: This may affect plugins event listeners
+		this._grid.setColumnDataBindingHandler(i, null);
+		var colDef = this.getColumnDefinition(i);
+		colDef.dispose();
+	}
+	// TODO: Remove fields that are related to the column (e.g. fields for coloring)
+
+	this._columnTitleConflator.reset();
+
+	this._connector.removeAllFields();
+	this._grid.setColumnCount(0);
+	this._dc.resetStaticFields();
+};
+
+/**
+ * Move the column at the specified index to the target index.
+ * @public
+ * @param {number|Array.&lt;number&gt;} fromColIndex index or array of indices of the column(s) to be moved.
+ * @param {number} toColIndex target column index
+ */
+Grid.prototype.moveColumn = function (fromColIndex, toColIndex) {
+	//Wrap single index to array
+	if (!Array.isArray(fromColIndex)) {
+		fromColIndex = [fromColIndex];
+	}
+
+	var columnCount = this._grid.getColumnCount();
+	var lastColIndex = columnCount - 1;
+	fromColIndex.sort(ascNumberSorter);
+	fromColIndex = fromColIndex.filter(inRangeFilter.bind(null, 0, lastColIndex));
+
+	if (fromColIndex.length === 0) {
+		return;
+	}
+
+	var frozen = this._grid.isLayoutFrozen();
+	this._grid.freezeLayout(true);
+
+	var marker = [];
+	var runner = 0;
+	var i;
+	for (i = 0; i &lt; columnCount; i++) {
+		if (i == fromColIndex[runner]) {
+			marker.push(true);
+			runner++;
+		} else {
+			marker.push(false);
+		}
+	}
+	//Find the index to be moved to
+	var counter = -1;
+	var toMoveTo = -1;
+
+	for (i = 0; i &lt; columnCount; i++) {
+		if (marker[i] === false) {
+			counter++;
+		}
+
+		if (counter === toColIndex) {
+			toMoveTo = i;
+			break;
+		}
+	}
+
+	//If toMoveTo == -1, it means the target column index is beyond the last colmn so just move the columns
+	//to the end of the table
+	if (toMoveTo === -1) {
+		toMoveTo = columnCount;
+	}
+
+	//Perform moving
+	var leftList = [], rightList = [];
+
+	for (i = 0; i &lt; fromColIndex.length; i++) {
+		if (fromColIndex[i] &lt; toMoveTo) {
+			leftList.push(fromColIndex[i]);
+		} else if (fromColIndex[i] &gt; toMoveTo) {
+			rightList.push(fromColIndex[i]);
+		}
+	}
+
+	for (i = 0; i &lt; rightList.length; i++) {
+		this._grid.moveColumn(rightList[i], toMoveTo + i);
+	}
+
+	for (i = leftList.length - 1; i &gt;= 0; i--) {
+		toMoveTo--;
+
+		this._grid.moveColumn(leftList[i], toMoveTo);
+	}
+
+	this._grid.freezeLayout(frozen);
+};
+
+/** The hidden column still occupies the same index.
+* @public
+* @param {Grid~ColumnReference} colRef
+* @param {boolean=} hidden
+* @see {@link Grid#hideColumns}
+* @see {@link Grid#showAllColumns}
+*/
+Grid.prototype.hideColumn = function(colRef, hidden) {
+	var colIndex = this.getColumnIndex(colRef);
+	this._grid.hideColumn(colIndex, hidden);
+};
+/** Hide multiple columns at once. The hidden columns still occupy the same index.
+* @public
+* @param {Array.&lt;Grid~ColumnReference&gt;} colRefs
+* @param {boolean=} hidden
+* @see {@link Grid#hideColumn}
+* @see {@link Grid#showAllColumns}
+*/
+Grid.prototype.hideColumns = function(colRefs, hidden) {
+	this._grid.hideColumns(this.getColumnIndices(colRefs), hidden);
+};
+/** @public
+* @see {@link Grid#hideColumn}
+* @see {@link Grid#hideColumns}
+*/
+Grid.prototype.showAllColumns = function() {
+	this._grid.showAllColumns();
+};
+/** @private
+* @function
+* @param {number} a
+* @param {number} b
+* @return {number}
+*/
+Grid._descendingOrder = function(a, b) {
+	return b - a;
+};
+
+/** Add fields for real-time data without adding column nor UIs. No duplication is allowed
+* @public
+* @param {string|Array.&lt;string&gt;} fieldRef
+* @param {string=} referrer
+* @return {boolean}
+*/
+Grid.prototype.addDataFields = function(fieldRef, referrer) {
+	if(!fieldRef) {
+		return false;
+	}
+
+	var fields = Array.isArray(fieldRef) ? fieldRef : [fieldRef];
+	var len = fields.length;
+	var i, field, dataType, prom, isRealTimeField, onLoaded;
+	for(i = 0; i &lt; len; i++) {
+		field = fields[i];
+		isRealTimeField = ColumnDefinition.isRealTimeField(field);
+		if(this._shouldLoadFieldInfo(field, isRealTimeField)) {
+			dataType = ColumnDefinition.getDataType(field);
+			prom = FieldDefinition.loadFieldInfo(field)
+				.catch(this._onFieldLoadedError);
+
+			if(!dataType) {
+				// wait field-info to be loaded before adding field
+				onLoaded = this._onFieldLoaded.bind(this, field);
+				prom = prom.then(onLoaded).catch(onLoaded);
+			} else {
+				this._connector.addFields(field, referrer || "grid");
+			}
+		} else {
+			this._connector.addFields(field, referrer || "grid");
+		}
+	}
+
+	return true;
+};
+/** Add fields for real-time data without adding column nor UIs. No duplication is allowed
+* @public
+* @param {string|Array.&lt;string&gt;} fieldRef
+* @param {string=} referrer
+* @return {boolean}
+*/
+Grid.prototype.removeDataFields = function(fieldRef, referrer) {
+	if(!fieldRef) {
+		return false;
+	}
+
+	this._connector.removeFields(fieldRef, referrer || "grid");
+	return true;
+};
+
+/** @public
+* @param {Grid~ColumnReference} colRef
+* @param {string=} opt_order This can be "ascending", "descending", "none", "noOrder", or "originalOrder"
+*/
+Grid.prototype.sortColumn = function(colRef, opt_order) {
+	var colIndex = this.getColumnIndex(colRef);
+	if(colIndex &lt; 0) {
+		this._stp.sortColumn(this.getSortedColumnIndex(), "n"); // reset current sorting
+	} else {
+		this._stp.sortColumn(colIndex, opt_order);
+	}
+};
+/** @public
+* @param {number} colIndex
+* @param {string} str
+*/
+Grid.prototype.setColumnName = function(colIndex, str) {
+	var colDef = this.getColumnDefinition(colIndex);
+	if(colDef) {
+		colDef.setName(str);
+		this.updateColumnTitle();
+	}
+};
+/** @public
+* @param {Grid~ColumnReference} colRef
+* @param {Function=} func
+*/
+Grid.prototype.setColumnRenderer = function(colRef, func) {
+	var colIndex = this.getColumnIndex(colRef);
+	this.setColumnFormatter(colIndex, func);
+};
+
+/** @public
+* @param {Grid~ColumnReference} colRef Column index or id
+* @param {string=} id ID for renderer mapping. If not specified the default renderer will be picked up
+* @param {Function=} func If not specified the renderer which corresponded id from mapping will be picked up
+*/
+Grid.prototype.activateColumnRenderer = function(colRef, id, func) {
+	var colIndex = this.getColumnIndex(colRef);
+	if (colIndex == null) { return; }
+
+	var colDef = this.getColumnDefinition(colIndex);
+	if(!colDef) { return; }
+
+	colDef.activateRenderer(id, func);
+
+	this._grid.setColumnDataBindingHandler(colIndex, colDef.getRenderer());
+	this._grid.requestRowRefresh();
+};
+
+/**
+ * @public
+ * @param {number} colIndex Column index of the position of the column to be updated
+ * @param {Object|Function=} formatter Formatter object or bind function
+ */
+Grid.prototype.setColumnFormatter = function (colIndex, formatter) {
+	if (colIndex == null) { return; }
+
+	var colDef = this.getColumnDefinition(colIndex);
+	if(!colDef) {
+		return;
+	}
+
+	var func = null;
+	if (formatter) {
+		if(typeof formatter === "object") {
+			if(typeof formatter.init === "function") { // Initialize predefined formatter
+				// WARNING: Column definition has not been updated
+				formatter.init(colDef.getConfigObject(), this._grid);
+			}
+			func = formatter.binding;
+		} else {
+			func = formatter;
+		}
+		if(typeof func !== "function") {
+			func = null;
+		}
+	}
+
+	if(func !== colDef.getRenderer()) {
+		var section = this._grid.getSection("content");
+		var col = /** @type {Column} */section.getColumn(colIndex);
+		if (col) {
+			col.clearContent();
+		}
+
+		this._grid.setColumnDataBindingHandler(colIndex, null);
+
+		colDef.setRenderer(func);
+
+		this._grid.setColumnDataBindingHandler(colIndex, colDef.getRenderer());
+		this._grid.requestRowRefresh();
+	}
+};
+
+/** @public
+* @param {Grid~ColumnReference} colRef
+* @param {ColumnDefinition~SortLogic=} func
+*/
+Grid.prototype.setColumnSorter = function(colRef, func) {
+	var colIndex = this.getColumnIndex(colRef);
+	var colDef = this.getColumnDefinition(colIndex);
+	if(colDef) {
+		colDef.setSorter(func);
+
+		var sortedColumn = this.getSortedColumnIndex();
+		if(sortedColumn === colIndex) {
+			this._columnSorter = colDef.getSorter();
+		}
+	}
+};
+
+
+/** Initialize data for the given rowDef from another rowDef with the same RIC
+* @public
+* @param {RowDefinition} rowDef
+*/
+Grid.prototype._initDuplicateRicData = function(rowDef) {
+	var ric = rowDef.getRic();
+	var rowDefs = this._connector.getRowDefByRic(ric);
+	if(rowDefs &amp;&amp; rowDefs.length) {
+		cloneRowData(rowDefs[0], rowDef);
+	}
+};
+/** @public
+* @param {Object=} rowOption
+* @param {Grid~RowReference=} rowRef Reference (i.e. row index, row id, or row definition) of the insert position
+* @returns {Object}
+* @example
+* var grid = new rt.Grid(grid_div, options);
+* grid.insertRow({"ric": "RIC"}, 0); // A new row is added at the top
+*/
+Grid.prototype.insertRow = function(rowOption, rowRef) {
+	if(rowOption) {
+		if(typeof rowOption === "string") {
+			rowOption = { "ric": rowOption };
+		} else if(Array.isArray(rowOption["values"])) {
+			if(!rowOption["fields"]) { // Static values are defined but no fields
+				rowOption["fields"] = this.getColumnFields(); // For initializing static value
+			}
+		}
+	}
+	var rowDef = new RowDefinition(rowOption);
+	rowDef.setDataSource(this._dc); // This could also subscribe chain index/ric to JET/RTK
+	this._initDuplicateRicData(rowDef);
+	if(rowDef.isFixedPosition()) {
+		this._hasGroup = true; // HACK: This is temporary solution
+	}
+
+	rowDef.registerToView(this._dt, this._getRowId(rowRef));
+	this._connector.addRic(rowDef);
+	return rowDef;
+};
+/** @public
+* @param {Array.&lt;Object&gt;} rowOptions Array of row option object
+* @param {Grid~RowReference=} rowRef Reference (i.e. row index, row id, or row definition) of the insert position
+* @param {Array.&lt;string&gt;=} opt_fields
+* @example
+* var grid = new rt.Grid(grid_div, options);
+* grid.insertRows([
+*  {ric: "RIC"},
+*  {values: {"field1": 0, "field2": 1}},
+*  {ric: "RIC2", values: [1, 2, 3, 4]},
+*  null
+* ]); // 4 rows are appended
+*/
+Grid.prototype.insertRows = function(rowOptions, rowRef, opt_fields) {
+	if(!Array.isArray(rowOptions)) {
+		return;
+	}
+
+	var prevState = this._dt.freeze(); // Avoid sorting for each inserted row
+	var fields = opt_fields || this.getColumnFields();
+	var rowId = this._getRowId(rowRef);
+	var len = rowOptions.length;
+	for(var r = 0; r &lt; len; ++r) {
+		var rowOption = rowOptions[r];
+		if(rowOption) {
+			if(typeof rowOption === "string") {
+				rowOption = { "ric": rowOption };
+			}
+			rowOption["fields"] = fields; // For initializing static value
+		}
+		this.insertRow(rowOption, rowId); // Note that data view is being frozen, so only using row id will work properly
+	}
+	this._updateGroupOrder(); // TODO: Update group order for all scenarios
+	this._dt.freeze(prevState);
+};
+/** Add multiple rows without `ric` property in {@link RowDefinition}
+* @public
+* @param {Array} dataRows 2D Array of data or Array of Field/Value pair object
+* @param {Array.&lt;string&gt;=} fields If no field is given, field defined in column definition will be used instead
+* @see {@link Grid#logDV}
+* @see {@link Grid#logDT}
+* @example
+* var grid = new rt.Grid(grid_div, options);
+* grid.addStaticDataRows([
+*  [10, "a", true],
+*  [20, "b", false],
+*  [30, "c", true]
+* ], ["field1", "field2", "field3"]); // 3 rows are appended
+*
+* grid.addStaticDataRows([ // Object format can also be used
+*  {"field1": 40, "field2": "a",  "field3": true},
+*  {"field1": 50, "field2": "b"}, // each row doesn't have to be the same
+*  {"field1": 60, "field4": "some thing"}
+* ]); // 3 more rows are appended
+* grid.logDV({"colNames": ["field1", "field2", "field3", "field4"]}); // See results in console
+*/
+Grid.prototype.addStaticDataRows = function(dataRows, fields) {
+	if(!Array.isArray(dataRows)) {
+		var userObj = dataRows;
+		dataRows = null;
+		if(userObj) {
+			if(userObj.fields &amp;&amp; !fields) {
+				fields = userObj.fields;
+			}
+			if(Array.isArray(userObj.data)) { // dataRows must has an array type
+				dataRows = userObj.data;
+			}
+		}
+	}
+	if(dataRows) {
+		this.insertRows(dataRows.map(Grid._dataToRowOptions), null, fields);
+	}
+};
+/** Insert, update, remove and reorder data based on the given array of records
+* @public
+* @param {Array.&lt;Object&gt;} records Array of records for insert, remove, update, reorder in one operation
+* @param {string} rowIdentifier Check difference data with the row identifier map property for operate record.
+* @example
+* // Grid data set will be updated to 3 records. All rows in the grid will be cleared and new rows will be inserted
+* grid.updateDataSet([
+* 	{ id: "A", field2: 1, field3: 2, field4: "Something A" },
+*	{ id: "B", field2: 1, field3: 2, field4: "Something B" },
+* 	{ id: "C", field2: 1, field3: 2, field4: "Something C" },
+* ], "id");
+* // Update record id "B" in "field2", "field3" value 100, 200
+* grid.updateDataSet([
+* 	{ id: "A", field2: 1, field3: 2, field4: "Something A" },
+* 	{ id: "B", field2: 100, field3: 200, field4: "Something B" },
+* 	{ id: "C", field2: 1, field3: 2, field4: "Something C" },
+* ], "id");
+* // Delete record id "B"
+* grid.updateDataSet([
+* 	{ id: "A", field2: 1, field3: 2, field4: "Something A" },
+* 	{ id: "C", field2: 1, field3: 2, field4: "Something C" },
+* ], "id");
+* // Insert record id "D"
+* grid.updateDataSet([
+* 	{ id: "A", field2: 1, field3: 2, field4: "Something A" },
+* 	{ id: "C", field2: 1, field3: 2, field4: "Something C" },
+* 	{ id: "D", field2: 1, field3: 2, field4: "Something D" },
+* ], "id");
+* // Reorder to "D", "C", "A"
+* grid.updateDataSet([
+* 	{ id: "D", field2: 1, field3: 2, field4: "Something D" },
+* 	{ id: "C", field2: 1, field3: 2, field4: "Something C" },
+* 	{ id: "A", field2: 1, field3: 2, field4: "Something A" },
+* ], "id");
+* // Insert, Update, Delete And Reorder
+* grid.updateDataSet([
+* 	{ id: "F", field2: 1, field3: 2, field4: "Something F" },
+* 	{ id: "D", field2: 1, field3: 2, field4: "Something D" },
+* 	{ id: "C", field2: 1, field3: 2, field4: "Something C" },
+* 	{ id: "E", field2: 1, field3: 2, field4: "Something E" },
+* ], "id");
+*/
+Grid.prototype.updateDataSet = function(records, rowIdentifier) {
+	if(!Array.isArray(records) || records.length === 0 ) {
+		this.removeAllRows();
+		return;
+	}
+
+	// Map new data index
+	var newDataMap = {};
+	var recordCount = records.length;
+	var record, i;
+	for (i = 0; i &lt; recordCount; i++) {
+		record = records[i];
+		newDataMap[record[rowIdentifier]] = record; // Assign a new data map to compare to the previous data
+	}
+
+	var fieldSorting = "ROW_ORDER"; // TODO: Should be config by options
+	records.forEach(mapRowOrder.bind(null, fieldSorting));
+
+	var oldDataMap = {};
+	var rowDef, id;
+	var rowDefs = this.getRowDefinitions(); // WARNING: Filtered and hidden rows are not included
+	var rowDefCount = rowDefs.length;
+	for (i = 0; i &lt; rowDefCount; i++) {
+		rowDef = rowDefs[i];
+		if(rowDef) {
+			id = rowDef.getRowData()[rowIdentifier];
+			if(id || id === 0) {
+				oldDataMap[id] = rowDef;
+			} else { // Any existing rowDef without row identifier should be removed
+				this.removeRow(rowDef); // Slow
+			}
+		}
+	}
+
+	// Check Remove previous data
+	for (var rowIdentifierName in oldDataMap) {
+		if (oldDataMap[rowIdentifierName] &amp;&amp; !newDataMap[rowIdentifierName]) {
+			this.removeRow(oldDataMap[rowIdentifierName]); // Slow
+		}
+	}
+
+	// Check Update and Insert
+	for (i = 0; i &lt; recordCount; i++) {
+		record = records[i];
+		id = record[rowIdentifier];
+		rowDef = oldDataMap[id];
+		if (!rowDef) {
+			this.insertRow({ values: newDataMap[id]}); // Insert last position
+		} else {
+			rowDef.setRowData(record);
+		}
+	}
+	// Sorting
+	this._dt.sortOnce("ROW_DEF", "a", compareNumber, fieldSorting);
+};
+/** @private
+* @param {Array|Object} item
+* @return {!Object}
+*/
+Grid._dataToRowOptions = function(item) {
+	return {values: item};
+};
+/** @public
+* @param {Grid~RowReference} rowRef
+* @return {RowDefinition}
+* @see {@link Grid#removeRows}
+* @see {@link Grid#removeAllRows}
+*/
+Grid.prototype.removeRow = function(rowRef) {
+	var rowDef = this._getRowDefinition(rowRef);
+	if(rowDef) {
+		if(!rowDef.isAutoGenerated()) { // Users cannot remove auto-generated row by themselves
+			this._removeRow(rowDef);
+		}
+	}
+	return rowDef;
+};
+/** Remove multiple rows at once. This prevents duplicate operation and improve performance. To remove all rows, use removeAllRows() method instead of this method.
+* @public
+* @param {Array.&lt;Grid~RowReference&gt;} rowRefs
+* @return {Array.&lt;RowDefinition&gt;} Array of removed row definitions
+* @see {@link Grid#removeRow}
+* @see {@link Grid#removeAllRows}
+*/
+Grid.prototype.removeRows = function(rowRefs) {
+	var rowDef;
+	if(!Array.isArray(rowRefs)) {
+		rowDef = this.removeRow(rowRefs);
+		return rowDef ? [rowDef] : [];
+	}
+
+	var i;
+	var rowDefs = [];
+	var len = rowRefs.length;
+
+	// Verify user input
+	for(i = 0; i &lt; len; ++i) {
+		rowDef = this._getRowDefinition(rowRefs[i]);
+		if(rowDef) {
+			if(!rowDef.isAutoGenerated()) {
+				rowDefs.push(rowDef);
+			}
+		}
+	}
+	len = rowDefs.length;
+
+	var prevState = false;
+	if(len &gt; 1) {
+		prevState = this._dt.freeze(); // Prevent multiple changes that trigger sorting and filtering
+	}
+
+	for(i = 0; i &lt; len; ++i) {
+		this._removeRow(rowDefs[i]);
+	}
+
+	if(len &gt; 1) {
+		this._dt.freeze(prevState);
+	}
+	return rowDefs;
+};
+/** @public
+* @see {@link Grid#removeRow}
+* @see {@link Grid#removeRows}
+*/
+Grid.prototype.removeAllRows = function() {
+	if(!this._dt.getRowCount()) {
+		return;
+	}
+	var rowDefs = this._getAllRowDefinitions();
+
+	this._dc.clearAllData();
+	this._dt.clearAllData();
+	this._clearDataUpdates();
+
+	rowDefs.forEach(RowDefinition.dispose);
+
+	this._streamingConflator.reset();
+	this._formulaConflator.reset();
+	this._chainConflator.reset();
+	this._connector.removeAllRics();
+
+	// TODO: This logic should also be in the core grid
+	this._grid.getVScrollbar().setScrollTop(0);
+	this._grid.getHScrollbar().setScrollLeft(0);
+};
+/** WARNING: This does not remove data stored in the data cache
+* @private
+* @param {!RowDefinition} rowDef
+*/
+Grid.prototype._removeRow = function(rowDef) {
+	this._dispatch("beforeRowRemoved", {});
+
+	var rowIds = rowDef.getAllDescendantIds(); // TODO: Support nested child
+	if(rowIds) { // Remove all children first
+		this._dt.removeRows(rowIds);
+	}
+	this._connector.removeRic(rowDef);
+	this._dt.removeRow(rowDef.getRowId()); // TODO: Merge this with the above removeRows() method
+	rowDef.dispose(); // WARNING: This does not remove child reference from its parent
+};
+
+/** @public
+* @param {Grid~RowReference} rowRef
+* @param {boolean=} hidden if false, show instead of hide
+*/
+Grid.prototype.hideRow = function(rowRef, hidden) {
+	this._grid.hideRow(this._getRowId(rowRef), hidden);
+};
+
+/** Hide row(s) in the Grid by specifying the rIds
+* @param {Grid~RowReference | Array.&lt;Grid~RowReference&gt;} rowRefs
+* @param {boolean=} hidden if false, show instead of hide
+* @public
+*/
+Grid.prototype.hideRows = function (rowRefs, hidden) {
+	if (!Array.isArray(rowRefs)) {
+		rowRefs = [rowRefs];
+	}
+	var rids = rowRefs.map(this._getRowId);
+	this._grid.hideRows(rids, hidden );
+};
+/**
+* Show row(s) in the Grid by specifying the rIds
+* @param {Grid~RowReference | Array.&lt;Grid~RowReference&gt;} rowRefs
+* @param {boolean=} shown if false, hide instead of show
+* @public
+*/
+Grid.prototype.showRows = function (rowRefs, shown) {
+	this.hideRows(rowRefs, shown === false);
+};
+/**
+ * Unhide all hidden rows in the Grid
+ * @public
+ */
+Grid.prototype.unhideAllRows = function () {
+	this._grid.unhideAllRows();
+};
+/**
+* @public
+* @returns {boolean}
+*/
+Grid.prototype.hasHiddenRow = function(){
+	return this._grid.hasHiddenRow();
+};
+
+/** Set RIC to the specified row
+* @public
+* @param {Grid~RowReference} rowRef
+* @param {string} str
+*/
+Grid.prototype.setRic = function(rowRef, str) {
+	var rowDef = this._getRowDefinition(rowRef);
+	if(rowDef) {
+		var oldRic = rowDef.getRic();
+		if(rowDef.setContent(str)) { // The given string may not be a RIC
+			this._connector.removeRic(rowDef, oldRic);
+			this._initDuplicateRicData(rowDef);
+			this._connector.addRic(rowDef);
+		}
+	}
+};
+/** Alias to setRic
+* @public
+* @function
+* @param {Grid~RowReference} rowRef
+* @param {string} str
+* @see {@link Grid.setRic}
+*/
+Grid.prototype.setRowContent = Grid.prototype.setRic;
+
+/**
+* @public
+* @param {string|number} rid Row Id or index
+* @param {boolean=} force
+*/
+Grid.prototype.toggleRowExpansion = function(rid, force) {
+	this._dv.toggleRowExpansion(rid, force);
+};
+/**
+* @private
+* @param {object} e
+*/
+Grid.prototype._onRowExpansionBinding = function(e) {
+	if(!this.hasListener("rowExpansionBinding")) {
+		return;
+	}
+
+	if(e["originalRowId"]) {
+		var rowIndex = this._dv.getRowIndex(e["originalRowId"]);
+		e["originalRowDef"] = this._getRowDefinitionByIndex(rowIndex);
+		e["originalRowData"] = e["originalRowDef"].getRowData();
+	} else {
+		e["rowDef"] = this._getRowDefinitionByIndex(e["rowIndex"]);
+		e["rowData"] = e["rowDef"].getRowData();
+	}
+
+	this._dispatch("rowExpansionBinding", e);
+};
+
+/** Reset existing rows. It is a combination of insertRows and removeAllRows.
+* @public
+* @param {Array.&lt;string&gt;} ary
+*/
+Grid.prototype.setRics = function(ary) {
+	this.removeAllRows();
+	if(ary &amp;&amp; ary.length) {
+		this.insertRows(ary);
+	}
+};
+
+/** WARNING: This represents number of visible rows in a single grid
+* @public
+* @return {number}
+*/
+Grid.prototype.getRowCount = function() {
+	return this._dv.getRowCount();
+};
+/** Get all rows without paging
+* @public
+* @return {number}
+*/
+Grid.prototype.getPageItemCount = function() {
+	return this._dv.getRowCount(false, true);
+};
+/** WARNING: This represents number of rows in the DataTable which includes all invisible rows and rows in multiple wrapped grids
+* @public
+* @return {number}
+*/
+Grid.prototype.getDataRowCount = function() {
+	return this._dt.getRowCount();
+};
+/** @public
+* @return {number}
+*/
+Grid.prototype.getColumnCount = function() {
+	return this._grid.getColumnCount();
+};
+/** @public
+* @param {number} colIndex
+* @return {string}
+*/
+Grid.prototype.getColumnDataType = function(colIndex) {
+	var colDef = this.getColumnDefinition(colIndex);
+	if (colDef) {
+		return colDef.getDataType();
+	}
+	return '';
+};
+/** @public
+* @param {number} colIndex
+* @return {ColumnDefinition}
+*/
+Grid.prototype.getColumnDefinition = function(colIndex) {
+	var colData = this._grid.getColumnData(colIndex);
+	if(colData) {
+		return /** @type{ColumnDefinition} */(colData[COL_DEF]) || null;
+	}
+	return null;
+};
+/** @private
+* @param {Grid~ColumnReference} colRef
+* @return {ColumnDefinition}
+*/
+Grid.prototype._getColumnDefinition = function(colRef) {
+	if(colRef instanceof ColumnDefinition) {
+		return /** @type{!ColumnDefinition} */(colRef);
+	} else if(typeof colRef === "number") {
+		return this.getColumnDefinition(colRef);
+	} else if(typeof colRef === "string") {
+		var colCount = this.getColumnCount();
+		for(var i = 0; i &lt; colCount; ++i) {
+			var colDef = this.getColumnDefinition(i);
+			if(colDef.getField() === colRef) {
+				return colDef; // Return the first found field
+			}
+		}
+	}
+	return null;
+};
+/** @private
+* @return {Array.&lt;ColumnDefinition&gt;}
+*/
+Grid.prototype._getAllColumnDefinitions = function() {
+	var colCount = this.getColumnCount();
+	var colDefs = new Array(colCount);
+	for(var i = 0; i &lt; colCount; i++) {
+		colDefs[i] = this.getColumnDefinition(i);
+	}
+	return colDefs;
+};
+/** @public
+* @param {number|string} rowRef Row index as shown in the view or row id (string)
+* @return {RowDefinition}
+*/
+Grid.prototype.getRowDefinition = function(rowRef) {
+	if(typeof rowRef === "number") {
+		return this._getRowDefinitionByIndex(rowRef);
+	} else if(typeof rowRef === "string") {
+		return this._getRowDefinitionById(rowRef);
+	}
+	return null;
+};
+/** @private
+* @param {number} rowIndex
+* @return {RowDefinition}
+*/
+Grid.prototype._getRowDefinitionByIndex = function(rowIndex) {
+	return this._dv.getDataAt(rowIndex, ROW_DEF) || null;
+};
+/** @private
+* @param {string} rowId
+* @return {RowDefinition}
+*/
+Grid.prototype._getRowDefinitionById = function(rowId) {
+	return this._dt.getData(rowId, ROW_DEF) || null;
+};
+/** @private
+* @param {Grid~RowReference} rowRef
+* @return {RowDefinition}
+*/
+Grid.prototype._getRowDefinition = function(rowRef) {
+	if(rowRef instanceof RowDefinition) {
+		if(rowRef.getRowId()) { // The row may have been removed from the grid
+			return /** @type{!RowDefinition} */(rowRef);
+		}
+	}
+	return this.getRowDefinition(rowRef);
+};
+/** Get all row definitions shown in the view, excluding rows that are hidden by filtering or pagination. &lt;br&gt;
+* A new array object is created every time. Do not call this method repeatedly.&lt;br&gt;
+* Group header row will return null for its rowDefinition since the row is auto generated and has no data nor definition.
+* @public
+* @return {!Array.&lt;RowDefinition&gt;}
+*/
+Grid.prototype.getRowDefinitions = function() {
+	return this._dv.getColumnData(ROW_DEF, true); // Include group header rows
+};
+/** Get all row definitions, including filtered and hidden rows, but without group header rows.
+* @private
+* @return {!Array.&lt;RowDefinition&gt;}
+*/
+Grid.prototype._getAllRowDefinitions = function() {
+	return this._dt.getColumnData(ROW_DEF); // no group header rows
+};
+/** A shorthand to retrieve row data based on index of the specified row.
+* @public
+* @param {number} rowIndex Row index as shown in the view
+* @return {Object} "FIELD1": value1, "FIELD2": value2, ...
+*/
+Grid.prototype.getRowData = function(rowIndex) {
+	return toRowData(this._getRowDefinitionByIndex(rowIndex));
+};
+/** Get data from multiple rows. If null or undefined value is given, data from all rows are returned.
+* @public
+* @param {*=} obj The value can be rowIndex, array of row indices, array of row definitions, DataView instance, null or undefined
+* @return {!Array.&lt;Object&gt;}
+* @example
+* grid.getMultipleRowData(); // All row data are returned
+* grid.getMultipleRowData([0, 2, 4]); // Three row data are returned
+* grid.getMultipleRowData(1); // One row data from the specified row index is returned
+* grid.getMultipleRowData(DataView); // All row data from the specified DataView instance are returned
+*/
+Grid.prototype.getMultipleRowData = function(obj) {
+	if(typeof obj === "number") {
+		return [this.getRowData(obj)];
+	}
+	var rowDefs = null;
+	if(Array.isArray(obj)) {
+		var rowRefs = obj;
+		var rowCount = rowRefs.length;
+		var rows = new Array(rowCount);
+		rowDefs = this.getRowDefinitions();
+
+		for(var r = 0; r &lt; rowCount; ++r) {
+			var rowRef = rowRefs[r];
+			if(typeof rowRef === "number") {
+				rows[r] = toRowData(rowDefs[rowRef]);
+			} else if(rowRef &amp;&amp; rowRef.getRowData) {
+				rows[r] = toRowData(rowRef);
+			}
+		}
+		return rows;
+	}
+
+	if(obj &amp;&amp; obj.getColumnData) { // Check if the given reference is DataView or DataTable
+		rowDefs = obj.getColumnData(ROW_DEF, false); // Get all row data WITHOUT group header rows
+	} else {
+		rowDefs = this.getRowDefinitions(); // Get all row definition from current view INCLUDING group header rows
+	}
+	return rowDefs.map(toRowData);
+};
+/** Set row data base on RIC.
+* @public
+* @param {string} ric
+* @param {Object} values {"FIELD1": value1, "FIELD2": value2, ...} Use null to remove current row data (not row in the view).
+*/
+Grid.prototype.setRicData = function(ric, values) {
+	var rowDefs = this._connector.getRowDefByRic(ric);
+	for (var i = 0; i &lt; rowDefs.length; i++) {
+		var rowDef = rowDefs[i];
+		if (rowDef &amp;&amp; rowDef.getRic() === ric) {
+			rowDef.setRowData(values); // TODO: Need conflator to improve performance
+		}
+	}
+};
+/** A shorthand to set row data based on index of the specified row. It is better to keep rowDefinition object for updating data directly as row index can be changed by sorting and filtering.
+* @public
+* @param {Grid~RowReference} rowRef
+* @param {Object} values {"FIELD1": value1, "FIELD2": value2, ...} Use null to remove current row data (not row in the view).
+*/
+Grid.prototype.setRowData = function(rowRef, values) {
+	var rowDef = this._getRowDefinition(rowRef);
+	if(rowDef) {
+		rowDef.setRowData(values);
+	}
+};
+/** @private
+* @param {Grid~RowReference=} rowRef
+* @return {string}
+*/
+Grid.prototype._getRowId = function(rowRef) {
+	if(typeof rowRef === "string") {
+		return rowRef;
+	} else if(typeof rowRef === "number") { // WARNING: This is view index, excluding hidden row
+		return this._dv.getRowId(rowRef);
+	} else if(rowRef instanceof RowDefinition) {
+		return rowRef.getRowId();
+	}
+	return "";
+};
+
+/** @public
+* @param {Grid~ColumnReference} colRef
+* @return {number}
+*/
+Grid.prototype.getColumnIndex = function(colRef) {
+	if(typeof colRef === "number") {
+		return colRef;
+	}
+
+	var colCount = this.getColumnCount();
+	var i, colDef;
+	if(colRef instanceof ColumnDefinition) {
+		for(i = 0; i &lt; colCount; ++i) {
+			colDef = this.getColumnDefinition(i);
+			if(colDef === colRef) {
+				return i;
+			}
+		}
+	} else if(typeof colRef === "string") {
+		for(i = 0; i &lt; colCount; ++i) {
+			colDef = this.getColumnDefinition(i);
+			if(colDef.getField() === colRef) {
+				return i; // Return the first found field
+			}
+		}
+	}
+	return -1;
+};
+/** Any invalid column reference will be excluded from the output array
+* @public
+* @param {Array.&lt;Grid~ColumnReference&gt;} colRefs
+* @return {!Array.&lt;number&gt;}
+*/
+Grid.prototype.getColumnIndices = function(colRefs) {
+	var ary = [];
+	var colCount = this.getColumnCount();
+	var inputAry = Array.isArray(colRefs) ? colRefs : [colRefs];
+	var len = inputAry.length;
+	// Verify user input
+	for(var i = 0; i &lt; len; ++i) {
+		var colIndex = this.getColumnIndex(inputAry[i]);
+		if(colIndex &gt;= 0 &amp;&amp; colIndex &lt; colCount) {
+			ary.push(colIndex); // WARNING: We have not check for duplication
+		}
+	}
+	return ary;
+};
+/** Return column id that is set through configuration object
+* @public
+* @param {number} colIndex
+* @return {string} Return empty string if no existing id or column
+* @see {@link Grid#getColumnDefinition}
+*/
+Grid.prototype.getColumnId = function(colIndex) {
+	var colDef = this.getColumnDefinition(colIndex);
+	return (colDef) ? colDef.getId() : "";
+};
+/** Return field defined in the column definition
+* @public
+* @param {number} colIndex
+* @return {string}
+* @see {@link Grid#getColumnDefinition}
+*/
+Grid.prototype.getColumnField = function(colIndex) {
+	var colDef = this.getColumnDefinition(colIndex);
+	return (colDef) ? colDef.getField() : "";
+};
+/** Get fields from each column definition. Note that this does not include any required field or data fields. Duplicates may exist.
+* @public
+* @return {!Array.&lt;string&gt;} New array is created
+*/
+Grid.prototype.getColumnFields = function() {
+	var colCount = this.getColumnCount();
+	var ary = new Array(colCount);
+	for(var i = 0; i &lt; colCount; ++i) {
+		ary[i] = this.getColumnField(i);
+	}
+	return ary;
+};
+/** Get all fields, including required fields and data fields, with no duplicate
+* @public
+* @return {!Array.&lt;string&gt;} New array is created
+*/
+Grid.prototype.getAllFields = function() {
+	return this._connector.getAllFields();
+};
+/** Freeze the column at the left side of the table starting from index 0 to the specified colIndex
+ * If no index is specified (null or undefined index), unfreeze all columns.
+ * @public
+ * @param {number=} opt_colIndex
+ * @param {number=} pinnedRightColumns Number of columns to be pinned/snapped on the right side
+ */
+Grid.prototype.freezeColumn = function(opt_colIndex, pinnedRightColumns) {
+	this._grid.freezeColumn(opt_colIndex, pinnedRightColumns);
+};
+
+/** @private
+* @param {Object} e
+*/
+Grid.prototype._onColumnHeaderBinding = function(e) {
+	if(e["sectionType"] !== "title" || e["sectionIndex"] &gt; 0) {
+		return; // WARNING: Assume that only the first title section is owned by the grid. Anything else is assumed to be generated by plugins
+	}
+
+	var c = e["fromColIndex"];
+	var toC = e["toColIndex"];
+	while(c &lt; toC) {
+		this._renderColumnHeader(c++, e);
+	}
+};
+/** @private
+* @param {number=} colIndex
+* @param {Object} arg
+*/
+Grid.prototype._renderColumnHeader = function(colIndex, arg) {
+	var colDef = this.getColumnDefinition(colIndex);
+	if(!colDef) {
+		return;
+	}
+	var customRenderer = colDef.getHeaderRenderer();
+	var tSection = arg.section;
+	var rowCount = tSection.getRowCount();
+	arg["colIndex"] = colIndex;
+	arg["columnDef"] = colDef;
+
+	var colName = colDef.getName();
+	var colTooltip = colDef.getTooltip();
+	var headerAlignment = colDef.getHeaderAlignment();
+
+	for(var r = 0; r &lt; rowCount; ++r) {
+		var tCell = tSection.getCell(colIndex, r, false);
+		// Default behaviors
+		tCell.setContent(colName);
+		tCell.setTooltip(colTooltip);
+		tCell.setStyle("textAlign", headerAlignment);
+
+		if(customRenderer) {
+			arg["rowIndex"] = r;
+			arg["cell"] = tCell;
+			customRenderer(arg);
+		}
+	}
+};
+/** @public
+*/
+Grid.prototype.updateColumnTitle = function() {
+	if(this._columnTitleConflator.conflate()) {
+		return;
+	}
+	var tss = this._grid.getSectionSettings("title"); // WARNING: Assume that only the first title section is owned by the grid
+	if(tss) {
+		tss.rerender();
+	}
+};
+/** @public
+* @return {boolean}
+*/
+Grid.prototype.isSorting = function() {
+	return this.getSortedColumnIndex() &gt;= 0;
+};
+/** @public
+* @return {number}
+*/
+Grid.prototype.getSortedColumnIndex = function() {
+	return this._stp.getSortedColumnIndex();
+};
+/** @public
+* @return {string} "a" for "ascending, "d" for descending, and "n" for none/noOrder
+*/
+Grid.prototype.getSortOrder = function() {
+	return this._stp.getSortOrder();
+};
+/** @public
+*/
+Grid.prototype.clearSort = function() {
+	this._stp.clearSortState();
+};
+
+/** @private
+* @param {!Object} e
+*/
+Grid.prototype._onDataChanged = function(e) {
+	var rowData = e["rowData"]; // Use rowData to retrieve corresponding subscription object
+	if (!rowData) {
+		return; // This must be a global change
+	}
+	var rowDef = rowData[ROW_DEF];
+
+	if(rowDef) {
+		var rowId = rowDef.getRowId();
+		if(rowId) {
+			// e["rid"] could be from JET/RTK (rowId + ric) or static data update (rowId)
+			var curRowData = this._dc.getRowData(e["rid"]);
+			if (curRowData) {
+				if(rowDef.addUpdate(e)) { // This is the only place that update array can grow. It is used for blinking data.
+					this._dt._hasNewUpdates = true; // Mark data table for cleaning it up later
+				}
+				this._updateStreamingData();
+			} else if(rowDef.isAutoGenerated()) { // Subscription and its parent has been removed by Real-time provider
+				rowDef.setParent(null); // Manually remove child reference from its parent
+				this._removeRow(rowDef);
+			}
+		}
+		return;
+	}
+
+	// The new data update has no row definition, meaning that we have found a new constituent from a chain.
+	var subId = rowData[SUB_ID]; // The constituent will share the same sub id as its parent
+	if(subId) {
+		var parentDef = this._getRowDefinition(subId);
+		if(parentDef &amp;&amp; parentDef.getRic() !== rowData["RIC"]) { // TODO: Check for delayed ric
+			if(!this._chainMembers) {
+				this._chainMembers = {};
+			}
+			if(!this._chainMembers[e["rid"]]) { // Prevent duplication
+				this._chainMembers[e["rid"]] = rowData;
+				this._addMemberOfChain(rowData);
+			}
+		}
+	}
+};
+/** @private
+* @param {!Object} rowData
+*/
+Grid.prototype._addMemberOfChain = function(rowData) {
+	if(this._chainConflator.conflate(rowData)) {
+		return;
+	}
+
+	var rows = this._chainConflator.popAllData(); // This must have no duplication
+	var len = rows ? rows.length : 1;
+	var i;
+
+	var prevState = false;
+	if(len &gt; 1) {
+		prevState = this._dt.freeze(); // Avoid sorting for each insertion
+	}
+	var childDefs = [];
+	for(i = 0; i &lt; len; ++i) {
+		rowData = /** @type{!Object} */(rows[i]);
+		var subId = rowData[SUB_ID];
+		var parentDef = this._getRowDefinition(subId);
+		if(parentDef) {
+			var childDef = parentDef.addConstituent(/** @type{string} */(rowData["RIC"]), this._dt);
+			if(childDef) {
+				childDefs.push(childDef);
+			} // else { // childDef has already been added
+		}
+	}
+	this._chainMembers = null; // Clear all waiting chain members
+
+	var childCount = childDefs.length;
+	if(childCount) {
+		for(i = childCount; --i &gt;= 0;) {
+			this._connector.addRic(childDefs[i]); // TODO: JET/RTK should not re-subscribe this
+		}
+
+		this._sortMembersOfChain();
+	}
+	if(len &gt; 1) {
+		this._dt.freeze(prevState);
+	}
+};
+/** @private
+*/
+Grid.prototype._sortMembersOfChain = function() {
+	if(!this.isSorting()) { // Order of the members matters only when there is no sorting
+		this._dt.sortOnce( // TODO: This should be done on data view
+			ROW_DEF, 0,
+			/** @type{(function (*, *, number): number|undefined)} */(RowDefinition._chainSortLogic)
+		);
+	}
+};
+
+/** @private
+*/
+Grid.prototype._updateStreamingData = function() {
+	if(this._streamingConflator.conflate()) {
+		return;
+	}
+
+	if(this._dt) {
+		this._dt.dispatchGlobalChange();
+	}
+};
+/** @private
+*/
+Grid.prototype._updateGroupOrder = function() {
+	if(!this._hasGroup) { return; }
+	// TODO: Perform re-indexing of the data table, so that both data table and data view has the same index
+	// if(this.isSorting()) {
+	// this._dt.sortOnce(ROW_DEF, this.getSortOrder());
+	// }
+	var rowCount = this._dt.getRowCount();
+	var groupOrder = 0;
+	var dirty = 0;
+	var prevParent = null;
+	var prevFixedState = false;
+	for(var i = 0; i &lt; rowCount; ++i) {
+		var rowDef = this._dt.getDataAt(i, ROW_DEF);
+		var curParent = rowDef.getParent();
+		var curFixedState = rowDef.isFixedPosition();
+		if(curFixedState || curFixedState !== prevFixedState || curParent !== prevParent) {
+			++groupOrder;
+		}
+		prevParent = curParent;
+		prevFixedState = curFixedState;
+		dirty |= rowDef.setGroupOrder(groupOrder);
+	}
+	if(dirty &amp;&amp; this.isSorting()){
+		this._stp.refresh();
+	}
+};
+
+/** @private
+* @param {Object} e
+*/
+Grid.prototype._onPreDataSorting = function (e) {
+	// TODO: Support multi-column sorting
+	var colIndex = this._stp.getSortedColumnIndex();
+	var colDef = (colIndex &gt;= 0) ? this.getColumnDefinition(colIndex) : null;
+	this._columnSorter = (colDef) ? colDef._prepareSortContext(colIndex) : null;
+};
+/** @private
+* @param {RowDefinition} rowDefA
+* @param {RowDefinition} rowDefB
+* @param {number} order
+* @return {number}
+*/
+Grid.prototype._mainSorter = function (rowDefA, rowDefB, order) {
+	return this._columnSorter(rowDefA, rowDefB, order);
+};
+
+/** @private
+* @param {Object} e
+*/
+Grid.prototype._onPostSectionDataBinding = function(e) {
+	if(e["actualUpdate"]) {
+		this._asyncClearDataUpdates();
+	}
+};
+/** @private
+*/
+Grid.prototype._asyncClearDataUpdates = function() {
+	setTimeout(this._clearDataUpdates, 0);
+};
+/** @private
+*/
+Grid.prototype._clearDataUpdates = function() {
+	if(!this._dt || !this._dt._hasNewUpdates) {
+		return;
+	}
+	var rowIds = this._dt.getAllRowIds(true); // Use shallow copy for speed
+	for(var i = rowIds.length; --i &gt;= 0;) {
+		var rowData = this._dt.getRowData(rowIds[i]);
+		var rowDef = rowData[ROW_DEF];
+		rowDef.resetUpdates();
+	}
+};
+
+/** @public
+* @return {DataView}
+*/
+Grid.prototype.getDataView = function() {
+	return this._dv;
+};
+/** @public
+* @param {number} pageIndex
+* @return {boolean}
+*/
+Grid.prototype.setPage = function(pageIndex) {
+	return this._dv.setPage(pageIndex);
+};
+/** @public
+* @param {number} size
+*/
+Grid.prototype.setPageSize = function(size) {
+	this._dv.setPageSize(size);
+};
+/** @public
+* @return {number}
+*/
+Grid.prototype.getPageIndex = function() {
+	return this._dv.getPageIndex();
+};
+/** @public
+* @return {number}
+*/
+Grid.prototype.getPageSize = function() {
+	return this._dv.getPageSize();
+};
+/** @public
+* @return {number}
+*/
+Grid.prototype.getPageCount = function() {
+	return this._dv.getPageCount();
+};
+
+
+/** @description Toggle between expanded and collapsed chain index
+ * @public
+ * @param {Grid~RowReference} rowRef
+ */
+Grid.prototype.toggleChain = function(rowRef) {
+	var rowDef = this._getRowDefinition(rowRef);
+	if(!rowDef || !rowDef.isChain()) {
+		return;
+	}
+	var dirty = false;
+	if(rowDef.isChainCollapsed()) { // TODO: Add toggleChain() method to rowDef
+		dirty = rowDef.expandChain();
+	} else {
+		dirty = rowDef.collapseChain();
+	}
+	if(!dirty) {
+		this._grid.requestRowRefresh();
+	}
+};
+/** @description Focus grid element without moving window scrollbar
+ * @public
+ */
+Grid.prototype.focus = function() {
+	this._grid.focus();
+};
+
+/** @private
+* @param {Object} e
+*/
+Grid.prototype._onFormulaDataChanged = function(e) {
+	if (this._formulaConflator.conflate()) {
+		return;
+	}
+
+	// TODO: Check if we need to recompose the data in the data composed method
+	this._recalculateFormulas(); // Force recalculation of user formula
+	this._updateRowData(); // Re-render the data
+};
+/** @private
+* @param {Object} e
+*/
+Grid.prototype._onFormulaDataRequired = function(e) {
+	// if(obj["field"]) {
+	// this._registerFieldToDataProvider(obj); TODO
+	// if(this._dataRequiredTimerId) {
+	// window.clearTimeout(this._dataRequiredTimerId);
+	// }
+	// this._dataRequiredTimerId = window.setTimeout( this._recalculateFormulas, 0); // Force recalculation of all rows
+	// }
+};
+
+/** @private
+* @param {Object} e
+*/
+Grid.prototype._onDataComposed = function(e) {
+	// auto data conversion
+	var values = e["changes"];
+	if(this._autoDateConversion &amp;&amp; values) {
+		var suffix = "_RAW";
+		var rowDef = e["rowData"][ROW_DEF];
+		var field, value, dataType, colDef;
+		for(field in values) {
+			colDef = this._getColumnDefinition(field);
+			if(colDef) {
+				dataType = colDef.getDataType();
+			} else {
+				dataType = ColumnDefinition.getDataType(field);
+			}
+
+			if(dataType === "datetime") {
+				value = values[field];
+				rowDef.setData(field + suffix, value);
+				value = DateTime.toDateObject(value);
+				rowDef.setData(field, value);
+			}
+		}
+	}
+
+	if(this.hasListener("dataComposed")) {
+		e["grid"] = this;
+		e["rowDef"] = e["rowData"][ROW_DEF];
+		this._dispatch("dataComposed", e);
+	}
+};
+
+/** @private
+* @param {Object=} e
+*/
+Grid.prototype._recalculateFormulas = function(e) {
+	if(this._fnEngine.getFormulaCount() &lt;= 0) { return; }
+
+	if(e &amp;&amp; e["rid"]) {
+		this._fnEngine.calculate(/** @type{Object.&lt;string, *&gt;} */ (e["rowData"]), /** @type{Object.&lt;string, *&gt;} */ (e["changes"]));
+	} else {
+		var rows = this._dc.getAllRowData(); // Slow
+
+		var rowCount = rows.length;
+		for(var r = 0; r &lt; rowCount; ++r) { // WARNING: This is very slow
+			this._fnEngine.calculate(rows[r]);
+		}
+	}
+};
+
+/** @private
+* @param {Object} e The updated data from snapshot filler when it request data from JET/RTK
+*/
+Grid.prototype._snapshotFillerDataChanged = function (e) {
+	if (!this._dt) return;
+
+	var data = e.data;
+	for (var ric in data) {
+		this.setRicData(ric, data[ric]);
+	}
+};
+
+/** @private
+*/
+Grid.prototype._onAutoLayoutUpdate = function() {
+	var elem = this._topNode;
+
+	var cw = elem.clientWidth;
+	if(cw !== this._clientWidth) {
+		this._clientWidth = cw;
+		this.updateLayout();
+	}
+};
+
+/** @description Log DataTable to console. By default, this will log only fields specified in the column definition. To see other column data use "colNames" options
+ * @public
+ * @param {Object=} opt_options { "colNames": Array.&lt;string&gt;, "rowCount": number, "startIndex": number, "getter": function(Object, string):* }
+ */
+Grid.prototype.logDT = function(opt_options) {
+	var rowDefs = this._getAllRowDefinitions();
+	this._logData(rowDefs, opt_options);
+};
+/** @description Log DataView to console. By default, this will log only fields specified in the column definition. To see other column data use "colNames" options
+ * @public
+ * @param {Object=} opt_options { "colNames": Array.&lt;string&gt;, "rowCount": number, "startIndex": number, "getter": function(Object, string):* }
+ * @example
+// Options have the following format:
+// {
+//    "colNames": Array.&lt;string&gt;,
+//    "rowCount": number,
+//    "startIndex": number,
+//    "getter": function(rowData:Object, colName:string):*,
+//    "withRowIds": boolean
+// }
+grid.logDV({"rowCount": 10}); // Showing 10 records
+ */
+Grid.prototype.logDV = function(opt_options) {
+	var rowDefs = this.getRowDefinitions();
+	this._logData(rowDefs, opt_options);
+};
+/** Log the collection of data to console
+ * @private
+ * @param {!Array.&lt;RowDefinition&gt;} rowDefs
+ * @param {Object=} options
+ */
+Grid.prototype._logData = function(rowDefs, options) {
+	if(!options) {
+		options = {};
+	}
+	if(!options["colNames"]) {
+		// TODO: Get all required fields and eliminate duplicate fields
+		options["colNames"] = this.getColumnFields();
+	}
+	var tbl = DataCache.constructTable(rowDefs.map(toRowData), options);
+
+	console.table(tbl); // eslint-disable-line
+};
+
+/** @private
+ * @function
+ * @param {Object} to
+ * @param {Object} from
+ */
+Grid._objectAssign = function (to, from) {
+	for (var key in from) {
+		to[key] = from[key];
+	}
+};
+
+export { Grid };
+export default Grid;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="ColumnDefinition.html">ColumnDefinition</a></li><li><a href="DataConnector.html">DataConnector</a></li><li><a href="Grid.html">Grid</a></li><li><a href="ReferenceCounter.html">ReferenceCounter</a></li><li><a href="RowDefinition.html">RowDefinition</a></li><li><a href="SnapshotFiller.html">SnapshotFiller</a></li><li><a href="StyleLoader.html">StyleLoader</a></li></ul><h3>Events</h3><ul><li><a href="Grid.html#event:adcDataReceived">adcDataReceived</a></li><li><a href="Grid.html#event:beforeRowRemoved">beforeRowRemoved</a></li><li><a href="Grid.html#event:dataComposed">dataComposed</a></li><li><a href="Grid.html#event:fieldAdded">fieldAdded</a></li><li><a href="Grid.html#event:fieldRemoved">fieldRemoved</a></li><li><a href="Grid.html#event:pageCountChanged">pageCountChanged</a></li><li><a href="Grid.html#event:pageIndexChanged">pageIndexChanged</a></li><li><a href="Grid.html#event:ricAdded">ricAdded</a></li><li><a href="Grid.html#event:ricRemoved">ricRemoved</a></li></ul><h3>Global</h3><ul><li><a href="global.html#COL_DEF">COL_DEF</a></li><li><a href="global.html#ROW_DEF">ROW_DEF</a></li></ul>
+</nav>
+
+
+<script src="scripts/linenumber.js"> </script>
+<script src="scripts/prettify.js"> </script>
+<script> prettyPrint(); </script>
+</body>
+</html>

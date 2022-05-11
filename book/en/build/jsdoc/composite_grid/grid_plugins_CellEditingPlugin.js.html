@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: grid/plugins/CellEditingPlugin.js</title>
+
+    <script src="scripts/prettify.js"> </script>
+    <script src="scripts/lang-css.js"> </script>
+    <!--[if lt IE 9]&gt;
+      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
+    &lt;![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/default.css">
+    <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
+</head>
+
+<body>
+
+<div id="main-template" class="elf-template">
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>goog.provide("tr.grid.CellEditingPlugin");
+
+goog.require("tr.res");
+goog.require("tr.grid.IPlugin");
+goog.require("tr.grid.Plugin");
+goog.require("tr.ILayoutGrid");
+
+/** Happens before the opening of text editor. This allow user to disable the editor on case by case basis
+* @event tr.grid.CellEditingPlugin#preEditorOpening
+* @example
+* var cep = new grid.CellEditingPlugin();
+* cep.listen("preEditorOpening", function(e) {
+*     e["cancel"] = true; // Cancel the editing process
+* });
+*/
+
+/** Happens after the opening of text editor. Any visual customization can be done at this stage, including the text shown in the editor.
+* @event tr.grid.CellEditingPlugin#editorOpened
+*/
+
+/** Fired after user text has been entered and the text editor has been closed
+* @event tr.grid.CellEditingPlugin#change
+*/
+
+/** Fired when a user cancels the operation and the text editor has been closed. If  tr.grid.CellEditingPlugin#change had been fired, "cancelled" event would not be fired.
+* @event tr.grid.CellEditingPlugin#cancelled
+*/
+
+/** Fired after the text editor has been closed and all operations are done. This is useful to clean up left over resource.
+* @event tr.grid.CellEditingPlugin#closed
+*/
+
+
+/** Double-click to activate edit mode
+ * @constructor
+ * @param {Array.&lt;number|boolean&gt;|null=} opt_restrictions By default all columns will be processed by this plugin
+ * @param {Array.&lt;number|boolean&gt;|null=} opt_exclusions By default no column will be excluded by this plugin
+ * @extends {tr.grid.Plugin}
+ * @implements {tr.grid.IPlugin}
+ */
+tr.grid.CellEditingPlugin = function (opt_restrictions, opt_exclusions) {
+	var _t = this;
+	_t._onColumnAdded = _t._onColumnAdded.bind(_t);
+	_t._onColumnMoved = _t._onColumnMoved.bind(_t);
+	_t._onColumnRemoved = _t._onColumnRemoved.bind(_t);
+
+	_t._onDoubleClick = _t._onDoubleClick.bind(_t);
+	_t._onTextBlur = _t._onTextBlur.bind(_t);
+	_t._onClickedOutside = _t._onClickedOutside.bind(_t);
+	_t._onTextKeyDown = _t._onTextKeyDown.bind(_t);
+	_t._onTextKeyUp = _t._onTextKeyUp.bind(_t);
+	_t._onSuggestionSelected = _t._onSuggestionSelected.bind(_t);
+	_t._onSuggestionTextEntered = _t._onSuggestionTextEntered.bind(_t);
+	_t._onTouchStart = _t._onTouchStart.bind(_t);
+	_t._onTouchEnd = _t._onTouchEnd.bind(_t);
+	_t._onTimer = _t._onTimer.bind(_t);
+
+	_t._onComboBoxBlur = _t._onComboBoxBlur.bind(_t);
+
+	_t._hosts = [];
+
+	var textBox = document.createElement("input");
+	textBox.setAttribute("type", "text");
+	textBox.addEventListener(tr.res.blur, _t._onTextBlur, false);
+	textBox.addEventListener(tr.res.keydown, _t._onTextKeyDown, false);
+	textBox.addEventListener(tr.res.keyup, _t._onTextKeyUp, false);
+	textBox.addEventListener(tr.res.mousedown, _t._stopPropagation, false);
+	textBox.addEventListener(tr.res.mouseup, _t._stopPropagation, false);
+	textBox.addEventListener(tr.res.click, _t._stopPropagation, false);
+	textBox.addEventListener("copy", _t._stopPropagation, false);
+	textBox.addEventListener("cut", _t._stopPropagation, false);
+	textBox.addEventListener("paste", _t._stopPropagation, false);
+
+	_t._textBox = textBox;
+
+	_t._marker = new grid.IndexMarker(opt_restrictions, opt_exclusions);
+
+	_t._addEvent("preEditorOpening");
+	_t._addEvent("editorOpened");
+	_t._addEvent(tr.res.change);
+	_t._addEvent("cancelled");
+	_t._addEvent("closed");
+};
+goog.inherits(tr.grid.CellEditingPlugin, tr.grid.Plugin);
+
+
+/** @private
+* @type {boolean}
+*/
+tr.grid.CellEditingPlugin.prototype._editableTitle = true;
+/** @private
+* @type {boolean}
+*/
+tr.grid.CellEditingPlugin.prototype._editableContent = true;
+
+/** @private
+* @type {Object}
+*/
+tr.grid.CellEditingPlugin.prototype._activePos = null;
+/** @private
+* @type {tr.IElementControl}
+*/
+tr.grid.CellEditingPlugin.prototype._activeCell = null;
+/** @private
+* @type {*}
+*/
+tr.grid.CellEditingPlugin.prototype._prevContent = null;
+/** @private
+* @type {Node}
+*/
+tr.grid.CellEditingPlugin.prototype._textNode = null;
+/** @private
+* @type {string}
+*/
+tr.grid.CellEditingPlugin.prototype._initialText = "";
+/** @private
+* @type {string}
+*/
+tr.grid.CellEditingPlugin.prototype._initialFeed = "";
+/** @private
+* @type {!Element}
+*/
+tr.grid.CellEditingPlugin.prototype._textBox;
+/** @private
+* @type {tr.ElementWrapper}
+*/
+tr.grid.CellEditingPlugin.prototype._balloon = null;
+/** @private
+* @type {boolean}
+*/
+tr.grid.CellEditingPlugin.prototype._usingBalloon = false;
+/** @private
+* @type {boolean}
+*/
+tr.grid.CellEditingPlugin.prototype._isBalloonMode = false;
+
+/** @private
+* @type {*}
+*/
+tr.grid.CellEditingPlugin.prototype._autoSuggest = null;
+/** @private
+* @type {boolean}
+*/
+tr.grid.CellEditingPlugin.prototype._dataBinding = true;
+/** @private
+* @type {boolean}
+*/
+tr.grid.CellEditingPlugin.prototype._suggesting = false;
+/** @private
+* @type {boolean}
+*/
+tr.grid.CellEditingPlugin.prototype._manualInput = false;
+/** @private
+* @type {boolean}
+*/
+tr.grid.CellEditingPlugin.prototype._dblClick = true;
+/** @private
+* @type {boolean}
+*/
+tr.grid.CellEditingPlugin.prototype._autoCommitText = false;
+
+
+/** @private
+* @type {boolean}
+*/
+tr.grid.CellEditingPlugin.prototype._dataFeed = false;
+/** @private
+* @type {!Element}
+*/
+tr.grid.CellEditingPlugin.prototype._comboBox;
+/** @private
+* @type {boolean}
+*/
+tr.grid.CellEditingPlugin.prototype._useCoralComboBox = false;
+/** @private
+* @type {string}
+*/
+tr.grid.CellEditingPlugin.prototype._lastUsedFeed = "Q";
+/** @private
+* @type {number}
+*/
+tr.grid.CellEditingPlugin.prototype._timerId = 0;
+/** @private
+* @type {number}
+*/
+tr.grid.CellEditingPlugin.prototype._longPressTime = 1000; // For touch screen
+/** @private
+* @type {boolean}
+*/
+tr.grid.CellEditingPlugin.prototype._editing = false;
+
+
+//#region Public
+/** @override */
+tr.grid.CellEditingPlugin.prototype.getName = function () { return "CellEditingPlugin"; };
+
+/** @override */
+tr.grid.CellEditingPlugin.prototype.initialize = function (host) {
+	if(this._hosts.indexOf(host) &gt;= 0) { return; }
+
+	this._hosts.push(host);
+	host.listen(tr.res.columnAdded, this._onColumnAdded);
+	host.listen(tr.res.columnMoved, this._onColumnMoved);
+	host.listen(tr.res.columnRemoved, this._onColumnRemoved);
+
+	if(this._dblClick) {
+		this._listenForTriggering(host, true);
+	}
+};
+
+/** @override */
+tr.grid.CellEditingPlugin.prototype.unload = function (host) {
+	var at = this._hosts.indexOf(host);
+	if(at &lt; 0) { return; }
+	this._hosts.splice(at, 1);
+
+	host.unlisten(tr.res.columnAdded, this._onColumnAdded);
+	host.unlisten(tr.res.columnMoved, this._onColumnMoved);
+	host.unlisten(tr.res.columnRemoved, this._onColumnRemoved);
+
+	this._listenForTriggering(host, false);
+};
+
+/** Specify column to be processed by this plugin
+* @public
+* @return {tr.grid.IndexMarker}
+*/
+tr.grid.CellEditingPlugin.prototype.getMarker = function () {
+	return this._marker;
+};
+
+/**
+* @public
+* @return {*}
+*/
+tr.grid.CellEditingPlugin.prototype.getAutoSuggest = function () {
+	return this._autoSuggest;
+};
+
+/**
+* @public
+* @param {tr.Grid} grid
+* @param {tr.Grid.SectionReference} sectionRef
+* @param {number} colIndex
+* @param {number} rowIndex
+* @fires tr.grid.CellEditingPlugin#editorOpened
+*/
+tr.grid.CellEditingPlugin.prototype.openCellEditor = function (grid, sectionRef, colIndex, rowIndex) {
+	if(!grid) { return; }
+	var cell = grid.getCell(sectionRef, colIndex, rowIndex);
+	if (!cell) { return; }
+	if(cell === this._activeCell) { return; } // The same cell is open twice
+
+	if(this._activePos) {
+		this.closeCellEditor(); // Close previously opened cell editor
+	}
+
+	grid.scrollToColumn(colIndex);
+	this._onDoubleClick(cell, grid);
+};
+/**
+* @public
+* @param {boolean=} opt_forceCommit
+* @fires tr.grid.CellEditingPlugin#cancelled
+*/
+tr.grid.CellEditingPlugin.prototype.closeCellEditor = function (opt_forceCommit) {
+	this._commitText(opt_forceCommit || this._autoCommitText);
+};
+/** @public
+ * @param {boolean=} opt_enabled
+ */
+tr.grid.CellEditingPlugin.prototype.enableBalloonMode = function (opt_enabled) {
+	this._isBalloonMode = opt_enabled !== false;
+};
+/** @public
+ * @param {boolean=} opt_enabled
+ */
+tr.grid.CellEditingPlugin.prototype.enableTitleEditing = function (opt_enabled) {
+	this._editableTitle = opt_enabled !== false;
+};
+/** Disable editing on all title sections
+ * @public
+ * @param {boolean=} opt_disabled
+ */
+tr.grid.CellEditingPlugin.prototype.disableTitleEditing = function (opt_disabled) {
+	this._editableTitle = opt_disabled === false;
+};
+/** Disable editing on all centent sections
+ * @public
+ * @param {boolean=} opt_disabled
+ */
+tr.grid.CellEditingPlugin.prototype.disableContentEditing = function (opt_disabled) {
+	this._editableContent = opt_disabled === false;
+};
+/** Disable editing on a per cell basis
+ * @public
+ * @param {tr.grid.Cell} cell
+ * @param {boolean=} opt_disabled
+ */
+tr.grid.CellEditingPlugin.prototype.disableCellEditing = function (cell, opt_disabled) {
+	if (cell) {
+		cell.enableClass("no-editing", opt_disabled !== false);
+	}
+};
+
+/** @public
+ * @param {boolean=} opt_disabled
+ */
+tr.grid.CellEditingPlugin.prototype.disableDataBinding = function (opt_disabled) {
+	this._dataBinding = (opt_disabled === false);
+};
+/** @public
+ * @param {boolean=} opt_disabled
+ */
+tr.grid.CellEditingPlugin.prototype.disableDblClick = function (opt_disabled) {
+	var dblClick = (opt_disabled === false);
+	if(this._dblClick !== dblClick) {
+		this._dblClick = dblClick;
+		for(var i = this._hosts.length; --i &gt;= 0;) {
+			this._listenForTriggering(this._hosts[i], this._dblClick);
+		}
+	}
+};
+
+/** @public
+* @param {boolean=} opt_enabled
+*/
+tr.grid.CellEditingPlugin.prototype.enableAutoSuggest = function (opt_enabled) {
+	this.disableAutoSuggest(opt_enabled === false);
+};
+/** @public
+* @param {boolean=} opt_disabled
+*/
+tr.grid.CellEditingPlugin.prototype.disableAutoSuggest = function (opt_disabled) {
+	this._suggesting = (opt_disabled === false);
+	if (this._suggesting) {
+		var newAS = !this._autoSuggest;
+
+		if(newAS) { // Create the Autosuggest if it does not exist
+			// Check if UIFR Autosuggest is available
+			var el = document.createElement("ef-autosuggest");
+			if (el["is"] === "ef-autosuggest") {
+				this._autoSuggest = el;
+				this._autoSuggest["uifr"] = true;
+			}
+
+			/*
+			 * Then try nova autosuggest
+			 */
+			if (!this._autoSuggest &amp;&amp; window["nova"] &amp;&amp; window["nova"]["AutoSuggest"]) {
+				this._autoSuggest = new window["nova"]["AutoSuggest"]();
+			}
+
+			/*
+			 * Default autosuggest
+			 */
+			if(!this._autoSuggest) {
+				if(window["tr"]["AutoSuggest"]) {
+					this._autoSuggest = new window["tr"]["AutoSuggest"]();
+				}
+			}
+		}
+
+		if(newAS &amp;&amp; this._autoSuggest) {
+			if (this._autoSuggest["uifr"]) {
+				this._autoSuggest["setInput"](this._textBox);
+				this._autoSuggest["addEventListener"]("item-select", this._onSuggestionSelected);
+			} else {
+				this._autoSuggest["setTextBox"](this._textBox);
+				this._autoSuggest["listen"]("itemSelected", this._onSuggestionSelected);
+				this._autoSuggest["listen"]("enter", this._onSuggestionTextEntered);
+
+				var pm = this._autoSuggest["getPopupMenu"]();
+				pm["setAutoHide"](true);
+				pm["listen"]("clickedOutside", this._onClickedOutside);
+			}
+		}
+		this._disableAutoSuggest(false);
+	} else {
+		this._disableAutoSuggest(true);
+	}
+};
+/** @public
+* @param {boolean=} opt_disabled
+*/
+tr.grid.CellEditingPlugin.prototype.disableMoreSearch = function(opt_disabled) {
+	if(!this._autoSuggest) { return; }
+	opt_disabled = opt_disabled !== false;
+	if (this._autoSuggest["uifr"]) {
+		this._autoSuggest["moreSearchDisabled"] = opt_disabled;
+	} else {
+		this._autoSuggest["disableMoreSearchOption"](opt_disabled);
+	}
+};
+/** @public
+* @param {Object} fieldMapping
+*/
+tr.grid.CellEditingPlugin.prototype.setFieldMapping = function(fieldMapping) {
+	if(!this._autoSuggest) { return; }
+	if (this._autoSuggest["uifr"]) {
+		this._autoSuggest["fieldMapping"] = fieldMapping;
+	} else {
+		this._autoSuggest["setFieldMapping"](fieldMapping);
+	}
+};
+/** @public
+* @param {string} profile
+* @param {string} countryCode
+* @param {string} url
+* @param {string=} ops_contextApp
+*/
+tr.grid.CellEditingPlugin.prototype.setAutoSuggestProfile = function(profile, countryCode, url, ops_contextApp) {
+	if(!this._autoSuggest) { return; }
+	if (this._autoSuggest["uifr"]) {
+		this._autoSuggest["profile"] = profile;
+		this._autoSuggest["country"] = countryCode;
+		if(ops_contextApp) {
+			this._autoSuggest["contextApp"] = ops_contextApp;
+		}
+	} else {
+		this._autoSuggest["setUrl"](url);
+	}
+};
+
+/** @public
+* @description Support only HTMLSelectElement or ef-combo-box.
+* @param {!Element} el
+*/
+tr.grid.CellEditingPlugin.prototype.setDataFeedComponent = function (el) {
+	if (el["is"] === "ef-combo-box") {
+		el.addEventListener("item-selected", this._onComboBoxBlur, false);
+		el.addEventListener(tr.res.blur, this._onComboBoxBlur, false);
+		this._useCoralComboBox = true;
+	} else {
+		el.addEventListener("change", this._onComboBoxBlur, false);
+	}
+	this._comboBox = el;
+};
+
+/** @public
+* @param {boolean=} opt_enabled
+*/
+tr.grid.CellEditingPlugin.prototype.enableDataFeed = function (opt_enabled) {
+	this._dataFeed = (opt_enabled !== false);
+};
+/** @public
+* @return {string}
+*/
+tr.grid.CellEditingPlugin.prototype.getDataFeed = function () {
+	var feed = "Q";
+	if (this._dataFeed &amp;&amp; this._comboBox) {
+		feed = this._useCoralComboBox ? this._comboBox["inputBoxText"] : this._comboBox.value;
+	}
+	return feed || "Q";
+};
+/** @public
+* @param {string=} feed
+*/
+tr.grid.CellEditingPlugin.prototype.setDataFeed = function (feed) {
+	if (this._dataFeed &amp;&amp; this._comboBox) {
+		if(!feed){
+			feed = "Q";
+		}
+		if (this._useCoralComboBox) {
+			this._comboBox["inputBoxText"] = feed;
+			this._comboBox["selectItemById"](feed);
+		} else {
+			this._comboBox.value = feed;
+		}
+	}
+};
+
+/** @public
+ * @return {boolean}
+ */
+tr.grid.CellEditingPlugin.prototype.isEditing = function () {
+	return (this._activeCell !== null) &amp;&amp; this._editing;
+};
+/** @public
+ * @return {!Element}
+ */
+tr.grid.CellEditingPlugin.prototype.getTextBox = function () {
+	return this._textBox;
+};
+/** @public
+ * @return {string}
+ */
+tr.grid.CellEditingPlugin.prototype.getInitialText = function () {
+	return this._initialText;
+};
+/** @public
+ * @return {tr.Grid}
+ */
+tr.grid.CellEditingPlugin.prototype.getActiveGrid = function () {
+	if(this._activePos) {
+		return this._activePos["grid"] || null;
+	}
+	return null;
+};
+/** @public
+ * @return {number}
+ */
+tr.grid.CellEditingPlugin.prototype.getActiveColIndex = function () {
+	if(this._activePos) {
+		var colIndex = this._activePos[tr.res.colIndex];
+		return (colIndex !== undefined) ? colIndex : -1;
+	}
+	return -1;
+};
+/** @public
+ * @return {Object}
+ */
+tr.grid.CellEditingPlugin.prototype.getInputElementPosition = function () {
+	return this._activePos || null;
+};
+/** @public
+ * @param {boolean=} opt_enable
+ */
+tr.grid.CellEditingPlugin.prototype.enableAutoCommitText = function(opt_enable) {
+	this._autoCommitText = (opt_enable !== false);
+};
+//#endregion
+
+//#region Private Methods
+/** @private
+ * @param {boolean=} opt_disabled
+ */
+tr.grid.CellEditingPlugin.prototype._disableAutoSuggest = function (opt_disabled) {
+	if(this._autoSuggest) {
+		var b = (opt_disabled !== false);
+		if (this._autoSuggest["uifr"]) {
+			this._autoSuggest["disabled"] = b;
+		} else if(this._autoSuggest["disableSuggestion"]) {
+			this._autoSuggest["disableSuggestion"](b);
+		} else if(this._autoSuggest["disable"]) {
+			this._autoSuggest["disable"](b);
+		}
+	}
+};
+
+/** @private
+* @param {Event|tr.IElementControl} e
+* @param {tr.Grid=} opt_host
+* @fires tr.grid.CellEditingPlugin#editorOpened
+*/
+tr.grid.CellEditingPlugin.prototype._onDoubleClick = function (e, opt_host) {
+	var _t = this;
+	var host = opt_host || this.getRelativeGrid(e);
+
+	if (_t.isEditing() || !host) { return; }
+
+	var arg = host.getRelativePosition(/** @type{Event} */(e));
+
+	_t._dispatch("preEditorOpening", arg);
+
+	if (arg["cancel"] || !arg["hit"]) { return; }
+
+	var sectionType = arg[tr.res.sectionType];
+	if (sectionType === tr.res.header) { return; }
+
+	var cell = null;
+	var colIndex = arg[tr.res.colIndex];
+	var rowIndex = arg[tr.res.rowIndex];
+	var section = arg[tr.res.section];
+
+	if (sectionType === tr.res.title) {
+		if (!_t._editableTitle) { return; }
+		cell = section.getCell(colIndex, rowIndex);
+	} else {
+		if (!_t._editableContent) { return; }
+		if (!_t._marker.isAllowed(colIndex)) { return; }
+
+		cell = section.getCell(colIndex, rowIndex);
+	}
+	if (!cell || cell.hasClass("no-editing") || cell.hasClass("folder")) { return; }
+
+	// Everything has been verified. Start opening editor process
+	if(e["preventDefault"]) {
+		tr._preventDefault(/** @type{Event} */(e));
+	}
+	if (_t._suggesting) {
+		_t._disableAutoSuggest(sectionType === tr.res.header);
+	}
+	if (_t._dataFeed) {
+		_t.enableDataFeed(sectionType !== tr.res.header);
+	}
+
+	if (rowIndex + 1 &gt;= section.getRowCount()) {
+		_t._textBox.classList.add("bottom");
+	} else {
+		_t._textBox.classList.remove("bottom");
+	}
+
+	// Initiate text box value
+	_t._prevContent = cell.getContent();
+	_t._textNode = null;
+	_t._initialText = "";
+	_t._initialFeed = "";
+	if(_t._prevContent) {
+		var len = _t._prevContent.childNodes.length;
+		for(var i = 0; i &lt; len; ++i) {
+			if(_t._prevContent.childNodes[i].nodeType === 3) {
+				_t._textNode = _t._prevContent.childNodes[i]; // To preserve current content structure
+				break;
+			}
+		}
+	}
+
+	var cellContent;
+	if(_t._textNode) {
+		cellContent = _t._textNode.textContent;
+	} else if(_t._prevContent) {
+		cellContent = _t._prevContent.textContent;
+	} else {
+		cellContent = "";
+	}
+
+	_t.setDataFeed(_t._lastUsedFeed);
+	_t._textBox.value = cellContent;
+
+
+	_t._activePos = arg;
+	_t._activeCell = cell;
+	_t._usingBalloon = false;
+
+	var cellElem = cell.getElement();
+	var compStyles = (cellElem) ? window.getComputedStyle(cellElem) : {};
+	if((_t._dataFeed &amp;&amp; _t._comboBox) || _t._isBalloonMode || compStyles.display === "none" || compStyles.visibility === "hidden") {
+		if(!_t._balloon) {
+			_t._balloon = new ElementWrapper();
+			_t._balloon.setClass("cell editing balloon");
+		}
+		var rel = host.getRelativePosition(cell);
+		_t._balloon.setLeft(rel["x"] / rel["zoomFactor"]);
+		_t._balloon.setTop(rel["y"] / rel["zoomFactor"]);
+		var rowH = section.getRowHeight(rowIndex);
+		rowH += rowH % 2;
+		_t._balloon.setHeight(rowH);
+		_t._balloon.setStyle("line-height", rowH + "px");
+
+		_t._balloon.setParent(host);
+		_t._usingBalloon = true;
+	}
+
+	section.addClass("edit-mode");
+	cell.addClass("editing");
+	this._editing = true;
+
+	if(_t._usingBalloon) {
+		var balloonElm = _t._balloon.getElement();
+		balloonElm.appendChild(_t._textBox);
+
+		if (this._dataFeed &amp;&amp; _t._comboBox) { // Data feed selector will be shown when using balloon mode.
+			_t._balloon.addClass("dataFeed");
+			_t._textBox.parentNode.insertBefore(_t._comboBox, _t._textBox);
+		}
+	} else {
+		cell.setContent(_t._textBox);
+		cell.lockContent(true);
+	}
+
+	_t._textBox.focus();
+	_t._textBox.select();
+
+	if (_t._hasListener("editorOpened")) {
+		arg[tr.res.content] = _t._prevContent;
+		_t._dispatch("editorOpened", arg);
+	}
+
+	_t._initialText = _t._textBox.value; // After all modifications, cache the string for text change event
+	_t._initialFeed = _t.getDataFeed();
+};
+/** @private
+*/
+tr.grid.CellEditingPlugin.prototype._onClickedOutside = function () {
+	this._commitText(false);
+};
+/** @private
+*/
+tr.grid.CellEditingPlugin.prototype._isPopupVisible = function () {
+	if (this._autoSuggest) {
+		if (this._autoSuggest["uifr"]) {
+			return this._autoSuggest["isSuggestionsShown"]();
+		} else {
+			var popup = this._autoSuggest["getPopupMenu"]();
+			return popup["isVisible"]();
+		}
+	}
+	return false;
+};
+
+/** @private
+* @param {Object} e
+*/
+tr.grid.CellEditingPlugin.prototype._onTextBlur = function (e) {
+	if (this._dataFeed &amp;&amp; this._usingBalloon) {
+		var rel = e.relatedTarget;
+		if(this._balloon.getElement().contains(rel)) {
+			return;
+		}
+		var children = document.body.children; // WORKAROUND: To find Uifr popup element
+		var popup;
+		for(var i = children.length; --i &gt;= 0;) {
+			var el = children[i];
+			if(el.classList.contains("popup")) {
+				popup = el;
+				break;
+			}
+		}
+		if(popup &amp;&amp; popup.contains(rel)) {
+			return;
+		}
+	} else {
+		if (this._isPopupVisible()) {
+			this._textBox.focus();
+			return;
+		}
+	}
+	this._commitText(this._autoCommitText);
+};
+/** @private
+* @param {Object} e
+*/
+tr.grid.CellEditingPlugin.prototype._onTextChange = function (e) {
+	//If select an item from the list, the popup will be invisible
+	//Only need when use with non-uifr autosuggest
+	if (this._autoSuggest &amp;&amp; !this._autoSuggest["uifr"]) {
+		if (this._isPopupVisible()) {
+			return;
+		}
+	}
+
+	var firstSuggestedItem = null;
+	if (this._autoSuggest) {
+		if (this._autoSuggest["uifr"]) {
+			var list = this._autoSuggest["getList"]();
+			if (list &amp;&amp; list["data"] &amp;&amp; list["data"]["length"] &gt; 0) {
+				firstSuggestedItem = list["data"][0]["value"];
+			}
+		} else {
+			var popup = this._autoSuggest["getPopupMenu"]();
+			var menu = popup["getMenu"]();
+			firstSuggestedItem = menu["getItem"](0);
+		}
+	}
+	this._commitText(true, {'firstSuggestedItem': firstSuggestedItem});
+};
+/** @private
+* @param {Object} e
+*/
+tr.grid.CellEditingPlugin.prototype._onSuggestionSelected = function (e) {
+	this._commitText(true, e);
+};
+/** @private
+* @param {Object} e
+*/
+tr.grid.CellEditingPlugin.prototype._onSuggestionTextEntered = function (e) {
+	this._commitText(true);
+};
+
+/** @private
+* @param {Object} e
+*/
+tr.grid.CellEditingPlugin.prototype._onTextKeyDown = function (e) {
+	if (e.keyCode === 27) { // Esc
+		this._onTextBlur(e);
+	}
+	if (e.keyCode === 9) { // Tab
+		e.preventDefault();
+	}
+	e.stopPropagation();
+};
+/** @private
+* @param {Object} e
+*/
+tr.grid.CellEditingPlugin.prototype._onTextKeyUp = function (e) {
+	if(e.keyCode === 13 || e.keyCode === 9) { // Enter or Tab
+		if(this._initialText !== this._textBox.value || this._initialFeed !== this.getDataFeed()) {
+			this._onTextChange(e);
+			e.preventDefault();
+		} else {
+			this._commitText(false);
+		}
+	} else {
+		var manualInput = e.currentTarget.value.charAt(0) === "'";
+		if(this._manualInput !== manualInput) { // Disable AutoSuggest when textbox has a leading single quote at first char
+			this._manualInput = manualInput;
+			this._disableAutoSuggest(this._manualInput || !this._suggesting);
+		}
+	}
+	e.stopPropagation();
+};
+
+/** @private
+* @param {Object} e
+*/
+tr.grid.CellEditingPlugin.prototype._onComboBoxBlur = function (e) {
+	var _t = this;
+
+	if (_t._comboBox &amp;&amp; _t._useCoralComboBox) {
+		// WORKAROUND: Collapse the list when clicking on the selected item
+		window.setTimeout(function() {
+			_t._comboBox["closeList"]();
+		}, 500);
+	}
+	_t._textBox.focus();
+};
+
+/** @private
+* @param {boolean} bool
+* @param {Object=} opt_e
+*/
+tr.grid.CellEditingPlugin.prototype._commitText = function (bool, opt_e) {
+	var _t = this;
+	if (!_t.isEditing()) { return; }
+
+	_t._activePos[tr.res.section].removeClass("edit-mode");
+	_t._activeCell.removeClass("editing");
+	_t._activeCell.lockContent(false);
+	this._editing = false;
+
+	if (_t._dataFeed &amp;&amp; _t._comboBox) {
+		_t._balloon.removeClass("dataFeed");
+	}
+
+	_t._activePos["grid"].focus();
+
+	_t._textBox.removeEventListener(tr.res.blur, _t._onTextBlur, false);
+	if(_t._textBox.parentNode) {
+		_t._textBox.parentNode.removeChild(_t._textBox);
+	}
+	if(_t._usingBalloon) {
+		_t._balloon.setParent(null); // Remove from the document
+		_t._usingBalloon = false;
+	}
+
+	var enteredText = _t._textBox.value;
+	_t._activeCell.setContent(_t._prevContent);
+
+	if (bool &amp;&amp; _t._dataBinding) {
+		var sectionSettings = _t._activePos[tr.res.sectionSettings];
+		var bindable = sectionSettings.isDataBindable();
+		if (bindable) {
+			var dataColumnName = _t._activePos["grid"].getDataColumnName(_t._activePos[tr.res.colIndex]);
+			sectionSettings.setData(dataColumnName, _t._activePos[tr.res.rowIndex], enteredText); // TODO: Handle header row
+		}
+		if(_t._textNode) {
+			_t._textNode.textContent = enteredText;
+		} else {
+			if(bindable) {
+				if (_t._prevContent &amp;&amp; _t._prevContent.classList.contains("text")) { // Bind data only if previous content is a build in text
+					_t._activeCell.setContent(enteredText);
+				}
+			} else {
+				_t._activeCell.setContent(enteredText);
+			}
+		}
+	}
+
+	var eventType = (bool) ? "change" : "cancelled";
+	if (_t._hasListener(eventType)) {
+		_t._activePos["type"] = eventType;
+		_t._activePos[tr.res.content] = _t._prevContent;
+		_t._activePos["textEntered"] = enteredText; // Alias
+		_t._activePos["enteredText"] = enteredText;
+		if (_t._dataFeed) {
+			var feedValue = this.getDataFeed();
+			if(eventType === "change") {
+				_t._lastUsedFeed = feedValue;
+			}
+			_t._activePos["dataFeed"] = feedValue;
+		}
+		_t._activePos["cell"] = _t._activeCell;
+		_t._activePos["allItems"] = [];
+
+		//Pass all items from auto suggest results with the event so it could be used by the event listener
+		if (_t._autoSuggest) {
+			if (_t._autoSuggest["uifr"]) {
+				var list = this._autoSuggest["getList"]();
+				if (list &amp;&amp; list["data"]) {
+					for(var i = 0; i &lt; list["data"].length; i++){
+						_t._activePos["allItems"].push(list["data"][i]["value"]);
+					}
+				}
+			} else {
+				var items = _t._autoSuggest['getPopupMenu']()['getMenu']()['getItems']();
+				for(var i = 0, j = items.length; i &lt; j; i++){
+					_t._activePos["allItems"].push(items[i]["getValue"]());
+				}
+			}
+		}
+
+		if (opt_e) {
+			if (_t._autoSuggest &amp;&amp; _t._autoSuggest["uifr"]) {
+				if (opt_e["detail"]) {
+					var selectedItem = opt_e["detail"]["item"];
+					var selectedValue = selectedItem["value"];
+					_t._activePos["selectedItem"] = selectedItem;
+					_t._activePos["searchResult"] = selectedValue;
+					if (selectedValue["p"]) {
+						_t._activePos["field"] = selectedValue["p"]["fn"];
+					}
+				}
+			} else {
+				var menuItem = opt_e["item"];
+				if (menuItem) {
+					_t._activePos["selectedItem"] = menuItem;
+					var searchResult = menuItem["getValue"]();
+					_t._activePos["searchResult"] = searchResult;
+					if (searchResult &amp;&amp; searchResult["p"] &amp;&amp; searchResult["p"]["fn"]) {
+						_t._activePos["field"] = searchResult["p"]["fn"];
+					}
+				}
+			}
+			var firstSuggestedItem = opt_e["firstSuggestedItem"];
+			if (firstSuggestedItem) {
+				_t._activePos["firstSuggestedItem"] = firstSuggestedItem;
+			}
+		}
+		_t._dispatch(eventType, _t._activePos);
+	}
+	_t._dispatch("closed", _t._activePos);
+
+	_t._textBox.addEventListener(tr.res.blur, _t._onTextBlur, false);
+
+	if (_t._autoSuggest) {
+		if (_t._autoSuggest["uifr"]) {
+			_t._autoSuggest["hideSuggestions"]();
+		} else {
+			var popup = _t._autoSuggest["getPopupMenu"]();
+			var menu = popup["getMenu"]();
+			menu["setItems"](null);
+		}
+	}
+	if (_t._comboBox) {
+		if (_t._useCoralComboBox) {
+			_t._comboBox["closeList"]();
+		} // HTML select element will collapse the list automatically.
+	}
+	_t._disableAutoSuggest();
+	_t.enableDataFeed(false);
+	_t._manualInput = false;
+	_t._activePos = null;
+	_t._activeCell = null;
+	_t._prevContent = null;
+	_t._textNode = null;
+};
+/** @private
+* @param {Event} e
+*/
+tr.grid.CellEditingPlugin.prototype._stopPropagation = function (e) {
+	e.stopPropagation();
+};
+
+/**
+* @private
+* @param {tr.Grid} host
+* @param {boolean} bool
+*/
+tr.grid.CellEditingPlugin.prototype._listenForTriggering = function (host, bool) {
+	if(bool) {
+		host.listen("dblclick", this._onDoubleClick);
+		if(tr.isTouchDevice) { // Make a comparable functionality for touchscreen
+			host.listen("touchstart", this._onTouchStart);
+			host.listen("touchend", this._onTouchEnd);
+			host.listen("touchcancel", this._onTouchEnd);
+		}
+	} else {
+		host.unlisten("dblclick", this._onDoubleClick);
+		host.unlisten("touchstart", this._onTouchStart);
+		host.unlisten("touchend", this._onTouchEnd);
+		host.unlisten("touchcancel", this._onTouchEnd);
+	}
+};
+/**
+* @private
+* @param {Object} e
+*/
+tr.grid.CellEditingPlugin.prototype._onTouchStart = function (e) {
+	this._resetTimer();
+	this._timerId = setTimeout(this._onTimer, this._longPressTime);
+};
+/**
+* @private
+* @param {Object} e
+*/
+tr.grid.CellEditingPlugin.prototype._onTimer = function (e) {
+	this._timerId = 0;
+};
+/**
+* @private
+* @param {Event} e
+*/
+tr.grid.CellEditingPlugin.prototype._onTouchEnd = function (e) {
+	if(!this._resetTimer()) {
+		this._onDoubleClick(e); // Trigger cell editor
+	}
+};
+/**
+* @private
+*/
+tr.grid.CellEditingPlugin.prototype._resetTimer = function () {
+	if(this._timerId) {
+		clearTimeout(this._timerId);
+		this._timerId = 0;
+		return true;
+	}
+	return false;
+};
+
+//#endregion
+
+
+goog.exportSymbol("tr.grid.CellEditingPlugin", tr.grid.CellEditingPlugin);
+tr.grid.CellEditingPlugin._proto = tr.grid.CellEditingPlugin.prototype;
+goog.exportProperty(tr.grid.CellEditingPlugin._proto, "getName", tr.grid.CellEditingPlugin._proto.getName);
+goog.exportProperty(tr.grid.CellEditingPlugin._proto, "initialize", tr.grid.CellEditingPlugin._proto.initialize);
+goog.exportProperty(tr.grid.CellEditingPlugin._proto, "unload", tr.grid.CellEditingPlugin._proto.unload);
+
+goog.exportProperty(tr.grid.CellEditingPlugin._proto, "getMarker", tr.grid.CellEditingPlugin._proto.getMarker);
+goog.exportProperty(tr.grid.CellEditingPlugin._proto, "getAutoSuggest", tr.grid.CellEditingPlugin._proto.getAutoSuggest);
+goog.exportProperty(tr.grid.CellEditingPlugin._proto, "getTextBox", tr.grid.CellEditingPlugin._proto.getTextBox);
+goog.exportProperty(tr.grid.CellEditingPlugin._proto, "getInitialText", tr.grid.CellEditingPlugin._proto.getInitialText);
+goog.exportProperty(tr.grid.CellEditingPlugin._proto, "isEditing", tr.grid.CellEditingPlugin._proto.isEditing);
+goog.exportProperty(tr.grid.CellEditingPlugin._proto, "openCellEditor", tr.grid.CellEditingPlugin._proto.openCellEditor);
+goog.exportProperty(tr.grid.CellEditingPlugin._proto, "closeCellEditor", tr.grid.CellEditingPlugin._proto.closeCellEditor);
+
+goog.exportProperty(tr.grid.CellEditingPlugin._proto, "enableTitleEditing", tr.grid.CellEditingPlugin._proto.enableTitleEditing);
+goog.exportProperty(tr.grid.CellEditingPlugin._proto, "disableTitleEditing", tr.grid.CellEditingPlugin._proto.disableTitleEditing);
+goog.exportProperty(tr.grid.CellEditingPlugin._proto, "disableContentEditing", tr.grid.CellEditingPlugin._proto.disableContentEditing);
+goog.exportProperty(tr.grid.CellEditingPlugin._proto, "disableCellEditing", tr.grid.CellEditingPlugin._proto.disableCellEditing);
+goog.exportProperty(tr.grid.CellEditingPlugin._proto, "disableDataBinding", tr.grid.CellEditingPlugin._proto.disableDataBinding);
+goog.exportProperty(tr.grid.CellEditingPlugin._proto, "disableDblClick", tr.grid.CellEditingPlugin._proto.disableDblClick);
+goog.exportProperty(tr.grid.CellEditingPlugin._proto, "enableAutoCommitText", tr.grid.CellEditingPlugin._proto.enableAutoCommitText);
+goog.exportProperty(tr.grid.CellEditingPlugin._proto, "enableBalloonMode", tr.grid.CellEditingPlugin._proto.enableBalloonMode);
+
+goog.exportProperty(tr.grid.CellEditingPlugin._proto, "enableAutoSuggest", tr.grid.CellEditingPlugin._proto.enableAutoSuggest);
+goog.exportProperty(tr.grid.CellEditingPlugin._proto, "disableAutoSuggest", tr.grid.CellEditingPlugin._proto.disableAutoSuggest);
+goog.exportProperty(tr.grid.CellEditingPlugin._proto, "disableMoreSearch", tr.grid.CellEditingPlugin._proto.disableMoreSearch);
+goog.exportProperty(tr.grid.CellEditingPlugin._proto, "setFieldMapping", tr.grid.CellEditingPlugin._proto.setFieldMapping);
+goog.exportProperty(tr.grid.CellEditingPlugin._proto, "setAutoSuggestProfile", tr.grid.CellEditingPlugin._proto.setAutoSuggestProfile);
+
+goog.exportProperty(tr.grid.CellEditingPlugin._proto, "getActiveGrid", tr.grid.CellEditingPlugin._proto.getActiveGrid);
+goog.exportProperty(tr.grid.CellEditingPlugin._proto, "getActiveColIndex", tr.grid.CellEditingPlugin._proto.getActiveColIndex);
+goog.exportProperty(tr.grid.CellEditingPlugin._proto, "getInputElementPosition", tr.grid.CellEditingPlugin._proto.getInputElementPosition);
+
+goog.exportProperty(tr.grid.CellEditingPlugin._proto, "setDataFeedComponent", tr.grid.CellEditingPlugin._proto.setDataFeedComponent);
+goog.exportProperty(tr.grid.CellEditingPlugin._proto, "enableDataFeed", tr.grid.CellEditingPlugin._proto.enableDataFeed);
+goog.exportProperty(tr.grid.CellEditingPlugin._proto, "setDataFeed", tr.grid.CellEditingPlugin._proto.setDataFeed);
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="AdFin.html">AdFin</a></li><li><a href="DateTime.html">DateTime</a></li><li><a href="Info.html">Info</a></li><li><a href="Logic.html">Logic</a></li><li><a href="Math.html">Math</a></li><li><a href="Realtime.html">Realtime</a></li><li><a href="Statistic.html">Statistic</a></li><li><a href="Text.html">Text</a></li><li><a href="tr.ElementFrameWork.html">ElementFrameWork</a></li><li><a href="tr.PipDefinition.html">PipDefinition</a></li></ul><h3>Classes</h3><ul><li><a href="tr.ADCSubscription.html">ADCSubscription</a></li><li><a href="tr.AdFinSubscription.html">AdFinSubscription</a></li><li><a href="tr.cgrid.editor.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.filter.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.formatter.AsyncFormatter.html">AsyncFormatter</a></li><li><a href="tr.cgrid.formatter.CheckBox.html">CheckBox</a></li><li><a href="tr.cgrid.formatter.UpDownColor.html">UpDownColor</a></li><li><a href="tr.ColumnStats.html">ColumnStats</a></li><li><a href="tr.CompositeGrid.html">CompositeGrid</a></li><li><a href="tr.DataCache.html">DataCache</a></li><li><a href="tr.DataTable.html">DataTable</a></li><li><a href="tr.DataView.html">DataView</a></li><li><a href="tr.DropDown.html">DropDown</a></li><li><a href="tr.ElementControl.html">ElementControl</a></li><li><a href="tr.ElementWrapper.html">ElementWrapper</a></li><li><a href="tr.Event.html">Event</a></li><li><a href="tr.EventDispatcher.html">EventDispatcher</a></li><li><a href="tr.EventDispatcher.extendClass-tempCtor.html">tempCtor</a></li><li><a href="tr.EventManager.html">EventManager</a></li><li><a href="tr.FieldFormatter.html">FieldFormatter</a></li><li><a href="tr.fn.Engine.html">Engine</a></li><li><a href="tr.fn.Formula.html">Formula</a></li><li><a href="tr.fn.VariableToken.html">VariableToken</a></li><li><a href="tr.Grid.html">Grid</a></li><li><a href="tr.grid.BidOfferSpan.html">BidOfferSpan</a></li><li><a href="tr.grid.Blinker.html">Blinker</a></li><li><a href="tr.grid.Cell.html">Cell</a></li><li><a href="tr.grid.CellBlinkingPlugin.html">CellBlinkingPlugin</a></li><li><a href="tr.grid.CellEditingPlugin.html">CellEditingPlugin</a></li><li><a href="tr.grid.CellFloatingPanel.html">CellFloatingPanel</a></li><li><a href="tr.grid.CellPainter.html">CellPainter</a></li><li><a href="tr.grid.CellSpan.html">CellSpan</a></li><li><a href="tr.grid.CellSpans.html">CellSpans</a></li><li><a href="tr.grid.CellWriter.html">CellWriter</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html">CheckboxColumnPlugin</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html">CollapsibleHeaderPlugin</a></li><li><a href="tr.grid.ColumnFilterPlugin.html">ColumnFilterPlugin</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html">ColumnGroupingPlugin</a></li><li><a href="tr.grid.ColumnSelectionPlugin.html">ColumnSelectionPlugin</a></li><li><a href="tr.grid.ColumnStackingPlugin.html">ColumnStackingPlugin</a></li><li><a href="tr.grid.ColumnWidthAdjustingPlugin.html">ColumnWidthAdjustingPlugin</a></li><li><a href="tr.grid.Conflator.html">Conflator</a></li><li><a href="tr.grid.DataSourceTreePlugin.html">DataSourceTreePlugin</a></li><li><a href="tr.grid.DirectContentBindingPlugin.html">DirectContentBindingPlugin</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html">DragAndDropTitlePlugin</a></li><li><a href="tr.grid.DraggableContentPlugin.html">DraggableContentPlugin</a></li><li><a href="tr.grid.FindBar.html">FindBar</a></li><li><a href="tr.grid.FindBarPlugin.html">FindBarPlugin</a></li><li><a href="tr.grid.GroupStatisticsPlugin.html">GroupStatisticsPlugin</a></li><li><a href="tr.grid.HeatMapRenderer.html">HeatMapRenderer</a></li><li><a href="tr.grid.HScrollbar.html">HScrollbar</a></li><li><a href="tr.grid.IndexMarker.html">IndexMarker</a></li><li><a href="tr.grid.MovableHeaderPlugin.html">MovableHeaderPlugin</a></li><li><a href="tr.grid.NumberFormatter.html">NumberFormatter</a></li><li><a href="tr.grid.PercentBar.html">PercentBar</a></li><li><a href="tr.grid.PercentBarRenderer.html">PercentBarRenderer</a></li><li><a href="tr.grid.Plugin.html">Plugin</a></li><li><a href="tr.grid.RangeBar.html">RangeBar</a></li><li><a href="tr.grid.ResizableTitlePlugin.html">ResizableTitlePlugin</a></li><li><a href="tr.grid.Reverter.html">Reverter</a></li><li><a href="tr.grid.RowHeightAdjustingPlugin.html">RowHeightAdjustingPlugin</a></li><li><a href="tr.grid.RowSelectionPlugin.html">RowSelectionPlugin</a></li><li><a href="tr.grid.Scrollbar.html">Scrollbar</a></li><li><a href="tr.grid.SectionSettings.html">SectionSettings</a></li><li><a href="tr.grid.SmartTooltipsPlugin.html">SmartTooltipsPlugin</a></li><li><a href="tr.grid.SortableTitlePlugin.html">SortableTitlePlugin</a></li><li><a href="tr.grid.TreeIndentingPlugin.html">TreeIndentingPlugin</a></li><li><a href="tr.grid.Virtualizer.html">Virtualizer</a></li><li><a href="tr.grid.VScrollbar.html">VScrollbar</a></li><li><a href="tr.grid.ZoomPlugin.html">ZoomPlugin</a></li><li><a href="tr.HttpRequest.html">HttpRequest</a></li><li><a href="tr.IntervalSubscription.html">IntervalSubscription</a></li><li><a href="tr.LayoutGrid.html">LayoutGrid</a></li><li><a href="tr.ListMenu.html">ListMenu</a></li><li><a href="tr.MenuItem.html">MenuItem</a></li><li><a href="tr.MockArchive.html">MockArchive</a></li><li><a href="tr.MockJET.html">MockJET</a></li><li><a href="tr.MockQuotes.html">MockQuotes</a></li><li><a href="tr.MockQuotes2.html">MockQuotes2</a></li><li><a href="tr.MockSubscription.html">MockSubscription</a></li><li><a href="tr.MockSubscriptions.html">MockSubscriptions</a></li><li><a href="tr.Popup.html">Popup</a></li><li><a href="tr.PopupMenu.html">PopupMenu</a></li><li><a href="tr.PrintTrait.html">PrintTrait</a></li><li><a href="tr.RequestQueue.html">RequestQueue</a></li><li><a href="tr.Segment.html">Segment</a></li><li><a href="tr.SegmentCollection.html">SegmentCollection</a></li><li><a href="tr.TSISubscription.html">TSISubscription</a></li></ul><h3>Interfaces</h3><ul><li><a href="tr.cgrid.ICompositeExtension.html">ICompositeExtension</a></li><li><a href="tr.grid.IPlugin.html">IPlugin</a></li><li><a href="tr.IElementControl.html">IElementControl</a></li><li><a href="tr.ILayoutGrid.html">ILayoutGrid</a></li></ul><h3>Events</h3><ul><li><a href="tr.CompositeGrid.html#event:cellClicked">cellClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellDblClicked">cellDblClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellMouseDown">cellMouseDown</a></li><li><a href="tr.CompositeGrid.html#event:cellRightClicked">cellRightClicked</a></li><li><a href="tr.CompositeGrid.html#event:columnSorted">columnSorted</a></li><li><a href="tr.CompositeGrid.html#event:editorAttached">editorAttached</a></li><li><a href="tr.CompositeGrid.html#event:editorDetached">editorDetached</a></li><li><a href="tr.CompositeGrid.html#event:filterAdded">filterAdded</a></li><li><a href="tr.CompositeGrid.html#event:filterCleared">filterCleared</a></li><li><a href="tr.CompositeGrid.html#event:filterModified">filterModified</a></li><li><a href="tr.CompositeGrid.html#event:filterRemoved">filterRemoved</a></li><li><a href="tr.CompositeGrid.html#event:mouseLeaveCell">mouseLeaveCell</a></li><li><a href="tr.CompositeGrid.html#event:mouseOverCell">mouseOverCell</a></li><li><a href="tr.CompositeGrid.html#event:pageChanged">pageChanged</a></li><li><a href="tr.CompositeGrid.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.DataCache.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataCache.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataTable.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataTable.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataView.html#event:beforeFiltering">beforeFiltering</a></li><li><a href="tr.DataView.html#event:beforeGroupAdded">beforeGroupAdded</a></li><li><a href="tr.DataView.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataView.html#event:groupAdded">groupAdded</a></li><li><a href="tr.DataView.html#event:groupCriteriaChanged">groupCriteriaChanged</a></li><li><a href="tr.DataView.html#event:pageCountChanged">pageCountChanged</a></li><li><a href="tr.DataView.html#event:pageIndexChanged">pageIndexChanged</a></li><li><a href="tr.DataView.html#event:preDisposed">preDisposed</a></li><li><a href="tr.Formula.html#event:dataCacheChanged">dataCacheChanged</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:cancelled">cancelled</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:change">change</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:closed">closed</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:editorOpened">editorOpened</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:preEditorOpening">preEditorOpening</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:click">click</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:columnCollapsed">columnCollapsed</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:groupChanged">groupChanged</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:render">render</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:columnMoved">columnMoved</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:drag">drag</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragEnd">dragEnd</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragStart">dragStart</a></li><li><a href="tr.grid.FindBarPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:groupMoved">groupMoved</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:sectionMoved">sectionMoved</a></li><li><a href="tr.grid.RowSelectionPlugin.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:columnSorted">columnSorted</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preClicked">preClicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preDataSorting">preDataSorting</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.Grid.html#event:columnAdded">columnAdded</a></li><li><a href="tr.Grid.html#event:columnAlignmentChanged">columnAlignmentChanged</a></li><li><a href="tr.Grid.html#event:columnRemoved">columnRemoved</a></li><li><a href="tr.Grid.html#event:columnVisibilityChanged">columnVisibilityChanged</a></li><li><a href="tr.Grid.html#event:dataSourceChanged">dataSourceChanged</a></li><li><a href="tr.Grid.html#event:postSectionDataBinding">postSectionDataBinding</a></li><li><a href="tr.Grid.html#event:rowExpansionBinding">rowExpansionBinding</a></li><li><a href="tr.Grid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Grid.html#event:sectionAdded">sectionAdded</a></li><li><a href="tr.Grid.html#event:widthChanged">widthChanged</a></li><li><a href="tr.HttpRequest.html#event:abort">abort</a></li><li><a href="tr.HttpRequest.html#event:error">error</a></li><li><a href="tr.HttpRequest.html#event:load">load</a></li><li><a href="tr.HttpRequest.html#event:loadend">loadend</a></li><li><a href="tr.HttpRequest.html#event:loadstart">loadstart</a></li><li><a href="tr.HttpRequest.html#event:timeout">timeout</a></li><li><a href="tr.IElementControl.html#event:blur">blur</a></li><li><a href="tr.IElementControl.html#event:change">change</a></li><li><a href="tr.IElementControl.html#event:click">click</a></li><li><a href="tr.IElementControl.html#event:contextmenu">contextmenu</a></li><li><a href="tr.IElementControl.html#event:dblclick">dblclick</a></li><li><a href="tr.IElementControl.html#event:drag">drag</a></li><li><a href="tr.IElementControl.html#event:dragend">dragend</a></li><li><a href="tr.IElementControl.html#event:dragenter">dragenter</a></li><li><a href="tr.IElementControl.html#event:dragleave">dragleave</a></li><li><a href="tr.IElementControl.html#event:dragover">dragover</a></li><li><a href="tr.IElementControl.html#event:dragstart">dragstart</a></li><li><a href="tr.IElementControl.html#event:drop">drop</a></li><li><a href="tr.IElementControl.html#event:focus">focus</a></li><li><a href="tr.IElementControl.html#event:formchange">formchange</a></li><li><a href="tr.IElementControl.html#event:forminput">forminput</a></li><li><a href="tr.IElementControl.html#event:input">input</a></li><li><a href="tr.IElementControl.html#event:invalid">invalid</a></li><li><a href="tr.IElementControl.html#event:keydown">keydown</a></li><li><a href="tr.IElementControl.html#event:keypress">keypress</a></li><li><a href="tr.IElementControl.html#event:keyup">keyup</a></li><li><a href="tr.IElementControl.html#event:mousedown">mousedown</a></li><li><a href="tr.IElementControl.html#event:mousemove">mousemove</a></li><li><a href="tr.IElementControl.html#event:mouseout">mouseout</a></li><li><a href="tr.IElementControl.html#event:mouseover">mouseover</a></li><li><a href="tr.IElementControl.html#event:mouseup">mouseup</a></li><li><a href="tr.IElementControl.html#event:mousewheel">mousewheel</a></li><li><a href="tr.IElementControl.html#event:reset">reset</a></li><li><a href="tr.IElementControl.html#event:scroll">scroll</a></li><li><a href="tr.IElementControl.html#event:select">select</a></li><li><a href="tr.IElementControl.html#event:submit">submit</a></li><li><a href="tr.ILayoutGrid.html#event:blur">blur</a></li><li><a href="tr.ILayoutGrid.html#event:change">change</a></li><li><a href="tr.ILayoutGrid.html#event:click">click</a></li><li><a href="tr.ILayoutGrid.html#event:contextmenu">contextmenu</a></li><li><a href="tr.ILayoutGrid.html#event:dblclick">dblclick</a></li><li><a href="tr.ILayoutGrid.html#event:drag">drag</a></li><li><a href="tr.ILayoutGrid.html#event:dragend">dragend</a></li><li><a href="tr.ILayoutGrid.html#event:dragenter">dragenter</a></li><li><a href="tr.ILayoutGrid.html#event:dragleave">dragleave</a></li><li><a href="tr.ILayoutGrid.html#event:dragover">dragover</a></li><li><a href="tr.ILayoutGrid.html#event:dragstart">dragstart</a></li><li><a href="tr.ILayoutGrid.html#event:drop">drop</a></li><li><a href="tr.ILayoutGrid.html#event:focus">focus</a></li><li><a href="tr.ILayoutGrid.html#event:formchange">formchange</a></li><li><a href="tr.ILayoutGrid.html#event:forminput">forminput</a></li><li><a href="tr.ILayoutGrid.html#event:input">input</a></li><li><a href="tr.ILayoutGrid.html#event:invalid">invalid</a></li><li><a href="tr.ILayoutGrid.html#event:keydown">keydown</a></li><li><a href="tr.ILayoutGrid.html#event:keypress">keypress</a></li><li><a href="tr.ILayoutGrid.html#event:keyup">keyup</a></li><li><a href="tr.ILayoutGrid.html#event:mousedown">mousedown</a></li><li><a href="tr.ILayoutGrid.html#event:mousemove">mousemove</a></li><li><a href="tr.ILayoutGrid.html#event:mouseout">mouseout</a></li><li><a href="tr.ILayoutGrid.html#event:mouseover">mouseover</a></li><li><a href="tr.ILayoutGrid.html#event:mouseup">mouseup</a></li><li><a href="tr.ILayoutGrid.html#event:mousewheel">mousewheel</a></li><li><a href="tr.ILayoutGrid.html#event:reset">reset</a></li><li><a href="tr.ILayoutGrid.html#event:scroll">scroll</a></li><li><a href="tr.ILayoutGrid.html#event:select">select</a></li><li><a href="tr.ILayoutGrid.html#event:submit">submit</a></li><li><a href="tr.LayoutGrid.html#event:rowCountChanged">rowCountChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHeightChanged">rowHeightChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Popup.html#event:hidden">hidden</a></li><li><a href="tr.Popup.html#event:shown">shown</a></li><li><a href="tr.PopupMenu.html#event:hidden">hidden</a></li><li><a href="tr.PopupMenu.html#event:shown">shown</a></li><li><a href="tr.PrintTrait.html#event:afterprint">afterprint</a></li><li><a href="tr.PrintTrait.html#event:beforeprint">beforeprint</a></li><li><a href="tr.PrintTrait.html#event:pageCounting">pageCounting</a></li></ul><h3>Global</h3><ul><li><a href="global.html#cellRef%255Bundefined%255D">cellRef[undefined]</a></li><li><a href="global.html#e%255Bundefined%255D">e[undefined]</a></li><li><a href="global.html#.textContent">.textContent</a></li><li><a href="global.html#get">get</a></li><li><a href="global.html#input%255Bundefined%255D">input[undefined]</a></li><li><a href="global.html#q%255Bundefined%255D">q[undefined]</a></li><li><a href="global.html#sortingDef%255B1%255D">sortingDef[1]</a></li></ul>
+</nav>
+
+
+<script src="scripts/linenumber.js"> </script>
+<script src="scripts/prettify.js"> </script>
+<script> prettyPrint(); </script>
+</body>
+</html>

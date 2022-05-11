@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: data/formula/services/ADCSubscription.js</title>
+
+    <script src="scripts/prettify.js"> </script>
+    <script src="scripts/lang-css.js"> </script>
+    <!--[if lt IE 9]&gt;
+      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
+    &lt;![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/default.css">
+    <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
+</head>
+
+<body>
+
+<div id="main-template" class="elf-template">
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>goog.provide("tr.ADCSubscription");
+
+goog.require("tr.HttpRequest");
+goog.require("tr.EventManager");
+
+/**
+ * @constructor
+ * @extends {tr.EventManager}
+ */
+tr.ADCSubscription = function() {
+	this._adcFieldMap = {};
+	this._queue = {};
+	this._onADCUpdate = this._onADCUpdate.bind(this);
+	this._refreshData = this._refreshData.bind(this);
+	this._processQueue = this._processQueue.bind(this);
+	this._onActivate = this._onActivate.bind(this);
+	this._onDeactivate = this._onDeactivate.bind(this);
+};
+goog.inherits(tr.ADCSubscription, tr.EventManager);
+
+
+/** @private
+ * @type {Object}
+ */
+tr.ADCSubscription.prototype._adcFieldMap = null;
+
+/**
+* @private
+* @type {Object}
+*/
+tr.ADCSubscription.prototype._jet = null;
+
+/** @private
+* @type {boolean}
+*/
+tr.ADCSubscription.prototype._isActive = true;
+
+/** @private
+* @type {boolean}
+*/
+tr.ADCSubscription.prototype._updateOnActivation = false;
+
+/** @private
+ * @type {Object}
+ */
+tr.ADCSubscription.prototype._queue = null;
+/** @private
+ * @type {string}
+ */
+tr.ADCSubscription.prototype._state = "stop";
+/** @private
+* @type {string}
+*/
+tr.ADCSubscription.prototype._userId = "GUEST";
+/** @private
+* @type {string}
+*/
+tr.ADCSubscription.prototype._productId = "ANONYMOUS";
+/** @private
+* @type {string}
+*/
+tr.ADCSubscription.prototype._adcUrl = "/datacloud/rest/select";
+/** @private
+* @type {number|null}
+*/
+tr.ADCSubscription.prototype._intervalId = null;
+/** @private
+* @type {number}
+*/
+tr.ADCSubscription.prototype._intervalTime = 3600000; // 1 Hour
+/** @private
+* @type {number|null}
+*/
+tr.ADCSubscription.prototype._timerId = null;
+/** @private
+* @type {string}
+*/
+tr.ADCSubscription.prototype._lang = "";
+/** @static
+* @constant {string}
+*/
+tr.ADCSubscription.PENDING_DATA = "_PENDING♪_";
+
+
+//#region public function of ADC service
+/** @public
+ * @description Set the settings of ADC
+ * @param {string} userId UUID
+ * @param {string} productId Application name
+ * @param {string} url Url of ADC server
+ * @param {string=} opt_lang Language of Eikon UI
+ */
+tr.ADCSubscription.prototype.setDataCloudSettings = function (userId, productId, url, opt_lang) {
+	if(userId !== undefined) {
+		this._userId = userId;
+	}
+	if(productId !== undefined) {
+		this._productId = productId;
+	}
+	if(url !== undefined) {
+		this._adcUrl = url;
+	}
+	if(opt_lang) {
+		this._lang = opt_lang;
+	}
+};
+/** @public
+ * @description Set the interval time for retrieving data
+ * @param {number} time Millisecond
+ */
+tr.ADCSubscription.prototype.setIntervalTime = function(time) {
+	time = +time;
+	if(!time) { // NaN or 0
+		return;
+	}
+	this._intervalTime = time;
+	this._stop();
+	this._start();
+};
+/** @public
+ * @description Subscribe symbol to the spcified field. This method will start the interval for retrieving data automatically.
+ * @param {string} symbol RIC
+ * @param {string} field ADC field name
+ * @return {*} Return the value if there is existing. Return undefined when requesting the invalid field.
+ */
+tr.ADCSubscription.prototype.addSymbolToField = function (symbol, field) {
+	if(field.indexOf("undefined") &gt;= 0) { // Invalid field name
+		return;
+	}
+
+	var fieldMap = this._adcFieldMap[field];
+	if(!fieldMap) {
+		fieldMap = {};
+		this._adcFieldMap[field] = fieldMap;
+	}
+	
+	var value = fieldMap[symbol];
+	if(value !== undefined) {
+		return value; // Return the current value
+	}
+
+	fieldMap[symbol] = tr.ADCSubscription.PENDING_DATA; // First value to cache
+	this._addQueue(field);
+	return tr.ADCSubscription.PENDING_DATA;
+};
+//#endregion public function of ADC service
+
+
+//#region public function of event
+/** @override
+ * @description Add the function handler into the specific event. This method will start interval automatically.
+ * @param {string} type Event name
+ * @param {Function} handler Event handler
+ */
+tr.ADCSubscription.prototype.addEventListener = function(type, handler) {
+	tr.ADCSubscription.base(this, "addEventListener", type, handler);
+	this._start();
+};
+/** @override
+ * @description Remove the function handler from the specific event. If there is not any event handlers, the service will stop automatically.
+ * @param {string} type Event name
+ * @param {Function} handler Event handler
+ */
+tr.ADCSubscription.prototype.removeEventListener = function(type, handler) {
+	tr.ADCSubscription.base(this, "removeEventListener", type, handler);
+	if(!this._hasListener()) {
+		this._stop();
+		this._adcFieldMap = {};
+		this._queue = {};
+	}
+};
+/** @override
+ * @description Remove all function handlers of all events and stop the interval of retrieving data of service.
+ */
+tr.ADCSubscription.prototype.removeAllEventListeners = function() {
+	tr.ADCSubscription.base(this, "removeAllEventListeners");
+	this._stop();
+	this._adcFieldMap = {};
+	this._queue = {};
+};
+
+/**
+* @public
+* @param {Object} jet
+*/
+tr.ADCSubscription.prototype.setJet = function (jet){
+	this._jet = jet;
+	this._jet["onActivate"](this._onActivate);
+	this._jet["onDeactivate"](this._onDeactivate);
+};
+
+
+//#endregion public function of event
+
+
+//#region private function of ADC service
+/** @private
+ * @description Start the interval of retrieving data
+ */
+tr.ADCSubscription.prototype._start = function() {
+	if(this._state === "start") {
+		return;
+	}
+	this._intervalId = window.setInterval(this._refreshData, this._intervalTime);
+	this._state = "start";
+};
+/** @private
+ * @description Stop the interval of retrieving data
+ */
+tr.ADCSubscription.prototype._stop = function() {
+	if(this._timerId !== null) {
+		window.clearTimeout(this._timerId);
+	}
+	if(this._intervalId !== null) {
+		window.clearInterval(this._intervalId);
+	}
+	this._timerId = null;
+	this._intervalId = null;
+	this._state = "stop";
+};
+/** @private
+ * @description Refresh all the ADC data that had been subscribed to the service.
+ */
+tr.ADCSubscription.prototype._refreshData = function() {
+	if (!this._isActive){
+		this._updateOnActivation = true;
+		this._stop();
+		return;
+	}
+	this._addQueue(Object.keys(/** @type{!Object} */(this._adcFieldMap)));
+};
+
+/**
+* @private
+*/
+tr.ADCSubscription.prototype._onActivate = function () {
+	this._isActive = true;
+	if (this._updateOnActivation) {
+		this._updateOnActivation = false;
+		this._start();
+	}
+};
+
+/**
+* @private
+*/
+tr.ADCSubscription.prototype._onDeactivate = function (){
+	this._isActive = false;
+};
+
+/** @private
+ * @description Manage the queue to retrieve the ADC data. Prevent to call the same ADC field multiple time.
+ * @param {string|Array.&lt;string&gt;} fields
+ */
+tr.ADCSubscription.prototype._addQueue = function(fields) {
+	if(this._timerId !== null) {
+		window.clearTimeout(this._timerId);
+	}
+
+	if(!Array.isArray(fields)) {
+		fields = [fields];
+	}
+	if(!this._queue) {
+		this._queue = {};
+	}
+	for(var i = fields.length; --i &gt;= 0;) {
+		this._queue[fields[i]] = true;
+	}
+	this._timerId = window.setTimeout(this._processQueue, 0);
+};
+/** @private
+ * @description Process the data queue to retrieve ADC data.
+ */
+tr.ADCSubscription.prototype._processQueue = function() {
+	var fields = Object.keys(/** @type{!Object} */(this._queue));
+	for(var j = fields.length; --j &gt;= 0;) {
+		this._requestDataCloud(fields[j]);
+	}
+	this._queue = {}; // Clear queue
+	this._timerId = null; // Clear timeout id
+};
+/** @private
+ * @description Publish the ADC request to the ADC server.
+ * @param {string} field ADC field name
+ */
+tr.ADCSubscription.prototype._requestDataCloud = function(field) {
+	var RICs = Object.keys(this._adcFieldMap[field]);
+	var payload = "formula=" + field + "&amp;identifiers=" + RICs;
+	if(this._productId) {
+		payload += '&amp;productid=' + this._productId;
+	}
+	if(this._userId) {
+		payload += '&amp;uuid=' + this._userId;
+	}
+	if(this._lang) {
+		payload += '&amp;lang=' + this._lang;
+	}
+
+	var http = new HttpRequest(this._adcUrl, payload);
+	http.send({"Content-Type":"application/x-www-form-urlencoded"})
+	.then(function(json) {
+		json["requestField"] = field; // Attached requested field
+		return json;
+	})
+	.then(this._onADCUpdate)
+	.catch(function(err) { 
+		console.error(err);
+	});
+};
+/** @private
+ * @description Validate type of value that are number, string, boolean or not.
+ * @param {*} value
+ */
+tr.ADCSubscription.prototype._isValidValueType = function(value) {
+	var t = typeof value;
+	return (value === null || t == "string" || t == "number" || t == "boolean");
+};
+/** @private
+ * @description Function for processing the ADC response and publish the event to the listener.
+ * @param {Object} json JSON object of ADC response
+ */
+tr.ADCSubscription.prototype._onADCUpdate = function(json) {
+	if(json["status"] &amp;&amp; json["status"].toLowerCase() !== "ok") {
+		console.warn("Response status is not ready");
+		return;
+	}
+
+	var rows = json["rows"];
+	var reqField = json["requestField"];
+	var header = rows[0];
+	var ricIndex = -1, fieldIndex = -1;
+
+	var type, field;
+	for(var idx in header) {
+		type = header[idx]["i"];
+		field = header[idx]["r"];
+		if(type === "instrument") {
+			ricIndex = idx;
+		}
+		if (type === "value" &amp;&amp; reqField === field) {
+			fieldIndex = idx;
+		}
+	}
+
+	var outputHash = {};
+	var rowsLen = rows.length;
+	var symbol, value, rowData;
+	for(var i = 1; i &lt; rowsLen; i++) {
+		symbol = rows[i][ricIndex];
+		value = rows[i][fieldIndex];
+
+		rowData = outputHash[symbol];
+		if (!rowData) {
+			rowData = {};
+			outputHash[symbol] = rowData;
+		}
+
+		if((rowData[reqField] === undefined || rowData[reqField] === null) &amp;&amp; this._isValidValueType(value)) {
+			rowData[reqField] = value;
+		}
+	}
+
+	// Publish data
+	for(symbol in outputHash) {
+		rowData = outputHash[symbol];
+		if(rowData.hasOwnProperty(reqField)) { // Have the data to be updated
+			this._adcFieldMap[reqField][symbol] = rowData[reqField]; // Cache the data in service
+			this._dispatch("dataChanged", { "ric": symbol, "values": rowData, "sender": this });
+		}
+	}
+};
+//#endregion private function of ADC service
+
+
+goog.exportSymbol("tr.ADCSubscription", tr.ADCSubscription);
+
+tr.ADCSubscription._proto = tr.ADCSubscription.prototype;
+
+goog.exportProperty(tr.ADCSubscription._proto, "setIntervalTime", tr.ADCSubscription._proto.setIntervalTime);
+goog.exportProperty(tr.ADCSubscription._proto, "setDataCloudSettings", tr.ADCSubscription._proto.setDataCloudSettings);
+
+goog.exportProperty(tr.ADCSubscription._proto, "addSymbolToField", tr.ADCSubscription._proto.addSymbolToField);
+
+goog.exportProperty(tr.ADCSubscription._proto, "addEventListener", tr.ADCSubscription._proto.addEventListener);
+goog.exportProperty(tr.ADCSubscription._proto, "removeEventListener", tr.ADCSubscription._proto.removeEventListener);
+goog.exportProperty(tr.ADCSubscription._proto, "removeAllEventListeners", tr.ADCSubscription._proto.removeAllEventListeners);
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="AdFin.html">AdFin</a></li><li><a href="DateTime.html">DateTime</a></li><li><a href="Info.html">Info</a></li><li><a href="Logic.html">Logic</a></li><li><a href="Math.html">Math</a></li><li><a href="Realtime.html">Realtime</a></li><li><a href="Statistic.html">Statistic</a></li><li><a href="Text.html">Text</a></li><li><a href="tr.ElementFrameWork.html">ElementFrameWork</a></li><li><a href="tr.PipDefinition.html">PipDefinition</a></li></ul><h3>Classes</h3><ul><li><a href="tr.ADCSubscription.html">ADCSubscription</a></li><li><a href="tr.AdFinSubscription.html">AdFinSubscription</a></li><li><a href="tr.cgrid.editor.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.filter.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.formatter.AsyncFormatter.html">AsyncFormatter</a></li><li><a href="tr.cgrid.formatter.CheckBox.html">CheckBox</a></li><li><a href="tr.cgrid.formatter.UpDownColor.html">UpDownColor</a></li><li><a href="tr.ColumnStats.html">ColumnStats</a></li><li><a href="tr.CompositeGrid.html">CompositeGrid</a></li><li><a href="tr.DataCache.html">DataCache</a></li><li><a href="tr.DataTable.html">DataTable</a></li><li><a href="tr.DataView.html">DataView</a></li><li><a href="tr.DropDown.html">DropDown</a></li><li><a href="tr.ElementControl.html">ElementControl</a></li><li><a href="tr.ElementWrapper.html">ElementWrapper</a></li><li><a href="tr.Event.html">Event</a></li><li><a href="tr.EventDispatcher.html">EventDispatcher</a></li><li><a href="tr.EventDispatcher.extendClass-tempCtor.html">tempCtor</a></li><li><a href="tr.EventManager.html">EventManager</a></li><li><a href="tr.FieldFormatter.html">FieldFormatter</a></li><li><a href="tr.fn.Engine.html">Engine</a></li><li><a href="tr.fn.Formula.html">Formula</a></li><li><a href="tr.fn.VariableToken.html">VariableToken</a></li><li><a href="tr.Grid.html">Grid</a></li><li><a href="tr.grid.BidOfferSpan.html">BidOfferSpan</a></li><li><a href="tr.grid.Blinker.html">Blinker</a></li><li><a href="tr.grid.Cell.html">Cell</a></li><li><a href="tr.grid.CellBlinkingPlugin.html">CellBlinkingPlugin</a></li><li><a href="tr.grid.CellEditingPlugin.html">CellEditingPlugin</a></li><li><a href="tr.grid.CellFloatingPanel.html">CellFloatingPanel</a></li><li><a href="tr.grid.CellPainter.html">CellPainter</a></li><li><a href="tr.grid.CellSpan.html">CellSpan</a></li><li><a href="tr.grid.CellSpans.html">CellSpans</a></li><li><a href="tr.grid.CellWriter.html">CellWriter</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html">CheckboxColumnPlugin</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html">CollapsibleHeaderPlugin</a></li><li><a href="tr.grid.ColumnFilterPlugin.html">ColumnFilterPlugin</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html">ColumnGroupingPlugin</a></li><li><a href="tr.grid.ColumnSelectionPlugin.html">ColumnSelectionPlugin</a></li><li><a href="tr.grid.ColumnStackingPlugin.html">ColumnStackingPlugin</a></li><li><a href="tr.grid.ColumnWidthAdjustingPlugin.html">ColumnWidthAdjustingPlugin</a></li><li><a href="tr.grid.Conflator.html">Conflator</a></li><li><a href="tr.grid.DataSourceTreePlugin.html">DataSourceTreePlugin</a></li><li><a href="tr.grid.DirectContentBindingPlugin.html">DirectContentBindingPlugin</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html">DragAndDropTitlePlugin</a></li><li><a href="tr.grid.DraggableContentPlugin.html">DraggableContentPlugin</a></li><li><a href="tr.grid.FindBar.html">FindBar</a></li><li><a href="tr.grid.FindBarPlugin.html">FindBarPlugin</a></li><li><a href="tr.grid.GroupStatisticsPlugin.html">GroupStatisticsPlugin</a></li><li><a href="tr.grid.HeatMapRenderer.html">HeatMapRenderer</a></li><li><a href="tr.grid.HScrollbar.html">HScrollbar</a></li><li><a href="tr.grid.IndexMarker.html">IndexMarker</a></li><li><a href="tr.grid.MovableHeaderPlugin.html">MovableHeaderPlugin</a></li><li><a href="tr.grid.NumberFormatter.html">NumberFormatter</a></li><li><a href="tr.grid.PercentBar.html">PercentBar</a></li><li><a href="tr.grid.PercentBarRenderer.html">PercentBarRenderer</a></li><li><a href="tr.grid.Plugin.html">Plugin</a></li><li><a href="tr.grid.RangeBar.html">RangeBar</a></li><li><a href="tr.grid.ResizableTitlePlugin.html">ResizableTitlePlugin</a></li><li><a href="tr.grid.Reverter.html">Reverter</a></li><li><a href="tr.grid.RowHeightAdjustingPlugin.html">RowHeightAdjustingPlugin</a></li><li><a href="tr.grid.RowSelectionPlugin.html">RowSelectionPlugin</a></li><li><a href="tr.grid.Scrollbar.html">Scrollbar</a></li><li><a href="tr.grid.SectionSettings.html">SectionSettings</a></li><li><a href="tr.grid.SmartTooltipsPlugin.html">SmartTooltipsPlugin</a></li><li><a href="tr.grid.SortableTitlePlugin.html">SortableTitlePlugin</a></li><li><a href="tr.grid.TreeIndentingPlugin.html">TreeIndentingPlugin</a></li><li><a href="tr.grid.Virtualizer.html">Virtualizer</a></li><li><a href="tr.grid.VScrollbar.html">VScrollbar</a></li><li><a href="tr.grid.ZoomPlugin.html">ZoomPlugin</a></li><li><a href="tr.HttpRequest.html">HttpRequest</a></li><li><a href="tr.IntervalSubscription.html">IntervalSubscription</a></li><li><a href="tr.LayoutGrid.html">LayoutGrid</a></li><li><a href="tr.ListMenu.html">ListMenu</a></li><li><a href="tr.MenuItem.html">MenuItem</a></li><li><a href="tr.MockArchive.html">MockArchive</a></li><li><a href="tr.MockJET.html">MockJET</a></li><li><a href="tr.MockQuotes.html">MockQuotes</a></li><li><a href="tr.MockQuotes2.html">MockQuotes2</a></li><li><a href="tr.MockSubscription.html">MockSubscription</a></li><li><a href="tr.MockSubscriptions.html">MockSubscriptions</a></li><li><a href="tr.Popup.html">Popup</a></li><li><a href="tr.PopupMenu.html">PopupMenu</a></li><li><a href="tr.PrintTrait.html">PrintTrait</a></li><li><a href="tr.RequestQueue.html">RequestQueue</a></li><li><a href="tr.Segment.html">Segment</a></li><li><a href="tr.SegmentCollection.html">SegmentCollection</a></li><li><a href="tr.TSISubscription.html">TSISubscription</a></li></ul><h3>Interfaces</h3><ul><li><a href="tr.cgrid.ICompositeExtension.html">ICompositeExtension</a></li><li><a href="tr.grid.IPlugin.html">IPlugin</a></li><li><a href="tr.IElementControl.html">IElementControl</a></li><li><a href="tr.ILayoutGrid.html">ILayoutGrid</a></li></ul><h3>Events</h3><ul><li><a href="tr.CompositeGrid.html#event:cellClicked">cellClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellDblClicked">cellDblClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellMouseDown">cellMouseDown</a></li><li><a href="tr.CompositeGrid.html#event:cellRightClicked">cellRightClicked</a></li><li><a href="tr.CompositeGrid.html#event:columnSorted">columnSorted</a></li><li><a href="tr.CompositeGrid.html#event:editorAttached">editorAttached</a></li><li><a href="tr.CompositeGrid.html#event:editorDetached">editorDetached</a></li><li><a href="tr.CompositeGrid.html#event:filterAdded">filterAdded</a></li><li><a href="tr.CompositeGrid.html#event:filterCleared">filterCleared</a></li><li><a href="tr.CompositeGrid.html#event:filterModified">filterModified</a></li><li><a href="tr.CompositeGrid.html#event:filterRemoved">filterRemoved</a></li><li><a href="tr.CompositeGrid.html#event:mouseLeaveCell">mouseLeaveCell</a></li><li><a href="tr.CompositeGrid.html#event:mouseOverCell">mouseOverCell</a></li><li><a href="tr.CompositeGrid.html#event:pageChanged">pageChanged</a></li><li><a href="tr.CompositeGrid.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.DataCache.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataCache.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataTable.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataTable.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataView.html#event:beforeFiltering">beforeFiltering</a></li><li><a href="tr.DataView.html#event:beforeGroupAdded">beforeGroupAdded</a></li><li><a href="tr.DataView.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataView.html#event:groupAdded">groupAdded</a></li><li><a href="tr.DataView.html#event:groupCriteriaChanged">groupCriteriaChanged</a></li><li><a href="tr.DataView.html#event:pageCountChanged">pageCountChanged</a></li><li><a href="tr.DataView.html#event:pageIndexChanged">pageIndexChanged</a></li><li><a href="tr.DataView.html#event:preDisposed">preDisposed</a></li><li><a href="tr.Formula.html#event:dataCacheChanged">dataCacheChanged</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:cancelled">cancelled</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:change">change</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:closed">closed</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:editorOpened">editorOpened</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:preEditorOpening">preEditorOpening</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:click">click</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:columnCollapsed">columnCollapsed</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:groupChanged">groupChanged</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:render">render</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:columnMoved">columnMoved</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:drag">drag</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragEnd">dragEnd</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragStart">dragStart</a></li><li><a href="tr.grid.FindBarPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:groupMoved">groupMoved</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:sectionMoved">sectionMoved</a></li><li><a href="tr.grid.RowSelectionPlugin.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:columnSorted">columnSorted</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preClicked">preClicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preDataSorting">preDataSorting</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.Grid.html#event:columnAdded">columnAdded</a></li><li><a href="tr.Grid.html#event:columnAlignmentChanged">columnAlignmentChanged</a></li><li><a href="tr.Grid.html#event:columnRemoved">columnRemoved</a></li><li><a href="tr.Grid.html#event:columnVisibilityChanged">columnVisibilityChanged</a></li><li><a href="tr.Grid.html#event:dataSourceChanged">dataSourceChanged</a></li><li><a href="tr.Grid.html#event:postSectionDataBinding">postSectionDataBinding</a></li><li><a href="tr.Grid.html#event:rowExpansionBinding">rowExpansionBinding</a></li><li><a href="tr.Grid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Grid.html#event:sectionAdded">sectionAdded</a></li><li><a href="tr.Grid.html#event:widthChanged">widthChanged</a></li><li><a href="tr.HttpRequest.html#event:abort">abort</a></li><li><a href="tr.HttpRequest.html#event:error">error</a></li><li><a href="tr.HttpRequest.html#event:load">load</a></li><li><a href="tr.HttpRequest.html#event:loadend">loadend</a></li><li><a href="tr.HttpRequest.html#event:loadstart">loadstart</a></li><li><a href="tr.HttpRequest.html#event:timeout">timeout</a></li><li><a href="tr.IElementControl.html#event:blur">blur</a></li><li><a href="tr.IElementControl.html#event:change">change</a></li><li><a href="tr.IElementControl.html#event:click">click</a></li><li><a href="tr.IElementControl.html#event:contextmenu">contextmenu</a></li><li><a href="tr.IElementControl.html#event:dblclick">dblclick</a></li><li><a href="tr.IElementControl.html#event:drag">drag</a></li><li><a href="tr.IElementControl.html#event:dragend">dragend</a></li><li><a href="tr.IElementControl.html#event:dragenter">dragenter</a></li><li><a href="tr.IElementControl.html#event:dragleave">dragleave</a></li><li><a href="tr.IElementControl.html#event:dragover">dragover</a></li><li><a href="tr.IElementControl.html#event:dragstart">dragstart</a></li><li><a href="tr.IElementControl.html#event:drop">drop</a></li><li><a href="tr.IElementControl.html#event:focus">focus</a></li><li><a href="tr.IElementControl.html#event:formchange">formchange</a></li><li><a href="tr.IElementControl.html#event:forminput">forminput</a></li><li><a href="tr.IElementControl.html#event:input">input</a></li><li><a href="tr.IElementControl.html#event:invalid">invalid</a></li><li><a href="tr.IElementControl.html#event:keydown">keydown</a></li><li><a href="tr.IElementControl.html#event:keypress">keypress</a></li><li><a href="tr.IElementControl.html#event:keyup">keyup</a></li><li><a href="tr.IElementControl.html#event:mousedown">mousedown</a></li><li><a href="tr.IElementControl.html#event:mousemove">mousemove</a></li><li><a href="tr.IElementControl.html#event:mouseout">mouseout</a></li><li><a href="tr.IElementControl.html#event:mouseover">mouseover</a></li><li><a href="tr.IElementControl.html#event:mouseup">mouseup</a></li><li><a href="tr.IElementControl.html#event:mousewheel">mousewheel</a></li><li><a href="tr.IElementControl.html#event:reset">reset</a></li><li><a href="tr.IElementControl.html#event:scroll">scroll</a></li><li><a href="tr.IElementControl.html#event:select">select</a></li><li><a href="tr.IElementControl.html#event:submit">submit</a></li><li><a href="tr.ILayoutGrid.html#event:blur">blur</a></li><li><a href="tr.ILayoutGrid.html#event:change">change</a></li><li><a href="tr.ILayoutGrid.html#event:click">click</a></li><li><a href="tr.ILayoutGrid.html#event:contextmenu">contextmenu</a></li><li><a href="tr.ILayoutGrid.html#event:dblclick">dblclick</a></li><li><a href="tr.ILayoutGrid.html#event:drag">drag</a></li><li><a href="tr.ILayoutGrid.html#event:dragend">dragend</a></li><li><a href="tr.ILayoutGrid.html#event:dragenter">dragenter</a></li><li><a href="tr.ILayoutGrid.html#event:dragleave">dragleave</a></li><li><a href="tr.ILayoutGrid.html#event:dragover">dragover</a></li><li><a href="tr.ILayoutGrid.html#event:dragstart">dragstart</a></li><li><a href="tr.ILayoutGrid.html#event:drop">drop</a></li><li><a href="tr.ILayoutGrid.html#event:focus">focus</a></li><li><a href="tr.ILayoutGrid.html#event:formchange">formchange</a></li><li><a href="tr.ILayoutGrid.html#event:forminput">forminput</a></li><li><a href="tr.ILayoutGrid.html#event:input">input</a></li><li><a href="tr.ILayoutGrid.html#event:invalid">invalid</a></li><li><a href="tr.ILayoutGrid.html#event:keydown">keydown</a></li><li><a href="tr.ILayoutGrid.html#event:keypress">keypress</a></li><li><a href="tr.ILayoutGrid.html#event:keyup">keyup</a></li><li><a href="tr.ILayoutGrid.html#event:mousedown">mousedown</a></li><li><a href="tr.ILayoutGrid.html#event:mousemove">mousemove</a></li><li><a href="tr.ILayoutGrid.html#event:mouseout">mouseout</a></li><li><a href="tr.ILayoutGrid.html#event:mouseover">mouseover</a></li><li><a href="tr.ILayoutGrid.html#event:mouseup">mouseup</a></li><li><a href="tr.ILayoutGrid.html#event:mousewheel">mousewheel</a></li><li><a href="tr.ILayoutGrid.html#event:reset">reset</a></li><li><a href="tr.ILayoutGrid.html#event:scroll">scroll</a></li><li><a href="tr.ILayoutGrid.html#event:select">select</a></li><li><a href="tr.ILayoutGrid.html#event:submit">submit</a></li><li><a href="tr.LayoutGrid.html#event:rowCountChanged">rowCountChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHeightChanged">rowHeightChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Popup.html#event:hidden">hidden</a></li><li><a href="tr.Popup.html#event:shown">shown</a></li><li><a href="tr.PopupMenu.html#event:hidden">hidden</a></li><li><a href="tr.PopupMenu.html#event:shown">shown</a></li><li><a href="tr.PrintTrait.html#event:afterprint">afterprint</a></li><li><a href="tr.PrintTrait.html#event:beforeprint">beforeprint</a></li><li><a href="tr.PrintTrait.html#event:pageCounting">pageCounting</a></li></ul><h3>Global</h3><ul><li><a href="global.html#cellRef%255Bundefined%255D">cellRef[undefined]</a></li><li><a href="global.html#e%255Bundefined%255D">e[undefined]</a></li><li><a href="global.html#.textContent">.textContent</a></li><li><a href="global.html#get">get</a></li><li><a href="global.html#input%255Bundefined%255D">input[undefined]</a></li><li><a href="global.html#q%255Bundefined%255D">q[undefined]</a></li><li><a href="global.html#sortingDef%255B1%255D">sortingDef[1]</a></li></ul>
+</nav>
+
+
+<script src="scripts/linenumber.js"> </script>
+<script src="scripts/prettify.js"> </script>
+<script> prettyPrint(); </script>
+</body>
+</html>

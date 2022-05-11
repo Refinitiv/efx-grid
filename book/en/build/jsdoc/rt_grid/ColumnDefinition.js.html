@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: ColumnDefinition.js</title>
+
+    <script src="scripts/prettify.js"> </script>
+    <script src="scripts/lang-css.js"> </script>
+    <!--[if lt IE 9]&gt;
+      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
+    &lt;![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/default.css">
+    <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
+</head>
+
+<body>
+
+<div id="main-template" class="elf-template">
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/* eslint-disable */
+import FieldDefinition from "./FieldDefinition.js";
+import PredefinedFormula from "./PredefinedFormula.js";
+import Formula from "../../node_modules/tr-grid-util/es6/formula/Formula.js";
+import Engine from "../../node_modules/tr-grid-util/es6/formula/Engine.js";
+/* eslint-enable */
+
+/** @callback ColumnDefinition~SortLogic
+* @param {*} valA Data or RowDefinition object, depending on rowSorting flag, used for comparison
+* @param {*} valB Data or RowDefinition object, depending on rowSorting flag, used for comparison
+* @param {number} order Order code. 1 means ascending order and -1 means descending order
+* @param {Object} ctx Context Object of the current sorting operation
+*/
+
+/** @typedef {Object} ColumnDefinition~Options
+* @description ColumnDefinition options
+* @property {string=} field="" Field for real-time, ADC, formula sources
+* @property {string=} dataType="" data type eg. string, datetime, number
+* @property {string=} formulaReference=""
+* @property {Array.&lt;string&gt;=} require=null Extra fields required by this column will be requested for real-time data.
+* @property {string=} name="" Label of the column
+* @property {boolean=} notRealTimeField=false If enabled, the `field` will not be requested for real-time data. By enabling this, `rowSorting` will also be disabled, if not specified.
+* @property {(boolean|string|null)=} tooltip=null Show tooltip in header section
+* @property {Function=} headerBinding=null Method for custom header rendering.
+* @property {Function=} headerRenderer=null Alias to `headerBinding`
+* @property {Function=} binding=null Method for custom rendering. It will be executed on each data update and scrolling
+* @property {Function=} renderer=null Alias to `binding`
+* @property {ColumnDefinition~SortLogic=} sortLogic=null
+* @property {ColumnDefinition~SortLogic=} sortingLogic=null Alias to `sortLogic`
+* @property {ColumnDefinition~SortLogic=} sorter=null Alias to `sortLogic`
+* @property {boolean=} rowSorting=null If set to true, RowDefinition object will be used for sorting comparison. If set to false, data from the given `field` will be used for sorting comparison.
+* @property {boolean=} sortable=true If disabled, the column cannot be sorted by user click
+* @property {string=} sort="" This column will be sorted at the initialization in the specified order (e.g. "asc", "desc")
+* @property {Object=} styles=null Key/value pair Object specifying CSS styles
+* @property {number=} width=NaN If specified, column will have a fixed width in pixel
+* @property {number=} minWidth=NaN If specified, column will have a minimum width in pixel
+* @property {boolean=} scalable=true Column scalability forces column to be scaled and filled the grid. `width` property will be used as a weight/ratio
+* @property {string=} className=""
+* @property {string=} class="" Alias to `className`
+* @property {string=} textAlign="" Text alignment for content and column header. Available values are: left|center|right
+* @property {string=} alignment="" Alias to `textAlign`
+* @property {string=} headerAlignment="" Text alignment for column header. This will override `textAlign` option for column header.
+* @property {string=} titleAlignment="" Alias to `headerAlignment`
+* @property {boolean=} hidden=false
+* @property {string=} id Id for unique identifier
+* @property {boolean=} textSelect=false If enabled, user can select text in this column
+* @property {boolean=} keepModel If enabled, initial column's options will be kept
+*/
+
+/** mapping of field type to javascript type
+* @type {Object.&lt;string, string&gt;}
+* @private
+*/
+var TYPE_MAPPING = {
+	STRING: "string",
+	BOOLEAN: "boolean",
+	NUMBER: "number",
+
+	DATE: "datetime",
+	DATETIME: "datetime",
+	TIME: "datetime",
+
+	ENUMERATED: "string",
+	ALPHANUMERIC: "string",
+	PERCENT: "string",
+
+	PRICE: "number",
+	DOUBLE: "number",
+	MONEY: "number"
+};
+
+/** @type {string}
+* @public
+* @const
+*/
+var COL_DEF = "COL_DEF";
+
+/** @private
+* @param {string} str
+* @return {string}
+*/
+var _toAlignment = function(str) {
+	if(str) {
+		var ch = str.charAt(0).toLowerCase();
+		if(ch === "l") {
+			return "left";
+		}
+		if(ch === "r") {
+			return "right";
+		}
+		if(ch === "c") {
+			return "center";
+		}
+	}
+	return "";
+};
+
+/** @constructor
+* @param {ColumnDefinition~Options|string=} columnOption
+* @param {*=} hostGrid
+*/
+var ColumnDefinition = function(columnOption, hostGrid) {
+	this._defaultRenderer = this._defaultRenderer.bind(this);
+	this._customRenderer = this._customRenderer.bind(this);
+	this._defaultSorter = this._defaultSorter.bind(this);
+	this._dataSorter = this._dataSorter.bind(this);
+	this._rowDefSorter = this._rowDefSorter.bind(this);
+
+	this._id = "" + ColumnDefinition._runningId++;
+	this._internalRenderer = this._defaultRenderer;
+	this._internalSorter = this._defaultSorter;
+
+	this._eventArg = {"colDef": this}; // WARNING: Circular reference
+	this._sortContext = {"colDef": this};
+	if(hostGrid) {
+		this._updateContext("grid", hostGrid);
+		this._updateContext("core", hostGrid["getCoreGrid"]()); // TODO: Handle multiple core grids
+	}
+
+	this._classes = [];
+	this._requiredFields = [];
+
+	this.initialize(columnOption);
+};
+//#region Private Members
+/** @type {string}
+* @private
+*/
+ColumnDefinition.prototype._id;
+/** @type {number}
+* @private
+*/
+ColumnDefinition._runningId = 1;
+
+/** @type {string}
+* @private
+*/
+ColumnDefinition.prototype._field = "";
+/** @type {string}
+* @private
+*/
+ColumnDefinition.prototype._dataType = "";
+/** @type {string}
+* @private
+*/
+ColumnDefinition.prototype._name = "";
+/** @type {boolean}
+* @private
+*/
+ColumnDefinition.prototype._isDefaultName = true;
+/** @type {string|null}
+* @private
+*/
+ColumnDefinition.prototype._tooltip = null;
+/** @type {!Array.&lt;string&gt;}
+* @private
+*/
+ColumnDefinition.prototype._requiredFields;
+/** @type {Function}
+* @private
+*/
+ColumnDefinition.prototype._headerRenderer = null;
+/** @type {string}
+* @private
+*/
+ColumnDefinition.prototype._headerAlignment = "";
+/** @type {!Function}
+* @private
+*/
+ColumnDefinition.prototype._internalRenderer;
+/** @type {Array.&lt;Function&gt;}
+* @private
+*/
+ColumnDefinition.prototype._userRenderers = null;
+/** @type {Function}
+* @private
+*/
+ColumnDefinition.prototype._activatedRenderer = null;
+/** @type {Object.&lt;string, Function&gt;}
+* @private
+*/
+ColumnDefinition.prototype._rendererMap = null;
+/** @type {!Function}
+* @private
+*/
+ColumnDefinition.prototype._internalSorter;
+/** Workaround to provide user a context during the sorting process
+* @type {Object}
+* @private
+*/
+ColumnDefinition.prototype._sortContext = null;
+/** @type {Function}
+* @private
+*/
+ColumnDefinition.prototype._userSorter = null;
+/** @type {boolean}
+* @private
+*/
+ColumnDefinition.prototype._sortable = true;
+
+/** @type {!Object}
+* @private
+*/
+ColumnDefinition.prototype._eventArg;
+/** @type {boolean}
+* @private
+*/
+ColumnDefinition.prototype._realTimeField = false;
+
+/** @type {!Array.&lt;string&gt;}
+* @private
+*/
+ColumnDefinition.prototype._classes;
+
+/** @type {Engine}
+* @private
+*/
+ColumnDefinition.prototype._fnEngine = null;
+/** @type {Formula}
+* @private
+*/
+ColumnDefinition.prototype._formula = null;
+/** @type {string}
+* @private
+*/
+ColumnDefinition.prototype._formulaRef = "";
+/** @type {string}
+ * @deprecated
+* @private
+*/
+ColumnDefinition.prototype._initialOrder = "";
+/** @type {boolean|null}
+* @private
+*/
+ColumnDefinition.prototype._rowSorting = null;
+/** @type {boolean}
+* @private
+*/
+ColumnDefinition.prototype._textSelect = false;
+
+/** @type {Object}
+* @private
+*/
+ColumnDefinition.prototype._userModel = null;
+//#endregion Private Members
+
+
+/** @public
+*/
+ColumnDefinition.prototype.dispose = function() {
+	this._eventArg = {}; // Clear all references
+	this._activatedRenderer = this._rendererMap = null;
+	this.setRenderer(null); // this._userRenderers are removed
+	this.setSorter(null);
+	this._userModel = null;
+	// TODO: Remove any related reference from this._fnEngine
+};
+/** @public
+* @param {ColumnDefinition~Options|string=} columnOption
+*/
+ColumnDefinition.prototype.initialize = function(columnOption) {
+	var field = "";
+	if(typeof columnOption === "string") {
+		field = columnOption;
+		columnOption = FieldDefinition.get(field) || null;
+	}
+
+	if(!columnOption) {
+		this._setField(field);
+		return;
+	}
+
+	var i, len, key;
+	//#region Apply pre-defined option
+	field = columnOption["field"];
+	var defaultOption = FieldDefinition.get(field);
+	if(defaultOption &amp;&amp; defaultOption !== columnOption) { // The column match the default field list
+		var userOption = columnOption;
+		columnOption = {}; // Create a new object for cloning process
+
+		for(key in defaultOption) {
+			columnOption[key] = defaultOption[key];
+		}
+
+		for(key in userOption) {
+			columnOption[key] = userOption[key]; // User option will override default option with the same key
+		}
+	}
+	//#endregion Apply pre-defined option
+
+	var val;
+	val = columnOption["id"];
+	if(val) {
+		this._id = val + "";
+	}
+
+	val = columnOption["formulaEngine"];
+	if(val &amp;&amp; val["addFormula"]) {
+		this._fnEngine = /** @type{Engine} */(val);
+	}
+	val = columnOption["formulaReference"];
+	if(val) {
+		this._formulaRef = val + "";
+	}
+
+	val = columnOption["require"] || columnOption["requiredFields"];
+	if(val != null) { // Empty string is allowed
+		if(typeof val === "string") {
+			this._requiredFields = val.split(" ");
+		} else if(Array.isArray(val)) {
+			this._requiredFields = val.slice();
+		}
+	}
+
+	this._setField(field, columnOption["formula"]); // Perform some field manipulation
+
+	val = columnOption["name"] || columnOption["title"]; // title is migrated from Composite Grid
+	if(val != null) { // Name can be empty string
+		this._name = val;
+		this._isDefaultName = false;
+	}
+
+	val = columnOption["dataType"];
+	if(val != null) {
+		this._dataType = val;
+	}
+
+	val = columnOption["notRealTimeField"];
+	if(val != null) {
+		this._realTimeField = !val;
+	}
+
+	val = columnOption["tooltip"];
+	if(val != null) { // Tooltip can be empty string
+		this._tooltip = val;
+	}
+
+	val = columnOption["headerAlignment"] || columnOption["titleAlignment"];
+	if(val != null) {
+		this._headerAlignment = _toAlignment(val);
+	}
+
+	val = columnOption["headerBinding"] || columnOption["headerRenderer"];
+	// eslint-disable-next-line no-undefined
+	if(val !== undefined) { // null is allowed for headerBinding
+		this._headerRenderer = val;
+	}
+
+	val = columnOption["binding"] || columnOption["renderer"];
+	if(!val) {
+		val = columnOption["formatter"]; // Migrate from Composite Grid
+	}
+	// eslint-disable-next-line no-undefined
+	if(val !== undefined) { // null is allowed for renderer
+		if(val instanceof Array) {
+			len = val.length;
+			for(i = 0; i &lt; len; ++i) {
+				this.addRenderer(/** @type{Function} */(val[i]));
+			}
+		} else if(val) {
+			if(typeof val === "function") {
+				this.setRenderer(val);
+			} else if(val["binding"]) {
+				this.setRenderer(val["binding"]);
+			}
+		} else {
+			this.setRenderer(null);
+		}
+	}
+
+	val = columnOption["rowSorting"];
+	if(val != null) {
+		this._rowSorting = val ? true : false;
+	}
+
+	val = columnOption["sortLogic"] || columnOption["sortingLogic"] || columnOption["sorter"];
+	// eslint-disable-next-line no-undefined
+	if(val !== undefined) { // null is allowed for sorter
+		this.setSorter(/** @type{Function} */(val));
+	}
+
+	// Deprecate
+	val = columnOption["sortable"];
+	if(val != null) {
+		this._sortable = val ? true : false;
+	}
+
+	val = columnOption["className"] || columnOption["class"];
+	if(typeof val === "string") {
+		this._classes = val.split(" ");
+	}
+
+	// Deprecate
+	val = columnOption["sort"];
+	if(val) {
+		this._initialOrder = val;
+	}
+
+	val = columnOption["textSelect"];
+	if(val) {
+		this._textSelect = val;
+	}
+
+	this._userModel = columnOption;
+};
+
+/** @public
+* @return {string}
+*/
+ColumnDefinition.prototype.getId = function() {
+	return this._id;
+};
+/** @public
+* @return {!Array.&lt;string&gt;}
+*/
+ColumnDefinition.prototype.getRequireFields = function() {
+	// TODO: Validate the fields
+	return this._requiredFields;
+};
+/** @public
+* @function
+* @return {!Array.&lt;string&gt;}
+*/
+ColumnDefinition.prototype.getRequiredFields = ColumnDefinition.prototype.getRequireFields;
+/** @public
+* @return {!Function}
+*/
+ColumnDefinition.prototype.getRenderer = function() {
+	return this._internalRenderer;
+};
+/** @public
+* @return {Function}
+*/
+ColumnDefinition.prototype.getHeaderRenderer = function() {
+	return this._headerRenderer;
+};
+/** @public
+* @return {!Function}
+*/
+ColumnDefinition.prototype.getSorter = function() {
+	return this._internalSorter;
+};
+/** Internal method for preparing sort context
+* @public
+* @ignore
+* @param {number} colIndex
+* @return {!Function}
+*/
+ColumnDefinition.prototype._prepareSortContext = function(colIndex) {
+	// TODO: Context does not get updated when column is moved or removed
+	this._sortContext["colIndex"] = colIndex;
+	this._sortContext["field"] = this._field;
+
+	return this._internalSorter;
+};
+
+/** @public
+* @return {string}
+*/
+ColumnDefinition.prototype.getName = function() {
+	return this._name;
+};
+/** @public
+* @return {boolean}
+*/
+ColumnDefinition.prototype.isDefaultName = function() {
+	return this._isDefaultName;
+};
+/** @public
+* @return {string}
+*/
+ColumnDefinition.prototype.getFieldDefinition = function () {
+	return FieldDefinition.get(this._field);
+};
+/** get realtime field data type
+* @public
+* @return {string}
+*/
+ColumnDefinition.prototype.getFieldDataType = function () {
+	var fieldDef = this.getFieldDefinition();
+	if(fieldDef &amp;&amp; fieldDef.fieldDataType) {
+		return fieldDef.fieldDataType;
+	}
+	return "";
+};
+/** get data type
+* @public
+* @return {string}
+*/
+ColumnDefinition.prototype.getDataType = function () {
+	if(this._dataType) return this._dataType;
+
+	var fieldDataType = this.getFieldDataType();
+	if(fieldDataType) {
+		return TYPE_MAPPING[fieldDataType.toUpperCase()];
+	}
+	return "";
+};
+/** get data type
+* @public
+* @param {string} field
+* @return {string}
+*/
+ColumnDefinition.getDataType = function(field) {
+	var fieldDef = FieldDefinition.get(field);
+	if(fieldDef) {
+		var fieldDataType = fieldDef.fieldDataType ? fieldDef.fieldDataType.toUpperCase() : null;
+		return TYPE_MAPPING[fieldDataType] ? TYPE_MAPPING[fieldDataType] : "";
+	}
+	return "";
+};
+/** @public
+* @return {string}
+*/
+ColumnDefinition.prototype.getTooltip = function() {
+	if(this._tooltip != null) {
+		if(typeof this._tooltip === "string") {
+			return this._tooltip; // There is a custom tooltip
+		} else if(!this._tooltip) {
+			return "";
+		}
+	}
+
+	if(this._name) {
+		return this._name;
+	}
+
+	if(this._field) {
+		return this._field;
+	}
+
+	return "";
+};
+/** @public
+* @return {string}
+*/
+ColumnDefinition.prototype.getField = function() {
+	return this._field;
+};
+/** @public
+* @return {!Array.&lt;string&gt;}
+*/
+ColumnDefinition.prototype.getAllFields = function() {
+	return this._requiredFields.concat(this._field);
+};
+/** @public
+* @return {boolean}
+*/
+ColumnDefinition.prototype.isRealTimeField = function() {
+	// TODO: Simplify this logic
+	if(this._field &amp;&amp; this._realTimeField &amp;&amp; !this._formula) {
+		return ColumnDefinition.isRealTimeField(this._field);
+	}
+	return false;
+};
+/** @public
+* @return {boolean}
+*/
+ColumnDefinition.prototype.isFormulaField = function() {
+	return this._formula ? true : false;
+};
+/** @public
+* @param {string} field
+* @return {boolean}
+*/
+ColumnDefinition.isFormulaField = function(field) {
+	return field.charAt(0) === "=";
+};
+/** @public
+* @param {string} field
+* @return {boolean}
+*/
+ColumnDefinition.isAdcField = function(field) {
+	return field.indexOf("TR.") === 0;
+};
+/** @public
+* @param {string} field
+* @return {boolean}
+*/
+ColumnDefinition.isRealTimeField = function(field) {
+	if(field) {
+		if(!ColumnDefinition.isFormulaField(field)) {
+			return !ColumnDefinition.isAdcField(field);
+		}
+	}
+
+	return false;
+};
+/** @public
+* @function
+* @param {Array.&lt;string&gt;} fields To be used by Array.reduce method
+* @param {ColumnDefinition} colDef
+* @return {!Array.&lt;string&gt;}
+*/
+ColumnDefinition.getRealTimeFields = function(fields, colDef) {
+	if(colDef.isRealTimeField()) {
+		fields.push(colDef.getField());
+	}
+
+	// TODO: Exclude any formula references from requesting real-time field
+	var reqFields = colDef.getRequiredFields();
+	var len = reqFields.length;
+	for(var i = 0; i &lt; len; ++i) {
+		var field = reqFields[i];
+		if(ColumnDefinition.isRealTimeField(field)) {
+			fields.push(field);
+		}
+	}
+	return fields;
+};
+/** @public
+ * @deprecated
+* @return {boolean}
+*/
+ColumnDefinition.prototype.isSortable = function() {
+	return this._sortable;
+};
+/** @public
+* @return {boolean}
+*/
+ColumnDefinition.prototype.isScalable = function() {
+	var core = this._eventArg["core"];
+	var grid = this._eventArg["grid"];
+	var colIndex = grid.getColumnIndex(this);
+	return core.getColumnScalability(colIndex);
+};
+/** @public
+ * @deprecated
+* @return {string}
+*/
+ColumnDefinition.prototype.getInitialSortOrder = function() {
+	return this._initialOrder;
+};
+/** @public
+* @return {number}
+*/
+ColumnDefinition.prototype.getWidth = function() {
+	var core = this._eventArg["core"];
+	var grid = this._eventArg["grid"];
+	var colIndex = grid.getColumnIndex(this);
+	return core.getColumnWidth(colIndex);
+};
+/** @public
+* @return {number}
+*/
+ColumnDefinition.prototype.getMinWidth = function() {
+	var core = this._eventArg["core"];
+	var grid = this._eventArg["grid"];
+	var colIndex = grid.getColumnIndex(this);
+	return core.getMinimumColumnWidth(colIndex);
+};
+/** @public
+* @return {string}
+*/
+ColumnDefinition.prototype.getTextAlign = function() {
+	var core = this._eventArg["core"];
+	var grid = this._eventArg["grid"];
+	var colIndex = grid.getColumnIndex(this);
+	return core.getColumnAlignment(colIndex);
+};
+/** @public
+* @return {string}
+*/
+ColumnDefinition.prototype.getHeaderAlignment = function() {
+	return this._headerAlignment || "";
+};
+/** @public
+* @return {!Array.&lt;string&gt;}
+*/
+ColumnDefinition.prototype.getClasses = function() {
+	return this._classes;
+};
+/** @public
+* @param {Object=} colOptions
+* @return {!Object}
+*/
+ColumnDefinition.prototype.getConfigObject = function(colOptions) {
+	var obj = colOptions || {};
+
+	if(this._field !== "" &amp;&amp; !this._field.match(/^COLUMN_/)) {
+		obj["field"] = this._field;
+	}
+
+	var value = this.getDataType();
+	if(value) {
+		obj["dataType"] = value;
+	}
+
+	if(this._formulaRef) {
+		obj["formulaReference"] = this._formulaRef;
+	}
+
+	if(this._requiredFields) {
+		obj["require"] = this._requiredFields;
+	}
+
+	if(this._name) {
+		obj["name"] = this._name;
+	}
+
+	if(!this._realTimeField) {
+		obj["notRealTimeField"] = true;
+	}
+
+	if(this._tooltip != null) {
+		obj["tooltip"] = this._tooltip;
+	}
+
+	if(this._rowSorting != null) {
+		obj["rowSorting"] = this._rowSorting;
+	}
+
+	if(!this._sortable) {
+		obj["sortable"] = false;
+	}
+
+	if(this._initialOrder) {
+		obj["sort"] = this._initialOrder;
+	}
+
+	if(this._classes) {
+		obj["className"] = this._classes.join(" ");
+	}
+
+	if(this._textSelect) {
+		obj["textSelect"] = this._textSelect;
+	}
+
+	if(this._headerAlignment) {
+		obj["headerAlignment"] = this._headerAlignment;
+	}
+
+	var core = this._eventArg["core"];
+	var grid = this._eventArg["grid"];
+	var colIndex = grid.getColumnIndex(this);
+	value = core.getColumnScalability(colIndex);
+	obj["scalable"] = value;
+
+	value = core.getColumnCustomLaneSize(colIndex);
+	obj["width"] = value;
+
+	value = core.getMinimumColumnWidth(colIndex);
+	if(value !== 32) {
+		obj["minWidth"] = value;
+	}
+
+	value = core.isColumnVisible(colIndex);
+	if(!value) {
+		obj["hidden"] = true;
+	}
+
+	value = core.getColumnAlignment(colIndex);
+	if(value !== "default") {
+		obj["textAlign"] = value;
+	}
+
+	return obj;
+};
+/** @public
+* @return {boolean}
+*/
+ColumnDefinition.prototype.isHidden = function() {
+	var core = this._eventArg["core"];
+	var grid = this._eventArg["grid"];
+	var colIndex = grid.getColumnIndex(this);
+	return !core.isColumnVisible(colIndex);
+};
+/** @public
+* @return {boolean}
+*/
+ColumnDefinition.prototype.isTextSelect = function () {
+	return this._textSelect;
+};
+/** @public
+* @param {boolean=} bool
+*/
+ColumnDefinition.prototype.hide = function(bool) {
+	var core = this._eventArg["core"];
+	var grid = this._eventArg["grid"];
+	var colIndex = grid.getColumnIndex(this);
+	core.hideColumn(colIndex, bool !== false);
+};
+/** This will clear all previously stored renderers and set a new one.
+* @public
+* @param {Function} func
+*/
+ColumnDefinition.prototype.setHeaderRenderer = function(func) {
+	this._headerRenderer = func;
+};
+/** This will clear all previously stored renderers and set a new one.
+* @public
+* @param {Function} func
+*/
+ColumnDefinition.prototype.setRenderer = function(func) {
+	if(typeof func === "function") {
+		this._internalRenderer = this._customRenderer;
+		if(this._activatedRenderer !== func) {
+			if(this._userRenderers) {
+				this._userRenderers.length = 0;
+			} else {
+				this._userRenderers = [];
+			}
+			this._userRenderers.push(func);
+		}
+	} else {
+		this._internalRenderer = this._defaultRenderer;
+		this._userRenderers = null;
+	}
+};
+/** Add more renderer to the existing list
+* @public
+* @param {Function} func
+*/
+ColumnDefinition.prototype.addRenderer = function(func) {
+	if(func) {
+		if(this._userRenderers) {
+			this._userRenderers.push(func);
+		} else {
+			this.setRenderer(func);
+		}
+	}
+};
+/** Make the given renderer the first priority, overriding any existing renderer. The method still maintain existing renderers for restoring back to original state.
+* @public
+* @param {string=} id ID for renderer mapping. If not specified the default renderer will be picked up
+* @param {Function=} func If not specified the renderer which corresponded id from mapping will be picked up. If false is given, the corresponding id will be cleared.
+* @return {boolean} Current activation state after the call
+*/
+ColumnDefinition.prototype.activateRenderer = function(id, func) {
+	var renderer = null;
+	if (id != null) {
+		var rendererMap = this._rendererMap;
+		if (!rendererMap) {
+			rendererMap = this._rendererMap = {};
+		}
+
+		if (typeof func === "function") {
+			renderer = rendererMap[id] = func;
+		} else if(func == null) { // Use cached method if null or undefined value is given
+			renderer = rendererMap[id];
+		} else if(!func) { // Empty string, zero, or false value
+			renderer = rendererMap[id] = null;
+		}
+	}
+
+	this._activatedRenderer = renderer || null;
+	if(!renderer) { // Restore back existing user renderers if there is no activated renderer
+		renderer = this._userRenderers ? this._userRenderers[0] : null;
+	}
+	this.setRenderer(renderer);
+	return this._activatedRenderer ? true : false;
+};
+/** @public
+* @param {ColumnDefinition~SortLogic=} func
+*/
+ColumnDefinition.prototype.setSorter = function(func) {
+	if(typeof func === "function") {
+		this._userSorter = func;
+		if(this._rowSorting == null) {
+			this._internalSorter = this._realTimeField ? this._dataSorter : this._rowDefSorter;
+		} else {
+			this._internalSorter = !this._rowSorting ? this._dataSorter : this._rowDefSorter;
+		}
+	} else {
+		this._userSorter = null;
+		this._internalSorter = this._defaultSorter;
+	}
+};
+
+/** To allow user change column name in run-time (language change or localization)
+* @public
+* @param {string} str
+*/
+ColumnDefinition.prototype.setName = function(str) {
+	this._name = str;
+	this._isDefaultName = false;
+};
+
+/** @private
+* @param {string|null=} field
+* @param {string} formulaStr
+*/
+ColumnDefinition.prototype._setField = function(field, formulaStr) {
+	var defaultField = (field == null); // undefined or null
+	if(!field) {
+		field = "";
+	}
+	// Trim white spaces -- equivalent to String.trim(), which is not support in IE8
+	field = field.replace(/^\s+|\s+$/gm, "");
+
+	if(this._fnEngine) {
+		var uppercasedF = field.toUpperCase(); // For comparison only
+		var predefinedF = formulaStr || PredefinedFormula.get(uppercasedF);
+		if(predefinedF || ColumnDefinition.isFormulaField(field)) {
+			field = Formula.toUpperCase(field);
+			this._formula = this._fnEngine.addFormula(predefinedF || field); // Always a success
+			if(predefinedF) {
+				this._formula.setAlias(field); // This field is used for retrieving data for dependent fields
+				this._fnEngine.addReference(this._formula, field); // Add reference name for dependencies calculation
+			}
+
+			this._retrieveNestedFields(this._formula.getFieldNames());
+		}
+		if(this._formulaRef) { // Allow user input to be used as a shorthand of the field
+			// WARNING: Formula Reference must be unique, or else it will be changed
+			this._formulaRef = this._fnEngine.addReference(this._formula || field, this._formulaRef);
+		}
+	}
+
+	if(defaultField) {
+		this._field = "COLUMN_" + this._id;
+		this._name = "Column " + this._id;
+	} else {
+		this._field = field;
+		this._name = field;
+		this._realTimeField = field ? true : false;
+	}
+	this._isDefaultName = true;
+	this._updateContext("field", field);
+	if(this.isRealTimeField()) { // Only realtime field will have a formatted field
+		this._updateContext("formattedField", field + "_FORMATTED");
+	}
+};
+/** @private
+* @param {Array.&lt;string&gt;} fields
+*/
+ColumnDefinition.prototype._retrieveNestedFields = function(fields) {
+	if(!fields) {
+		return;
+	}
+	for(var i = fields.length; --i &gt;= 0;) {
+		var field = fields[i];
+		var uppercasedF = field.toUpperCase();
+		var predefinedF = PredefinedFormula.get(uppercasedF);
+		if(predefinedF) { // Predefined formula
+			var f = this._fnEngine.getFormula(field); // Get formula by reference name
+			if(f) {
+				f.addFormulaCount(); // Add reference count
+			} else {
+				f = this._fnEngine.addFormula(predefinedF);
+				f.setAlias(field); // This field is used for retrieving data for dependent fields
+				this._fnEngine.addReference(f, field); // Add reference name for dependencies calculation
+			}
+			this._retrieveNestedFields(f.getFieldNames()); // Recursion
+		} else { // Any field that is not a predefined formula will be sent for requesting real-time data
+			this._requiredFields.push(field); // TODO: Exclude column reference
+		}
+	}
+};
+/** @private
+* @param {Object} e
+*/
+ColumnDefinition.prototype._defaultRenderer = function(e) {
+	var rowDef = /** @type{RowDefinition} */(e["dataValue"]);
+	var data = rowDef.getData(this._field);
+	e["cell"].setContent(data);
+};
+/** @private
+* @param {Object} e
+*/
+ColumnDefinition.prototype._customRenderer = function(e) {
+	var rowDef = /** @type{RowDefinition} */(e["dataValue"]);
+	var rowData = rowDef.getRowData();
+
+	var arg = this._eventArg; // Reuse the same object
+	arg["rowDef"] = rowDef;
+	arg["rowData"] = rowData;
+	arg["rowIndex"] = e["rowIndex"];
+	if(rowData) {
+		arg["data"] = rowData[this._field];
+	}
+	arg["colIndex"] = e["colIndex"];
+	arg["cell"] = e["cell"];
+	arg["section"] = e["section"];
+
+	if(this._activatedRenderer) {
+		this._activatedRenderer(arg);
+	} else {
+		var urs = this._userRenderers;
+		var len = urs.length;
+		for(var i = 0; i &lt; len; ++i) {
+			urs[i](arg);
+		}
+	}
+};
+/** @private
+* @param {RowDefinition} rowDefA
+* @param {RowDefinition} rowDefB
+* @param {number} order
+* @return {number}
+*/
+ColumnDefinition.prototype._defaultSorter = function(rowDefA, rowDefB, order) {
+	var orderA = rowDefA.getGroupOrder();
+	var orderB = rowDefB.getGroupOrder();
+	if(orderA !== orderB) {
+		return orderA - orderB; // Regardless of sort order
+	}
+
+	var a = rowDefA.getData(this._field);
+	var b = rowDefB.getData(this._field);
+
+	if(a == null || a !== a) {
+		if(b == null || b !== b) {
+			return 0;
+		}
+		return 1;
+	}
+	if(b == null || b !== b) {
+		return -1;
+	}
+
+	if(a &lt; b) {
+		return -order;
+	}
+	if(b &lt; a) {
+		return order;
+	}
+	return 0;
+};
+/** @private
+* @param {RowDefinition} rowDefA
+* @param {RowDefinition} rowDefB
+* @param {number} order
+* @return {number}
+*/
+ColumnDefinition.prototype._dataSorter = function(rowDefA, rowDefB, order) {
+	var orderA = rowDefA.getGroupOrder();
+	var orderB = rowDefB.getGroupOrder();
+	if(orderA !== orderB) {
+		return orderA - orderB; // Regardless of sort order
+	}
+
+	var a = rowDefA.getData(this._field);
+	var b = rowDefB.getData(this._field);
+	return this._userSorter(a, b, order, this._sortContext);
+};
+/** @private
+* @param {RowDefinition} rowDefA
+* @param {RowDefinition} rowDefB
+* @param {number} order
+* @return {number}
+*/
+ColumnDefinition.prototype._rowDefSorter = function(rowDefA, rowDefB, order) {
+	var orderA = rowDefA.getGroupOrder();
+	var orderB = rowDefB.getGroupOrder();
+	if(orderA !== orderB) {
+		return orderA - orderB; // Regardless of sort order
+	}
+
+	return this._userSorter(rowDefA, rowDefB, order, this._sortContext);
+};
+/** @private
+* @param {string} propName
+* @param {*} val
+*/
+ColumnDefinition.prototype._updateContext = function(propName, val) {
+	this._eventArg[propName] = this._sortContext[propName] = val;
+};
+
+/** @public
+* @return {Object}
+*/
+ColumnDefinition.prototype.getUserModel = function() {
+	return this._userModel;
+};
+
+/** @public
+*/
+ColumnDefinition.prototype.clearUserModel = function() {
+	this._userModel = null;
+};
+
+export {ColumnDefinition, COL_DEF};
+export default ColumnDefinition;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="ColumnDefinition.html">ColumnDefinition</a></li><li><a href="DataConnector.html">DataConnector</a></li><li><a href="Grid.html">Grid</a></li><li><a href="ReferenceCounter.html">ReferenceCounter</a></li><li><a href="RowDefinition.html">RowDefinition</a></li><li><a href="SnapshotFiller.html">SnapshotFiller</a></li><li><a href="StyleLoader.html">StyleLoader</a></li></ul><h3>Events</h3><ul><li><a href="Grid.html#event:adcDataReceived">adcDataReceived</a></li><li><a href="Grid.html#event:beforeRowRemoved">beforeRowRemoved</a></li><li><a href="Grid.html#event:dataComposed">dataComposed</a></li><li><a href="Grid.html#event:fieldAdded">fieldAdded</a></li><li><a href="Grid.html#event:fieldRemoved">fieldRemoved</a></li><li><a href="Grid.html#event:pageCountChanged">pageCountChanged</a></li><li><a href="Grid.html#event:pageIndexChanged">pageIndexChanged</a></li><li><a href="Grid.html#event:ricAdded">ricAdded</a></li><li><a href="Grid.html#event:ricRemoved">ricRemoved</a></li></ul><h3>Global</h3><ul><li><a href="global.html#COL_DEF">COL_DEF</a></li><li><a href="global.html#ROW_DEF">ROW_DEF</a></li></ul>
+</nav>
+
+
+<script src="scripts/linenumber.js"> </script>
+<script src="scripts/prettify.js"> </script>
+<script> prettyPrint(); </script>
+</body>
+</html>

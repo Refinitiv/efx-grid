@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: grid/util/util.js</title>
+
+    <script src="scripts/prettify.js"> </script>
+    <script src="scripts/lang-css.js"> </script>
+    <!--[if lt IE 9]&gt;
+      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
+    &lt;![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/default.css">
+    <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
+</head>
+
+<body>
+
+<div id="main-template" class="elf-template">
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+* @namespace
+*/
+var Util = {};
+/** @const
+* @type {string}
+*/
+Util.gridVersion = "__grid_version__";
+/** @const
+* @type {boolean}
+*/
+Util.isIE = Util.isIE || (function () {
+	var ua = window.navigator.userAgent;
+	return (ua.indexOf('MSIE ') &gt; 0) || (ua.indexOf('Trident/') &gt; 0) || (ua.indexOf('Edge/') &gt; 0);
+}());
+/** @const
+* @type {boolean}
+*/
+Util.isTouchDevice = Util.isTouchDevice || (function () {
+	if ((navigator["maxTouchPoints"] &amp;&amp; navigator["maxTouchPoints"] &lt; 256) ||
+		(navigator["msMaxTouchPoints"] &amp;&amp; navigator["msMaxTouchPoints"] &lt; 256)) {
+		return true;
+	}
+	return false;
+}());
+/** Retrieve an element from Novakit control or any object that has "getElement" method.
+* @public
+* @ignore
+* @param {*} obj If an HTMLElement is given, the same HTMLElement will be returned
+* @return {Element} The return value is always element or null
+*/
+Util.getElement = function (obj) {
+	if (Util.isElement(obj)) {
+		return /** @type{Element} */(obj);
+	} else {
+		if (obj &amp;&amp; Util.isFunction(obj["getElement"])) {
+			return obj["getElement"]();
+		}
+	}
+	return null;
+};
+/** Some browsers do not support HTMLElement, so we use nodeType to identify the type instead. Works on IE7
+* @public
+* @ignore
+* @param {*} val
+* @return {boolean}
+*/
+Util.isElement = function (val) {
+	if (val) {
+		return val.nodeType === 1;
+	}
+	return false;
+};
+/**
+ * Returns `true` if the passed value is empty, `false` otherwise. The value is deemed to be empty if it is either:
+ * - `null`
+ * - `undefined`
+ * - a zero-length array
+ * - a zero-length string (Unless the `allowEmptyString` parameter is set to `true`)
+ *
+ * @param {*} value The value to test.
+ * @param {boolean} [allowEmptyString=false] `true` to allow empty strings.
+ * @return {boolean}
+ */
+Util.isEmpty = function (value, allowEmptyString) {
+	return (value == null || typeof value === "undefined") ||
+		(!allowEmptyString ? value === "" : false) ||
+		(Util.isArray(value) &amp;&amp; value.length === 0);
+};
+/**
+* @public
+* @ignore
+* @param {*} val
+* @return {boolean}
+*/
+Util.isNumber = function (val) {
+	return typeof val === "number" &amp;&amp; isFinite(val);
+};
+/**
+* @public
+* @ignore
+* @param {*} val
+* @return {boolean}
+*/
+Util.isString = function (val) {
+	return typeof val === "string";
+};
+/** This version of isArray is faster than the one provided by goog.isArray. It works with both literal Array ([]) and Array class (new Array()) for Chrome
+* WARNING: It does not work when called across iframe, since Array object is a different object in each iframe
+* @public
+* @ignore
+* @param {*} val
+* @return {boolean}
+*/
+Util.isArray = Array.isArray;
+/** This version of isFunction is faster than the one provided by goog.isFunction. However It only works for Modern Browser and not IE
+* @public
+* @ignore
+* @param {*} val
+* @return {boolean}
+*/
+Util.isFunction = function (val) {
+	return typeof val === "function";
+};
+/** Supports only for modern browser (Gecko 1.9+, modern Webkit)
+* @public
+* @ignore
+* @param {!Element|Event|MouseEvent} target
+* @param {*=} opt_retObj An object that stores returned values
+* @return {!Object}
+*/
+Util.getClientPosition = function (target, opt_retObj) {
+	var pos = opt_retObj || {};
+	if (target["getBoundingClientRect"]) {
+		var box = target["getBoundingClientRect"]();
+		pos["x"] = box.left;
+		pos["y"] = box.top;
+	} else { // Event
+		pos["x"] = target.clientX;
+		pos["y"] = target.clientY;
+	}
+	return /**@type {!Object}*/(pos);
+};
+/** Top-left of B is used as registration a point (0, 0) for x and y.
+ * For example, if A is located to right of B, "x" will be positive, If A is located below B, "y" will be positive.
+* @public
+* @ignore
+* @param {!Element|Event|MouseEvent} A HTMLElement, Browser's event, or Browser's mouse event object
+* @param {!Element|Event|MouseEvent} B HTMLElement, Browser's event, or Browser's mouse event object
+* @param {*=} opt_retObj An object that stores returned values
+* @return {!Object} an object with "x" and "y" values
+*/
+Util.getRelativePosition = function (A, B, opt_retObj) {
+	opt_retObj = Util.getClientPosition(A, opt_retObj);
+	var bp = Util.getClientPosition(B);
+
+	opt_retObj["x"] -= bp["x"];
+	opt_retObj["y"] -= bp["y"];
+	return /**@type {!Object}*/(opt_retObj);
+};
+
+/** Move an item in the given array to the specified destination. If the destination equal or greater than array length, the array will be expanded
+* @public
+* @ignore
+* @param {Array} ary
+* @param {number} from INCLUSIVE
+* @param {number} to INCLUSIVE
+* @return {Array} ary
+*/
+Util.moveArrayItem = function (ary, from, to) {
+	if (!ary) { return null; }
+
+	var len = ary.length;
+	if (from &gt;= len &amp;&amp; to &gt;= len) {
+		return /** @type{Array} */(ary); // No item needs to be moved
+	}
+
+	var item = ary.splice(from, 1)[0];
+	if (to &lt; len) {
+		ary.splice(to, 0, item);
+	} else {
+		ary[to] = item;
+	}
+	return ary;
+};
+/** Insert an item in the given array at the specified position. If the position exceeds the array length, the array will be expanded
+* @public
+* @ignore
+* @param {Array|*} ary
+* @param {number} at INCLUSIVE
+* @param {*} item
+*/
+Util.insertArrayItem = function (ary, at, item) {
+	if (!ary) { return; }
+
+	if (at &lt; 0) {
+		return; // Negative index cannot be added
+	}
+	if (at &lt; ary.length) {
+		ary.splice(at, 0, item); // any subsequence item is shifted to the right
+	} else {
+		ary[at] = item;
+	}
+};
+/** Remove the specified item from the given array
+* @public
+* @ignore
+* @param {Array|*} ary
+* @param {number} at INCLUSIVE
+* @return {*} removed item. If not existed, null is returned
+*/
+Util.removeArrayItem = function (ary, at) {
+	if (!ary) { return null; }
+
+	if (at &gt;= 0 &amp;&amp; at &lt; ary.length) {
+		return ary.splice(at, 1)[0];
+	}
+	return null;
+};
+
+/** Correct the index when associated item is moved by the specified indices
+* @public
+* @ignore
+* @param {number|null} num
+* @param {number|null} from INCLUSIVE removed index
+* @param {number|null=} opt_to INCLUSIVE added index
+* @return {number} Negative if the index is removed
+*/
+Util.moveIndex = function (num, from, opt_to) {
+	if (!Util.isNumber(num)) { return -1; }
+	if (num === from) {
+		if (Util.isNumber(opt_to)) {
+			return /** @type{number} */(opt_to);
+		}
+		return -1;
+	}
+	if (from !== null) {
+		if (num &gt; from) {
+			--num;
+		}
+	}
+	if (opt_to !== null) {
+		if (num &gt;= opt_to) {
+			++num;
+		}
+	}
+	return /** @type{number} */(num);
+};
+
+/** STL implementation of lowerBound() of the C++ vector class with no recursion
+* @public
+* @ignore
+* @param {Array.&lt;*&gt;} ary The given array must already be sorted in ascending order
+* @param {*} value the value to be searched
+* @param {number=} left the begin index of the search range is INCLUSIVE
+* @param {number=} right the end index of the search range is EXCLUSIVE
+* @param {function(?, ?):boolean=} opt_lessFunc "Less than comparison functor"
+* @return {number} Return the lowest index that gives equal or greater than the searched value
+*/
+Util.lowerBound = function (ary, value, left, right, opt_lessFunc) {
+	if (left == null || left &lt; 0) {
+		left = 0;
+	}
+	if (right == null || right &lt; 0 || right &gt; ary.length) {
+		right = ary.length;
+	}
+	if (left &gt; right) {
+		left = right;
+	}
+	if (opt_lessFunc == null) {
+		opt_lessFunc = Util._defaultLessComparator;
+	}
+
+	var mid = 0;
+	while (right &gt; left) {
+		mid = (left + right) &gt;&gt; 1;
+		if (opt_lessFunc(ary[mid], value)) {
+			left = mid + 1;
+		} else {
+			right = mid;
+		}
+	}
+	return left; // May return ary.length
+};
+
+/** Upper bouund is the greatest index that has value that is always greater than the given value
+* @public
+* @ignore
+* @param {Array.&lt;*&gt;} ary The given array must already be sorted in ascending order
+* @param {*} value the value to be searched
+* @param {number=} left the begin index of the search range is INCLUSIVE
+* @param {number=} right the end index of the search range is EXCLUSIVE
+* @param {function(?, ?):boolean=} opt_lessFunc "Less than comparison functor"
+* @return {number} Return the highest index that gives equal or greater than the searched value
+ */
+Util.upperBound = function (ary, value, left, right, opt_lessFunc) {
+	var at = Util.lowerBound(ary, value, left, right, opt_lessFunc);
+	while (ary[at] === value) { ++at; }
+	return at;
+};
+
+/** This function will replace the string by sequence arguments. (like String.format in JAVA)
+ * @param {...string} format - First argument is string to format, the following arguments are the string to substitute
+ * @example Util.stringFormat("There is a {0} in a {1}.", "box", "room"); // Result: "There is a box in a room."
+ * @return {string}
+ */
+Util.stringFormat = function (format) {
+	var args = Array.prototype.slice.call(arguments, 1);
+	return format.replace(/{(\d+)}/g, function (match, number) {
+		return (args[number] != null) ? args[number] : match;
+	});
+};
+/**
+* @private
+* @param {*} left
+* @param {*} right
+* @return {boolean}
+*/
+Util._defaultLessComparator = function (left, right) {
+	return left &lt; right;
+};
+/** @public
+* @function
+* @ignore
+* @param {number} left
+* @param {number} right
+* @return {number}
+* @example [4, 1, 2].sort(Util._numericSorter) === [1, 2, 4];
+*/
+Util._numericSorter = function (left, right) {
+	return left - right;
+};
+
+/** @public
+* @function
+* @ignore
+* @param {Event} e
+ */
+Util._preventDefault = function (e) {
+	e.preventDefault();
+	e.stopPropagation();
+};
+
+/**
+* @public
+* @function
+* @ignore
+ */
+Util._deprecatedFunction = function () {
+	console.warn("Calling deprecated method");
+};
+
+/**
+ * @public
+ * @function
+ * @ignore
+ * @param {number} lowVal
+ * @param {number} lastVal
+ * @param {number} highVal
+ * @return {number}
+ */
+Util.calculatePercent = function (lowVal, lastVal, highVal) {
+	if ((!lowVal &amp;&amp; lowVal !== 0) ||
+		(!lastVal &amp;&amp; lastVal !== 0) ||
+		(!highVal &amp;&amp; highVal !== 0)) {
+		return NaN;
+	}
+	if (highVal === lowVal) {
+		return 50;
+	}
+	var percent = (lastVal - lowVal) / (highVal - lowVal);
+	if (percent &lt; 0) {
+		return 0;
+	}
+	if (percent &gt; 1) {
+		return 100;
+	}
+	return percent * 100;
+};
+
+/** @description Return closest ancestor element or the element itself with specified class string. Otherwise return null
+ * @public
+ * @function
+ * @ignore
+ * @param {Element|Node|undefined} elem
+ * @param {string} classStr The class string can only be one single class without spaces
+ * @return {Element}
+ */
+Util.closestElement = function (elem, classStr) {
+	var n = elem;
+	while (n &amp;&amp; n.classList) {
+		if (n.classList.contains(classStr)) {
+			return /** @type{Element} */(n);
+		}
+		n = n.parentNode;
+	}
+	return null;
+};
+/**
+* @function
+* @return {boolean}
+*/
+Util.isEikonDesktop = function () {
+	var jet = window["JET"];
+	if (jet) {
+		var desc = jet["ContainerDescription"];
+		if (desc) {
+			return desc["name"] === "Thomson Reuters Eikon";
+		}
+	}
+	return false;
+};
+/**
+* @function
+* @return {boolean}
+*/
+Util.isEikon5 = function () {
+	return (navigator.userAgent.indexOf('TR-Electron') &gt;= 0);
+};
+/** @public
+* @function
+* @param {string|Function} expression
+* @return {Function}
+* @example
+* var fn = Util.parseRowCondition("[CF_BID] &gt;= 10 &amp;&amp; [CF_BID] &lt;= 100");
+* window.console.log(fn(25));
+*/
+Util.parseRowCondition = function (expression) {
+	if (!expression) {
+		return null;
+	}
+	if (typeof expression !== "string") {
+		return Util.isFunction(expression) ? /** @type {Function} */(expression) : null;
+	}
+
+	var regEx = new RegExp(/\[[^[]*\]/g); // Regex for matching the field token E.g. '[CF_BID]'
+	var brackets = expression.match(regEx); // Retrieving field tokens (anything in between brackets)
+	var map = {}; // For checking duplication
+	var fields = [];
+	var len = brackets ? brackets.length : 0;
+	for (var i = len; --i &gt;= 0;) {
+		var field = brackets[i];
+		if (!map[field]) {
+			map[field] = "f[" + fields.length + "]"; // Create mapping of field token to array with index E.g. { "[CF_BID]": "f[0]" }
+			fields.push(field.substring(1, field.length - 1)); // Strip '[' and ']' of field token to get field name
+		}
+	}
+
+	// Replace the field tokens with rowData of array with index E.g. [CF_BID] ==&gt; rowData[f[0]]
+	expression = expression.replace(regEx, function (match) {
+		return "rowData[" + map[match] + "]";
+	});
+	var finalExp = "(function(f, rowData) { return (" + expression + "); })";
+
+	var fn = null;
+	try {
+		fn = eval(finalExp);
+		fn = fn.bind(null, fields); // Bind fields for matching field name
+	} catch (err) {
+		window.console.log(err.message);
+	}
+	return (fn) ? /** @type{Function} */(fn) : null;
+};
+
+/** @public
+* @ignore
+* @return {string}
+*/
+Util.getTooltipLinebreakChar = function () {
+	return "\n";
+};
+
+/** @public
+* @ignore
+* @param {string} text
+* @return {string}
+*/
+Util.escapeHtml = function (text) {
+	return text ? text.replace(Util._htmlRegEx, Util._getEscapedHtml) : "";
+};
+/** @private
+* @param {string} cha HTML character
+* @return {string}
+*/
+Util._getEscapedHtml = function (cha) {
+	return Util._escapedHtmlChars[cha];
+};
+/** @private
+* @type {Object.&lt;string, string&gt;}
+*/
+Util._escapedHtmlChars = {
+	'&amp;': '&amp;amp;',
+	'&lt;': '&amp;lt;',
+	'&gt;': '&amp;gt;',
+	'"': '&amp;quot;',
+	"'": '&amp;#039;'
+};
+/** @private
+* @type {RegExp}
+*/
+Util._htmlRegEx = /[&amp;&lt;&gt;"']/g;
+
+/** @public
+* @ignore
+* @type {boolean}
+*/
+Util.isMac = /Mac/.test(navigator.platform);
+
+/** @public
+ * @type {boolean}
+ */
+Util.isMobile = Util.isMobile || (function () {
+	return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}());
+
+/**
+ * Validates that a value is numeric.
+ *
+ * @param {*} value
+ * @example
+ * 1, '1', '2.34'
+ * @return {boolean} `true` if numeric, `false` otherwise.
+ */
+Util.isNumeric = function (value) {
+	return !isNaN(parseFloat(value)) &amp;&amp; isFinite(value);
+};
+
+/** Escape special characters
+ * @param {string} text
+ * @return {string}
+ */
+Util.escapeCharacters = function(text) {
+	return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&amp;");
+};
+
+export default Util;
+export { Util };
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="ElementFrameWork.html">ElementFrameWork</a></li><li><a href="Util.html">Util</a></li></ul><h3>Classes</h3><ul><li><a href="Cell.html">Cell</a></li><li><a href="CellFloatingPanel.html">CellFloatingPanel</a></li><li><a href="CellSpan.html">CellSpan</a></li><li><a href="CellSpans.html">CellSpans</a></li><li><a href="ColumnStats.html">ColumnStats</a></li><li><a href="Conflator.html">Conflator</a></li><li><a href="DataCache.html">DataCache</a></li><li><a href="DataTable.html">DataTable</a></li><li><a href="DataView.html">DataView</a></li><li><a href="DragAndDropTitlePlugin.html">DragAndDropTitlePlugin</a></li><li><a href="ElementWrapper.html">ElementWrapper</a></li><li><a href="EventDispatcher.html">EventDispatcher</a></li><li><a href="EventListeners.html">EventListeners</a></li><li><a href="Grid.html">Grid</a></li><li><a href="HScrollbar.html">HScrollbar</a></li><li><a href="HttpRequest.html">HttpRequest</a></li><li><a href="LayoutGrid.html">LayoutGrid</a></li><li><a href="PercentBar.html">PercentBar</a></li><li><a href="PercentBarRenderer.html">PercentBarRenderer</a></li><li><a href="Plugin.html">Plugin</a></li><li><a href="RangeBar.html">RangeBar</a></li><li><a href="Reverter.html">Reverter</a></li><li><a href="Scrollbar.html">Scrollbar</a></li><li><a href="SectionSettings.html">SectionSettings</a></li><li><a href="Segment.html">Segment</a></li><li><a href="SegmentCollection.html">SegmentCollection</a></li><li><a href="SortableTitlePlugin.html">SortableTitlePlugin</a></li><li><a href="Virtualizer.html">Virtualizer</a></li><li><a href="VScrollbar.html">VScrollbar</a></li></ul><h3>Interfaces</h3><ul><li><a href="ILayoutGrid.html">ILayoutGrid</a></li></ul><h3>Events</h3><ul><li><a href="DataCache.html#event:dataChanged">dataChanged</a></li><li><a href="DataCache.html#event:dataComposed">dataComposed</a></li><li><a href="DataTable.html#event:dataChanged">dataChanged</a></li><li><a href="DataTable.html#event:dataComposed">dataComposed</a></li><li><a href="DataView.html#event:beforeFiltering">beforeFiltering</a></li><li><a href="DataView.html#event:beforeGroupAdded">beforeGroupAdded</a></li><li><a href="DataView.html#event:dataChanged">dataChanged</a></li><li><a href="DataView.html#event:groupAdded">groupAdded</a></li><li><a href="DataView.html#event:groupCriteriaChanged">groupCriteriaChanged</a></li><li><a href="DataView.html#event:pageCountChanged">pageCountChanged</a></li><li><a href="DataView.html#event:pageIndexChanged">pageIndexChanged</a></li><li><a href="DataView.html#event:preDisposed">preDisposed</a></li><li><a href="DragAndDropTitlePlugin.html#event:columnMoved">columnMoved</a></li><li><a href="DragAndDropTitlePlugin.html#event:dragged">dragged</a></li><li><a href="Grid.html#event:columnAdded">columnAdded</a></li><li><a href="Grid.html#event:columnRemoved">columnRemoved</a></li><li><a href="Grid.html#event:columnVisibilityChanged">columnVisibilityChanged</a></li><li><a href="Grid.html#event:dataSourceChanged">dataSourceChanged</a></li><li><a href="Grid.html#event:postSectionDataBinding">postSectionDataBinding</a></li><li><a href="Grid.html#event:rowExpansionBinding">rowExpansionBinding</a></li><li><a href="Grid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="Grid.html#event:sectionAdded">sectionAdded</a></li><li><a href="Grid.html#event:widthChanged">widthChanged</a></li><li><a href="HttpRequest.html#event:abort">abort</a></li><li><a href="HttpRequest.html#event:error">error</a></li><li><a href="HttpRequest.html#event:load">load</a></li><li><a href="HttpRequest.html#event:loadend">loadend</a></li><li><a href="HttpRequest.html#event:loadstart">loadstart</a></li><li><a href="HttpRequest.html#event:timeout">timeout</a></li><li><a href="LayoutGrid.html#event:rowCountChanged">rowCountChanged</a></li><li><a href="LayoutGrid.html#event:rowHeightChanged">rowHeightChanged</a></li><li><a href="LayoutGrid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="SortableTitlePlugin.html#event:clicked">clicked</a></li><li><a href="SortableTitlePlugin.html#event:columnSorted">columnSorted</a></li><li><a href="SortableTitlePlugin.html#event:preClicked">preClicked</a></li><li><a href="SortableTitlePlugin.html#event:preDataSorting">preDataSorting</a></li></ul><h3>Global</h3><ul><li><a href="global.html#get">get</a></li><li><a href="global.html#sortingDef%255B1%255D">sortingDef[1]</a></li></ul>
+</nav>
+
+
+<script src="scripts/linenumber.js"> </script>
+<script src="scripts/prettify.js"> </script>
+<script> prettyPrint(); </script>
+</body>
+</html>

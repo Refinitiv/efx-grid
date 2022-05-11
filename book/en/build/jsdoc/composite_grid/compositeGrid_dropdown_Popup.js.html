@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: compositeGrid/dropdown/Popup.js</title>
+
+    <script src="scripts/prettify.js"> </script>
+    <script src="scripts/lang-css.js"> </script>
+    <!--[if lt IE 9]&gt;
+      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
+    &lt;![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/default.css">
+    <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
+</head>
+
+<body>
+
+<div id="main-template" class="elf-template">
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/*
+ * See https://thehub.thomsonreuters.com/docs/DOC-685761 for understanding the design of this control.
+ */
+
+goog.provide("tr.Popup");
+
+goog.require("tr.res");
+goog.require("tr.IElementControl");
+goog.require("tr.ElementControl");
+goog.require("tr.ElementWrapper");
+
+/**
+ * tr.Popup constructor model
+ * @typedef {Object} tr.Popup~Model
+ * @property {tr.Popup.Anchor} anchor
+ * @property {tr.Popup.Pin} pin
+ * @property {number} offset
+ * @property {boolean} modal
+ * @property {boolean} autoHide
+ * @property {boolean} autoReposition
+ */
+
+/**
+ * Create new Popup control.
+ * Popup is a control aiming to host another UI elements with a capability to show or hide on the screen dynamically.
+ *
+ * The constructor can accept several forms of argument as following:
+ *    - new Popup()
+ *    - new Popup(`model`)
+ *    - new Popup(`element`)
+ *    - new Popup(`element`, `model`)
+ *
+ * @constructor
+ * @implements {tr.IElementControl}
+ * @extends {tr.ElementControl}
+ * @param {Object|Element=} [opt_initializer] An `element` to be decorated as a popup or a `model` specifying how a popup will behave.
+ * @param {Object=} opt_model If both `element` and `model` need to be specified. Pass `element` as the 1st argument and `model` as the 2nd argument.
+ *
+ * @example
+ *
+ * // Create popup with empty content. Initially hidden at the `center` of the screen.
+ * new Popup();
+ *
+ * // Create popup with empty content. Initially shown at { x: 20, y: 53 } with x-offset = 10 and y-offset = 20.
+ * new Popup({
+ *     anchor: { x: 20, y: 53},
+ *     offset: { x: 10, y: 20 },
+ *     show: true
+ * });
+ *
+ * // Create popup decorating the `element`. Initially hidden at the position of `anchor`. Pin `top-right` of popup to `bottom-right` of element
+ * new Popup(element, {
+ *     anchor: element,
+ *     pin: { anchor: `bottom-right`, self: `top-right` }
+ * });
+ *
+ * // Create popup decorating the `element`. Initially shown at the position { x: 0, y: 0 }. Disable features `autoHide` and `autoReposition`
+ * new Popup(element, {
+ *     autoHide: false,
+ *     autoReposition: false,
+ *     show: true
+ * });
+ *
+ * @see https://thehub.thomsonreuters.com/docs/DOC-685761
+ */
+tr.Popup = function(opt_initializer, opt_model) {
+	var _this = this;
+	var res = tr.res;
+
+	_this._managePosition = _this._managePosition.bind(_this);
+	_this._onClickOverlay = _this._onClickOverlay.bind(_this);
+	_this._onMouseDownOnWindow = _this._onMouseDownOnWindow.bind(_this);
+
+	if(!_this._defaultPinMap) {
+		_this._defaultPinMap = {
+			"left": res.right, // left right
+			"right": res.left, // right left
+			"top": res.bottom, // top bottom
+			"bottom": "top", // bottom top
+			"center": "center",
+			"top-left": res.bottom + "-" + res.left, // top-left bottom-left
+			"top-right": res.bottom + "-" + res.right, //top-right bottom-right
+			"bottom-left": "top-left", // bottom-left top-left
+			"bottom-right": "top-right" // bottom-right top-right
+		};
+		tr.Popup.prototype._defaultPinMap = _this._defaultPinMap; // Make it singleton
+	}
+
+	if (opt_initializer &amp;&amp; !tr.isElement(opt_initializer)) {
+		opt_model = opt_initializer;
+		opt_initializer = null;
+	}
+
+	_this._init(/** @type {Element} */(opt_initializer));
+	_this._deserialize(opt_model);
+
+	// Add custom events
+	_this._addEvent("shown");
+	_this._addEvent(res.hidden);
+	_this._addEvent("clickedOutside");
+};
+
+goog.inherits(tr.Popup, tr.ElementControl);
+
+//#region Typedefs
+
+/**
+ * A popup anchor can be specified in the following types:-
+ *
+ *    - `Element` - Any html element.
+ *    - `{@link tr.ElementControl}` - Any novakit control instance.
+ *    - `Object` - Object of position { x: positionX, y: positionY }.
+ *
+ * @typedef {?Element | tr.ElementControl | tr.ElementWrapper | {x: number, y: number}} tr.Popup~Anchor
+ */
+tr.Popup.Anchor;
+
+/**
+ * A popup placement is a string. Can be the following:-
+ *
+ *     - `center` - Center of reference.
+ *     - `left` - Left side of reference.
+ *     - `right` - Right side of reference.
+ *     - `top` - Top of reference.
+ *     - `bottom` - Bottom of reference.
+ *     - `top-left` - Top left of reference.
+ *     - `top-right` - Top right of reference.
+ *     - `bottom-left` - Bottom left of reference.
+ *     - `bottom-right` - Bottom right of reference.
+ *
+ * @typedef {?string} tr.Popup~Placement
+ */
+tr.Popup.Placement;
+
+/**
+ * A popup pin is an object indicates the positions of popup and anchor to be attached together. The object consists of properties:-
+ *
+ *     - {tr.Popup.Placement} `anchor` - Indicate which position of anchor to be pinned .
+ *     - {tr.Popup.Placement} `self` - Indicate which position of popup to be pinned .
+ *
+ * @typedef {?{ anchor: tr.Popup.Placement, self: tr.Popup.Placement }} tr.Popup~Pin
+ */
+tr.Popup.Pin;
+
+//#endregion
+
+//#region Public Methods
+
+/**
+ * @override
+ */
+tr.Popup.prototype.dispose = function() {
+	var _this = this;
+
+	// Clear resize event handler
+	_this.unlistenAll();
+	window.removeEventListener("resize", _this._managePosition, false);
+
+	_this._overlay.dispose();
+	_this._topNode.dispose();
+};
+
+/**
+ * Set content of popup
+ * @override
+ */
+tr.Popup.prototype.setContent = function(content) {
+	var _this = this;
+
+	if (typeof content === tr.res.string || tr.isElement(content)) {
+		_this._contentWrapper.addClass("visual");
+		return _this._contentWrapper.setContent(content);
+	}
+	else {
+		_this._contentWrapper = /** @type{tr.ElementWrapper} */ (content);
+		_this._contentWrapper.addClass("tr-popup-content");
+		return _this._topNode.setContent(content);
+	}
+};
+
+/**
+ * Set content of popup
+ * @override
+ */
+tr.Popup.prototype.addContent = function(content) {
+	return this._contentWrapper.addContent(content);
+};
+
+/**
+ * Update the position of the popup. Generally be used when the content
+ * of the popup has been changed and want to make the popup stick to the
+ * same anchor
+ * @public
+ */
+tr.Popup.prototype.updatePosition = function() {
+	this._managePosition();
+};
+
+/**
+ * Set positiion of popup.
+ * @param {Object} param
+ * @public
+ */
+tr.Popup.prototype.setPosition = function(param) {
+	var anchor = param["anchor"],
+		pin = param["pin"],
+		offset = param["offset"],
+		_this = this;
+
+	if (anchor) {
+		_this.setAnchor(anchor);
+	}
+	if (pin) {
+		_this.setPin(pin["anchor"], pin["self"]);
+	}
+	if (offset) {
+		_this.setOffset(offset);
+	}
+};
+
+/**
+ * Set an anchor as reference for popup to be shown.
+ * @param {tr.Popup.Anchor} anchor
+ * @see tr.Popup#getAnchor
+ * @return {boolean} true if anchor is set
+ * @public
+ */
+tr.Popup.prototype.setAnchor = function (anchor) {
+	this._anchor = anchor;
+	return true;
+};
+
+/**
+ * Get an anchor position where popup will be shown.
+ * @return {tr.Popup.Anchor}
+ * @see tr.Popup#setAnchor
+ * @public
+ */
+tr.Popup.prototype.getAnchor = function() {
+	return this._anchor;
+};
+
+/**
+ * Set pin point for popup.
+ * @param {tr.Popup.Placement} anchorPin
+ * @param {tr.Popup.Placement} selfPin
+ * @return {boolean} true if alignment is changed
+ * @see tr.Popup#getAnchor
+ * @public
+ */
+tr.Popup.prototype.setPin = function(anchorPin, selfPin) {
+	var validPins = ["left", "right", "top", "bottom", "center", "top-left", "top-right", "bottom-left", "bottom-right"],
+		_this = this;
+
+	if (!anchorPin &amp;&amp; !selfPin) return false;
+	if (!goog.isNull(_this._pin) &amp;&amp; anchorPin === _this._pin.anchor &amp;&amp; selfPin === _this._pin.self) return false;
+
+	// Validate pin points
+	if (anchorPin &amp;&amp; validPins.indexOf(anchorPin) &lt; 0) return false;
+	if (selfPin &amp;&amp; validPins.indexOf(selfPin) &lt; 0) return false;
+
+	// Update pin points
+	if (!_this._pin) _this._pin = { anchor: null, self: null };
+	if (anchorPin) _this._pin.anchor = anchorPin;
+	if (selfPin) _this._pin.self = selfPin;
+
+	return true;
+};
+
+/**
+ * Get an alignment related to anchor.
+ * @return {tr.Popup.Pin}
+ * @see tr.Popup#setAnchor
+ * @public
+ */
+tr.Popup.prototype.getPin = function() {
+	var _this = this;
+
+	if (_this._pin) {
+		return {
+			"anchor": _this._pin.anchor ? _this._pin.anchor : null,
+			"self": _this._pin.self ? _this._pin.self : null
+		};
+	}
+
+	return null;
+};
+
+/**
+ * To be deprecated.
+ * Set an anchor as reference for popup to be shown.
+ * @param {tr.Popup.Placement} alignment
+ * @return {boolean} true if alignment is changed
+ * @see tr.Popup#getAnchor
+ * @public
+ * @ignore
+ */
+tr.Popup.prototype.setAlignment = function(alignment) {
+	if (!alignment) return false;
+
+	var points = alignment.split(" "),
+		anchorPin = points[0],
+		selfPin = points[1],
+		_this = this;
+
+	// Format case of input from carmelCase to spinal-case
+	anchorPin = _this._toSpinalCase(anchorPin);
+	selfPin = _this._toSpinalCase(selfPin);
+
+	return _this.setPin(anchorPin, selfPin);
+};
+
+/**
+ * To be deprecated.
+ * Get an alignment related to anchor.
+ * @return {tr.Popup.Placement}
+ * @see tr.Popup#setAnchor
+ * @public
+ * @ignore
+ */
+tr.Popup.prototype.getAlignment = function() {
+	return this._pin &amp;&amp; this._pin.anchor ? this._pin.anchor : "default";
+};
+
+/**
+ * Set an anchor as reference for popup to be shown.
+ * @param {?number=} opt_x
+ * @param {?number=} opt_y
+ * @see tr.Popup#getAnchor
+ * @public
+ */
+tr.Popup.prototype.setOffset = function(opt_x, opt_y) {
+	var _this = this;
+
+	if (goog.isNull(_this._offset)) {
+		_this._offset = { x: 0, y: 0 };
+	}
+	if (goog.isDefAndNotNull(opt_x)) {
+		_this._offset.x = opt_x;
+	}
+	if (goog.isDefAndNotNull(opt_y)) {
+		_this._offset.y = opt_y;
+	}
+};
+
+/**
+ * Get an alignment related to anchor.
+ * @return {?{ x: number, y: number }}
+ * @see tr.Popup#setOffset
+ * @public
+ */
+tr.Popup.prototype.getOffset = function() {
+	return this._offset;
+};
+
+/**
+ * Show or hide popup.
+ * @param {boolean=} opt_show True to show popup. False to hide popup. If not specified, default to true.
+ * @param {boolean=} opt_dispatch True to dispatch event. False to hide popup. If not specified, default to true.
+ * @see tr.Popup#hide
+ * @override
+ * @public
+ * @fires tr.Popup#shown
+ * @fires tr.Popup#hidden
+ */
+tr.Popup.prototype.show = function(opt_show, opt_dispatch) {
+	opt_show = opt_show !== false;
+
+	var documentBody,
+		res = tr.res,
+		_this = this;
+
+	if (opt_show === _this.isVisible()) return;
+
+	if (opt_show) { // Show
+		documentBody = document.body;
+
+		_this._topNode.addClass("transition");
+
+		if (_this.isModal()) { // Add overlay to DOM only in modal mode
+			_this._overlay.setParent(documentBody);
+		} else if (_this.isAutoHide()) {
+			window.addEventListener("mousedown", _this._onMouseDownOnWindow);
+		}
+
+		_this._topNode.setParent(documentBody);
+		_this._managePosition();
+
+		_this._topNode.removeClass("transition"); // Remove the class to trig transition animation
+
+		// Dispatch shown event
+		if (opt_dispatch !== false) {
+			_this._dispatch("shown", {});
+		}
+	}
+	else { // Hide
+		_this._topNode.setParent(null);
+		_this._overlay.setParent(null);
+		window.removeEventListener("mousedown", _this._onMouseDownOnWindow);
+
+		// Dispatch hidden event
+		if (opt_dispatch !== false) {
+			_this._dispatch("hidden", {});
+		}
+	}
+};
+
+/**
+ * Hide popup.
+ * @see tr.Popup#show
+ * @param {boolean=} opt_dispatch True to dispatch event. False to hide popup. If not specified, default to true.
+ * @override
+ * @public
+ */
+tr.Popup.prototype.hide = function(opt_hide, opt_dispatch) {
+	this.show(opt_hide === false, opt_dispatch);
+};
+
+/**
+ * Toggle show/hide state of popup.
+ * @return {boolean} true if popup is shown
+ * @public
+ */
+tr.Popup.prototype.toggleVisibility = function() {
+	var visible = !this.isVisible();
+	this.show(visible);
+	return visible;
+};
+
+/**
+ * Set whether popup should be displayed modal or modeless.
+ * @param {boolean=} opt_value True for modal popup. False for modeless popup. Default is true (modeless).
+ * @see tr.Popup#isModal
+ * @public
+ */
+tr.Popup.prototype.setModal = function(opt_value) {
+	this._overlay.enableClass("modal", opt_value !== false);
+};
+
+/**
+ * Get whether popup should be displayed modal or modeless.
+ * @return {boolean} return True if modal, false otherwise.
+ * @see tr.Popup#setModal
+ * @public
+ */
+tr.Popup.prototype.isModal = function() {
+	return this._overlay.hasClass("modal");
+};
+
+/**
+ * Enable/disable auto-hide.
+ * @param {boolean=} opt_value flag to auto-hide popup when click outside. Default is true.
+ * @see tr.Popup#isAutoHide
+ * @public
+ */
+tr.Popup.prototype.setAutoHide = function(opt_value) {
+	this._overlay.enableClass("autohide", opt_value !== false);
+};
+
+/**
+ * Get whether auto-hide is enabled.
+ * @return {boolean} return True if modal, false otherwise.
+ * @see tr.Popup#setAutoHide
+ * @public
+ */
+tr.Popup.prototype.isAutoHide = function() {
+	return this._overlay.hasClass("autohide");
+};
+
+/**
+ * Enable/disable auto-reposition.
+ * @param {boolean=} opt_value flag to auto-reposition popup when it is probably out of view port. Default is true.
+ * @see tr.Popup#isAutoReposition
+ * @public
+ */
+tr.Popup.prototype.setAutoReposition = function(opt_value) {
+	this._autoReposition = opt_value !== false;
+};
+
+/**
+ * Get whether auto-reposition is enabled.
+ * @return {boolean} return True if modal, false otherwise.
+ * @see tr.Popup#setAutoReposition
+ * @public
+ */
+tr.Popup.prototype.isAutoReposition = function() {
+	return this._autoReposition;
+};
+
+/**
+ * Enable/disable auto-resize.
+ * @param {boolean=} opt_value flag to auto-resize popup when it is probably out of view port. Default is true.
+ * @see tr.Popup#isAutoResize
+ * @public
+ */
+tr.Popup.prototype.setAutoResize = function(opt_value) {
+    this._autoResize = opt_value !== false;
+
+	// Clear max-height if auto-resizing is disabled in order to allow user styling
+	if (!this._autoResize) {
+		this._clearMaxHeight();
+	}
+};
+
+/**
+ * Get whether auto-resize is enabled.
+ * @return {boolean} return True if modal, false otherwise.
+ * @see tr.Popup#setAutoResize
+ * @public
+ */
+tr.Popup.prototype.isAutoResize = function() {
+    return this._autoResize;
+};
+
+/**
+ * Get whether popup is currently visible in the document
+ * @return {boolean} return True if Popup is shown, false otherwise.
+ * @override
+ */
+tr.Popup.prototype.isVisible = function() {
+	var parentNode = this._topNode.getParent();
+
+	while (!goog.isNull(parentNode) &amp;&amp; !(parentNode instanceof HTMLBodyElement)) {
+		parentNode = parentNode.parentNode;
+	}
+
+	return !goog.isNull(parentNode);
+};
+
+/**
+ * Alias of {@link tr.Popup#isVisible}
+ * @function
+ * @deprecated
+ */
+tr.Popup.prototype.isShown = tr.Popup.prototype.isVisible;
+
+/**
+ * @public
+ * @param {string | number} value Min width as a string (e.g. 30px) or number (considered as in pixel unit)
+ */
+tr.Popup.prototype.setMinWidth = function(value) {
+	if (tr.isNumber(value)) {
+		if (value &lt; 0) {
+			value = "";
+		}
+		else {
+			value += "px";
+		}
+	}
+
+	this._contentWrapper.setStyle("min-width", /** @type{string} */ (value));
+};
+
+/**
+ * @public
+ * @param {string | number} value Min height as a string (e.g. 200px) or number (considered as in pixel unit)
+ * @param {boolean=} opt_store Indicate saving the value. Default is true.
+ */
+tr.Popup.prototype.setMaxHeight = function(value, opt_store) {
+	if (tr.isNumber(value)) {
+		if (value &lt; 0) {
+			value = "";
+		}
+		else {
+			value += "px";
+		}
+	}
+
+	this._contentWrapper.setStyle("max-height", /** @type{string} */ (value));
+
+	if (opt_store !== false) {
+		this._maxHeight = /** @type{string} */ (value);
+	}
+};
+
+/**
+ * @public
+ * @return {string}
+ */
+tr.Popup.prototype.getMaxHeight = function() {
+	return this._contentWrapper.getStyle("max-height");
+};
+
+/**
+ * @public
+ * @return {tr.ElementWrapper}
+ */
+tr.Popup.prototype.getOverlay = function() {
+	return this._overlay;
+};
+
+//#endregion
+
+//#region Events
+
+/**
+ * Occurs when popup is shown.
+ * @event tr.Popup#shown
+ * @property {tr.Popup} sender
+ */
+
+/**
+ * Occurs when popup is hidden.
+ * @event tr.Popup#hidden
+ * @property {tr.Popup} sender
+ */
+
+//#endregion
+
+//#region Private/Protected Methods
+
+/**
+ * @protected
+ * @param {Element=} opt_element
+ * @ignore
+ */
+tr.Popup.prototype._init = function(opt_element) {
+	var element,
+		res = tr.res,
+		_this = this;
+
+	// Popup layer
+	element = document.createElement("div");
+	_this._topNode = new ElementWrapper(element);
+	_this._topNode.addClass("tr-popup");
+	_this._topNode.addClass("customvisual");
+
+	if (!opt_element) {
+		opt_element = document.createElement("div");
+	}
+
+	_this._contentWrapper = new ElementWrapper(opt_element);
+	_this._contentWrapper.addClass("tr-popup-content");
+	_this._contentWrapper.addClass("visual");
+	_this._contentWrapper.setParent(_this._topNode);
+
+	// Overlay layer
+	element = document.createElement("svg");
+	_this._overlay = new ElementWrapper(element);
+	_this._overlay.addClass("tr-popup-overlay");
+	_this._overlay.listen(tr.res.mousedown, _this._onClickOverlay);
+
+	// Handle resize event
+	window.addEventListener("resize", _this._managePosition, false);
+};
+
+/** All custom or user settings should be done here
+ * @protected
+ * @param {*} opt_model
+ * @ignore
+ */
+tr.Popup.prototype._deserialize = function(opt_model) {
+	if (!opt_model) opt_model = {};
+
+	var pref, anchorPin, selfPin, offsetX, offsetY,
+		_this = this;
+
+	_this.setAutoHide(opt_model["autoHide"] !== false);
+
+	if (opt_model["disableDefaultStyle"] === true) {
+		_this._contentWrapper.removeClass("visual");
+	}
+
+	pref = opt_model["autoReposition"];
+	if (goog.isDefAndNotNull(pref)) {
+		_this.setAutoReposition(pref);
+	}
+
+	pref = opt_model["autoResize"];
+	if (goog.isDef(pref)) {
+		_this.setAutoResize(pref);
+	}
+
+	pref = opt_model["modal"];
+	if (goog.isDefAndNotNull(opt_model["modal"])) {
+		_this.setModal(pref);
+	}
+
+	pref = opt_model["anchor"];
+	_this.setAnchor(pref ? pref : null);
+
+	// To be deprecated
+	pref = opt_model["alignment"];
+	if (goog.isDefAndNotNull(pref)) {
+		_this.setAlignment(pref);
+	}
+
+	pref = opt_model["pin"];
+	if (pref) {
+		_this.setPin(pref["anchor"], pref["self"]);
+	}
+	else if (goog.isDefAndNotNull(anchorPin = opt_model["anchorPin"])
+			|| goog.isDefAndNotNull(selfPin = opt_model["selfPin"])) {
+		_this.setPin(anchorPin, selfPin);
+	}
+
+	pref = opt_model["offset"];
+	if (pref) {
+		_this.setOffset(pref["x"], pref["y"]);
+	}
+	else if (goog.isDefAndNotNull(offsetX = opt_model["offsetX"])
+			|| goog.isDefAndNotNull(offsetY = opt_model["offsetY"])) {
+		_this.setOffset(offsetX, offsetY);
+	}
+
+	pref = opt_model["show"];
+	if (goog.isDefAndNotNull(pref)) {
+		_this.show(pref);
+	}
+};
+
+/** Handle auto-hide
+ * @protected
+ * @ignore
+ */
+tr.Popup.prototype._onClickOverlay = function() {
+	var _this = this;
+
+	if (_this.isAutoHide()) {
+		_this.hide(true);
+		_this._dispatch("clickedOutside", {});
+	}
+};
+/** This method allow pass through of mouse event. On the other hand, overlaying method will block mouse event 
+ * @protected
+ * @ignore
+ * @param {Object} e
+ */
+tr.Popup.prototype._onMouseDownOnWindow = function(e) {
+	var popupElem = tr.closestElement(e.target, "tr-popup");
+	if(popupElem) { // Click within the popup element
+		return;
+	}
+	this._onClickOverlay(); // As if this is clicked from an overlay
+};
+
+/**
+ * @this {tr.Popup}
+ * @protected
+ * @ignore
+ */
+tr.Popup.prototype._managePosition = function () {
+	var _this = this,
+		res = tr.res,
+		anchor = _this._anchor,
+		anchorType = _this._checkAnchorType(anchor), // Get type of anchor: 0 for null, 1 for point, 2 for element
+		winX = window.pageXOffset, // For supporting scrolled window
+		winY = window.pageYOffset, // For supporting scrolled window
+		winW = window.innerWidth,
+		winH = window.innerHeight,
+		winRight = winX + winW,
+		winBottom = winY + winH,
+		selfWidth = _this.getWidth(),
+		selfHeight = _this.getHeight(),
+		expandDownward = true, // Indicate popup direction
+		forceFlip = false, // Indicate if popup must be flipped
+		x, y,
+		elemX, elemY, elemRight, elemBottom,
+		anchorPin, selfPin,
+		pos,
+		maxHeight,
+		leftGap, rightGap, topGap, bottomGap; // Bottom to bottom
+
+	// Determine anchorPin and selfPin. Convert to their default value, if they are not specified
+	if (_this._pin) {
+		anchorPin = _this._pin.anchor;
+		selfPin = _this._pin.self;
+	}
+	if (!anchorPin) {
+		if (anchorType === 0) { // No anchor
+			anchorPin = "center";
+		}
+		else if (anchorType === 1) {  // Pin anchor
+			anchorPin = { "x": 0, "y": 0 };
+		}
+		else { // Element anchor
+			anchorPin = res.bottom + "-" + res.left;
+		}
+	}
+	if (!selfPin) {
+		if (anchorType === 0) { // No anchor
+			selfPin = anchorPin;
+		}
+		else if (anchorType === 1) { // Pin anchor
+			selfPin = "top-left";
+		}
+		else { // Element anchor
+			selfPin = _this._defaultPinMap[/** @type{string} */(anchorPin)];
+		}
+	}
+
+	// Calculate anchor pin point
+	if (anchorType === 0) { // No anchor
+		if (anchorPin.indexOf(res.left) &gt;= 0) { // Valid for: left, top-left, bottom-left
+			x = winX;
+		}
+		else if (anchorPin.indexOf(res.right) &gt;= 0) { // Valid for: right, top-right, bottom-right
+			x = winRight;
+		}
+		else if (anchorPin.indexOf("-") &lt; 0) { // Valid for: top, bottom, center
+			x = winX + winW / 2;
+		}
+
+		if (anchorPin.indexOf("top") &gt;= 0) { // Valid for: top, top-left, top-right
+			y = winY;
+		}
+		else if (anchorPin.indexOf(res.bottom) &gt;= 0) { // Valid for: bottom, bottom-left, bottom-right
+			y = winBottom;
+		}
+		else if (anchorPin.indexOf("-") &lt; 0) { // Valid for: left, right, center
+			y = winY + winH / 2;
+		}
+	}
+	else if (anchorType === 1) { // Point anchor. No need to offset the scrolling of the window
+		x = anchor["x"];
+		y = anchor["y"];
+	}
+	else { // Element anchor
+		if (tr.isFunction(anchor["getElement"])) {
+			anchor = anchor["getElement"]();
+		}
+
+		// Take margins, paddings of &lt;html&gt; and &lt;body&gt; into account as well as window scrolling
+		pos = tr.getRelativePosition(anchor, document.body.parentElement);
+		elemX = pos["x"];
+		elemY = pos["y"];
+		elemRight = elemX + anchor.offsetWidth;
+		elemBottom = elemY + anchor.offsetHeight;
+
+		// Calculate anchor position by finding rect boundary of anchor element
+		if (anchorPin.indexOf(res.left) &gt;= 0) { // Valid for: left, top-left, bottom-left
+			x = elemX;
+		}
+		else if (anchorPin.indexOf(res.right) &gt;= 0) { // Valid for: right, top-right, bottom-right
+			x = elemRight;
+		}
+		else if (anchorPin.indexOf("-") &lt; 0) { // Valid for: top, bottom, center
+			x = elemX + anchor.offsetWidth / 2;
+		}
+
+		if (anchorPin.indexOf("top") &gt;= 0) { // Valid for: top, top-left, top-right
+			y = elemY;
+		}
+		else if (anchorPin.indexOf(res.bottom) &gt;= 0) { // Valid for: bottom, bottom-left, bottom-right
+			y = elemBottom;
+		}
+		else if (anchorPin.indexOf("-") &lt; 0) { // Valid for: left, right, center
+			y = elemY + anchor.offsetHeight / 2;
+		}
+	}
+
+	// Self pin point is relative position compared to anchor pin point
+	if (this._autoResize) { // Always clear max-height, since it has an impact on retrieved height
+		_this._clearMaxHeight();
+	}
+
+	if (selfPin.indexOf(res.left) &lt; 0) {
+		if (selfPin.indexOf(res.right) &gt;= 0) { // Valid for: right, top-right, bottom-right
+			x -= selfWidth;
+		}
+		else if (selfPin.indexOf("-") &lt; 0) { // Valid for: top, bottom, center
+			x -= selfWidth / 2;
+		}
+	}
+	if (selfPin.indexOf("top") &lt; 0) {
+		if (selfPin.indexOf(res.bottom) &gt;= 0) { // Valid for: bottom, bottom-left, bottom-right
+			expandDownward = false;
+			y -= selfHeight;
+		} else if (selfPin.indexOf("-") &lt; 0) { // Valid for: left, right, center
+			y -= selfHeight / 2;
+		}
+	}
+
+	// User offsetting
+	if (_this._offset) {
+		x += _this._offset.x;
+		y += _this._offset.y;
+	}
+
+	// Auto repositioning
+	leftGap = elemRight - winX; // Left of the window to rightmost of the element
+	rightGap = winRight - elemX; // Right of the window to leftmost of the element
+	topGap = elemY - winY; // Top to top
+	bottomGap = winBottom - elemBottom; // Bottom to bottom
+
+	if (_this._autoReposition) {
+		if (anchorType === 0 || anchorType === 1) { // No anchor or point anchor
+			// There is no need to flip popup twice for no visible element senario
+			if (x &lt; winX) {
+				x = winX;
+			}
+			else if (x + selfWidth &gt; winRight &amp;&amp; selfWidth &lt; winW) {
+				x = winRight - selfWidth;
+			}
+			if (y &lt; winY) {
+				y = winY;
+			}
+			else if (y + selfHeight &gt; winBottom &amp;&amp; selfHeight &lt; winH) {
+				y = winBottom - selfHeight;
+			}
+		}
+		else { // Element Anchor
+			// The anchor element should not be blocked by the popup, if possible
+			// We also assume that anchor element is already visible in the window
+			if (x &lt; winX &amp;&amp; rightGap &gt;= leftGap) {
+				x = elemX;
+			}
+			else if (x + selfWidth &gt; winRight &amp;&amp; leftGap &gt;= rightGap) {
+				if (selfWidth &lt; winW) {
+					x = elemRight - selfWidth;
+				}
+				else {
+					x = winX;
+				}
+			}
+
+			// Check if popup is to be flipped and direction
+			if (y &lt; winY) {
+				forceFlip = true;
+				expandDownward = (!_this._autoResize || bottomGap &gt;= topGap);  // No auto resizing or bottom gap is bigger
+			}
+			else if (y + selfHeight &gt; winBottom) {
+				forceFlip = true;
+				expandDownward = _this._autoResize &amp;&amp; bottomGap &gt;= topGap; // Keep expanding down if auto-resize is on and bottom gap is bigger
+			}
+
+			if (forceFlip) {
+				if (_this._autoResize || selfHeight &lt; winH) {
+					y = (expandDownward) ? elemBottom : elemY - selfHeight;
+				}
+				else {
+					y = winY;
+					expandDownward = true;
+				}
+			}
+		}
+	}
+
+	// Auto resizing
+	if (_this._autoResize) {
+		if (expandDownward) {
+			if (y + selfHeight &gt; winBottom) { // Set min-height when bottom of popup is out of window
+				maxHeight = winBottom - y - 8; // Minus 8 for cosmetic reason
+				if (maxHeight &lt; 32) {
+					maxHeight = 32;
+				}
+				_this.setMaxHeight(maxHeight, false);
+			}
+		}
+		else {
+			if (winY &gt; y) { // Set min-height when bottom of popup is out of window
+				if (elemY === undefined) {
+					elemY = y;
+				}
+				maxHeight = elemY - winY - 10;
+				y = winY + 8;
+				_this.setMaxHeight(maxHeight, false);
+			}
+		}
+	}
+
+	// Finally, set new position
+	_this._topNode.setLeft(x);
+	_this._topNode.setTop(y);
+};
+
+/**
+ * @private
+ * @param {tr.Popup.Anchor} anchor
+ */
+tr.Popup.prototype._checkAnchorType = function(anchor) {
+	if (!anchor) { // Element
+		return 0;
+	}
+	else if (anchor["x"] &amp;&amp; anchor["y"]) { // Position
+		return 1;
+	}
+	else if (tr.isElement(anchor)) { // Element
+		return 2;
+	}
+	else { // ElementWrapper
+		return 3;
+	}
+};
+
+/**
+ * @private
+ */
+tr.Popup.prototype._clearMaxHeight = function() {
+	this.setMaxHeight(this._maxHeight || "");
+};
+
+/**
+ * Just to support camel-case pin point input
+ * @private
+ * @param {string} camel
+ * @return {string} spinal
+ */
+tr.Popup.prototype._toSpinalCase = function(camel) {
+	switch(camel) {
+	case "topLeft": return "top-left";
+	case "topRight": return "top-right";
+	case "bottomLeft": return "bottom-left";
+	case "bottomRight": return "bottom-right";
+	}
+	return camel;
+};
+
+//#endregion
+
+//#region Private Fields
+
+/**
+ * @type {tr.Popup.Anchor}
+ * @private
+ */
+tr.Popup.prototype._anchor = null;
+
+/**
+ * @type {tr.Popup.Pin}
+ * @private
+ */
+tr.Popup.prototype._pin = null;
+
+/**
+ * @type {?{ x, y }}
+ * @private
+ */
+tr.Popup.prototype._offset = null;
+
+/**
+ * @type {tr.ElementWrapper}
+ * @private
+ */
+tr.Popup.prototype._contentWrapper = null;
+
+/**
+ * @type {tr.ElementWrapper}
+ * @private
+ */
+tr.Popup.prototype._overlay = null;
+
+/**
+ * @type {boolean}
+ * @private
+ */
+tr.Popup.prototype._autoReposition = true;
+
+/**
+ * @type {boolean}
+ * @private
+ */
+tr.Popup.prototype._autoResize = true;
+
+/**
+ * @type {string}
+ * @private
+ */
+tr.Popup.prototype._maxHeight = "";
+
+/** Mapping of default value for selfPin for the corresponding element anchor
+ * @type {Object.&lt;string, string&gt;}
+ * @private
+*/
+tr.Popup.prototype._defaultPinMap = null; // This will be singleton
+//#endregion
+
+//#region Export Symbols
+
+goog.exportSymbol("tr.Popup", tr.Popup);
+tr.Popup._proto = tr.Popup.prototype;
+
+goog.exportProperty(tr.Popup._proto, "dispose", tr.Popup._proto.dispose);
+goog.exportProperty(tr.Popup._proto, "show", tr.Popup._proto.show);
+goog.exportProperty(tr.Popup._proto, "hide", tr.Popup._proto.hide);
+goog.exportProperty(tr.Popup._proto, "toggleVisibility", tr.Popup._proto.toggleVisibility);
+goog.exportProperty(tr.Popup._proto, "isVisible", tr.Popup._proto.isVisible);
+goog.exportProperty(tr.Popup._proto, "isShown", tr.Popup._proto.isShown);
+
+goog.exportProperty(tr.Popup._proto, "setContent", tr.Popup._proto.setContent);
+goog.exportProperty(tr.Popup._proto, "updatePosition", tr.Popup._proto.updatePosition);
+goog.exportProperty(tr.Popup._proto, "setPosition", tr.Popup._proto.setPosition);
+goog.exportProperty(tr.Popup._proto, "setAnchor", tr.Popup._proto.setAnchor);
+goog.exportProperty(tr.Popup._proto, "getAnchor", tr.Popup._proto.getAnchor);
+goog.exportProperty(tr.Popup._proto, "setPin", tr.Popup._proto.setPin);
+goog.exportProperty(tr.Popup._proto, "getPin", tr.Popup._proto.getPin);
+goog.exportProperty(tr.Popup._proto, "setAlignment", tr.Popup._proto.setAlignment);
+goog.exportProperty(tr.Popup._proto, "getAlignment", tr.Popup._proto.getAlignment);
+goog.exportProperty(tr.Popup._proto, "setOffset", tr.Popup._proto.setOffset);
+goog.exportProperty(tr.Popup._proto, "getOffset", tr.Popup._proto.getOffset);
+goog.exportProperty(tr.Popup._proto, "setModal", tr.Popup._proto.setModal);
+goog.exportProperty(tr.Popup._proto, "isModal", tr.Popup._proto.isModal);
+goog.exportProperty(tr.Popup._proto, "setAutoHide", tr.Popup._proto.setAutoHide);
+goog.exportProperty(tr.Popup._proto, "isAutoHide", tr.Popup._proto.isAutoHide);
+goog.exportProperty(tr.Popup._proto, "setAutoReposition", tr.Popup._proto.setAutoReposition);
+goog.exportProperty(tr.Popup._proto, "isAutoReposition", tr.Popup._proto.isAutoReposition);
+goog.exportProperty(tr.Popup._proto, "setAutoResize", tr.Popup._proto.setAutoResize);
+goog.exportProperty(tr.Popup._proto, "isAutoResize", tr.Popup._proto.isAutoResize);
+
+goog.exportProperty(tr.Popup._proto, "setMinWidth", tr.Popup._proto.setMinWidth);
+goog.exportProperty(tr.Popup._proto, "setMaxHeight", tr.Popup._proto.setMaxHeight);
+goog.exportProperty(tr.Popup._proto, "getMaxHeight", tr.Popup._proto.getMaxHeight);
+
+goog.exportProperty(tr.Popup._proto, "getOverlay", tr.Popup._proto.getOverlay);
+
+//#endregion
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="AdFin.html">AdFin</a></li><li><a href="DateTime.html">DateTime</a></li><li><a href="Info.html">Info</a></li><li><a href="Logic.html">Logic</a></li><li><a href="Math.html">Math</a></li><li><a href="Realtime.html">Realtime</a></li><li><a href="Statistic.html">Statistic</a></li><li><a href="Text.html">Text</a></li><li><a href="tr.ElementFrameWork.html">ElementFrameWork</a></li><li><a href="tr.PipDefinition.html">PipDefinition</a></li></ul><h3>Classes</h3><ul><li><a href="tr.ADCSubscription.html">ADCSubscription</a></li><li><a href="tr.AdFinSubscription.html">AdFinSubscription</a></li><li><a href="tr.cgrid.editor.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.filter.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.formatter.AsyncFormatter.html">AsyncFormatter</a></li><li><a href="tr.cgrid.formatter.CheckBox.html">CheckBox</a></li><li><a href="tr.cgrid.formatter.UpDownColor.html">UpDownColor</a></li><li><a href="tr.ColumnStats.html">ColumnStats</a></li><li><a href="tr.CompositeGrid.html">CompositeGrid</a></li><li><a href="tr.DataCache.html">DataCache</a></li><li><a href="tr.DataTable.html">DataTable</a></li><li><a href="tr.DataView.html">DataView</a></li><li><a href="tr.DropDown.html">DropDown</a></li><li><a href="tr.ElementControl.html">ElementControl</a></li><li><a href="tr.ElementWrapper.html">ElementWrapper</a></li><li><a href="tr.Event.html">Event</a></li><li><a href="tr.EventDispatcher.html">EventDispatcher</a></li><li><a href="tr.EventDispatcher.extendClass-tempCtor.html">tempCtor</a></li><li><a href="tr.EventManager.html">EventManager</a></li><li><a href="tr.FieldFormatter.html">FieldFormatter</a></li><li><a href="tr.fn.Engine.html">Engine</a></li><li><a href="tr.fn.Formula.html">Formula</a></li><li><a href="tr.fn.VariableToken.html">VariableToken</a></li><li><a href="tr.Grid.html">Grid</a></li><li><a href="tr.grid.BidOfferSpan.html">BidOfferSpan</a></li><li><a href="tr.grid.Blinker.html">Blinker</a></li><li><a href="tr.grid.Cell.html">Cell</a></li><li><a href="tr.grid.CellBlinkingPlugin.html">CellBlinkingPlugin</a></li><li><a href="tr.grid.CellEditingPlugin.html">CellEditingPlugin</a></li><li><a href="tr.grid.CellFloatingPanel.html">CellFloatingPanel</a></li><li><a href="tr.grid.CellPainter.html">CellPainter</a></li><li><a href="tr.grid.CellSpan.html">CellSpan</a></li><li><a href="tr.grid.CellSpans.html">CellSpans</a></li><li><a href="tr.grid.CellWriter.html">CellWriter</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html">CheckboxColumnPlugin</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html">CollapsibleHeaderPlugin</a></li><li><a href="tr.grid.ColumnFilterPlugin.html">ColumnFilterPlugin</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html">ColumnGroupingPlugin</a></li><li><a href="tr.grid.ColumnSelectionPlugin.html">ColumnSelectionPlugin</a></li><li><a href="tr.grid.ColumnStackingPlugin.html">ColumnStackingPlugin</a></li><li><a href="tr.grid.ColumnWidthAdjustingPlugin.html">ColumnWidthAdjustingPlugin</a></li><li><a href="tr.grid.Conflator.html">Conflator</a></li><li><a href="tr.grid.DataSourceTreePlugin.html">DataSourceTreePlugin</a></li><li><a href="tr.grid.DirectContentBindingPlugin.html">DirectContentBindingPlugin</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html">DragAndDropTitlePlugin</a></li><li><a href="tr.grid.DraggableContentPlugin.html">DraggableContentPlugin</a></li><li><a href="tr.grid.FindBar.html">FindBar</a></li><li><a href="tr.grid.FindBarPlugin.html">FindBarPlugin</a></li><li><a href="tr.grid.GroupStatisticsPlugin.html">GroupStatisticsPlugin</a></li><li><a href="tr.grid.HeatMapRenderer.html">HeatMapRenderer</a></li><li><a href="tr.grid.HScrollbar.html">HScrollbar</a></li><li><a href="tr.grid.IndexMarker.html">IndexMarker</a></li><li><a href="tr.grid.MovableHeaderPlugin.html">MovableHeaderPlugin</a></li><li><a href="tr.grid.NumberFormatter.html">NumberFormatter</a></li><li><a href="tr.grid.PercentBar.html">PercentBar</a></li><li><a href="tr.grid.PercentBarRenderer.html">PercentBarRenderer</a></li><li><a href="tr.grid.Plugin.html">Plugin</a></li><li><a href="tr.grid.RangeBar.html">RangeBar</a></li><li><a href="tr.grid.ResizableTitlePlugin.html">ResizableTitlePlugin</a></li><li><a href="tr.grid.Reverter.html">Reverter</a></li><li><a href="tr.grid.RowHeightAdjustingPlugin.html">RowHeightAdjustingPlugin</a></li><li><a href="tr.grid.RowSelectionPlugin.html">RowSelectionPlugin</a></li><li><a href="tr.grid.Scrollbar.html">Scrollbar</a></li><li><a href="tr.grid.SectionSettings.html">SectionSettings</a></li><li><a href="tr.grid.SmartTooltipsPlugin.html">SmartTooltipsPlugin</a></li><li><a href="tr.grid.SortableTitlePlugin.html">SortableTitlePlugin</a></li><li><a href="tr.grid.TreeIndentingPlugin.html">TreeIndentingPlugin</a></li><li><a href="tr.grid.Virtualizer.html">Virtualizer</a></li><li><a href="tr.grid.VScrollbar.html">VScrollbar</a></li><li><a href="tr.grid.ZoomPlugin.html">ZoomPlugin</a></li><li><a href="tr.HttpRequest.html">HttpRequest</a></li><li><a href="tr.IntervalSubscription.html">IntervalSubscription</a></li><li><a href="tr.LayoutGrid.html">LayoutGrid</a></li><li><a href="tr.ListMenu.html">ListMenu</a></li><li><a href="tr.MenuItem.html">MenuItem</a></li><li><a href="tr.MockArchive.html">MockArchive</a></li><li><a href="tr.MockJET.html">MockJET</a></li><li><a href="tr.MockQuotes.html">MockQuotes</a></li><li><a href="tr.MockQuotes2.html">MockQuotes2</a></li><li><a href="tr.MockSubscription.html">MockSubscription</a></li><li><a href="tr.MockSubscriptions.html">MockSubscriptions</a></li><li><a href="tr.Popup.html">Popup</a></li><li><a href="tr.PopupMenu.html">PopupMenu</a></li><li><a href="tr.PrintTrait.html">PrintTrait</a></li><li><a href="tr.RequestQueue.html">RequestQueue</a></li><li><a href="tr.Segment.html">Segment</a></li><li><a href="tr.SegmentCollection.html">SegmentCollection</a></li><li><a href="tr.TSISubscription.html">TSISubscription</a></li></ul><h3>Interfaces</h3><ul><li><a href="tr.cgrid.ICompositeExtension.html">ICompositeExtension</a></li><li><a href="tr.grid.IPlugin.html">IPlugin</a></li><li><a href="tr.IElementControl.html">IElementControl</a></li><li><a href="tr.ILayoutGrid.html">ILayoutGrid</a></li></ul><h3>Events</h3><ul><li><a href="tr.CompositeGrid.html#event:cellClicked">cellClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellDblClicked">cellDblClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellMouseDown">cellMouseDown</a></li><li><a href="tr.CompositeGrid.html#event:cellRightClicked">cellRightClicked</a></li><li><a href="tr.CompositeGrid.html#event:columnSorted">columnSorted</a></li><li><a href="tr.CompositeGrid.html#event:editorAttached">editorAttached</a></li><li><a href="tr.CompositeGrid.html#event:editorDetached">editorDetached</a></li><li><a href="tr.CompositeGrid.html#event:filterAdded">filterAdded</a></li><li><a href="tr.CompositeGrid.html#event:filterCleared">filterCleared</a></li><li><a href="tr.CompositeGrid.html#event:filterModified">filterModified</a></li><li><a href="tr.CompositeGrid.html#event:filterRemoved">filterRemoved</a></li><li><a href="tr.CompositeGrid.html#event:mouseLeaveCell">mouseLeaveCell</a></li><li><a href="tr.CompositeGrid.html#event:mouseOverCell">mouseOverCell</a></li><li><a href="tr.CompositeGrid.html#event:pageChanged">pageChanged</a></li><li><a href="tr.CompositeGrid.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.DataCache.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataCache.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataTable.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataTable.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataView.html#event:beforeFiltering">beforeFiltering</a></li><li><a href="tr.DataView.html#event:beforeGroupAdded">beforeGroupAdded</a></li><li><a href="tr.DataView.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataView.html#event:groupAdded">groupAdded</a></li><li><a href="tr.DataView.html#event:groupCriteriaChanged">groupCriteriaChanged</a></li><li><a href="tr.DataView.html#event:pageCountChanged">pageCountChanged</a></li><li><a href="tr.DataView.html#event:pageIndexChanged">pageIndexChanged</a></li><li><a href="tr.DataView.html#event:preDisposed">preDisposed</a></li><li><a href="tr.Formula.html#event:dataCacheChanged">dataCacheChanged</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:cancelled">cancelled</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:change">change</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:closed">closed</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:editorOpened">editorOpened</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:preEditorOpening">preEditorOpening</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:click">click</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:columnCollapsed">columnCollapsed</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:groupChanged">groupChanged</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:render">render</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:columnMoved">columnMoved</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:drag">drag</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragEnd">dragEnd</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragStart">dragStart</a></li><li><a href="tr.grid.FindBarPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:groupMoved">groupMoved</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:sectionMoved">sectionMoved</a></li><li><a href="tr.grid.RowSelectionPlugin.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:columnSorted">columnSorted</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preClicked">preClicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preDataSorting">preDataSorting</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.Grid.html#event:columnAdded">columnAdded</a></li><li><a href="tr.Grid.html#event:columnAlignmentChanged">columnAlignmentChanged</a></li><li><a href="tr.Grid.html#event:columnRemoved">columnRemoved</a></li><li><a href="tr.Grid.html#event:columnVisibilityChanged">columnVisibilityChanged</a></li><li><a href="tr.Grid.html#event:dataSourceChanged">dataSourceChanged</a></li><li><a href="tr.Grid.html#event:postSectionDataBinding">postSectionDataBinding</a></li><li><a href="tr.Grid.html#event:rowExpansionBinding">rowExpansionBinding</a></li><li><a href="tr.Grid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Grid.html#event:sectionAdded">sectionAdded</a></li><li><a href="tr.Grid.html#event:widthChanged">widthChanged</a></li><li><a href="tr.HttpRequest.html#event:abort">abort</a></li><li><a href="tr.HttpRequest.html#event:error">error</a></li><li><a href="tr.HttpRequest.html#event:load">load</a></li><li><a href="tr.HttpRequest.html#event:loadend">loadend</a></li><li><a href="tr.HttpRequest.html#event:loadstart">loadstart</a></li><li><a href="tr.HttpRequest.html#event:timeout">timeout</a></li><li><a href="tr.IElementControl.html#event:blur">blur</a></li><li><a href="tr.IElementControl.html#event:change">change</a></li><li><a href="tr.IElementControl.html#event:click">click</a></li><li><a href="tr.IElementControl.html#event:contextmenu">contextmenu</a></li><li><a href="tr.IElementControl.html#event:dblclick">dblclick</a></li><li><a href="tr.IElementControl.html#event:drag">drag</a></li><li><a href="tr.IElementControl.html#event:dragend">dragend</a></li><li><a href="tr.IElementControl.html#event:dragenter">dragenter</a></li><li><a href="tr.IElementControl.html#event:dragleave">dragleave</a></li><li><a href="tr.IElementControl.html#event:dragover">dragover</a></li><li><a href="tr.IElementControl.html#event:dragstart">dragstart</a></li><li><a href="tr.IElementControl.html#event:drop">drop</a></li><li><a href="tr.IElementControl.html#event:focus">focus</a></li><li><a href="tr.IElementControl.html#event:formchange">formchange</a></li><li><a href="tr.IElementControl.html#event:forminput">forminput</a></li><li><a href="tr.IElementControl.html#event:input">input</a></li><li><a href="tr.IElementControl.html#event:invalid">invalid</a></li><li><a href="tr.IElementControl.html#event:keydown">keydown</a></li><li><a href="tr.IElementControl.html#event:keypress">keypress</a></li><li><a href="tr.IElementControl.html#event:keyup">keyup</a></li><li><a href="tr.IElementControl.html#event:mousedown">mousedown</a></li><li><a href="tr.IElementControl.html#event:mousemove">mousemove</a></li><li><a href="tr.IElementControl.html#event:mouseout">mouseout</a></li><li><a href="tr.IElementControl.html#event:mouseover">mouseover</a></li><li><a href="tr.IElementControl.html#event:mouseup">mouseup</a></li><li><a href="tr.IElementControl.html#event:mousewheel">mousewheel</a></li><li><a href="tr.IElementControl.html#event:reset">reset</a></li><li><a href="tr.IElementControl.html#event:scroll">scroll</a></li><li><a href="tr.IElementControl.html#event:select">select</a></li><li><a href="tr.IElementControl.html#event:submit">submit</a></li><li><a href="tr.ILayoutGrid.html#event:blur">blur</a></li><li><a href="tr.ILayoutGrid.html#event:change">change</a></li><li><a href="tr.ILayoutGrid.html#event:click">click</a></li><li><a href="tr.ILayoutGrid.html#event:contextmenu">contextmenu</a></li><li><a href="tr.ILayoutGrid.html#event:dblclick">dblclick</a></li><li><a href="tr.ILayoutGrid.html#event:drag">drag</a></li><li><a href="tr.ILayoutGrid.html#event:dragend">dragend</a></li><li><a href="tr.ILayoutGrid.html#event:dragenter">dragenter</a></li><li><a href="tr.ILayoutGrid.html#event:dragleave">dragleave</a></li><li><a href="tr.ILayoutGrid.html#event:dragover">dragover</a></li><li><a href="tr.ILayoutGrid.html#event:dragstart">dragstart</a></li><li><a href="tr.ILayoutGrid.html#event:drop">drop</a></li><li><a href="tr.ILayoutGrid.html#event:focus">focus</a></li><li><a href="tr.ILayoutGrid.html#event:formchange">formchange</a></li><li><a href="tr.ILayoutGrid.html#event:forminput">forminput</a></li><li><a href="tr.ILayoutGrid.html#event:input">input</a></li><li><a href="tr.ILayoutGrid.html#event:invalid">invalid</a></li><li><a href="tr.ILayoutGrid.html#event:keydown">keydown</a></li><li><a href="tr.ILayoutGrid.html#event:keypress">keypress</a></li><li><a href="tr.ILayoutGrid.html#event:keyup">keyup</a></li><li><a href="tr.ILayoutGrid.html#event:mousedown">mousedown</a></li><li><a href="tr.ILayoutGrid.html#event:mousemove">mousemove</a></li><li><a href="tr.ILayoutGrid.html#event:mouseout">mouseout</a></li><li><a href="tr.ILayoutGrid.html#event:mouseover">mouseover</a></li><li><a href="tr.ILayoutGrid.html#event:mouseup">mouseup</a></li><li><a href="tr.ILayoutGrid.html#event:mousewheel">mousewheel</a></li><li><a href="tr.ILayoutGrid.html#event:reset">reset</a></li><li><a href="tr.ILayoutGrid.html#event:scroll">scroll</a></li><li><a href="tr.ILayoutGrid.html#event:select">select</a></li><li><a href="tr.ILayoutGrid.html#event:submit">submit</a></li><li><a href="tr.LayoutGrid.html#event:rowCountChanged">rowCountChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHeightChanged">rowHeightChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Popup.html#event:hidden">hidden</a></li><li><a href="tr.Popup.html#event:shown">shown</a></li><li><a href="tr.PopupMenu.html#event:hidden">hidden</a></li><li><a href="tr.PopupMenu.html#event:shown">shown</a></li><li><a href="tr.PrintTrait.html#event:afterprint">afterprint</a></li><li><a href="tr.PrintTrait.html#event:beforeprint">beforeprint</a></li><li><a href="tr.PrintTrait.html#event:pageCounting">pageCounting</a></li></ul><h3>Global</h3><ul><li><a href="global.html#cellRef%255Bundefined%255D">cellRef[undefined]</a></li><li><a href="global.html#e%255Bundefined%255D">e[undefined]</a></li><li><a href="global.html#.textContent">.textContent</a></li><li><a href="global.html#get">get</a></li><li><a href="global.html#input%255Bundefined%255D">input[undefined]</a></li><li><a href="global.html#q%255Bundefined%255D">q[undefined]</a></li><li><a href="global.html#sortingDef%255B1%255D">sortingDef[1]</a></li></ul>
+</nav>
+
+
+<script src="scripts/linenumber.js"> </script>
+<script src="scripts/prettify.js"> </script>
+<script> prettyPrint(); </script>
+</body>
+</html>

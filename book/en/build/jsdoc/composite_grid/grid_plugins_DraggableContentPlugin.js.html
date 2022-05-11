@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: grid/plugins/DraggableContentPlugin.js</title>
+
+    <script src="scripts/prettify.js"> </script>
+    <script src="scripts/lang-css.js"> </script>
+    <!--[if lt IE 9]&gt;
+      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
+    &lt;![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/default.css">
+    <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
+</head>
+
+<body>
+
+<div id="main-template" class="elf-template">
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>goog.provide("tr.grid.DraggableContentPlugin");
+
+goog.require("tr.res");
+goog.require("tr.ElementWrapper");
+goog.require("tr.ILayoutGrid");
+
+goog.require("tr.grid.IPlugin");
+goog.require("tr.grid.Plugin");
+goog.require("tr.grid.SectionSettings");
+
+/** @event tr.grid.DraggableContentPlugin#drag
+* @description Fired on each mousemove
+* @type {Object}
+*/
+/** @event tr.grid.DraggableContentPlugin#dragStart
+* @description Fired before the actual drag. Use cancelDrag() to stop the drag
+* @type {Object}
+*/
+/** @event tr.grid.DraggableContentPlugin#dragEnd
+* @description Fired only if the drop is valid (not always on mouseup)
+* @type {Object}
+*/
+
+/** @constructor
+ * @param {boolean=} opt_crossSection Can the dragging goes across from the start section to another section. Default is 'true'
+ * @extends {tr.grid.Plugin}
+ * @implements {tr.grid.IPlugin}
+ */
+tr.grid.DraggableContentPlugin = function (opt_crossSection) {
+	this._onContentScrolled = goog.bind(this._onContentScrolled, this);
+	this._onDragPulse = goog.bind(this._onDragPulse, this);
+
+	// For each cell
+	this._onMouseDown = goog.bind(this._onMouseDown, this);
+	this._clearCache = goog.bind(this._clearCache, this);
+	this._onMouseOut = goog.bind(this._onMouseOut, this);
+
+	// For timer
+	this._delayStart = goog.bind(this._delayStart, this);
+	this._onDragStart = goog.bind(this._onDragStart, this);
+
+	this._onDrag = goog.bind(this._onDrag, this);
+	this._onDragEnd = goog.bind(this._onDragEnd, this);
+
+	this._onJETDrop = goog.bind(this._onJETDrop, this);
+	this._onJETDragOver = goog.bind(this._onJETDragOver, this);
+	this.stopDrag = goog.bind(this.stopDrag, this);
+
+	this._addEvent("dragStart"); // This is to allow external component register a listener to this event
+	this._addEvent("drag");
+	this._addEvent("dragInterval");
+	this._addEvent("dragEnd");
+
+	if (opt_crossSection !== undefined) {
+		this._isCrossSectionAllowed = opt_crossSection;
+	}
+
+	this._hosts = [];
+
+	this._dragBox = new ElementWrapper(document.createElement("svg"));
+	this._dragBox.setClass("tr-dragbox content-dragging");
+};
+goog.inherits(tr.grid.DraggableContentPlugin, tr.grid.Plugin);
+
+/** @private
+* @type {boolean}
+*/
+tr.grid.DraggableContentPlugin.prototype._draggingDisabled = false;
+/** @private
+* @type {tr.ElementWrapper}
+*/
+tr.grid.DraggableContentPlugin.prototype._guideline = null;
+/** @private
+* @type {!tr.ElementWrapper}
+*/
+tr.grid.DraggableContentPlugin.prototype._hGuideline;
+/** @private
+* @type {!tr.ElementWrapper}
+*/
+tr.grid.DraggableContentPlugin.prototype._vGuideline;
+
+/** @private
+* @type {!tr.ElementWrapper}
+*/
+tr.grid.DraggableContentPlugin.prototype._dragBox;
+/** @private
+* @type {number}
+*/
+tr.grid.DraggableContentPlugin.prototype._dragPulseId = -1;
+/** @private
+ * @type {tr.Grid}
+ */
+tr.grid.DraggableContentPlugin.prototype._activeGrid = null;
+/** @private
+* @type {Object}
+*/
+tr.grid.DraggableContentPlugin.prototype._startPos = null;
+/** @private
+* @type {Object}
+*/
+tr.grid.DraggableContentPlugin.prototype._pos = null;
+/** @private
+* @type {number}
+*/
+tr.grid.DraggableContentPlugin.prototype._timerId = -1;
+
+/** @private
+* @type {number}
+*/
+tr.grid.DraggableContentPlugin.prototype._cacheTop = 0;
+/** @private
+* @type {number}
+*/
+tr.grid.DraggableContentPlugin.prototype._cacheHeight = 0;
+/** @private
+* @type {number}
+*/
+tr.grid.DraggableContentPlugin.prototype._scrollStep = 40;
+
+/** @private
+* @type {boolean}
+*/
+tr.grid.DraggableContentPlugin.prototype._isDragging = false;
+
+/** @private
+* @type {boolean}
+*/
+tr.grid.DraggableContentPlugin.prototype._isCrossSectionAllowed = true;
+
+/** @private
+* @type {boolean}
+*/
+tr.grid.DraggableContentPlugin.prototype._verticalGuideMode = false;
+
+/** @private
+* @type {boolean}
+*/
+tr.grid.DraggableContentPlugin.prototype._validDropArea = false;
+/** @private
+* @type {boolean}
+*/
+tr.grid.DraggableContentPlugin.prototype._validView = false;
+
+/** @private
+* @type {boolean}
+*/
+tr.grid.DraggableContentPlugin.prototype._jetDnD = false;
+/** @private
+* @type {Object}
+*/
+tr.grid.DraggableContentPlugin.prototype._jetDragContent = null;
+/** @private
+* @type {boolean}
+*/
+tr.grid.DraggableContentPlugin.prototype._jetContentHasRic = false;
+/** @private
+* @type {boolean}
+*/
+tr.grid.DraggableContentPlugin.prototype._jetContentHasField = false;
+/** @private
+* @type {string}
+*/
+tr.grid.DraggableContentPlugin.prototype._entryPoint = '';
+
+//#region Public Methods
+/** @override */
+tr.grid.DraggableContentPlugin.prototype.getName = function () {
+	return "DraggableContentPlugin"; // Read Only
+};
+/** @override */
+tr.grid.DraggableContentPlugin.prototype.initialize = function (host) {
+	if(this._hosts.indexOf(host) &gt;= 0) { return; }
+
+	this._hosts.push(host);
+
+	host.listen("dragstart", tr._preventDefault);
+	host.listen(tr.res.mousedown, this._onMouseDown);
+	host.getVScrollbar().listen("scroll", this._onContentScrolled);
+};
+/** @override */
+tr.grid.DraggableContentPlugin.prototype.unload = function (host) {
+	this.stopDrag();
+	this._clearCache();
+	this._jetDragContent = null;
+
+	var at = this._hosts.indexOf(host);
+	if(at &gt;= 0) {
+		host.unlisten(tr.res.mousedown, this._onMouseDown);
+		host.getVScrollbar().unlisten("scroll", this._onContentScrolled);
+
+		this._hosts.splice(at, 1);
+	}
+};
+
+/**
+* @public
+* @param {boolean=} opt_allowed
+*/
+tr.grid.DraggableContentPlugin.prototype.allowDrag = function (opt_allowed) {
+	if(this._pos) {// WARNING: Please note that this method is intent to be used by client, and not for internal use
+		this._pos["invalidTarget"] = (opt_allowed === false);
+	}
+};
+/** @public
+* @function
+* @param {boolean=} opt_allowed
+*/
+tr.grid.DraggableContentPlugin.prototype.allowDrop = tr.grid.DraggableContentPlugin.prototype.allowDrag;
+/** @public
+*/
+tr.grid.DraggableContentPlugin.prototype.cancelDrag = function() {
+	if(this._pos) {
+		this._pos["cancel"] = true;
+	}
+};
+
+/** @public
+* @param {string|Element|tr.IElementControl|*} content
+*/
+tr.grid.DraggableContentPlugin.prototype.setDragContent = function (content) {
+	this._dragBox.setContent(content);
+};
+
+/** @public
+* @return {tr.IElementControl} dragBox element
+*/
+tr.grid.DraggableContentPlugin.prototype.getDragBox = function () {
+	return this._dragBox;
+};
+
+/** @public
+* @return {string}
+*/
+tr.grid.DraggableContentPlugin.prototype.getDragSource = function () {
+	return this._entryPoint;
+};
+
+/** @public
+* @param {Element|MouseEvent|tr.IElementControl=} opt_startPos
+*/
+tr.grid.DraggableContentPlugin.prototype.startDrag = function (opt_startPos) {
+	this._startDrag(false, opt_startPos); // Start without delay start
+};
+/** @public
+*/
+tr.grid.DraggableContentPlugin.prototype.stopDrag = function () {
+	if(!this._isDragging) {
+		this.cancelDrag(); // Cancel drag if this method is called on dragStart event
+		return;
+	}
+
+	this.cancelDrag();
+	this._onDragEnd();
+};
+/** @public
+* @return {boolean}
+*/
+tr.grid.DraggableContentPlugin.prototype.isDragging = function () {
+	return this._isDragging;
+};
+/** @public
+* @param {boolean=} opt_disabled
+*/
+tr.grid.DraggableContentPlugin.prototype.disableDragging = function (opt_disabled) {
+	this._draggingDisabled = opt_disabled !== false;
+};
+/** @public
+* @return {boolean}
+*/
+tr.grid.DraggableContentPlugin.prototype.isVerticalGuideMode = function () {
+	return this._verticalGuideMode;
+};
+
+/** @public
+* @param {boolean=} opt_enabled
+*/
+tr.grid.DraggableContentPlugin.prototype.enableJETDragAndDrop = function (opt_enabled) {
+	var val = opt_enabled !== false;
+	if(this._jetDnD === val) { return; }
+
+	this._jetDnD = val;
+
+	var jet = window["JET"];
+	if(jet) {
+		//If ContainerDescription is undefined, that means JET is not initalized. Mostlikely the app
+		//is running the local development mode without container. Disable dnd in this case
+		if(jet["ContainerDescription"] &amp;&amp; (jet["ContainerDescription"]["name"] !== "EikonNowContainer")) {
+			if(this._jetDnD) {
+				jet["onDrop"](this._onJETDrop);
+				jet["onDragOver"](this._onJETDragOver);
+				jet["onDragLeave"](this.stopDrag);
+			} else {
+				jet["onDrop"](null);
+				jet["onDragOver"](null);
+				jet["onDragLeave"](null);
+			}
+		} else {
+			this._jetDnD = false;
+		}
+	}
+};
+/** @public
+* @return {Object}
+*/
+tr.grid.DraggableContentPlugin.prototype.getJETDragContent = function () {
+	return this._jetDragContent;
+};
+/** @public
+* @param {Object} content
+*/
+tr.grid.DraggableContentPlugin.prototype.setJETDragContent = function (content) {
+	this._jetDragContent = content;
+
+	var t = window["tr"];
+	var g = (t) ? t["grid"] : null;
+	var jdc = (g) ? g["JetDragContent"] : null;
+	if(content &amp;&amp; jdc) {
+		var jetDragContentMgr = new jdc(content);
+		var rics = jetDragContentMgr["getRicsToDrop"]();
+		var fields = jetDragContentMgr["getFieldsToDrop"]();
+
+		this._jetContentHasRic = (rics &amp;&amp; rics.length &gt; 0) ? true : false;
+		this._jetContentHasField = (fields &amp;&amp; fields.length &gt; 0) ? true : false;
+	} else {
+		this._jetContentHasRic = false;
+		this._jetContentHasField = false;
+	}
+};
+
+/** @public
+* @function
+* @deprecated
+*/
+tr.grid.DraggableContentPlugin.prototype.setPermissionContentSection = tr._deprecatedFunction;
+/** @public
+* @function
+* @deprecated
+*/
+tr.grid.DraggableContentPlugin.prototype.setPermissionTitleSection = tr._deprecatedFunction;
+
+
+//#endregion Public Methods
+
+//#region Private Methods
+/** @private
+ * @param {Event|Element|tr.IElementControl} e
+ * @return {!Object}
+ */
+tr.grid.DraggableContentPlugin.prototype._hitTest = function (e) {
+	var	host = this.getRelativeGrid(e);
+	if (host) {
+		return host.getRelativePosition(e);
+	} else {
+		return /** @type{!Object} */(e);
+	}
+};
+
+/** @private
+ * @param {string} str
+ */
+tr.grid.DraggableContentPlugin.prototype._setEntryPoint = function (str) {
+	this._entryPoint = str;
+	this._dragBox.setContent(null); // Clear original content
+};
+
+/** @private
+* @param {boolean=} delayStart
+* @param {Element|MouseEvent|tr.IElementControl=} opt_startPos
+* @param {boolean=} opt_suppressEvent
+*/
+tr.grid.DraggableContentPlugin.prototype._startDrag = function (delayStart, opt_startPos, opt_suppressEvent) {
+	if(this._isDragging) { return; }
+	if(this._hosts.length &lt;= 0) { return; }
+
+	if(!opt_startPos) {
+		opt_startPos = this._hosts[0];
+	}
+
+	var pos = this._hitTest(opt_startPos);
+	if(pos["hit"]) {
+		this._clearCache();
+		this._startPos = pos;
+		this._pos = pos;
+		this._activeGrid = pos["grid"];
+
+		if(delayStart) {
+			this._activeGrid.listen(tr.res.mousemove, this._delayStart);
+			this._listenAbortActions();
+		} else { // Start immediately
+			this._onDragStart(opt_suppressEvent);
+		}
+	}
+};
+
+/** @private
+* @param {MouseEvent} e
+*/
+tr.grid.DraggableContentPlugin.prototype._onMouseDown = function (e) {
+	if(e.button) { return; }  // We don't allow drag with middle click (button == 1), or right click (button == 2)
+
+	if (this._draggingDisabled &amp;&amp; // check drag is enable
+		this._hitTest(e).sectionType !== 'content') { // check section is content
+		return;
+	}
+
+	this._setEntryPoint("grid");
+	this._startDrag(true, e); // Start with delay start
+};
+
+/** @private
+ * @param {Event} e
+ */
+tr.grid.DraggableContentPlugin.prototype._onMouseOut = function (e) {
+	e = e ? e : window.event;
+	var from = e.relatedTarget || e.toElement;
+	if (!from || from.nodeName == "HTML") {
+		// window.console.warn("Left window");
+
+		/*
+		 * TRGRID-1493
+		 * The DragStart is delayed using a timer (_timerId created by _delayStart )
+		 * The mouse may left the window before the drag start
+		 * In this case we should force the stopDrag to stop the drag on the source
+		 * Because the mouse up will not be handled by the source
+		 */
+
+		// cancel the timer - _onDragStart will not be called by the timer
+		if(this._timerId &gt;= 0) {
+			clearTimeout(this._timerId);
+			this._timerId = -1;
+		}
+
+		this._onDragStart();
+		this.stopDrag();
+	}
+};
+
+/** @private
+*/
+tr.grid.DraggableContentPlugin.prototype._delayStart = function (e) {
+	this._activeGrid.unlisten(tr.res.mousemove, this._delayStart);
+
+	if(this._timerId &lt; 0) {
+		this._timerId = window.setTimeout(this._onDragStart, 200);
+	}
+	if(this._jetDnD) {
+		document.addEventListener("mouseout", this._onMouseOut, false);
+	}
+};
+
+/** @private
+* @param {boolean=} bool
+*/
+tr.grid.DraggableContentPlugin.prototype._listenAbortActions = function (bool) {
+	if(bool !== false) {
+		window.addEventListener(tr.res.mouseup, this._clearCache, false);
+	} else {
+		window.removeEventListener(tr.res.mouseup, this._clearCache, false);
+	}
+};
+
+/** @private
+* @param {boolean=} opt_suppressEvent
+*/
+tr.grid.DraggableContentPlugin.prototype._onDragStart = function (opt_suppressEvent) {
+	if (this._isDragging) { return; }
+	if(!this._pos) { return; }
+
+	this._listenAbortActions(false); // Unlisen abort action
+
+	var useJetDragStart = false;
+	var jet = window["JET"];
+	if(opt_suppressEvent) { // Note that if suppressEvent is true, it means that this event is activated from JET's dragover
+		useJetDragStart = true;
+	} else {
+		this._dispatch("dragStart", /** @type{!Object} */(this._pos));
+		if(this._isDragCancelled() || !this._hasValidTarget()) {
+			return; // User does not allow this drag to happen
+		}
+		if(this._jetDnD &amp;&amp; this._jetDragContent &amp;&amp; jet) {
+			useJetDragStart = true;
+			jet["dragStart"](this._jetDragContent);
+		}
+	}
+
+	this._isDragging = true;
+	document.body.classList.add("tr-dragging"); // Prevent text selection
+
+	if (!useJetDragStart) { // WARNING: JET wrongly intercepts all mouse events without app's consent
+		window.addEventListener(tr.res.mousemove, this._onDrag, false);
+	}
+	window.addEventListener(tr.res.mouseup, this._onDragEnd, false);
+
+	this._initializeGuideline();
+
+	// For step scrolling
+	this._scrollStep = Math.floor(this._activeGrid.getScrollHeight() / 25); // Update the scrollbar first
+	if(this._scrollStep &lt; 40) {
+		this._scrollStep = 40;
+	} else if(this._scrollStep &gt; 400) {
+		this._scrollStep = 400;
+	}
+	var scrollbar = this._activeGrid.getVScrollbar();
+	this._cacheTop = scrollbar.getTop() + 20;
+	this._cacheHeight = scrollbar.getTop() + scrollbar.getHeight() - 20;
+
+	this._dragPulseId = window.setInterval(this._onDragPulse, 150); // Start pulse
+};
+/** @private
+* @param {Object} e
+*/
+tr.grid.DraggableContentPlugin.prototype._onDrag = function (e) {
+	if (!this._isDragging) { return; }
+
+	if(!e || (e["which"] !== 1)) { // Left click is not down. Support in IE9 and up
+		this.stopDrag();
+		return;
+	}
+
+	this._pos = this._hitTest(/** @type{MouseEvent} */(e));
+
+	this._calculateValidDropArea();
+
+	// Dispatch drag event to let user determine valid drop target using allowDrag (allowDrop) method
+	this._dispatch("drag", /** @type{!Object} */(this._pos));
+
+	this._updateGuideVisibility();
+	this._updateGuidePosition();
+
+	if(e["preventDefault"]) {
+		tr._preventDefault(/** @type{MouseEvent} */(e));
+	}
+};
+/** @private
+* @param {Object=} opt_e
+*/
+tr.grid.DraggableContentPlugin.prototype._onDragEnd = function (opt_e) {
+	if (!this._isDragging) { return; }
+	this._isDragging = false;
+
+	if(opt_e &amp;&amp; opt_e["preventDefault"]) {
+		tr._preventDefault(/** @type{MouseEvent} */(opt_e));
+	}
+
+	if (this._guideline) {
+		this._guideline.setParent(null);
+		this._guideline = null;
+	}
+
+	this._dragBox.setParent(null);
+
+	var len = this._hosts.length;
+	for (var i = 0; i &lt; len; i++) { // Clear all cursor styling
+		this._hosts[i].getElement().style.cursor = "";
+	}
+
+	document.body.classList.remove("tr-dragging");
+	window.removeEventListener(tr.res.mouseup, this._onDragEnd, false);
+	window.removeEventListener(tr.res.mousemove, this._onDrag, false);
+
+	if(!this._isDragCancelled()) {
+		this._extendEventOutput(this._pos, opt_e);
+		this._dispatch("dragEnd", /** @type{!Object} */(this._pos));
+		this._jetDragContent = null;
+	}
+
+	this._clearCache();
+};
+
+/** @private
+* @param {Event} e
+*/
+tr.grid.DraggableContentPlugin.prototype._onContentScrolled = function (e) {
+	if(!this._isDragging || !this._pos["hit"]) { return; }
+
+	var host = this._pos["grid"];
+	if(!host) { return; }
+
+	if(this._validView) {
+		this._dispatch("drag", /** @type{!Object} */(this._pos));
+	}
+	this._updateGuidePosition();
+};
+/** @private
+*/
+tr.grid.DraggableContentPlugin.prototype._onDragPulse = function () {
+	if(!this._isDragging) { return; }
+
+	this._dispatch("dragInterval", /** @type{!Object} */(this._pos));
+
+	// Manage vertical scrollbar
+	if(!this._hosts[0].getVScrollbar().isActive()) { return; }
+
+	var y = this._pos["y"];
+	var scrollVal = 0;
+	if(y &lt; this._cacheTop) {
+		scrollVal = -Math.floor(this._scrollStep * (0.8 + Math.random()));
+
+	} else if(y &gt; this._cacheHeight) {
+		scrollVal = Math.floor(this._scrollStep * (0.8 + Math.random()));
+	}
+
+	this._scrollDown(scrollVal);
+};
+
+/** @private
+*/
+tr.grid.DraggableContentPlugin.prototype._clearCache = function () {
+	if(this._timerId &gt;= 0) {
+		clearTimeout(this._timerId);
+		this._timerId = -1;
+	}
+	document.removeEventListener("mouseout", this._onMouseOut, false);
+	if(this._dragPulseId &gt;= 0) {
+		clearInterval(this._dragPulseId);
+		this._dragPulseId = -1;
+	}
+	this._listenAbortActions(false);
+
+	this._startPos = null;
+	this._pos = null;
+
+	if (this._activeGrid) {
+		this._activeGrid.unlisten(tr.res.mousemove, this._delayStart);
+		this._activeGrid = null;
+	}
+
+	this._validDropArea = false;
+	this._validView = false;
+};
+
+/** Guideline will be visible only when mouse is invalid drop area and drag operation has not been cancelled
+* @private
+* @return {boolean}
+*/
+tr.grid.DraggableContentPlugin.prototype._isGuideVisible = function () {
+	return this._validDropArea &amp;&amp; this._hasValidTarget();
+};
+/** @private
+* @return {boolean}
+*/
+tr.grid.DraggableContentPlugin.prototype._isDragCancelled = function () {
+	return (this._pos &amp;&amp; this._pos["cancel"]) ? true : false;
+};
+/** @private
+* @return {boolean}
+*/
+tr.grid.DraggableContentPlugin.prototype._hasValidTarget = function () {
+	return (this._pos &amp;&amp; this._pos["invalidTarget"]) ? false : true;
+};
+
+/** @private
+*/
+tr.grid.DraggableContentPlugin.prototype._initializeGuideline = function () {
+	this._calculateValidDropArea();
+	this._updateGuideVisibility();
+	this._updateGuidePosition();
+};
+/** @private
+*/
+tr.grid.DraggableContentPlugin.prototype._updateGuideMode = function () {
+	var verticalGuideMode = false;
+	if(this._entryPoint === 'JET') { // Vertical guide mode can be true only if there is a field in drag content and mouse is over title section
+		if(this._pos[tr.res.sectionType] === tr.res.title &amp;&amp; this._jetContentHasField) {
+			verticalGuideMode = true;
+		}
+	}
+
+	if(!this._guideline || verticalGuideMode !== this._verticalGuideMode) {
+		if(this._guideline) {
+			this._guideline.setParent(null);
+		}
+		this._verticalGuideMode = verticalGuideMode;
+		if(this._verticalGuideMode) {
+			if(!this._vGuideline) {
+				this._vGuideline = new ElementWrapper(document.createElement("svg")); // Why svg
+				this._vGuideline.addClass("tr-guideline");
+				this._vGuideline.setWidth(3);
+			}
+
+			this._guideline = this._vGuideline;
+		} else { // Horizontal guide mode (default)
+			if(!this._hGuideline) {
+				this._hGuideline = new ElementWrapper();
+				this._hGuideline.setClass("tr-guideline");
+				// this._hGuideline.setLeft(0);
+				this._hGuideline.setHeight(3);
+			}
+			this._hGuideline.setWidth(this._activeGrid.getWidth());
+
+			this._guideline = this._hGuideline;
+		}
+		if(this._pos["hit"]) {
+			this._updateGuideParent();
+		}
+	}
+};
+/** @private
+*/
+tr.grid.DraggableContentPlugin.prototype._updateGuideParent = function () {
+	this._dragBox.setParent(this._activeGrid);
+	if(this._verticalGuideMode) {
+		this._guideline.setHeight(this._activeGrid.getHeight()); // Different grid may have different height
+		this._guideline.setParent(this._activeGrid);
+	} else {
+		this._guideline.setParent(this._pos[tr.res.section].getColumnHost());
+	}
+};
+/** @private
+*/
+tr.grid.DraggableContentPlugin.prototype._calculateValidDropArea = function () {
+	this._updateGuideMode();
+
+	this._validView = (this._pos["hit"]) ? true : false;
+	this._validDropArea = this._validView; // If the given object is within the grid, it is in the valid drop area
+	if(this._validDropArea) {
+		var grid = this._pos["grid"];
+
+		if(grid !== this._activeGrid || this._guideline.getParent() !== this._activeGrid.getElement()) {
+			this._activeGrid = grid; // Mouse cursor styling will be clear in dropEnd event
+			this._updateGuideParent(); // Update the new parent
+		}
+
+		if(this._verticalGuideMode) {
+			if(this._pos[tr.res.sectionType] !== tr.res.title) {
+				this._validDropArea = false; // In vertical guide mode if the mouse is not in the title section, it is not the valid drop area
+			}
+		} else {
+			if(this._pos[tr.res.sectionType] !== tr.res.content) {
+				this._validDropArea = false; // In horizontal guide mode if the mouse is not in the content section, it is not the valid drop area
+			}
+
+			if(this._entryPoint === 'JET' &amp;&amp; !this._jetContentHasRic) {
+				this._validDropArea = false; // Since jet content doesn't has any RICs for droping
+			}
+
+			if (!this._isCrossSectionAllowed) { // If crossing section is not allowed
+				if (this._startPos[tr.res.sectionIndex] != this._pos[tr.res.sectionIndex]) {
+					this._validDropArea = false; // The mouse is not in the same initial drag section, make it a invalid drop area
+				}
+			}
+		}
+	}
+};
+/** @private
+*/
+tr.grid.DraggableContentPlugin.prototype._updateGuidePosition = function () {
+	if(!this._isGuideVisible()) {
+		return; // Since guideline is not visible there is no point in updating its position
+	}
+
+	if(this._verticalGuideMode) {
+		var colIndex = this._pos["colIndex"];
+		var cellElement = this._pos['cellElement'];
+		var isRight = 0;
+
+		if (cellElement) {
+			var rect = cellElement.getBoundingClientRect();
+			var offsetX = (this._pos['clientX'] - rect['left']) / this._pos['zoomFactor'];
+			isRight = Math.round(offsetX / cellElement.offsetWidth);
+		}
+
+		if(colIndex + isRight &lt; this._activeGrid.getColumnCount()) {
+			var left = this._activeGrid.getColumnLeft(colIndex + isRight);
+			this._guideline.setLeft(left);
+		} else {
+			var right = this._activeGrid.getColumnRight(colIndex);
+			this._guideline.setLeft(right - 4);
+		}
+
+	} else {
+		this._guideline.setTop(this._pos['cellElement']['offsetTop']);
+	}
+
+	this._dragBox.setLeft(this._pos['x'] + 15);
+	this._dragBox.setTop(this._pos['y'] + 20);
+};
+/** @private
+*/
+tr.grid.DraggableContentPlugin.prototype._updateGuideVisibility = function () {
+	if(this._isGuideVisible() &amp;&amp; this._validView) {
+		this._guideline.show();
+	} else {
+		this._guideline.hide();
+	}
+
+	// Mouse Cursor
+	if(this._activeGrid) {
+		var elem = this._activeGrid.getElement();
+		var cur = this._isGuideVisible() ? "move" : "not-allowed";
+		if(elem.style.cursor !== cur) {
+			elem.style.cursor = cur;
+		}
+	}
+};
+
+/** @private
+* @suppress {checkTypes}
+* @param {Object} clientPos
+*/
+tr.grid.DraggableContentPlugin.prototype._onJETDragOver = function (clientPos) {
+	if(!clientPos) { return; }
+
+	if(!this._isDragging) {
+		if(!clientPos["dropData"]) { return; }
+		this._setEntryPoint("JET");
+		this.setJETDragContent(clientPos["dropData"]); // WARNING: We have no way to distinguish between dropData from grid and other apps
+		this._startDrag(false, clientPos['e'], true); // Event is suppressed
+	} else {
+		this._onDrag(clientPos['e']);
+	}
+};
+/** @private
+* @param {Object} jetObj
+*/
+tr.grid.DraggableContentPlugin.prototype._onJETDrop = function (jetObj) {
+	if (!this._isDragging) { return; }
+
+	if(!this._jetDragContent) {
+		this._jetDragContent = jetObj; // To maintain original client signature
+	}
+	this._onDragEnd(jetObj['mouse']['srcEvent']);
+};
+
+/** @private
+* @param {Object} pos
+ * @param {Object=} e
+*/
+tr.grid.DraggableContentPlugin.prototype._extendEventOutput = function (pos, e) {
+	var cellElement = pos['cellElement'];
+	var isRight = 0;
+
+	if (e &amp;&amp; cellElement) {
+		var rect = cellElement.getBoundingClientRect();
+		var offsetX = (e['clientX'] - rect['left']) / pos['zoomFactor'];
+		isRight = Math.round(offsetX / cellElement.offsetWidth);
+	}
+
+	pos['colIndex'] += isRight;
+	pos['currentPosition'] = pos; // To support JET requirement
+	pos['data'] = this._jetDragContent;
+	pos['srcGrid'] = this._startPos['grid'];
+	pos['dropTarget'] = e.target;
+};
+
+//#endregion Private Methods
+
+
+goog.exportSymbol("tr.grid.DraggableContentPlugin", tr.grid.DraggableContentPlugin);
+tr.grid.DraggableContentPlugin._proto = tr.grid.DraggableContentPlugin.prototype;
+
+goog.exportProperty(tr.grid.DraggableContentPlugin._proto, "getName", tr.grid.DraggableContentPlugin._proto.getName);
+goog.exportProperty(tr.grid.DraggableContentPlugin._proto, "initialize", tr.grid.DraggableContentPlugin._proto.initialize);
+goog.exportProperty(tr.grid.DraggableContentPlugin._proto, "unload", tr.grid.DraggableContentPlugin._proto.unload);
+
+goog.exportProperty(tr.grid.DraggableContentPlugin._proto, "allowDrag", tr.grid.DraggableContentPlugin._proto.allowDrag);
+goog.exportProperty(tr.grid.DraggableContentPlugin._proto, "allowDrop", tr.grid.DraggableContentPlugin._proto.allowDrop);
+goog.exportProperty(tr.grid.DraggableContentPlugin._proto, "cancelDrag", tr.grid.DraggableContentPlugin._proto.cancelDrag);
+
+goog.exportProperty(tr.grid.DraggableContentPlugin._proto, "setDragContent", tr.grid.DraggableContentPlugin._proto.setDragContent);
+goog.exportProperty(tr.grid.DraggableContentPlugin._proto, "getDragBox", tr.grid.DraggableContentPlugin._proto.getDragBox);
+goog.exportProperty(tr.grid.DraggableContentPlugin._proto, "getDragSource", tr.grid.DraggableContentPlugin._proto.getDragSource);
+
+goog.exportProperty(tr.grid.DraggableContentPlugin._proto, "startDrag", tr.grid.DraggableContentPlugin._proto.startDrag);
+goog.exportProperty(tr.grid.DraggableContentPlugin._proto, "stopDrag", tr.grid.DraggableContentPlugin._proto.stopDrag);
+goog.exportProperty(tr.grid.DraggableContentPlugin._proto, "isDragging", tr.grid.DraggableContentPlugin._proto.isDragging);
+goog.exportProperty(tr.grid.DraggableContentPlugin._proto, "disableDragging", tr.grid.DraggableContentPlugin._proto.disableDragging);
+goog.exportProperty(tr.grid.DraggableContentPlugin._proto, "isVerticalGuideMode", tr.grid.DraggableContentPlugin._proto.isVerticalGuideMode);
+
+goog.exportProperty(tr.grid.DraggableContentPlugin._proto, "setPermissionContentSection", tr.grid.DraggableContentPlugin._proto.setPermissionContentSection);
+goog.exportProperty(tr.grid.DraggableContentPlugin._proto, "setPermissionTitleSection", tr.grid.DraggableContentPlugin._proto.setPermissionTitleSection);
+
+goog.exportProperty(tr.grid.DraggableContentPlugin._proto, "enableJETDragAndDrop", tr.grid.DraggableContentPlugin._proto.enableJETDragAndDrop);
+goog.exportProperty(tr.grid.DraggableContentPlugin._proto, "getJETDragContent", tr.grid.DraggableContentPlugin._proto.getJETDragContent);
+goog.exportProperty(tr.grid.DraggableContentPlugin._proto, "2", tr.grid.DraggableContentPlugin._proto.setJETDragContent);</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="AdFin.html">AdFin</a></li><li><a href="DateTime.html">DateTime</a></li><li><a href="Info.html">Info</a></li><li><a href="Logic.html">Logic</a></li><li><a href="Math.html">Math</a></li><li><a href="Realtime.html">Realtime</a></li><li><a href="Statistic.html">Statistic</a></li><li><a href="Text.html">Text</a></li><li><a href="tr.ElementFrameWork.html">ElementFrameWork</a></li><li><a href="tr.PipDefinition.html">PipDefinition</a></li></ul><h3>Classes</h3><ul><li><a href="tr.ADCSubscription.html">ADCSubscription</a></li><li><a href="tr.AdFinSubscription.html">AdFinSubscription</a></li><li><a href="tr.cgrid.editor.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.filter.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.formatter.AsyncFormatter.html">AsyncFormatter</a></li><li><a href="tr.cgrid.formatter.CheckBox.html">CheckBox</a></li><li><a href="tr.cgrid.formatter.UpDownColor.html">UpDownColor</a></li><li><a href="tr.ColumnStats.html">ColumnStats</a></li><li><a href="tr.CompositeGrid.html">CompositeGrid</a></li><li><a href="tr.DataCache.html">DataCache</a></li><li><a href="tr.DataTable.html">DataTable</a></li><li><a href="tr.DataView.html">DataView</a></li><li><a href="tr.DropDown.html">DropDown</a></li><li><a href="tr.ElementControl.html">ElementControl</a></li><li><a href="tr.ElementWrapper.html">ElementWrapper</a></li><li><a href="tr.Event.html">Event</a></li><li><a href="tr.EventDispatcher.html">EventDispatcher</a></li><li><a href="tr.EventDispatcher.extendClass-tempCtor.html">tempCtor</a></li><li><a href="tr.EventManager.html">EventManager</a></li><li><a href="tr.FieldFormatter.html">FieldFormatter</a></li><li><a href="tr.fn.Engine.html">Engine</a></li><li><a href="tr.fn.Formula.html">Formula</a></li><li><a href="tr.fn.VariableToken.html">VariableToken</a></li><li><a href="tr.Grid.html">Grid</a></li><li><a href="tr.grid.BidOfferSpan.html">BidOfferSpan</a></li><li><a href="tr.grid.Blinker.html">Blinker</a></li><li><a href="tr.grid.Cell.html">Cell</a></li><li><a href="tr.grid.CellBlinkingPlugin.html">CellBlinkingPlugin</a></li><li><a href="tr.grid.CellEditingPlugin.html">CellEditingPlugin</a></li><li><a href="tr.grid.CellFloatingPanel.html">CellFloatingPanel</a></li><li><a href="tr.grid.CellPainter.html">CellPainter</a></li><li><a href="tr.grid.CellSpan.html">CellSpan</a></li><li><a href="tr.grid.CellSpans.html">CellSpans</a></li><li><a href="tr.grid.CellWriter.html">CellWriter</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html">CheckboxColumnPlugin</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html">CollapsibleHeaderPlugin</a></li><li><a href="tr.grid.ColumnFilterPlugin.html">ColumnFilterPlugin</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html">ColumnGroupingPlugin</a></li><li><a href="tr.grid.ColumnSelectionPlugin.html">ColumnSelectionPlugin</a></li><li><a href="tr.grid.ColumnStackingPlugin.html">ColumnStackingPlugin</a></li><li><a href="tr.grid.ColumnWidthAdjustingPlugin.html">ColumnWidthAdjustingPlugin</a></li><li><a href="tr.grid.Conflator.html">Conflator</a></li><li><a href="tr.grid.DataSourceTreePlugin.html">DataSourceTreePlugin</a></li><li><a href="tr.grid.DirectContentBindingPlugin.html">DirectContentBindingPlugin</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html">DragAndDropTitlePlugin</a></li><li><a href="tr.grid.DraggableContentPlugin.html">DraggableContentPlugin</a></li><li><a href="tr.grid.FindBar.html">FindBar</a></li><li><a href="tr.grid.FindBarPlugin.html">FindBarPlugin</a></li><li><a href="tr.grid.GroupStatisticsPlugin.html">GroupStatisticsPlugin</a></li><li><a href="tr.grid.HeatMapRenderer.html">HeatMapRenderer</a></li><li><a href="tr.grid.HScrollbar.html">HScrollbar</a></li><li><a href="tr.grid.IndexMarker.html">IndexMarker</a></li><li><a href="tr.grid.MovableHeaderPlugin.html">MovableHeaderPlugin</a></li><li><a href="tr.grid.NumberFormatter.html">NumberFormatter</a></li><li><a href="tr.grid.PercentBar.html">PercentBar</a></li><li><a href="tr.grid.PercentBarRenderer.html">PercentBarRenderer</a></li><li><a href="tr.grid.Plugin.html">Plugin</a></li><li><a href="tr.grid.RangeBar.html">RangeBar</a></li><li><a href="tr.grid.ResizableTitlePlugin.html">ResizableTitlePlugin</a></li><li><a href="tr.grid.Reverter.html">Reverter</a></li><li><a href="tr.grid.RowHeightAdjustingPlugin.html">RowHeightAdjustingPlugin</a></li><li><a href="tr.grid.RowSelectionPlugin.html">RowSelectionPlugin</a></li><li><a href="tr.grid.Scrollbar.html">Scrollbar</a></li><li><a href="tr.grid.SectionSettings.html">SectionSettings</a></li><li><a href="tr.grid.SmartTooltipsPlugin.html">SmartTooltipsPlugin</a></li><li><a href="tr.grid.SortableTitlePlugin.html">SortableTitlePlugin</a></li><li><a href="tr.grid.TreeIndentingPlugin.html">TreeIndentingPlugin</a></li><li><a href="tr.grid.Virtualizer.html">Virtualizer</a></li><li><a href="tr.grid.VScrollbar.html">VScrollbar</a></li><li><a href="tr.grid.ZoomPlugin.html">ZoomPlugin</a></li><li><a href="tr.HttpRequest.html">HttpRequest</a></li><li><a href="tr.IntervalSubscription.html">IntervalSubscription</a></li><li><a href="tr.LayoutGrid.html">LayoutGrid</a></li><li><a href="tr.ListMenu.html">ListMenu</a></li><li><a href="tr.MenuItem.html">MenuItem</a></li><li><a href="tr.MockArchive.html">MockArchive</a></li><li><a href="tr.MockJET.html">MockJET</a></li><li><a href="tr.MockQuotes.html">MockQuotes</a></li><li><a href="tr.MockQuotes2.html">MockQuotes2</a></li><li><a href="tr.MockSubscription.html">MockSubscription</a></li><li><a href="tr.MockSubscriptions.html">MockSubscriptions</a></li><li><a href="tr.Popup.html">Popup</a></li><li><a href="tr.PopupMenu.html">PopupMenu</a></li><li><a href="tr.PrintTrait.html">PrintTrait</a></li><li><a href="tr.RequestQueue.html">RequestQueue</a></li><li><a href="tr.Segment.html">Segment</a></li><li><a href="tr.SegmentCollection.html">SegmentCollection</a></li><li><a href="tr.TSISubscription.html">TSISubscription</a></li></ul><h3>Interfaces</h3><ul><li><a href="tr.cgrid.ICompositeExtension.html">ICompositeExtension</a></li><li><a href="tr.grid.IPlugin.html">IPlugin</a></li><li><a href="tr.IElementControl.html">IElementControl</a></li><li><a href="tr.ILayoutGrid.html">ILayoutGrid</a></li></ul><h3>Events</h3><ul><li><a href="tr.CompositeGrid.html#event:cellClicked">cellClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellDblClicked">cellDblClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellMouseDown">cellMouseDown</a></li><li><a href="tr.CompositeGrid.html#event:cellRightClicked">cellRightClicked</a></li><li><a href="tr.CompositeGrid.html#event:columnSorted">columnSorted</a></li><li><a href="tr.CompositeGrid.html#event:editorAttached">editorAttached</a></li><li><a href="tr.CompositeGrid.html#event:editorDetached">editorDetached</a></li><li><a href="tr.CompositeGrid.html#event:filterAdded">filterAdded</a></li><li><a href="tr.CompositeGrid.html#event:filterCleared">filterCleared</a></li><li><a href="tr.CompositeGrid.html#event:filterModified">filterModified</a></li><li><a href="tr.CompositeGrid.html#event:filterRemoved">filterRemoved</a></li><li><a href="tr.CompositeGrid.html#event:mouseLeaveCell">mouseLeaveCell</a></li><li><a href="tr.CompositeGrid.html#event:mouseOverCell">mouseOverCell</a></li><li><a href="tr.CompositeGrid.html#event:pageChanged">pageChanged</a></li><li><a href="tr.CompositeGrid.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.DataCache.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataCache.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataTable.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataTable.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataView.html#event:beforeFiltering">beforeFiltering</a></li><li><a href="tr.DataView.html#event:beforeGroupAdded">beforeGroupAdded</a></li><li><a href="tr.DataView.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataView.html#event:groupAdded">groupAdded</a></li><li><a href="tr.DataView.html#event:groupCriteriaChanged">groupCriteriaChanged</a></li><li><a href="tr.DataView.html#event:pageCountChanged">pageCountChanged</a></li><li><a href="tr.DataView.html#event:pageIndexChanged">pageIndexChanged</a></li><li><a href="tr.DataView.html#event:preDisposed">preDisposed</a></li><li><a href="tr.Formula.html#event:dataCacheChanged">dataCacheChanged</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:cancelled">cancelled</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:change">change</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:closed">closed</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:editorOpened">editorOpened</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:preEditorOpening">preEditorOpening</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:click">click</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:columnCollapsed">columnCollapsed</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:groupChanged">groupChanged</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:render">render</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:columnMoved">columnMoved</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:drag">drag</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragEnd">dragEnd</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragStart">dragStart</a></li><li><a href="tr.grid.FindBarPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:groupMoved">groupMoved</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:sectionMoved">sectionMoved</a></li><li><a href="tr.grid.RowSelectionPlugin.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:columnSorted">columnSorted</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preClicked">preClicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preDataSorting">preDataSorting</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.Grid.html#event:columnAdded">columnAdded</a></li><li><a href="tr.Grid.html#event:columnAlignmentChanged">columnAlignmentChanged</a></li><li><a href="tr.Grid.html#event:columnRemoved">columnRemoved</a></li><li><a href="tr.Grid.html#event:columnVisibilityChanged">columnVisibilityChanged</a></li><li><a href="tr.Grid.html#event:dataSourceChanged">dataSourceChanged</a></li><li><a href="tr.Grid.html#event:postSectionDataBinding">postSectionDataBinding</a></li><li><a href="tr.Grid.html#event:rowExpansionBinding">rowExpansionBinding</a></li><li><a href="tr.Grid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Grid.html#event:sectionAdded">sectionAdded</a></li><li><a href="tr.Grid.html#event:widthChanged">widthChanged</a></li><li><a href="tr.HttpRequest.html#event:abort">abort</a></li><li><a href="tr.HttpRequest.html#event:error">error</a></li><li><a href="tr.HttpRequest.html#event:load">load</a></li><li><a href="tr.HttpRequest.html#event:loadend">loadend</a></li><li><a href="tr.HttpRequest.html#event:loadstart">loadstart</a></li><li><a href="tr.HttpRequest.html#event:timeout">timeout</a></li><li><a href="tr.IElementControl.html#event:blur">blur</a></li><li><a href="tr.IElementControl.html#event:change">change</a></li><li><a href="tr.IElementControl.html#event:click">click</a></li><li><a href="tr.IElementControl.html#event:contextmenu">contextmenu</a></li><li><a href="tr.IElementControl.html#event:dblclick">dblclick</a></li><li><a href="tr.IElementControl.html#event:drag">drag</a></li><li><a href="tr.IElementControl.html#event:dragend">dragend</a></li><li><a href="tr.IElementControl.html#event:dragenter">dragenter</a></li><li><a href="tr.IElementControl.html#event:dragleave">dragleave</a></li><li><a href="tr.IElementControl.html#event:dragover">dragover</a></li><li><a href="tr.IElementControl.html#event:dragstart">dragstart</a></li><li><a href="tr.IElementControl.html#event:drop">drop</a></li><li><a href="tr.IElementControl.html#event:focus">focus</a></li><li><a href="tr.IElementControl.html#event:formchange">formchange</a></li><li><a href="tr.IElementControl.html#event:forminput">forminput</a></li><li><a href="tr.IElementControl.html#event:input">input</a></li><li><a href="tr.IElementControl.html#event:invalid">invalid</a></li><li><a href="tr.IElementControl.html#event:keydown">keydown</a></li><li><a href="tr.IElementControl.html#event:keypress">keypress</a></li><li><a href="tr.IElementControl.html#event:keyup">keyup</a></li><li><a href="tr.IElementControl.html#event:mousedown">mousedown</a></li><li><a href="tr.IElementControl.html#event:mousemove">mousemove</a></li><li><a href="tr.IElementControl.html#event:mouseout">mouseout</a></li><li><a href="tr.IElementControl.html#event:mouseover">mouseover</a></li><li><a href="tr.IElementControl.html#event:mouseup">mouseup</a></li><li><a href="tr.IElementControl.html#event:mousewheel">mousewheel</a></li><li><a href="tr.IElementControl.html#event:reset">reset</a></li><li><a href="tr.IElementControl.html#event:scroll">scroll</a></li><li><a href="tr.IElementControl.html#event:select">select</a></li><li><a href="tr.IElementControl.html#event:submit">submit</a></li><li><a href="tr.ILayoutGrid.html#event:blur">blur</a></li><li><a href="tr.ILayoutGrid.html#event:change">change</a></li><li><a href="tr.ILayoutGrid.html#event:click">click</a></li><li><a href="tr.ILayoutGrid.html#event:contextmenu">contextmenu</a></li><li><a href="tr.ILayoutGrid.html#event:dblclick">dblclick</a></li><li><a href="tr.ILayoutGrid.html#event:drag">drag</a></li><li><a href="tr.ILayoutGrid.html#event:dragend">dragend</a></li><li><a href="tr.ILayoutGrid.html#event:dragenter">dragenter</a></li><li><a href="tr.ILayoutGrid.html#event:dragleave">dragleave</a></li><li><a href="tr.ILayoutGrid.html#event:dragover">dragover</a></li><li><a href="tr.ILayoutGrid.html#event:dragstart">dragstart</a></li><li><a href="tr.ILayoutGrid.html#event:drop">drop</a></li><li><a href="tr.ILayoutGrid.html#event:focus">focus</a></li><li><a href="tr.ILayoutGrid.html#event:formchange">formchange</a></li><li><a href="tr.ILayoutGrid.html#event:forminput">forminput</a></li><li><a href="tr.ILayoutGrid.html#event:input">input</a></li><li><a href="tr.ILayoutGrid.html#event:invalid">invalid</a></li><li><a href="tr.ILayoutGrid.html#event:keydown">keydown</a></li><li><a href="tr.ILayoutGrid.html#event:keypress">keypress</a></li><li><a href="tr.ILayoutGrid.html#event:keyup">keyup</a></li><li><a href="tr.ILayoutGrid.html#event:mousedown">mousedown</a></li><li><a href="tr.ILayoutGrid.html#event:mousemove">mousemove</a></li><li><a href="tr.ILayoutGrid.html#event:mouseout">mouseout</a></li><li><a href="tr.ILayoutGrid.html#event:mouseover">mouseover</a></li><li><a href="tr.ILayoutGrid.html#event:mouseup">mouseup</a></li><li><a href="tr.ILayoutGrid.html#event:mousewheel">mousewheel</a></li><li><a href="tr.ILayoutGrid.html#event:reset">reset</a></li><li><a href="tr.ILayoutGrid.html#event:scroll">scroll</a></li><li><a href="tr.ILayoutGrid.html#event:select">select</a></li><li><a href="tr.ILayoutGrid.html#event:submit">submit</a></li><li><a href="tr.LayoutGrid.html#event:rowCountChanged">rowCountChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHeightChanged">rowHeightChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Popup.html#event:hidden">hidden</a></li><li><a href="tr.Popup.html#event:shown">shown</a></li><li><a href="tr.PopupMenu.html#event:hidden">hidden</a></li><li><a href="tr.PopupMenu.html#event:shown">shown</a></li><li><a href="tr.PrintTrait.html#event:afterprint">afterprint</a></li><li><a href="tr.PrintTrait.html#event:beforeprint">beforeprint</a></li><li><a href="tr.PrintTrait.html#event:pageCounting">pageCounting</a></li></ul><h3>Global</h3><ul><li><a href="global.html#cellRef%255Bundefined%255D">cellRef[undefined]</a></li><li><a href="global.html#e%255Bundefined%255D">e[undefined]</a></li><li><a href="global.html#.textContent">.textContent</a></li><li><a href="global.html#get">get</a></li><li><a href="global.html#input%255Bundefined%255D">input[undefined]</a></li><li><a href="global.html#q%255Bundefined%255D">q[undefined]</a></li><li><a href="global.html#sortingDef%255B1%255D">sortingDef[1]</a></li></ul>
+</nav>
+
+
+<script src="scripts/linenumber.js"> </script>
+<script src="scripts/prettify.js"> </script>
+<script> prettyPrint(); </script>
+</body>
+</html>

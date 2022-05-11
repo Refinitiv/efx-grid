@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: grid/util/FieldFormatter.js</title>
+
+    <script src="scripts/prettify.js"> </script>
+    <script src="scripts/lang-css.js"> </script>
+    <!--[if lt IE 9]&gt;
+      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
+    &lt;![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/default.css">
+    <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
+</head>
+
+<body>
+
+<div id="main-template" class="elf-template">
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>goog.provide("tr.FieldFormatter");
+
+/** @constructor
+* @param {Object=} options
+*/
+tr.FieldFormatter = function(options) {
+	this["format"] = this.format = this.format.bind(this); // Always export bound format method
+
+	this.init(options);
+};
+
+/**@type {string}
+* @private
+*/
+tr.FieldFormatter.prototype._field = "";
+/**@type {string}
+* @private
+*/
+tr.FieldFormatter.prototype._formattedField = "";
+/**@type {string}
+* @private
+*/
+tr.FieldFormatter.prototype._combinedField = "";
+
+/**@type {string}
+* @private
+*/
+tr.FieldFormatter.prototype._formatType = "number"; // number, percent, datetime, freetext (mixed), or formula
+/**@type {boolean}
+* @private
+*/
+tr.FieldFormatter.prototype._mixedTypeInput = false; // Input can be either string or number in the same column
+
+/**@type {string}
+* @private
+*/
+tr.FieldFormatter.prototype._dateTimeFormat = "";
+/**@type {string}
+* @private
+*/
+tr.FieldFormatter.prototype._idnSource = "";
+/**@type {string}
+* @private
+*/
+tr.FieldFormatter.prototype._timeZone = "GMT"; // "GMT" or "LOCAL"
+
+/** Date formatter
+* @type {Function}
+* @private
+*/
+tr.FieldFormatter.prototype._df = null;
+/** Number formatter
+* @type {Function}
+* @private
+*/
+tr.FieldFormatter.prototype._nf = null;
+
+/** Date past midnight 00:00:00 (UTC)
+* @type {Date}
+* @private
+*/
+tr.FieldFormatter._dateLastMidnight = new Date();
+tr.FieldFormatter._dateLastMidnight.setUTCHours(0,0,0,0);
+setTimeout(function() {
+	tr.FieldFormatter._dateLastMidnight = new Date();
+	tr.FieldFormatter._dateLastMidnight.setUTCHours(0,0,0,0);
+	setInterval(function() {
+		tr.FieldFormatter._dateLastMidnight = new Date();
+		tr.FieldFormatter._dateLastMidnight.setUTCHours(0,0,0,0);
+	}, 86400000);		// 24 hours
+}, tr.FieldFormatter._dateLastMidnight.valueOf() + 86405000 - (new Date().valueOf()));		// delay to the next nidnight + 5sec
+
+/** @public
+* @param {Object=} options
+*/
+tr.FieldFormatter.prototype.init = function(options) { // deserialize
+	if (!options) {
+		return;
+	}
+
+	var val = options["field"];
+
+	if (val) {
+		// DateTime pairs come from the JET's user settings
+		// Datetime paired will have special column that suffix with "_COMBINED"
+		this.setField(val); // , (this._dateTimePairs[field]) ? field + "_COMBINED" : "");
+	}
+
+	var formatType = /** @type{string} */(options["formatType"]);
+
+	val = (formatType === "datetime") ? "datetime" : (options["fieldDataType"] || formatType);
+
+	if (val) {
+		this.setFormatType(val);
+	}
+
+	var dtf = options["dateTimeFormat"];
+	var utc = options["useUTCTime"];
+
+	if (utc != null || dtf != null) {
+		this.setDateTimeMeta(
+			dtf || "MM/DD/YYYY",
+			utc,
+			(options["idnSource"]) ? "idn" : "" // IDN Source will send time in second instead of millisecond.
+		);
+	}
+
+	if (this._formatType === "datetime") { // WARNING: Beware of case sensitivity
+		if (!this._df) {
+			var fnLib = (window["tr"]) ? window["tr"]["fn"] : null;
+
+			if (fnLib &amp;&amp; fnLib["DateTime"]) {
+				this._df = /** @type{Function} */(fnLib["DateTime"]["TEXT"]) || null;
+			}
+		}
+	}
+};
+/** @public
+* @param {Object=} options
+* @return {!Object}
+*/
+tr.FieldFormatter.prototype.getOptions = function(options) { // serialize
+	if (!options) {
+		options = {};
+	}
+
+	options["field"] = this._field;
+	options["fieldDataType"] = this._formatType; // WARNING: Beware of case sensitivity
+	options["dateTimeFormat"] = this._dateTimeFormat;
+	options["useUTCTime"] = (this._timeZone == "GMT");
+
+	return options;
+};
+
+/** @public
+* @return {tr.FieldFormatter}
+*/
+tr.FieldFormatter.prototype.clone = function() {
+	var newFF = new FieldFormatter();
+
+	newFF._field = this._field;
+	newFF._formattedField = this._formattedField;
+	newFF._combinedField = this._combinedField;
+
+	newFF._formatType = this._formatType;
+	newFF._mixedTypeInput = this._mixedTypeInput;
+
+	newFF._dateTimeFormat = this._dateTimeFormat;
+	newFF._idnSource = this._idnSource;
+	newFF._timeZone = this._timeZone;
+
+	newFF._df = this._df;
+	newFF._nf = this._nf;
+
+	return newFF;
+};
+
+/** @public
+* @param {string} type Possible values are number, percent, datetime, freetext, and formula
+*/
+tr.FieldFormatter.prototype.setFormatType = function(type) {
+	this._formatType = type.toLowerCase(); // WARNING: Beware of case sensitivity
+	this._mixedTypeInput = (this._formatType === "freetext" || this._formatType === "formula");
+};
+/** @public
+* @param {string} field
+* @param {string=} combinedField
+* @param {string=} formattedField
+*/
+tr.FieldFormatter.prototype.setField = function(field, combinedField, formattedField) {
+	this._field = field;
+	this._formattedField = (formattedField) ? formattedField : field + "_FORMATTED";
+	this._combinedField = combinedField || "";
+};
+/** @public
+* @param {string} format
+* @param {boolean=} gmtTimeZone
+* @param {string=} inputSource
+*/
+tr.FieldFormatter.prototype.setDateTimeMeta = function(format, gmtTimeZone, inputSource) {
+	this._dateTimeFormat = format;
+	this._timeZone = (gmtTimeZone !== false) ? "GMT" : "LOCAL";
+	this._idnSource = (inputSource &amp;&amp; inputSource.toLowerCase() === "idn") ? "idn" : "";
+};
+/** @public
+* @param {Function} func The given function should take a value and return string
+*/
+tr.FieldFormatter.prototype.setDateFormatter = function(func) {
+	this._df = func;
+};
+/** @public
+* @param {Function} func The given function should take a value and return string
+*/
+tr.FieldFormatter.prototype.setNumberFormatter = function(func) {
+	this._nf = func;
+};
+
+tr.FieldFormatter.prototype.getProperties = function() {
+	var obj = {
+		"field": this._field,
+		"formattedField": this._formattedField,
+		"combinedField": this._combinedField,
+		"type": this._formatType
+	};
+
+	if (this._formatType === "datetime") { // WARNING: Beware of case sensitivity
+		obj["dateTimeFormat"] = this._dateTimeFormat;
+		obj["timeZone"] = this._timeZone;
+		obj["idnSource"] = this._idnSource;
+	}
+
+	return obj;
+};
+
+
+/** @public
+* @param {Object} rowData
+* @return {string}
+*/
+tr.FieldFormatter.prototype.format = function(rowData) {
+	if (!rowData) {
+		return "";
+	}
+
+	var val = rowData[this._field];
+
+	if (val === undefined || val === "") { // undefined, empty string
+		return "";
+	}
+
+	if (this._formatType === "freetext") {
+		val = tr.isNumeric(val) ? Number(val) : val;
+	}
+
+	if (this._formatType === "datetime") {
+		if (!this._df || val === null) {
+			return "";
+		}
+
+		if (this._idnSource) { // IDN Source will send time in second instead of millisecond.
+			var sec = +val;
+
+			if (sec !== sec) { // NaN checking
+				return val;
+			}
+
+			var cmbValue = +rowData[this._combinedField];
+
+			if (cmbValue === cmbValue) { // Combined value is not NaN
+				sec = cmbValue;
+			} else if (sec &lt; 86400) { // No paired date and sec &lt; 24 hours -&gt; this is a time within this day
+				sec += tr.FieldFormatter._dateLastMidnight.valueOf() / 1000;
+			} else { // No paired sec. Date need to add for timezone
+				if ((this._field !== "NEWS_TIME") &amp;&amp; (this._timeZone === "LOCAL")) {
+					var d = new Date(sec * 1000); // Need to know the timezone of given date
+
+					sec += d.getTimezoneOffset() * 60;
+				}
+			}
+
+			val = new Date(sec * 1000); // Convert real-time raw data (second) to millisecond
+		}
+
+		return this._df(val, this._dateTimeFormat, this._timeZone);
+	}
+
+	if (this._mixedTypeInput) { // Free text and Formula
+		if (typeof val != "number") {
+			if (val === null) {
+				return ""; // null of mixed type column is empty
+			} if (typeof val != "string") {
+				return val + "";
+			} else {
+				return val;
+			}
+		}
+	}
+
+	var ff = rowData[this._formattedField];
+
+	if (this._nf) { // Number formatter will override any default field format
+		// MON-152: "Blank" values should not be displayed as zeroes when formatted
+		// val is null in E4 and 0 in E5/Web (cf. https://jira.refinitiv.com/browse/DCP-321)
+		if (ff === null &amp;&amp; (val === null || val === 0)) { // +0 case
+			return ""; // Unformatted value of +0 should be blank
+		}
+
+		if (typeof val != "number") { // null and string
+			var num = (+val); // Only convertible value will be formatted by the number formatter
+
+			return (num === num) ? this._nf(num) : val + "";
+		}
+
+		return this._nf(val);
+	}
+
+	if (this._mixedTypeInput) { // Free text and formula
+		if (this._formatType === "formula") { // Remove small fraction (e.g. 3.0000000001)
+			return (Math.round(val * 1000000) / 1000000) + ""; // Round to seven digit precision
+		}
+
+		return val + "";
+	}
+
+	// Only number and percent formatType can reach here at this point
+	if (!ff) { // Formatted value may be null, undefined, empty string, zero, or NaN
+		if (ff === null &amp;&amp; val === 0) { // +0 case
+			return ""; // Unformatted value of +0 should be blank
+		}
+
+		ff = val; // As opposed to formatted value, raw value may exist (i.e. combined fields)
+	}
+
+	if (this._formatType === "number") {
+		if (typeof ff === "string" &amp;&amp; ff.indexOf(",") &gt;= 0) {
+			// Remove the 1000 separator for the formatted numbers from JET.Quote
+			return ff.replace(/,/g, '');
+		}
+	} else if (this._formatType === "percent") {
+		if (typeof ff === "string") {
+			if (ff.lastIndexOf("%") &lt; 0 &amp;&amp; (+ff) !== 0) { // ff could be "   " (empty spaces)
+				return ff + " %";
+			}
+		} else if (typeof ff === "number") {
+			if (ff === ff) { // ff is not NaN
+				return ff + " %";
+			}
+
+			return "#INVALID";
+		}
+	}
+
+	if (!ff) { // null, undefined, empty string, zero, or NaN
+		return (ff === 0) ? "0" : "";
+	}
+
+	return ff;
+};
+
+
+goog.exportSymbol("tr.FieldFormatter", tr.FieldFormatter);
+tr.FieldFormatter._proto = tr.FieldFormatter.prototype;
+
+tr.FieldFormatter._proto["init"] = tr.FieldFormatter._proto.init;
+tr.FieldFormatter._proto["getOptions"] = tr.FieldFormatter._proto.getOptions;
+tr.FieldFormatter._proto["clone"] = tr.FieldFormatter._proto.clone;
+
+tr.FieldFormatter._proto["setFormatType"] = tr.FieldFormatter._proto.setFormatType;
+tr.FieldFormatter._proto["setField"] = tr.FieldFormatter._proto.setField;
+tr.FieldFormatter._proto["setDateTimeMeta"] = tr.FieldFormatter._proto.setDateTimeMeta;
+tr.FieldFormatter._proto["setDateFormatter"] = tr.FieldFormatter._proto.setDateFormatter;
+tr.FieldFormatter._proto["setNumberFormatter"] = tr.FieldFormatter._proto.setNumberFormatter;
+
+tr.FieldFormatter._proto["getProperties"] = tr.FieldFormatter._proto.getProperties;
+
+tr.FieldFormatter._proto["format"] = tr.FieldFormatter._proto.format;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="AdFin.html">AdFin</a></li><li><a href="DateTime.html">DateTime</a></li><li><a href="Info.html">Info</a></li><li><a href="Logic.html">Logic</a></li><li><a href="Math.html">Math</a></li><li><a href="Realtime.html">Realtime</a></li><li><a href="Statistic.html">Statistic</a></li><li><a href="Text.html">Text</a></li><li><a href="tr.ElementFrameWork.html">ElementFrameWork</a></li><li><a href="tr.PipDefinition.html">PipDefinition</a></li></ul><h3>Classes</h3><ul><li><a href="tr.ADCSubscription.html">ADCSubscription</a></li><li><a href="tr.AdFinSubscription.html">AdFinSubscription</a></li><li><a href="tr.cgrid.editor.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.filter.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.formatter.AsyncFormatter.html">AsyncFormatter</a></li><li><a href="tr.cgrid.formatter.CheckBox.html">CheckBox</a></li><li><a href="tr.cgrid.formatter.UpDownColor.html">UpDownColor</a></li><li><a href="tr.ColumnStats.html">ColumnStats</a></li><li><a href="tr.CompositeGrid.html">CompositeGrid</a></li><li><a href="tr.DataCache.html">DataCache</a></li><li><a href="tr.DataTable.html">DataTable</a></li><li><a href="tr.DataView.html">DataView</a></li><li><a href="tr.DropDown.html">DropDown</a></li><li><a href="tr.ElementControl.html">ElementControl</a></li><li><a href="tr.ElementWrapper.html">ElementWrapper</a></li><li><a href="tr.Event.html">Event</a></li><li><a href="tr.EventDispatcher.html">EventDispatcher</a></li><li><a href="tr.EventDispatcher.extendClass-tempCtor.html">tempCtor</a></li><li><a href="tr.EventManager.html">EventManager</a></li><li><a href="tr.FieldFormatter.html">FieldFormatter</a></li><li><a href="tr.fn.Engine.html">Engine</a></li><li><a href="tr.fn.Formula.html">Formula</a></li><li><a href="tr.fn.VariableToken.html">VariableToken</a></li><li><a href="tr.Grid.html">Grid</a></li><li><a href="tr.grid.BidOfferSpan.html">BidOfferSpan</a></li><li><a href="tr.grid.Blinker.html">Blinker</a></li><li><a href="tr.grid.Cell.html">Cell</a></li><li><a href="tr.grid.CellBlinkingPlugin.html">CellBlinkingPlugin</a></li><li><a href="tr.grid.CellEditingPlugin.html">CellEditingPlugin</a></li><li><a href="tr.grid.CellFloatingPanel.html">CellFloatingPanel</a></li><li><a href="tr.grid.CellPainter.html">CellPainter</a></li><li><a href="tr.grid.CellSpan.html">CellSpan</a></li><li><a href="tr.grid.CellSpans.html">CellSpans</a></li><li><a href="tr.grid.CellWriter.html">CellWriter</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html">CheckboxColumnPlugin</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html">CollapsibleHeaderPlugin</a></li><li><a href="tr.grid.ColumnFilterPlugin.html">ColumnFilterPlugin</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html">ColumnGroupingPlugin</a></li><li><a href="tr.grid.ColumnSelectionPlugin.html">ColumnSelectionPlugin</a></li><li><a href="tr.grid.ColumnStackingPlugin.html">ColumnStackingPlugin</a></li><li><a href="tr.grid.ColumnWidthAdjustingPlugin.html">ColumnWidthAdjustingPlugin</a></li><li><a href="tr.grid.Conflator.html">Conflator</a></li><li><a href="tr.grid.DataSourceTreePlugin.html">DataSourceTreePlugin</a></li><li><a href="tr.grid.DirectContentBindingPlugin.html">DirectContentBindingPlugin</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html">DragAndDropTitlePlugin</a></li><li><a href="tr.grid.DraggableContentPlugin.html">DraggableContentPlugin</a></li><li><a href="tr.grid.FindBar.html">FindBar</a></li><li><a href="tr.grid.FindBarPlugin.html">FindBarPlugin</a></li><li><a href="tr.grid.GroupStatisticsPlugin.html">GroupStatisticsPlugin</a></li><li><a href="tr.grid.HeatMapRenderer.html">HeatMapRenderer</a></li><li><a href="tr.grid.HScrollbar.html">HScrollbar</a></li><li><a href="tr.grid.IndexMarker.html">IndexMarker</a></li><li><a href="tr.grid.MovableHeaderPlugin.html">MovableHeaderPlugin</a></li><li><a href="tr.grid.NumberFormatter.html">NumberFormatter</a></li><li><a href="tr.grid.PercentBar.html">PercentBar</a></li><li><a href="tr.grid.PercentBarRenderer.html">PercentBarRenderer</a></li><li><a href="tr.grid.Plugin.html">Plugin</a></li><li><a href="tr.grid.RangeBar.html">RangeBar</a></li><li><a href="tr.grid.ResizableTitlePlugin.html">ResizableTitlePlugin</a></li><li><a href="tr.grid.Reverter.html">Reverter</a></li><li><a href="tr.grid.RowHeightAdjustingPlugin.html">RowHeightAdjustingPlugin</a></li><li><a href="tr.grid.RowSelectionPlugin.html">RowSelectionPlugin</a></li><li><a href="tr.grid.Scrollbar.html">Scrollbar</a></li><li><a href="tr.grid.SectionSettings.html">SectionSettings</a></li><li><a href="tr.grid.SmartTooltipsPlugin.html">SmartTooltipsPlugin</a></li><li><a href="tr.grid.SortableTitlePlugin.html">SortableTitlePlugin</a></li><li><a href="tr.grid.TreeIndentingPlugin.html">TreeIndentingPlugin</a></li><li><a href="tr.grid.Virtualizer.html">Virtualizer</a></li><li><a href="tr.grid.VScrollbar.html">VScrollbar</a></li><li><a href="tr.grid.ZoomPlugin.html">ZoomPlugin</a></li><li><a href="tr.HttpRequest.html">HttpRequest</a></li><li><a href="tr.IntervalSubscription.html">IntervalSubscription</a></li><li><a href="tr.LayoutGrid.html">LayoutGrid</a></li><li><a href="tr.ListMenu.html">ListMenu</a></li><li><a href="tr.MenuItem.html">MenuItem</a></li><li><a href="tr.MockArchive.html">MockArchive</a></li><li><a href="tr.MockJET.html">MockJET</a></li><li><a href="tr.MockQuotes.html">MockQuotes</a></li><li><a href="tr.MockQuotes2.html">MockQuotes2</a></li><li><a href="tr.MockSubscription.html">MockSubscription</a></li><li><a href="tr.MockSubscriptions.html">MockSubscriptions</a></li><li><a href="tr.Popup.html">Popup</a></li><li><a href="tr.PopupMenu.html">PopupMenu</a></li><li><a href="tr.PrintTrait.html">PrintTrait</a></li><li><a href="tr.RequestQueue.html">RequestQueue</a></li><li><a href="tr.Segment.html">Segment</a></li><li><a href="tr.SegmentCollection.html">SegmentCollection</a></li><li><a href="tr.TSISubscription.html">TSISubscription</a></li></ul><h3>Interfaces</h3><ul><li><a href="tr.cgrid.ICompositeExtension.html">ICompositeExtension</a></li><li><a href="tr.grid.IPlugin.html">IPlugin</a></li><li><a href="tr.IElementControl.html">IElementControl</a></li><li><a href="tr.ILayoutGrid.html">ILayoutGrid</a></li></ul><h3>Events</h3><ul><li><a href="tr.CompositeGrid.html#event:cellClicked">cellClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellDblClicked">cellDblClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellMouseDown">cellMouseDown</a></li><li><a href="tr.CompositeGrid.html#event:cellRightClicked">cellRightClicked</a></li><li><a href="tr.CompositeGrid.html#event:columnSorted">columnSorted</a></li><li><a href="tr.CompositeGrid.html#event:editorAttached">editorAttached</a></li><li><a href="tr.CompositeGrid.html#event:editorDetached">editorDetached</a></li><li><a href="tr.CompositeGrid.html#event:filterAdded">filterAdded</a></li><li><a href="tr.CompositeGrid.html#event:filterCleared">filterCleared</a></li><li><a href="tr.CompositeGrid.html#event:filterModified">filterModified</a></li><li><a href="tr.CompositeGrid.html#event:filterRemoved">filterRemoved</a></li><li><a href="tr.CompositeGrid.html#event:mouseLeaveCell">mouseLeaveCell</a></li><li><a href="tr.CompositeGrid.html#event:mouseOverCell">mouseOverCell</a></li><li><a href="tr.CompositeGrid.html#event:pageChanged">pageChanged</a></li><li><a href="tr.CompositeGrid.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.DataCache.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataCache.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataTable.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataTable.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataView.html#event:beforeFiltering">beforeFiltering</a></li><li><a href="tr.DataView.html#event:beforeGroupAdded">beforeGroupAdded</a></li><li><a href="tr.DataView.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataView.html#event:groupAdded">groupAdded</a></li><li><a href="tr.DataView.html#event:groupCriteriaChanged">groupCriteriaChanged</a></li><li><a href="tr.DataView.html#event:pageCountChanged">pageCountChanged</a></li><li><a href="tr.DataView.html#event:pageIndexChanged">pageIndexChanged</a></li><li><a href="tr.DataView.html#event:preDisposed">preDisposed</a></li><li><a href="tr.Formula.html#event:dataCacheChanged">dataCacheChanged</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:cancelled">cancelled</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:change">change</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:closed">closed</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:editorOpened">editorOpened</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:preEditorOpening">preEditorOpening</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:click">click</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:columnCollapsed">columnCollapsed</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:groupChanged">groupChanged</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:render">render</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:columnMoved">columnMoved</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:drag">drag</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragEnd">dragEnd</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragStart">dragStart</a></li><li><a href="tr.grid.FindBarPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:groupMoved">groupMoved</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:sectionMoved">sectionMoved</a></li><li><a href="tr.grid.RowSelectionPlugin.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:columnSorted">columnSorted</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preClicked">preClicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preDataSorting">preDataSorting</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.Grid.html#event:columnAdded">columnAdded</a></li><li><a href="tr.Grid.html#event:columnAlignmentChanged">columnAlignmentChanged</a></li><li><a href="tr.Grid.html#event:columnRemoved">columnRemoved</a></li><li><a href="tr.Grid.html#event:columnVisibilityChanged">columnVisibilityChanged</a></li><li><a href="tr.Grid.html#event:dataSourceChanged">dataSourceChanged</a></li><li><a href="tr.Grid.html#event:postSectionDataBinding">postSectionDataBinding</a></li><li><a href="tr.Grid.html#event:rowExpansionBinding">rowExpansionBinding</a></li><li><a href="tr.Grid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Grid.html#event:sectionAdded">sectionAdded</a></li><li><a href="tr.Grid.html#event:widthChanged">widthChanged</a></li><li><a href="tr.HttpRequest.html#event:abort">abort</a></li><li><a href="tr.HttpRequest.html#event:error">error</a></li><li><a href="tr.HttpRequest.html#event:load">load</a></li><li><a href="tr.HttpRequest.html#event:loadend">loadend</a></li><li><a href="tr.HttpRequest.html#event:loadstart">loadstart</a></li><li><a href="tr.HttpRequest.html#event:timeout">timeout</a></li><li><a href="tr.IElementControl.html#event:blur">blur</a></li><li><a href="tr.IElementControl.html#event:change">change</a></li><li><a href="tr.IElementControl.html#event:click">click</a></li><li><a href="tr.IElementControl.html#event:contextmenu">contextmenu</a></li><li><a href="tr.IElementControl.html#event:dblclick">dblclick</a></li><li><a href="tr.IElementControl.html#event:drag">drag</a></li><li><a href="tr.IElementControl.html#event:dragend">dragend</a></li><li><a href="tr.IElementControl.html#event:dragenter">dragenter</a></li><li><a href="tr.IElementControl.html#event:dragleave">dragleave</a></li><li><a href="tr.IElementControl.html#event:dragover">dragover</a></li><li><a href="tr.IElementControl.html#event:dragstart">dragstart</a></li><li><a href="tr.IElementControl.html#event:drop">drop</a></li><li><a href="tr.IElementControl.html#event:focus">focus</a></li><li><a href="tr.IElementControl.html#event:formchange">formchange</a></li><li><a href="tr.IElementControl.html#event:forminput">forminput</a></li><li><a href="tr.IElementControl.html#event:input">input</a></li><li><a href="tr.IElementControl.html#event:invalid">invalid</a></li><li><a href="tr.IElementControl.html#event:keydown">keydown</a></li><li><a href="tr.IElementControl.html#event:keypress">keypress</a></li><li><a href="tr.IElementControl.html#event:keyup">keyup</a></li><li><a href="tr.IElementControl.html#event:mousedown">mousedown</a></li><li><a href="tr.IElementControl.html#event:mousemove">mousemove</a></li><li><a href="tr.IElementControl.html#event:mouseout">mouseout</a></li><li><a href="tr.IElementControl.html#event:mouseover">mouseover</a></li><li><a href="tr.IElementControl.html#event:mouseup">mouseup</a></li><li><a href="tr.IElementControl.html#event:mousewheel">mousewheel</a></li><li><a href="tr.IElementControl.html#event:reset">reset</a></li><li><a href="tr.IElementControl.html#event:scroll">scroll</a></li><li><a href="tr.IElementControl.html#event:select">select</a></li><li><a href="tr.IElementControl.html#event:submit">submit</a></li><li><a href="tr.ILayoutGrid.html#event:blur">blur</a></li><li><a href="tr.ILayoutGrid.html#event:change">change</a></li><li><a href="tr.ILayoutGrid.html#event:click">click</a></li><li><a href="tr.ILayoutGrid.html#event:contextmenu">contextmenu</a></li><li><a href="tr.ILayoutGrid.html#event:dblclick">dblclick</a></li><li><a href="tr.ILayoutGrid.html#event:drag">drag</a></li><li><a href="tr.ILayoutGrid.html#event:dragend">dragend</a></li><li><a href="tr.ILayoutGrid.html#event:dragenter">dragenter</a></li><li><a href="tr.ILayoutGrid.html#event:dragleave">dragleave</a></li><li><a href="tr.ILayoutGrid.html#event:dragover">dragover</a></li><li><a href="tr.ILayoutGrid.html#event:dragstart">dragstart</a></li><li><a href="tr.ILayoutGrid.html#event:drop">drop</a></li><li><a href="tr.ILayoutGrid.html#event:focus">focus</a></li><li><a href="tr.ILayoutGrid.html#event:formchange">formchange</a></li><li><a href="tr.ILayoutGrid.html#event:forminput">forminput</a></li><li><a href="tr.ILayoutGrid.html#event:input">input</a></li><li><a href="tr.ILayoutGrid.html#event:invalid">invalid</a></li><li><a href="tr.ILayoutGrid.html#event:keydown">keydown</a></li><li><a href="tr.ILayoutGrid.html#event:keypress">keypress</a></li><li><a href="tr.ILayoutGrid.html#event:keyup">keyup</a></li><li><a href="tr.ILayoutGrid.html#event:mousedown">mousedown</a></li><li><a href="tr.ILayoutGrid.html#event:mousemove">mousemove</a></li><li><a href="tr.ILayoutGrid.html#event:mouseout">mouseout</a></li><li><a href="tr.ILayoutGrid.html#event:mouseover">mouseover</a></li><li><a href="tr.ILayoutGrid.html#event:mouseup">mouseup</a></li><li><a href="tr.ILayoutGrid.html#event:mousewheel">mousewheel</a></li><li><a href="tr.ILayoutGrid.html#event:reset">reset</a></li><li><a href="tr.ILayoutGrid.html#event:scroll">scroll</a></li><li><a href="tr.ILayoutGrid.html#event:select">select</a></li><li><a href="tr.ILayoutGrid.html#event:submit">submit</a></li><li><a href="tr.LayoutGrid.html#event:rowCountChanged">rowCountChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHeightChanged">rowHeightChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Popup.html#event:hidden">hidden</a></li><li><a href="tr.Popup.html#event:shown">shown</a></li><li><a href="tr.PopupMenu.html#event:hidden">hidden</a></li><li><a href="tr.PopupMenu.html#event:shown">shown</a></li><li><a href="tr.PrintTrait.html#event:afterprint">afterprint</a></li><li><a href="tr.PrintTrait.html#event:beforeprint">beforeprint</a></li><li><a href="tr.PrintTrait.html#event:pageCounting">pageCounting</a></li></ul><h3>Global</h3><ul><li><a href="global.html#cellRef%255Bundefined%255D">cellRef[undefined]</a></li><li><a href="global.html#e%255Bundefined%255D">e[undefined]</a></li><li><a href="global.html#.textContent">.textContent</a></li><li><a href="global.html#get">get</a></li><li><a href="global.html#input%255Bundefined%255D">input[undefined]</a></li><li><a href="global.html#q%255Bundefined%255D">q[undefined]</a></li><li><a href="global.html#sortingDef%255B1%255D">sortingDef[1]</a></li></ul>
+</nav>
+
+
+<script src="scripts/linenumber.js"> </script>
+<script src="scripts/prettify.js"> </script>
+<script> prettyPrint(); </script>
+</body>
+</html>

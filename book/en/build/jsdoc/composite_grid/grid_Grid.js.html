@@ -1,0 +1,5082 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: grid/Grid.js</title>
+
+    <script src="scripts/prettify.js"> </script>
+    <script src="scripts/lang-css.js"> </script>
+    <!--[if lt IE 9]&gt;
+      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
+    &lt;![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/default.css">
+    <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
+</head>
+
+<body>
+
+<div id="main-template" class="elf-template">
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>goog.provide("tr.Grid");
+
+goog.require("tr.res");
+goog.require("tr.IElementControl");
+goog.require("tr.ElementControl");
+goog.require("tr.ElementWrapper");
+goog.require("tr.Event");
+goog.require("tr.ILayoutGrid");
+goog.require("tr.LayoutGrid");
+
+goog.require("tr.DataTable");
+goog.require("tr.DataView");
+
+goog.require("tr.grid.util");
+goog.require("tr.grid.Conflator");
+goog.require("tr.grid.SectionSettings");
+goog.require("tr.grid.Virtualizer");
+goog.require("tr.grid.TrackLayout");
+goog.require("tr.grid.VScrollbar");
+goog.require("tr.grid.HScrollbar");
+goog.require("tr.grid.VirtualizedLayoutGrid");
+
+//#region Events
+/** @event tr.Grid#sectionAdded */
+/** @event tr.Grid#columnAdded */
+/** @event tr.Grid#columnRemoved */
+/** @event tr.Grid#columnVisibilityChanged */
+/** @event tr.Grid#columnAlignmentChanged */
+/** @event tr.Grid#widthChanged */
+/** @event tr.Grid#dataSourceChanged */
+/** @event tr.Grid#rowExpansionBinding
+* @description Trigger after column data binding. Fires for all rows within the view.
+* @property {Object.&lt;string, *&gt;} originalRowData
+* @property {string} originalRowId The row that rowExpansion belongs to
+* @property {boolean} rowExpansion
+* @property {string} rowId
+* @property {number} rowIndex
+*/
+/** @event tr.Grid#postSectionDataBinding */
+/** @event tr.Grid#rowHighlighted */
+
+/** @event tr.Grid#rowAdded
+* @ignore
+*/
+/** @event tr.Grid#postDataSourceChanged
+* @ignore
+*/
+/** @event tr.Grid#preSectionRender
+* @ignore
+*/
+/** @event tr.Grid#preSectionDataBinding
+* @ignore
+*/
+/** @event tr.Grid#preForcedUpdate
+* @ignore
+*/
+//#endregion Events
+
+/** @constructor
+* @param {Element=} opt_initializer this can be either element id (string) or DOM element.
+* @implements {tr.IElementControl}
+* @extends {tr.ElementControl}
+*/
+tr.Grid = function (opt_initializer) {
+	if (!tr.Grid._sectionType) { // Initialize static variables
+		tr.Grid._sectionType = {};
+		tr.Grid._sectionType[tr.res.title] = true;
+		tr.Grid._sectionType[tr.res.header] = true;
+		tr.Grid._sectionType[tr.res.content] = true;
+		tr.Grid._sectionType[tr.res.footer] = true;
+	}
+
+	var _t = this;
+
+	// Initialize method binding
+	_t._onMouseMove = _t._onMouseMove.bind(_t);
+	_t._onRowHightlighted = _t._onRowHightlighted.bind(_t);
+
+	_t._onWindowResize = _t._onWindowResize.bind(_t);
+	_t._onSectionDataChanged = _t._onSectionDataChanged.bind(_t);
+	_t._onRowCountChanged = _t._onRowCountChanged.bind(_t);
+	_t._onRowHeightChanged = _t._onRowHeightChanged.bind(_t);
+	_t._onRowAvailable = _t._onRowAvailable.bind(_t);
+
+	_t._onVScroll = _t._onVScroll.bind(_t);
+	_t._onHScroll = _t._onHScroll.bind(_t);
+	_t._onSyncVScroll = _t._onSyncVScroll.bind(_t);
+	_t.updateLayout = _t.updateLayout.bind(_t);
+	_t._onRowRefresh = _t._onRowRefresh.bind(_t);
+	_t._onVScrollEnabled = _t._onVScrollEnabled.bind(_t);
+	_t._onVScrollDisabled = _t._onVScrollDisabled.bind(_t);
+
+	_t._onRowInViewChanged =  _t._onRowInViewChanged.bind(_t);
+	_t._onColInViewChanged =  _t._onColInViewChanged.bind(_t);
+
+	_t._updateVScrollbar = _t._updateVScrollbar.bind(_t);
+
+	// Text nodes are unintentionally getting in the tag.
+	if(opt_initializer) { // Any node other than element node is not allowed within the tag.
+		for(var i = opt_initializer.childNodes.length; --i &gt;= 0;) {
+			if(!tr.isElement(opt_initializer.childNodes[i])) {
+				opt_initializer.removeChild(opt_initializer.childNodes[i]);
+			}
+		}
+	}
+
+	// Initialize members
+	_t._topNode = new ElementWrapper(opt_initializer);
+	_t._topNode.addClass("tr-grid");
+
+	_t._layoutX = new grid.TrackLayout();
+	_t._layoutY = new grid.TrackLayout();
+	_t._layoutX.setDefaultLaneSize(100); //Default column width
+	_t._layoutY.setDefaultLaneSize(32); //Default row height
+
+	_t._settings = [];
+	_t._plugins = {};
+	_t._columnDefs = [];
+	_t._sectionStarts = [];
+	_t._rowHeightException = tr.res.title;
+
+	_t._rowVirtualizer = new grid.Virtualizer(_t._layoutY);
+	_t._rowVirtualizer.deactivate();
+	_t._rowVirtualizer.setViewSize(360); // Minimum view size
+
+	_t._colVirtualizer = new grid.Virtualizer(_t._layoutX);
+	_t._colVirtualizer.enable(false);
+	_t._colVirtualizer.deactivate();
+	_t._colVirtualizer.setViewSize(400); // Minimum view size
+
+	// Initialize vertical scrollbar
+	_t._vscrollbar = new grid.VScrollbar();
+	_t._vscrollbar.disable();
+	_t._vscrollbar.setParent(this.getParent() || this.getElement());
+
+	_t._vscrollbar.listen("scroll", _t._onVScroll);
+	_t._vscrollbar.listen("layoutChanged", _t._onVScroll);
+	_t._vscrollbar.listen("activated", _t.updateLayout); // TODO: remove column virtualization logic
+	_t._vscrollbar.listen("deactivated", _t.updateLayout); // TODO: remove column virtualization logic
+	_t._vscrollbar.listen("thicknessChanged", _t.updateLayout); // TODO: remove column virtualization logic
+	_t._vscrollbar.listen("enabled", _t._onVScrollEnabled);
+	_t._vscrollbar.listen("disabled", _t._onVScrollDisabled);
+
+	// Initialize horizontal scrollbars
+	_t._hscrollbar = new grid.HScrollbar();
+	_t._hscrollbar.disable();
+	_t._hscrollbar.setParent(this.getParent() || this.getElement());
+
+	_t._hscrollbar.listen("scroll", this._onHScroll);
+	_t._hscrollbar.listen("layoutChanged", this._onHScroll);
+	_t._hscrollbar.listen("activated", this.updateLayout);
+	_t._hscrollbar.listen("deactivated", this.updateLayout);
+
+	// cross-reference scrollbars
+	_t._hscrollbar.setOtherScrollbar(_t._vscrollbar);
+	_t._vscrollbar.setOtherScrollbar(_t._hscrollbar);
+
+	if (tr.isMobile) {
+		_t._topNode.listen(tr.res.touchmove, this._onMouseMove);
+	} else {
+		_t._topNode.listen(tr.res.mousemove, this._onMouseMove);
+	}
+	window.addEventListener("resize", _t._onWindowResize, false); // Should be unlistened after destroyed
+	_t._rowVirtualizer.listen("indexChanged", _t._onRowInViewChanged);
+	_t._colVirtualizer.listen("indexChanged", _t._onColInViewChanged);
+	_t._rowHeightConflator = new grid.Conflator(_t._onRowHeightChanged, 50);
+	_t._vScrollbarConflator = new grid.Conflator(_t._updateVScrollbar, 200);
+
+	// Initialize events for external users
+	_t._addEvents(
+		"sectionAdded",
+		tr.res.columnAdded,
+		tr.res.columnRemoved,
+		tr.res.columnMoved,
+		"columnVisibilityChanged",
+		"columnAlignmentChanged",
+		"widthChanged",
+		"dataSourceChanged",
+		"postDataSourceChanged",
+		"preSectionRender",
+		"postSectionRender",
+		tr.res.preSectionDataBinding,
+		tr.res.postSectionDataBinding,
+		"rowExpansionBinding",
+		"rowHighlighted",
+		"preForcedUpdate",
+		"rowAdded",
+		"rowRemoved"
+	);
+
+	// For debugging in advanced optimization mode
+	var map = tr.Grid["map"];
+	if(!map) {
+		map = {};
+		tr.Grid["map"] = map;
+	}
+	var elem = _t._topNode.getElement();
+	elem["_control"] = _t;
+	var id = elem.id || elem.name;
+	if(!id || map[id]) {
+		id = "_grid" + tr.Grid._runningGridId;
+	}
+	_t["_id"] = id;
+	map[id] = _t;
+	tr.Grid._runningGridId++;
+
+	// init hiddenInput for retrieve copy and cut event
+	var hiddenInput = document.createElement('input');
+	hiddenInput.style.position = 'absolute';
+	hiddenInput.style.width = '0';
+	hiddenInput.style.height = '0';
+	hiddenInput.style.padding = '0';
+	hiddenInput.style.border = '0';
+	hiddenInput.value = '0';
+	_t._hiddenInput = hiddenInput;
+	elem.insertBefore(hiddenInput, elem.firstChild);
+
+	// Ensure all affected plugins are loaded prior zoom plugin
+	// use as entity to trigger updateLayout once zoom is changed
+	Object.defineProperty(_t, "zoomFactor", {
+		set: function(factor) {
+			if(!factor || factor &lt; 0) {
+				return;  // Cannot have negative factor or factor of zero
+			}
+			if(this._zoomFactor !== factor) {
+				this._zoomFactor = factor;
+				// Panes and view port are affected and need to be updated
+				_t._updateLayout(); // Super slow. Do not execute this so often
+			}
+		},
+		get: function() {
+			return this._zoomFactor;
+		}
+	});
+};
+goog.inherits(tr.Grid, tr.ElementControl);
+
+/** @typedef {number|string|tr.ILayoutGrid|tr.grid.SectionSettings} tr.Grid~SectionReference
+* @description A section in grid can be refered by the following object &lt;br&gt;
+* `{@link tr.ILayoutGrid}` : A pointer to Section instance &lt;br&gt;
+* `{@link tr.grid.SectionSettings}` : A pointer to SectionSettings instance &lt;br&gt;
+* `number` : Section index &lt;br&gt;
+* `string` : Section type (e.g. "content", "title", "header", "footer"), or Section id (element id)
+*/
+tr.Grid.SectionReference;
+
+/** @typedef {Object} tr.Grid~MouseInfo
+* @description Object returned from tr.Grid#getRelativePosition method
+* @property {boolean} hit - Indicates whether the given position is on the grid
+* @property {number} x - Horizontal coordinate that is relative to the top-left of the grid (Zero means left-most)
+* @property {number} y - Vertical coordinate that is relative to the top-left of the grid (Zero means top-most)
+* @property {number} colIndex
+* @property {number} sectionIndex
+* @property {number} rowIndex
+* @property {string} sectionType
+* @property {tr.grid.SectionSettings} sectionSettings
+* @property {tr.ILayoutGrid} section
+* @property {Element} cellElement
+* @property {tr.DataView} dataSource
+*/
+tr.Grid.MouseInfo;
+
+/** @typedef {Object} tr.Grid~ColumnOptions
+* @description Column options that can be provided to {@link tr.Grid#insertColumn}
+* @property {number=} width Column width
+* @property {number=} minWidth Minimum column width
+* @property {number=} minSize Alias to `minWidth`
+* @property {number=} size Alias to `width`
+* @property {boolean=} visible Column visibility
+* @property {boolean=} scalable Column scalability
+* @property {Object.&lt;string, string&gt;=} styles Key/value pair object specifying CSS styles
+* @property {Object.&lt;string, string&gt;=} classes Key/value pair object specifying CSS classes
+* @property {string=} dataColumnName Data column for sorting
+* @property {Function=} renderingHandler - Deprecated
+* @property {Function=} dataBindingHandler Column binding function
+* @property {string=} columnData For attaching context (user data)
+* @property {tr.grid.TrackLayout=} layout - Deprecated
+*/
+tr.Grid.ColumnOptions;
+
+/** For runtime debugging!
+* @type {number}
+* @private
+*/
+tr.Grid._runningGridId = 0; // Static variable
+/** For identifying column
+* @type {number}
+* @private
+*/
+tr.Grid._runningColumnId = 0; // Static variable
+
+/** @type {!Object.&lt;string, boolean&gt;}
+* @private
+* @const
+*/
+tr.Grid._sectionType; // Static variable
+
+/** @type {!Object.&lt;string, *&gt;}
+* @private
+*/
+tr.Grid.prototype._plugins;
+/** @type {tr.DataView}
+* @private
+*/
+tr.Grid.prototype._dataSource = null;
+
+/** @type {!tr.grid.TrackLayout}
+* @private
+*/
+tr.Grid.prototype._layoutX;
+/** @type {!tr.grid.TrackLayout}
+* @private
+*/
+tr.Grid.prototype._layoutY;
+/** @type {!tr.grid.VScrollbar}
+* @private
+*/
+tr.Grid.prototype._vscrollbar; // vertical scrollbar is non-nullable
+/** @type {!tr.grid.HScrollbar}
+* @private
+*/
+tr.Grid.prototype._hscrollbar; // horizontal scrollbar is non-nullable
+
+
+/** reference of top frozen section. It's a temporaly use between function _freezeTopSectionAt and _onSectionCountChanged
+* @type {string}
+* @private
+*/
+tr.Grid.prototype._tempFrozenSectionRef = "";
+/** first index of section that vertical scroll placed, negative value mean no vertical scroll
+* @type {number}
+* @private
+*/
+tr.Grid.prototype._startVScrollbarIndex = -1;
+/** @type {number}
+* @private
+*/
+tr.Grid.prototype._startHScrollbarIndex = 0;
+/** @type {number}
+* @private
+*/
+tr.Grid.prototype._pinnedRightColumnCount = 0;
+/** number of footer that being freeze right now
+* @type {number}
+* @private
+*/
+tr.Grid.prototype._frozenFooterCount = 0;
+/** If true, the number of frozen top sections will not be changed automatically
+* @type {boolean}
+* @private
+*/
+tr.Grid.prototype._fixFrozenTopSections = false;
+/** If true, the number of frozen bottom sections will not be changed automatically
+* @type {boolean}
+* @private
+*/
+tr.Grid.prototype._fixFrozenBottomSection = false;
+/** cumulative row indices
+* @type {Array.&lt;number&gt;}
+* @private
+*/
+tr.Grid.prototype._sectionStarts;
+
+/** @type {!Array.&lt;tr.grid.SectionSettings&gt;}
+* @private
+*/
+tr.Grid.prototype._settings;
+/** @type {tr.grid.SectionSettings}
+* @private
+*/
+tr.Grid.prototype._firstSettings;
+/** @type {tr.grid.SectionSettings}
+* @private
+*/
+tr.Grid.prototype._lastSettings;
+
+/** @type {boolean}
+* @private
+*/
+tr.Grid.prototype._fitContentWidth = false;
+
+/** @type {!Array.&lt;Object.&lt;string, *&gt;&gt;}
+* @private
+*/
+tr.Grid.prototype._columnDefs;
+
+/** @type {!tr.grid.Virtualizer}
+* @private
+*/
+tr.Grid.prototype._rowVirtualizer;
+/** @type {!tr.grid.Virtualizer}
+* @private
+*/
+tr.Grid.prototype._colVirtualizer;
+
+/** when set datasource without loading DataSourceTreePlugin, this datasource is used for every section.
+* @type {boolean}
+* @private
+*/
+tr.Grid.prototype._autoSetDataSource = true;
+
+/** @type {Function}
+* @private
+*/
+tr.Grid.prototype._renderingHandler = null;
+/** @type {Function}
+* @private
+*/
+tr.Grid.prototype._dataBindingHandler = null;
+
+/** @type {boolean}
+* @private
+*/
+tr.Grid.prototype._frozenLayout = false;
+/** @type {boolean}
+* @private
+*/
+tr.Grid.prototype._noBinding = false;
+/** @type {boolean}
+* @private
+*/
+tr.Grid.prototype._rowHeightSync = true;
+/** @type {boolean}
+* @private
+*/
+tr.Grid.prototype._rowHighlighting = false;
+/** @type {boolean}
+* @private
+*/
+tr.Grid.prototype._dispatchingDataChanged = false;
+
+/** @type {string}
+* @private
+*/
+tr.Grid.prototype._rowHeightException = "";
+/** @type {number}
+* @private
+*/
+tr.Grid.prototype._rowScrollingStep = 0;
+/** @type {number}
+* @private
+*/
+tr.Grid.prototype._zoomFactor = 1;
+/** @type {number}
+* @private
+*/
+tr.Grid.prototype._reservedSpace = 0;
+
+/** @type {string}
+* @private
+*/
+tr.Grid.prototype._hidingMethod = "";
+/** @type {tr.grid.Conflator}
+* @private
+*/
+tr.Grid.prototype._rowHeightConflator = null;
+/** @type {number}
+* @private
+*/
+tr.Grid.prototype._rowRefreshTimer = 0;
+/** @type {boolean}
+* @private
+*/
+tr.Grid.prototype._layoutUpdating = false;
+/** A Hidden input that allow to get cut and copy event when user perform cut, copy activities
+* @type {Element}
+* @private
+*/
+tr.Grid.prototype._hiddenInput;
+/** @type {number}
+* @private
+*/
+tr.Grid.prototype._bottomPadding = 6;
+/** @type {tr.ILayoutGrid}
+* @private
+*/
+tr.Grid.prototype._bottomPaddingSect = null;
+/** @type {boolean}
+* @private
+*/
+tr.Grid.prototype._preserveProportion = false;
+/** @type {boolean}
+* @private
+*/
+tr.Grid.prototype._preserveGridSize = false;
+//#region Public Methods
+
+/** {@link tr.IElementControl#dispose}
+* @override
+*/
+tr.Grid.prototype.dispose = function () {
+	var internalId = this["_id"];
+	var map = tr.Grid["map"];
+	if (map[internalId]) {
+		map[internalId] = null;
+	} else {
+		console.log("WARNING: Grid is disposed twice");
+		return;
+	}
+	this._disposed = true;
+	if(this._rowRefreshTimer) {
+		clearTimeout(this._rowRefreshTimer);
+		this._rowRefreshTimer = 0;
+	}
+
+	// Clear all events
+	this.unlistenAll();
+	window.removeEventListener("resize", this._onWindowResize, false);
+
+	for (var i = this._columnDefs.length; --i &gt;= 0; ) {
+		var colDef = this._getColumnDef(i);
+		colDef["renderingHandler"] = colDef["dataBindingHandler"] = null;
+	}
+	for (var key in this._plugins) {
+		var plugin = this._plugins[key];
+		if (plugin["unload"]) {
+			plugin["unload"](this);
+		}
+	}
+
+	// Clear all Elements
+	this.removeAllSections(); // Remove all Sections and LayoutGrids
+	var mainScrolbar = this._vscrollbar._mainScrollbar;
+	if(mainScrolbar) {
+		mainScrolbar.unlisten("scroll", this._onSyncVScroll);
+		this._vscrollbar._mainScrollbar = null;
+	}
+	this._vscrollbar.dispose();
+	this._hscrollbar.dispose();
+	this._rowHeightConflator.dispose();
+
+	// Clean Top node
+	var elem = this._topNode.getElement();
+	if (elem !== null) {
+		if (elem["_control"]) {
+			delete elem["_control"];
+		}
+		elem.removeChild(this._hiddenInput);
+	}
+	this._topNode.dispose();
+
+	this._columnDefs.length = 0;
+	delete this._plugins;
+};
+/** Indicates if the object has been disposed or not
+* @public
+* @return {boolean}
+*/
+tr.Grid.prototype.isDisposed = function () {
+	return this._disposed;
+};
+
+/** {@link tr.IElementControl#setParent}
+* @override
+*/
+tr.Grid.prototype.setParent = function (obj, opt_prepend) {
+	this._topNode.setParent(obj, opt_prepend);
+	this._onParentChange();
+};
+/** {@link tr.IElementControl#insertBefore}
+* @override
+*/
+tr.Grid.prototype.insertBefore = function (obj) {
+	this._topNode.insertBefore(obj);
+	this._onParentChange();
+};
+/** @private */
+tr.Grid.prototype._onParentChange = function () {
+	var newParent = this.getParent() || this.getElement();
+	if(!this._vscrollbar._mainScrollbar) { // HACK
+		this._vscrollbar.setParent(newParent);
+	}
+	this._hscrollbar.setParent(newParent);
+
+	this._updateLayout();
+};
+
+/** @public
+* @param {Object=} gridOptions
+* @return {!Object}
+*/
+tr.Grid.prototype.getConfigObject = function (gridOptions) {
+	var obj = gridOptions || {};
+
+	var columnCount = this.getColumnCount();
+	if (!obj["columns"]) {
+		obj["columns"] = [];
+	}
+
+	for (var colIndex = 0; colIndex &lt; columnCount; colIndex++) {
+		var column = obj["columns"][colIndex];
+		if (!column) {
+			column = obj["columns"][colIndex] = {};
+		}
+
+		var columnDef = this._getColumnDef(colIndex);
+		if (columnDef["styles"]) {
+			column["styles"] = columnDef["styles"];
+		}
+	}
+
+	if(this._rowHighlighting) {
+		obj["rowHighlighting"] = true;
+	}
+	if(this._pinnedRightColumnCount) {
+		obj["pinnedRightColumns"] = this._pinnedRightColumnCount;
+	}
+	obj["columnVirtualization"] = this._colVirtualizer.isEnabled();
+
+	if(this._fixFrozenTopSections) {
+		obj["topFreezingCount"] = this._startVScrollbarIndex &gt;= 0 ? (this._startVScrollbarIndex + 1) : false;
+	}
+	if(this._fixFrozenBottomSection) {
+		obj["bottomFreezingCount"] = this._frozenFooterCount;
+	}
+
+
+	if(this._rowScrollingStep) {
+		obj["stepScroll"] = (this._rowScrollingStep === 1) ? true : this._rowScrollingStep;
+	}
+	obj["autoHideScrollbar"] = this._vscrollbar.getAutoHide(); // this._hscrollbar has the same settings
+	var wheelSpeed = this._vscrollbar.getMouseWheelSpeed();
+	if(wheelSpeed) {
+		obj["linearWheelScrolling"] = wheelSpeed;
+	}
+
+	var elem = this._topNode.getElement();
+	if(this._containsClass(elem, "no-borders")) {
+		obj["borders"] = false;
+	}
+	if(this._containsClass(elem, "no-gridlines")) {
+		obj["gridlines"] = false;
+	}
+	if(this._containsClass(elem, "no-vertical-grid-line")) {
+		obj["verticalLines"] = false;
+	}
+	if(this._containsClass(elem, "no-horizontal-grid-line")) {
+		obj["horizontalLines"] = false;
+	}
+	if(this._bottomPaddingSect) {
+		obj["contentBottomPadding"] = this._bottomPadding;
+	}
+	if(this._reservedSpace &gt; 0) {
+		obj["contentRightPadding"] = this._reservedSpace;
+	}
+
+	var conflationRate = this.getDataConflationRate();
+	if (conflationRate) {
+		obj["dataConflationRate"] = conflationRate;
+	}
+
+	for(var key in this._plugins) {
+		var pluginInstance = this._plugins[key];
+		if(typeof pluginInstance["getConfigObject"] === "function") {
+			pluginInstance["getConfigObject"](obj);
+		}
+	}
+
+	return obj;
+};
+
+/** {@link tr.IElementControl#fillParentWidth}
+* @override
+*/
+tr.Grid.prototype.fillParentWidth = function(pct) {
+	if(this._fitContentWidth) { return false; }
+	if(this._layoutX.isFixedSize()) { return false; }
+
+	// uses getBoundingClientRect() instead of clientWidth to prevents
+	// fraction error occured on Chrome (Windows 10) which make clientWidth
+	// exceeds expected value by 1px and will cause incorrect scrollbar active frag
+	var el = this._topNode.getElement();
+	var px = (el.getBoundingClientRect().width | 0) - el.clientLeft;
+	var changes = this._layoutX.setTrackSize(px, this._reservedSpace);
+	return changes !== null;
+};
+/** {@link tr.IElementControl#show}
+* @override
+*/
+tr.Grid.prototype.show = function (opt_shown) {
+	this._topNode.show(opt_shown);
+	if (opt_shown !== false) {
+		this.updateLayout();
+	}
+};
+/** @public
+* @return {number}
+*/
+tr.Grid.prototype.getContentWidth = function() {
+	return this._layoutX.getTrackSize();
+};
+
+/** @public
+* @return {number}
+*/
+tr.Grid.prototype.getSectionCount = function() {
+	return this._settings.length;
+};
+
+/** @private */
+tr.Grid.prototype._updateFrozenTopSections = function () {
+	if (!this._fixFrozenTopSections) {
+		var topCount = this._getTopSectionCount();
+		this._freezeTopSectionAt(topCount - 1);
+	}
+};
+
+/** @private */
+tr.Grid.prototype._updateFrozenBottomSections = function () {
+	if (!this._fixFrozenBottomSection) {
+		var bottomCount = this._getBottomSectionCount();
+		this._setFrozenFooter(bottomCount);
+	}
+};
+
+/** @private
+* @return {number}
+*/
+tr.Grid.prototype._getTopSectionCount = function () {
+	var sectionSettings = this._settings;
+	var length = sectionSettings.length;
+	var count = 0;
+	for (var i = 0; i &lt; length; i++) {
+		var type = sectionSettings[i].getType();
+		if (type === tr.res.header || type === tr.res.title) {
+			count++;
+		} else {
+			break;
+		}
+	}
+	return count;
+};
+
+/** @private
+* @return {number}
+*/
+tr.Grid.prototype._getBottomSectionCount = function () {
+	var sectionSettings = this._settings;
+	var length = sectionSettings.length;
+	var count = 0;
+	for (var i = length - 1; i &gt;= 0; i--) {
+		var type = sectionSettings[i].getType();
+		if (type === tr.res.footer) {
+			count++;
+		} else {
+			break;
+		}
+	}
+	return count;
+};
+
+/** @public
+* @param {string=} opt_type
+* @param {string=} opt_sectionName
+* @return {tr.ILayoutGrid|null}
+*/
+tr.Grid.prototype.addSection = function (opt_type, opt_sectionName) {
+	return this.addSectionAt(this.getSectionCount(), opt_type, opt_sectionName);
+};
+/** @public
+* @param {number} at
+* @param {string=} opt_type
+* @param {string=} opt_sectionName
+* @return {tr.ILayoutGrid|null}
+* @fires tr.Grid#sectionAdded
+*/
+tr.Grid.prototype.addSectionAt = function (at, opt_type, opt_sectionName) {
+	var sectionCount = this._settings.length;
+	if (at &lt; 0) { at = 0; }
+	if (at &gt; sectionCount) { at = sectionCount; }
+
+	var sectType = this._toSectionType(opt_type);
+	var isBottomPadding = (opt_sectionName === "bottomPadding");
+	var sectionSettings  = this._newSection(
+		isBottomPadding ? "footer" : sectType, // Always use footer as a setup for bottom padding section
+		opt_sectionName
+	);
+	if(!sectionSettings){ return null; }
+
+	var section = sectionSettings.getSection();
+	if(isBottomPadding) {
+		sectionSettings.setAutoSyncRowCount(false); // Important
+		this._bottomPaddingSect = section;
+	}
+
+	if (at &gt;= sectionCount) {
+		this._putToLast(section);
+		this._settings.push(sectionSettings);
+	} else {
+		this._settings.splice(at, 0, sectionSettings);
+		section.insertBefore(this._settings[at + 1].getSection());
+	}
+
+	this._updateSectionIndices(at);
+
+	sectType = sectionSettings.getType();
+	if (sectType === tr.res.footer) {
+		this._updateFrozenBottomSections();
+	} else if (sectType === tr.res.header || sectType === tr.res.title) {
+		this._updateFrozenTopSections();
+	}
+
+	this._onColumnCountChanged(); // When a new section is added, new columns are also added
+	this._onSectionCountChanged(true);
+
+	if(this._colVirtualizer.isEnabled()) {
+		var activations = this._getColActivationList();
+		var colCount = this.getColumnCount();
+		sectionSettings.activateColumns(activations, 0, colCount - 1);
+	}
+
+	if (this._hasListener("sectionAdded")) {
+		var e = sectionSettings.extendEventArg();
+		this._dispatch("sectionAdded", e);
+	}
+
+	return section;
+};
+/** @public
+* @param {tr.Grid.SectionReference} sectionRef
+* @return {tr.ILayoutGrid}
+*/
+tr.Grid.prototype.removeSection = function(sectionRef) {
+	var section = this.getSection(sectionRef);
+	if(section !== null) {
+		return this.removeSectionAt(section.getIndex());
+	}
+	return null;
+};
+/** @public
+* @param {number} at
+* @return {tr.ILayoutGrid}
+*/
+tr.Grid.prototype.removeSectionAt = function (at) {
+	var sectionCount = this._settings.length;
+	if (at &gt;= 0 &amp;&amp; at &lt; sectionCount) {
+		var sectionSettings = this._settings[at];
+		var removedIndex = sectionSettings.getIndex();
+		var section = sectionSettings.getSection();
+		var sectionType = sectionSettings.getType();
+
+		section.setRowCount(0); // Row count changed
+		this._settings.splice(at, 1);
+
+		this._updateSectionIndices(removedIndex);
+
+		if (sectionType === tr.res.footer) {
+			this._updateFrozenBottomSections();
+			this._onColumnCountChanged(); // Update footer count in hScrollbar
+		} else if (sectionType === tr.res.header || sectionType === tr.res.title) {
+			this._updateFrozenTopSections();
+		}
+
+		this._onSectionCountChanged();  // Update vScrollbar
+
+		sectionSettings.dispose();
+		return section;
+	}
+	return null;
+};
+/** @public
+* @return {tr.ILayoutGrid}
+*/
+tr.Grid.prototype.removeLastSection = function() {
+	return this.removeSectionAt(this._settings.length - 1);
+};
+/** @public */
+tr.Grid.prototype.removeAllSections = function () {
+	var len = this._settings.length;
+	for (var i = 0; i &lt; len; ++i) {
+		var sectionSettings = this._settings[i];
+		sectionSettings.dispose();
+	}
+	this._bottomPaddingSect = null;
+	this._firstSettings = this._lastSettings = null;
+	this._settings.length = 0;
+	this._updateSectionIndices(0);
+	this._onSectionCountChanged();
+};
+/** @public
+* @param {boolean|number} paddingSize=6 Add special section at the bottom. If falsy value is specified, the section is removed.
+*/
+tr.Grid.prototype.setBottomPaddingSection = function (paddingSize) {
+	var sect = this._bottomPaddingSect;
+	if(paddingSize) {
+		if(typeof paddingSize === "number") {
+			this._bottomPadding = paddingSize;
+		}
+		if(!sect) {
+			sect = this.addSection("content", "bottomPadding");
+		}
+		if(sect) {
+			sect.setDefaultRowHeight(this._bottomPadding);
+			if(!sect.getRowCount()) {
+				sect.addRow(1);
+			}
+		}
+	} else if(sect) {
+		this.removeSection(sect);
+	}
+};
+
+/** @private
+* @return {boolean} Returns true if there is any change
+*/
+tr.Grid.prototype._updatePaddingBottomSect = function () {
+	var bps = this._bottomPaddingSect;
+	if(bps) { // Always move bottom padding sect to the last
+		var sectCount = this._settings.length;
+		var last = sectCount - 1;
+		if(last &gt; 0) {
+			var lastSettings = this._settings[last];
+			if(lastSettings.getSection() !== bps) {
+				var bpss = null;
+				for(var i = last; --i &gt;= 0;) {
+					var settings = this._settings[i];
+					if(settings.getSection() === bps) {
+						bpss = settings;
+						break;
+					}
+				}
+				if(i &gt;= 0) {
+					this._putToLast(bps);
+					this._settings.splice(i, 1);
+					this._settings.push(bpss);
+					// Blend styling with previous one
+					bpss.setType(lastSettings.getType() === "footer" ? "footer" : "content");
+					return true;
+				} else {
+					this._bottomPaddingSect = null; // The settings and section must have been removed
+				}
+			} else {
+				var prevSettings = this._settings[last - 1];
+				if(prevSettings) {
+					// Blend styling with previous one
+					lastSettings.setType(prevSettings.getType() === "footer" ? "footer" : "content");
+				}
+			}
+		}
+	}
+	return false;
+};
+/** @public
+* @ignore
+* @param {number} from INCLUSIVE
+* @param {number} dest INCLUSIVE
+*/
+tr.Grid.prototype.moveSection = function (from, dest) {
+	var sectionCount = this.getSectionCount();
+	if (from &lt; 0) { from = 0; }
+	else if (from &gt;= sectionCount) { return; }
+	if (dest &lt; 0) { dest = 0; }
+	else if (dest &gt;= sectionCount) { dest = sectionCount - 1; }
+	if (from === dest) { return; }
+
+	var fromSettings = this._settings[from];
+	var destSettings = this._settings[dest];
+	tr.moveArrayItem(this._settings, from, dest);
+
+	if (destSettings) {
+		fromSettings.getSection().insertBefore(destSettings.getSection());
+	} else {
+		this._putToLast(fromSettings.getSection());
+	}
+
+	this._updateSectionIndices((from &lt;= dest) ? from : dest);
+	this._syncRowHeights();
+	this._onSectionCountChanged();
+	if (!this._frozenLayout) {
+		this._rowVirtualizer.update(true); // Force firing of row activation
+	}
+};
+
+/** @public
+* @param {tr.Grid.SectionReference} sectionRef
+* @return {tr.ILayoutGrid}
+*/
+tr.Grid.prototype.getSection = function (sectionRef) {
+	var settings = this.getSectionSettings(sectionRef);
+	return (settings !== null) ? settings.getSection() : null;
+
+};
+/** @public
+* @param {tr.Grid.SectionReference} sectionRef
+* @return {tr.grid.SectionSettings}
+*/
+tr.Grid.prototype.getSectionSettings = function (sectionRef) {
+	if(tr.isString(sectionRef)) {
+		if(tr.Grid._sectionType[/** @type{string} */(sectionRef)]) {
+			return this._getNextSection(1, null, /** @type{string} */(sectionRef));
+		}
+		for(var i = this._settings.length; --i &gt;= 0;) {
+			if(this._settings[i].getId() === sectionRef) {
+				return this._settings[i];
+			}
+		}
+	} else {
+		if(sectionRef != null) {
+			var num = -1;
+			if(sectionRef.getIndex !== undefined) {
+				num = /** @type{number} */(sectionRef.getIndex());
+			} else if(tr.isNumber(sectionRef)) {
+				num = /** @type{number} */(sectionRef);
+			}
+			if(num &gt;= 0 &amp;&amp; num &lt; this._settings.length) {
+				return this._settings[num];
+			}
+		}
+	}
+	return null;
+};
+
+/** @public
+* @param {string=} opt_type
+* @return {!Array.&lt;tr.ILayoutGrid&gt;}
+*/
+tr.Grid.prototype.getAllSections = function (opt_type) {
+	if(opt_type == null) { return this._getAllSections(); }
+
+	var list = this.getAllSectionSettings(opt_type);
+	var ary = /** @type{!Array.&lt;tr.ILayoutGrid&gt;} */(list);
+	for (var i = ary.length; --i &gt;= 0; ) {
+		ary[i] = list[i].getSection();
+	}
+	return ary;
+};
+/** @public
+* @param {string=} opt_type
+* @return {!Array.&lt;tr.grid.SectionSettings&gt;}
+*/
+tr.Grid.prototype.getAllSectionSettings = function (opt_type) {
+	if(!opt_type) {
+		return this._settings; // WARNING: Return internal private member
+	}
+
+	var len = this._settings.length;
+	var ary = [];
+	opt_type = this._toSectionType(opt_type);
+	for (var i = 0; i &lt; len; ++i) {
+		var sectionSettings = this._settings[i];
+		if(opt_type === sectionSettings.getType()) {
+			ary.push(sectionSettings);
+		}
+	}
+	return ary;
+};
+
+/** @public
+* @param {(MouseEvent|tr.Grid.SectionReference)=} identifier This can be MouseEvent, index, or section id or pointer reference
+* @return {number} Return negative value, if the section does not exist
+*/
+tr.Grid.prototype.getSectionIndex = function(identifier) {
+	if(tr.isNumber(identifier)) {
+		return /** @type{number} */(identifier);
+	}
+
+	if(identifier instanceof MouseEvent) {
+		var mPos = tr.getRelativePosition(/** @type{MouseEvent} */(identifier), this._topNode.getElement());
+		var obj = {};
+		this._hitTestY(mPos["y"], obj); // TODO: This will not work with zoom feature
+		return obj[tr.res.sectionIndex];
+	}
+
+	var section = this.getSection(/** @type{string} */(identifier));
+	if(section === null) { return -1; }
+
+	return section.getIndex();
+};
+/** @public
+* @param {tr.Grid.SectionReference} sectionRef
+* @return {number} Return zero, if identifier does not exist
+*/
+tr.Grid.prototype.getSectionTop = function (sectionRef) {
+	var section = this.getSection(sectionRef);
+	if (section === null) { return 0; }
+	var top = this._layoutY.getLaneStart(section.getRowOffset());
+
+	if (this._startVScrollbarIndex &gt;= 0 &amp;&amp; section.getIndex() &gt;= this._startVScrollbarIndex) {
+		top -= this._vscrollbar.getScrollTop();
+	}
+	return top;
+};
+
+/** @public
+* @param {(MouseEvent|tr.Grid.SectionReference)=} identifier This can be MouseEvent, index, or section id or pointer reference &lt;br&gt;
+* If not specified, the last item is returned
+* @param {string=} opt_type The previous section with the specified type. Default is any type
+* @return {tr.ILayoutGrid}
+*/
+tr.Grid.prototype.getPreviousSection = function (identifier, opt_type) {
+	if(identifier == null) { identifier = this._settings.length; }
+	var s = this._getNextSection(-1, identifier, opt_type);
+	return (s !== null) ? s.getSection() : null;
+};
+/** @public
+* @param {(MouseEvent|tr.Grid.SectionReference)=} identifier This can be MouseEvent, index, or section id or pointer reference &lt;br&gt;
+* If not specified, the first item is returned
+* @param {string=} opt_type The next section with the specified type. Default is any type
+* @return {tr.ILayoutGrid}
+*/
+tr.Grid.prototype.getNextSection = function (identifier, opt_type) {
+	var s = this._getNextSection(1, identifier, opt_type);
+	return (s !== null) ? s.getSection() : null;
+};
+/** @public
+* @return {tr.ILayoutGrid}
+*/
+tr.Grid.prototype.getLastSection = function () {
+	return this.getSection(this._settings.length - 1);
+};
+
+/** @public
+* @param {tr.Grid.SectionReference} sectionRef
+* @param {number} colIndex
+* @param {number} rowIndex
+* @param {boolean=} opt_includeSpan Default is true
+* @return {tr.IElementControl}
+*/
+tr.Grid.prototype.getCell = function (sectionRef, colIndex, rowIndex, opt_includeSpan) {
+	var s = this.getSection(sectionRef);
+	return (s) ? s.getCell(colIndex, rowIndex, opt_includeSpan) : null;
+};
+/** Get information about the cell, inclusing column index, row index, and section that the cell resides
+* @public
+* @param {tr.Grid.MouseInfo|tr.IElementControl|Element} cellRef Reference to cell element. This can be something inside the cell as well.
+* @return {tr.Grid.MouseInfo} Information about the given cell
+* @see {@link tr.Grid#getRelativePosition}
+* @example
+* grid.getCellInfo({"colIndex": 0, "rowIndex": 0}); // Get cell information about the top left cell in the content section
+* grid.getCellInfo(document.createElement("some_element"); // Get cell information for cell that contains the element with id "some_element"
+* grid.getCellInfo(mouseEventArg); // Get cell information from the given MouseEvent argument (this is the same as getRelativePosition() method)
+* var cellInfo = grid.getCellInfo({"colIndex": 1, "rowIndex": 1});
+* cellInfo.colIndex = cellInfo.colIndex + 1; // Get next cell to the right
+* grid.getCellInfo(cellInfo);
+*/
+tr.Grid.prototype.getCellInfo = function (cellRef) {
+	if(!cellRef) { return null; }
+	var colIndex = /** @type{number} */(cellRef[tr.res.colIndex]);
+	var rowIndex = /** @type{number} */(cellRef[tr.res.rowIndex]);
+	var sectionName = /** @type{string} */(cellRef[tr.res.sectionName]);
+	var mouseInfo = null;
+	if(colIndex == null || rowIndex == null) { // tr.Grid.MouseInfo Non Mouse Info
+		mouseInfo = this.getRelativePosition(/** @type{tr.IElementControl|Element} */(cellRef));
+		if(!mouseInfo["hit"]) {
+			mouseInfo = null;
+		}
+	} else {
+		if(!sectionName) {
+			sectionName = tr.res.content;
+		}
+		var ss = this.getSectionSettings(sectionName);
+		if(ss) {
+			var s = ss.getSection();
+			var cell = s.getCell(colIndex, rowIndex);
+			if(cell) {
+				mouseInfo = {};
+				mouseInfo[tr.res.colIndex] = colIndex;
+				mouseInfo[tr.res.rowIndex] = rowIndex;
+				ss.extendEventArg(mouseInfo);
+			}
+		}
+	}
+	return mouseInfo;
+};
+/** Get cell information of the next cell in the same row. If there is no next cell in the row, `cell` parameter is set to null
+* @public
+* @param {tr.Grid.MouseInfo|tr.IElementControl|Element} cellRef Reference to cell element. This can be something inside the cell as well.
+* @param {number=} step=1
+* @return {tr.Grid.MouseInfo} Information about the next cell in the row. Returns null if the given parameter is invalid
+*/
+tr.Grid.prototype.getNextCellInRow = function (cellRef, step) {
+	return this._getNextCellInRow(cellRef, (step != null) ? step : 1);
+};
+/** Get cell information of the previous cell in the same row. If there is no previous cell in the row, `cell` parameter is set to null
+* @public
+* @param {tr.Grid.MouseInfo|tr.IElementControl|Element} cellRef Reference to cell element. This can be something inside the cell as well.
+* @param {number=} step=1
+* @return {tr.Grid.MouseInfo} Information about the previous cell in the row. Returns null if the given parameter is invalid
+*/
+tr.Grid.prototype.getPrevCellInRow = function (cellRef, step) {
+	return this._getNextCellInRow(cellRef, (step != null) ? -step : -1);
+};
+/** @private
+* @param {tr.Grid.MouseInfo|tr.IElementControl|Element} cellRef
+* @param {number} step
+* @return {tr.Grid.MouseInfo}
+*/
+tr.Grid.prototype._getNextCellInRow = function (cellRef, step) {
+	var mouseInfo = this.getCellInfo(cellRef);
+	if(mouseInfo) {
+		var colIndex = /** @type{number} */(mouseInfo[tr.res.colIndex]) + step;
+		var rowIndex = /** @type{number} */(mouseInfo[tr.res.rowIndex]);
+		var section = /** @type{tr.ILayoutGrid} */(mouseInfo[tr.res.section]);
+
+		mouseInfo[tr.res.colIndex] = colIndex;
+		mouseInfo[tr.res.cell] = section.getCell(colIndex, rowIndex);
+	}
+	return mouseInfo;
+};
+/** Get cell information of the next cell. If bottom right has been reached, `cell` parameter is set to null
+* @public
+* @param {tr.Grid.MouseInfo|tr.IElementControl|Element} cellRef Reference to cell element. This can be something inside the cell as well.
+* @return {tr.Grid.MouseInfo} Information about the next cell from left to right and top to bottom. Returns null if the given parameter is invalid
+*/
+tr.Grid.prototype.getNextCell = function (cellRef) {
+	var mouseInfo = this.getNextCellInRow(cellRef);
+	if(mouseInfo) {
+		var cell = /** @type{tr.grid.Cell} */(mouseInfo[tr.res.cell]);
+		if(!cell) { // End of the row
+			var section = /** @type{tr.ILayoutGrid} */(mouseInfo[tr.res.section]);
+			var colIndex = mouseInfo[tr.res.colIndex] = 0;
+			var rowIndex = /** @type{number} */(mouseInfo[tr.res.rowIndex]);
+
+			mouseInfo[tr.res.rowIndex] = ++rowIndex;
+			mouseInfo[tr.res.cell] = section.getCell(colIndex, rowIndex);
+		}
+	}
+	return mouseInfo;
+};
+/** Get cell information of the previous cell. If top left cell has been reached, `cell` parameter is set to null
+* @public
+* @param {tr.Grid.MouseInfo|tr.IElementControl|Element} cellRef Reference to cell element. This can be something inside the cell as well.
+* @return {tr.Grid.MouseInfo} Information about the previous cell in the row. Returns null if the given parameter is invalid
+*/
+tr.Grid.prototype.getPrevCell = function (cellRef) {
+	var mouseInfo = this.getPrevCellInRow(cellRef);
+	if(mouseInfo) {
+		var cell = /** @type{tr.grid.Cell} */(mouseInfo[tr.res.cell]);
+		if(!cell) { // End of the row
+			var section = /** @type{tr.ILayoutGrid} */(mouseInfo[tr.res.section]);
+			var colIndex = mouseInfo[tr.res.colIndex] = section.getColumnCount() - 1;
+			var rowIndex = /** @type{number} */(mouseInfo[tr.res.rowIndex]);
+
+			mouseInfo[tr.res.rowIndex] = --rowIndex;
+			mouseInfo[tr.res.cell] = section.getCell(colIndex, rowIndex);
+		}
+	}
+	return mouseInfo;
+};
+
+/** @public
+* @return {number}
+*/
+tr.Grid.prototype.getColumnCount = function () {
+	return this._layoutX.getLaneCount();
+};
+/** Column count can be independently set regardless of row count and section count
+* @public
+* @param {number} num
+* @fires tr.Grid#columnAdded
+* @fires tr.Grid#preSectionRender
+* @fires tr.Grid#columnRender
+* @fires tr.Grid#preSectionDataBinding
+* @fires tr.Grid#columnDataBinding
+* @fires tr.Grid#postSectionDataBinding
+*/
+tr.Grid.prototype.setColumnCount = function(num) {
+	var colCount = this._layoutX.getLaneCount();
+	if(num &gt;= colCount) {
+		this._layoutX.setLaneCount(num);
+		for (var i = this._settings.length; --i &gt;= 0; ) {
+			var section = this._settings[i].getSection();
+			section.setColumnCount(num); // Column may not be added to the document due to virtualization
+		}
+
+		this._onColumnCountChanged();
+		this._syncLayoutToColumns(colCount, num);
+		this._dispatchColumnAddedEvent(colCount, num - colCount, false);
+	} else {
+		this._removeColumn(colCount - num);
+	}
+};
+
+/** @public
+* @param {number} index
+* @param {tr.Grid.ColumnOptions=} jsonObj Column definition object
+* @fires tr.Grid#columnAdded
+* @fires tr.Grid#preSectionRender
+* @fires tr.Grid#columnRender
+* @fires tr.Grid#preSectionDataBinding
+* @fires tr.Grid#columnDataBinding
+* @fires tr.Grid#postSectionDataBinding
+*/
+tr.Grid.prototype.insertColumn = function (index, jsonObj) {
+	var prevCount = this.getColumnCount();
+	if (!(index &lt; prevCount)) { index = prevCount; }
+
+	this._layoutX.insertLane(index);
+	for (var i = this._settings.length; --i &gt;= 0; ) {
+		var section = this._settings[i].getSection();
+		section.insertColumn(index);
+	}
+
+	var rightPinnedCount = this._countPinnedRightColumns();
+	this._columnDefs.splice(index, 0, null);
+
+	if (prevCount &gt; 0) {
+		var leftPinnedCount = this._countPinnedLeftColumns();
+		if ((index &lt; leftPinnedCount) &amp;&amp; (leftPinnedCount &lt; prevCount + 1)) {
+			// insert into left frozen zone
+			this.freezeColumn(leftPinnedCount, rightPinnedCount);
+		} else if (index &gt; (prevCount - rightPinnedCount)) {
+			// insert into right frozen zone
+			this.freezeColumn(leftPinnedCount - 1, rightPinnedCount + 1);
+		}
+	}
+
+	this._onColumnCountChanged();
+	this._deserializeColumn(index, jsonObj);
+	this._syncLayoutToColumns(index, index + 1);
+
+	this._dispatchColumnAddedEvent(index, 1, (index &lt; prevCount), jsonObj);
+};
+
+/** @public
+* @param {number} at
+* @param {(number|tr.Grid.ColumnOptions|Array.&lt;tr.Grid.ColumnOptions&gt;)=} cols Column definition object or column count
+*/
+tr.Grid.prototype.insertColumns = function (at, cols) {
+	var prevCount = this.getColumnCount();
+	if (!(at &lt; prevCount)) { at = prevCount; }
+
+	var count = 0;
+	var colDefs;
+	if (Array.isArray(cols)) {
+		count = cols.length;
+		if(count === 1) {
+			this.insertColumn(at, cols[0]);
+			return;
+		}
+
+		colDefs = cols;
+	} else if (typeof cols === "number") {
+		count = cols;
+		if(count === 1) {
+			this.insertColumn(at, null);
+			return;
+		}
+	} else {
+		this.insertColumn(at, cols);
+		return;
+	}
+	if (count &lt;= 0) { return; }
+
+	var leftPinnedCount = this._countPinnedLeftColumns();
+	var rightPinnedCount = this._countPinnedRightColumns();
+
+	var prevState = this.freezeLayout();
+	var args = [at, 0].concat(new Array(count));
+	Array.prototype.splice.apply(this._columnDefs, args);
+
+	for (var i = 0; i &lt; count; i++) {
+		var index = at + i;
+		this._layoutX.insertLane(index);
+		for (var s = this._settings.length; --s &gt;= 0; ) {
+			var section = this._settings[s].getSection();
+			section.insertColumn(index);
+		}
+		var colDef = colDefs &amp;&amp; colDefs[i];
+		this._deserializeColumn(index, colDef);
+	}
+
+	if (prevCount &gt; 0) {
+		if (at &lt; leftPinnedCount) {
+			// insert into left frozen zone
+			this.freezeColumn(leftPinnedCount + count - 1, rightPinnedCount);
+		} else if (at &gt; (prevCount - rightPinnedCount)) {
+			// insert into right frozen zone
+			this.freezeColumn(leftPinnedCount - 1, rightPinnedCount + count);
+		}
+	} else if (leftPinnedCount + this._pinnedRightColumnCount &lt; count) {
+		this.freezeColumn(leftPinnedCount - 1, this._pinnedRightColumnCount);
+	}
+
+	this._dispatchColumnAddedEvent(at, count, (at &lt; prevCount), colDefs);
+
+	this.freezeLayout(prevState); // call _syncLayoutToColumns internally
+};
+
+/** @public
+* @param {number} index
+* @return {Object} Return column definition object
+* @see {@link tr.Grid#removeAllColumns}
+* @fires tr.Grid#widthChanged
+* @fires tr.Grid#columnRemoved
+*/
+tr.Grid.prototype.removeColumnAt = function (index) {
+	var colCount = this.getColumnCount();
+	if(index &lt; 0 || index &gt;= colCount) { return null; }
+
+	var vEnd = -1;
+	if(this._colVirtualizer.isVirtualizable()) {
+		vEnd = this._colVirtualizer.getLastIndexInView();
+	}
+
+	var layoutSettings = this._layoutX.removeLaneAt(index);
+	var sectionCount = this._settings.length;
+	for (var i = 0; i &lt; sectionCount; ++i) {
+		this._settings[i].getSection().removeColumnAt(index);
+	}
+
+	var leftPinnedCount = this._countPinnedLeftColumns();
+	var rightPinnedCount = this._countPinnedRightColumns();
+
+	var colDef = this._columnDefs.splice(index, 1)[0]; // width and styles
+
+	if (index &lt; leftPinnedCount) {
+		// remove left frozen column
+		this.freezeColumn(leftPinnedCount - 2, rightPinnedCount);
+	} else if (index &gt;= (colCount - rightPinnedCount)) {
+		// remove right frozen column
+		this.freezeColumn(leftPinnedCount - 1, rightPinnedCount - 1);
+	}
+
+	this._onColumnCountChanged();
+	this._syncLayoutToColumns(index, colCount - 1, true); // TODO: There should be no change in column layout
+
+	if(!colDef) {
+		colDef = {};
+	}
+	colDef["layout"] = layoutSettings;
+
+	if (this._hasListener(tr.res.columnRemoved)) {
+		var e = {};
+		e["atTheMiddle"] = true;
+		e[tr.res.colIndex] = index;
+		e["columns"] = "deprecated";
+		e[tr.res.columnData] = colDef[tr.res.columnData];
+		e["colId"] = colDef["id"] || "";
+		this._dispatch(tr.res.columnRemoved, e);
+	}
+
+	// Last index in view here might be different from before moving column if columns have different width.
+	if(index &lt;= vEnd &amp;&amp; vEnd === this._colVirtualizer.getLastIndexInView()) {
+		this._colVirtualizer.update(); // Since columns are shifted to the left, we need to activate the columns to the right
+	}
+
+	return colDef;
+};
+/** @public
+* @see {@link tr.Grid#removeColumnAt}
+* @fires tr.Grid#widthChanged
+* @fires tr.Grid#columnRemoved
+*/
+tr.Grid.prototype.removeAllColumns = function () {
+	if (this.getColumnCount() &gt; 0) {
+		this._startHScrollbarIndex = 0;
+		this._pinnedRightColumnCount = 0;
+		this.setColumnCount(0);
+	}
+};
+
+/** @public
+* @param {number} fromCol INCLUSIVE
+* @param {number} destCol INCLUSIVE
+* @fires tr.Grid#columnMoved
+*/
+tr.Grid.prototype.moveColumn = function (fromCol, destCol) {
+	var colCount = this.getColumnCount();
+	if (fromCol &lt; 0) { fromCol = 0; }
+	else if (fromCol &gt;= colCount) { fromCol = colCount - 1; }
+	if (destCol &lt; 0) { destCol = 0; }
+	else if (destCol &gt;= colCount) { destCol = colCount - 1; }
+	if (fromCol === destCol) { return; }
+
+	var vEnd = -1;
+	if(this._colVirtualizer.isVirtualizable()) {
+		vEnd = this._colVirtualizer.getLastIndexInView();
+	}
+
+	var colId = this._getColumnId(fromCol);
+	this._layoutX.moveLane(fromCol, destCol);
+	var sectionCount = this._settings.length;
+	for (var i = 0; i &lt; sectionCount; ++i) {
+		var sectionSettings = this._settings[i];
+		var section = sectionSettings.getSection();
+		section.moveColumn(fromCol, destCol);
+	}
+
+	var colDef = this._columnDefs[fromCol];
+	var rightPinnedCount = this._countPinnedRightColumns();
+	// var minColumn = (fromCol &lt; destCol) ? fromCol : destCol;
+	tr.moveArrayItem(this._columnDefs, fromCol, destCol);
+
+	if(fromCol &lt; this._startHScrollbarIndex) {
+		// Left pinned column
+
+		if(destCol &gt;= (colCount - rightPinnedCount)) {
+			// moved into right frozen zone
+			this.freezeColumn(this._startHScrollbarIndex - 2, rightPinnedCount + 1);
+		} else if(destCol &gt;= this._startHScrollbarIndex) {
+			// moved out
+			this.freezeColumn(this._startHScrollbarIndex - 2, rightPinnedCount);
+		}
+	} else if(colDef.rightPinned) {
+		// Right pinned column
+
+		if(destCol &lt; this._startHScrollbarIndex) {
+			// moved into left frozen zone
+			this.freezeColumn(this._startHScrollbarIndex, rightPinnedCount - 1);
+		} else if(destCol &lt; (colCount - rightPinnedCount)) {
+			// moved out
+			this.freezeColumn(this._startHScrollbarIndex - 1, rightPinnedCount - 1);
+		}
+	} else {
+		// unpinned column
+
+		if(destCol &lt; this._startHScrollbarIndex) {
+			// moved into left frozen zone
+			this.freezeColumn(this._startHScrollbarIndex, rightPinnedCount);
+		} else if(destCol &gt;= (colCount - rightPinnedCount)) {
+			// moved into right frozen zone
+			this.freezeColumn(this._startHScrollbarIndex - 1, rightPinnedCount + 1);
+		}
+	}
+
+	// no need to invoke because moving column does not change column-width
+	// this._syncLayoutToColumns(minColumn, this.getColumnCount());
+
+	if (this._hasListener(tr.res.columnMoved)) {
+		var e = {};
+		e[tr.res.fromColIndex] = fromCol;
+		e[tr.res.toColIndex] = destCol;
+		e["colId"] = colId; // TODO: Id may not needed
+		this._dispatch(tr.res.columnMoved, e);
+	}
+
+	// Last index in view here might be different from before moving column if columns have different width.
+	if(vEnd === this._colVirtualizer.getLastIndexInView()) {
+		if (fromCol &lt;= vEnd &amp;&amp; destCol &gt; vEnd) { // Columns are shifted to the left, we need to activate the columns to the right
+			this._colVirtualizer.update();
+		} else if (destCol &lt;= vEnd &amp;&amp; fromCol &gt; vEnd) { // Move virtualized column into view, need to rerender destination column
+			this._colVirtualizer.update();
+		}
+	}
+};
+
+/** @public
+* @ignore
+* @return {!tr.grid.TrackLayout}
+*/
+tr.Grid.prototype.getColumnLayout = function () {
+	return this._layoutX;
+};
+
+/** @public
+* @ignore
+* @fires tr.Grid#widthChanged
+*/
+tr.Grid.prototype.updateColumnLayout = function () {
+	this._syncLayoutToColumns(0, this.getColumnCount());
+};
+
+/** @private
+* @param {number} index
+* @param {Object=} jsonObj
+*/
+tr.Grid.prototype._deserializeColumn = function (index, jsonObj) {
+	if (!jsonObj) { return; }
+
+	var layout = jsonObj["layout"] || jsonObj;
+	var val = jsonObj["width"];
+	if (val != null) { layout["size"] = val; }
+	val = jsonObj["scalable"];
+	if (val != null) { layout["scalable"] = val; }
+	val = jsonObj["minWidth"];
+	if (val != null) { layout["minSize"] = val; }
+	if (layout["scalable"] == null) {
+		layout["scalable"] = (layout["size"] == null);
+	}
+
+	this._layoutX.deserializeLane(index, layout);
+
+	var name;
+	var styles = jsonObj["styles"];
+	for (name in styles) {
+		this.setColumnStyle(index, name, styles[name]);
+	}
+	var classes = jsonObj["classes"];
+	for (name in classes) {
+		this.enableColumnClass(index, name, classes[name]);
+	}
+	// TODO: Load specific styles for each column type (e.g. "content", "title", "header")
+
+	var dataColumnName = jsonObj[tr.res.dataColumnName];
+	if (dataColumnName != null) {
+		this._getColumnDef(index)[tr.res.dataColumnName] = dataColumnName;
+	}
+
+	this.setColumnRenderingHandler(index, jsonObj["renderingHandler"]);
+	this.setColumnDataBindingHandler(index, jsonObj["dataBindingHandler"]);
+
+	var colData = jsonObj[tr.res.columnData];
+	if(colData) {
+		this.setColumnData(index, colData);
+	}
+
+	var formatter = jsonObj["formatter"] || jsonObj["binding"]; // support both composite and real-time grid
+	if(Array.isArray(formatter)) {
+		formatter = formatter[0]; // Support only one formatter in the array
+	}
+	if(formatter &amp;&amp; typeof formatter !== "function") {
+		var formatterInitializer = formatter["init"];
+		if(typeof formatterInitializer === "function") {
+			formatterInitializer(jsonObj, this); // Pass on userJson object and core grid instance
+		}
+	}
+};
+
+/** Add specified number of rows to the last section. This method is intended for fast layout generation. &lt;br&gt;
+* If column count is zero, one column will be added automatically. &lt;br&gt;
+* If there is no section, a new section is created automatically. &lt;br&gt;
+* No row is added to the data source.
+* @public
+* @param {number=} opt_num Default is one row
+* @fires tr.Grid#preSectionRender
+* @fires tr.Grid#columnRender
+* @fires tr.Grid#preSectionDataBinding
+* @fires tr.Grid#columnDataBinding
+* @fires tr.Grid#postSectionDataBinding
+*/
+tr.Grid.prototype.addRow = function (opt_num) {
+	if (opt_num == null) { opt_num = 1; }
+	else if (opt_num &lt;= 0) { return; }
+
+	if (this.getColumnCount() &lt;= 0) {
+		this.setColumnCount(1); // WARNING: Auto column adding
+	}
+
+	var section = this.getLastSection();
+	if (section === null) {
+		section = this.addSection(); // WARNING: Auto section adding
+	}
+
+	section.addRow(opt_num);
+};
+/** Remove specified number of rows from the last section. &lt;br&gt;
+* Note that this will NOT remove row in the DataTable, as well as the section. &lt;br&gt;
+* Use removeRowData to remove the supporting data row from the data source
+* @public
+* @param {number=} opt_num Default is one row
+*/
+tr.Grid.prototype.removeRow = function (opt_num) {
+	var section = this.getLastSection();
+	if (section === null) { return; }
+
+	if (opt_num == null) { opt_num = 1; }
+	section.removeRow(opt_num);
+};
+/** @public
+* @return {number}
+*/
+tr.Grid.prototype.getRowCount = function () {
+	return this._layoutY.getLaneCount();
+};
+/** The specified section and columns must exist prior to calling this method
+* @public
+* @param {tr.Grid.SectionReference} sectionRef
+* @param {number} num
+*/
+tr.Grid.prototype.setSectionRowCount = function(sectionRef, num) {
+	var section = this.getSection(sectionRef);
+	if (section === null) { return; }
+	section.setRowCount(num);
+};
+/** @public
+* @param {number} sectionIndex
+* @param {number} rowIndex relative to the given section
+* @return {number} rowIndex relative to the first section (index as a whole)
+*/
+tr.Grid.prototype.getRowIndex = function(sectionIndex, rowIndex) {
+	return this._sectionStarts[sectionIndex] + rowIndex;
+};
+/** @private
+* @function
+*/
+tr.Grid.prototype.getRelativeIndex = tr._deprecatedFunction;
+
+/** WARNING: This only removes all rows in each section, but the sections and columns remain intact
+* @public
+*/
+tr.Grid.prototype.removeAllRows = function() {
+	var len = this._settings.length;
+	for(var i = 0; i &lt; len; ++i) {
+		this._settings[i].getSection().setRowCount(0);
+		this._sectionStarts[i] = 0;
+	}
+	this._sectionStarts[len] = 0;
+};
+/** @public
+* @return {number}
+*/
+tr.Grid.prototype.getDefaultRowHeight = function () {
+	return this._layoutY.getDefaultLaneSize();
+};
+/** This default row height only applies to header and content section. &lt;br&gt;
+* Use the second flag to apply the change to title section too. &lt;br&gt;
+* To set default row height for a specific section, please call setDefaultRowHeight directly from the section
+* @public
+* @param {number} val
+* @param {boolean=} opt_includeTitle
+*/
+tr.Grid.prototype.setDefaultRowHeight = function (val, opt_includeTitle) {
+	if (this._layoutY.setDefaultLaneSize(val)) {
+		this._rowHeightSync = false;
+		var defaultHeight = this._layoutY.getDefaultLaneSize();
+		this._rowHeightException = (opt_includeTitle) ? "" : tr.res.title;
+		var sectCount = this._settings.length;
+		for (var i = 0; i &lt; sectCount; ++i) {
+			var sectionSettings = this._settings[i];
+			if (
+				sectionSettings.getType() !== this._rowHeightException &amp;&amp;
+				sectionSettings.getId() !== "bottomPadding"
+			) {
+				sectionSettings.getSection().setDefaultRowHeight(defaultHeight); // An event will be fired for each row
+			}
+		}
+		this._syncRowHeights();
+		this._rowHeightSync = true;
+		this.setRowScrollingStep(this._rowScrollingStep);
+	}
+};
+
+/** @public
+* @return {tr.DataView} dataSource
+*/
+tr.Grid.prototype.getDataSource = function () {
+	return this._dataSource;
+};
+/** @public
+* @param {tr.DataTable|tr.DataView} dataSource
+* @fires tr.Grid#dataSourceChanged
+* @fires tr.Grid#postDataSourceChanged
+* @return {tr.DataView} Returns the root data view
+*/
+tr.Grid.prototype.setDataSource = function (dataSource) {
+	if (dataSource) {
+		if (dataSource instanceof tr.DataTable) { // Sometimes, user put in a wrong parameter
+			dataSource = new DataView(dataSource);
+		}
+	}
+
+	var e = {};
+	e["prevDataSource"] = this._dataSource;
+	this._dataSource = dataSource || null;
+	e[tr.res.dataSource] = this._dataSource;
+
+	this._dispatch("dataSourceChanged", e);
+
+	if (this._autoSetDataSource) {
+		var len = this._settings.length;
+		for (var i = 0; i &lt; len; ++i) {
+			this._settings[i].setDataSource(dataSource);
+		}
+	}
+
+	this._dispatch("postDataSourceChanged", e);
+
+	return this._dataSource;
+};
+
+/** set Data Conflation for better performance
+* @public
+* @param {number} milliSecond
+*/
+tr.Grid.prototype.setDataConflationRate = function (milliSecond) {
+	this._dataSource.setConflationRate(milliSecond);
+};
+
+/**
+* @public
+* @return {number}
+*/
+tr.Grid.prototype.getDataConflationRate = function () {
+	return this._dataSource.getConflationRate();
+};
+
+/** @private
+* @function
+*/
+tr.Grid.prototype.setColumnTemplate = tr._deprecatedFunction;
+/** @private
+* @function
+*/
+tr.Grid.prototype.getColumnTemplate = tr._deprecatedFunction;
+
+/** Deprecated. Use setColumnRenderingHandler instead
+* @public
+* @function
+*/
+tr.Grid.prototype.getColumnRenderEvent = tr._deprecatedFunction;
+/** Deprecated. Use setColumnDataBindingHandler instead
+* @public
+* @function
+* @param {number} c
+* @return {Object}
+* @see {@link tr.Grid#setColumnDataBindingHandler}
+*/
+tr.Grid.prototype.getColumnDataBindingEvent = function(c) {
+	console.log("getColumnDataBindingEvent() is deprecated. Use setColumnDataBindingHandler() instead");
+	var t = this;
+	return {
+		"listen": function(f) {
+			t.setColumnDataBindingHandler(c, f);
+		},
+		"unlisten": function() {
+			t.setColumnDataBindingHandler(c, null);
+		}
+	};
+};
+
+
+/** @public
+* @param {number} colIndex
+* @param {string} style
+* @param {string} value
+* @param {string=} opt_type Apply the style only to the specified row type. Default is applying to all rows
+*/
+tr.Grid.prototype.setColumnStyle = function (colIndex, style, value, opt_type) {
+	if (!style) { return; }
+	if (!tr.isNumber(colIndex)) {
+		colIndex = 0;
+		console.log("WARNING: the first parameter for setColumnStyle must be column index");
+	}
+
+	var styles;
+	if (opt_type == null) {
+		styles = this._getNestedColumnDef(colIndex, "styles");
+	} else {
+		opt_type = this._toSectionType(opt_type);
+		styles = this._getNestedColumnDef(colIndex, opt_type, "styles");
+	}
+	styles[style] = value;
+
+	for (var i = this._settings.length; --i &gt;= 0; ) {
+		var sectionSettings = this._settings[i];
+		if (opt_type == null || opt_type === sectionSettings.getType()) {
+			var section = sectionSettings.getSection();
+			section.setColumnStyle(colIndex, style, value);
+		}
+	}
+};
+
+/** @public
+* @param {number} colIndex
+* @param {string} clsName
+* @param {boolean=} enabled
+* @param {string=} opt_type Apply the class only to the specified row type. Default is applying to all rows
+* @return {boolean} Return true, if there is any change
+*/
+tr.Grid.prototype.enableColumnClass = function (colIndex, clsName, enabled, opt_type) {
+	if (typeof colIndex !== "number") {
+		colIndex = 0;
+	}
+
+	var classes;
+	if (opt_type == null) {
+		classes = this._getNestedColumnDef(colIndex, "classes");
+	} else {
+		opt_type = this._toSectionType(opt_type);
+		classes = this._getNestedColumnDef(colIndex, opt_type, "classes");
+	}
+
+	var dirty = false;
+	enabled = (enabled !== false);
+	if (enabled) {
+		if(!classes[clsName]) {
+			dirty = classes[clsName] = true;
+		}
+	} else if (classes[clsName]) {
+		delete classes[clsName];
+		dirty = true;
+	}
+
+	if(dirty) {
+		for (var i = this._settings.length; --i &gt;= 0; ) {
+			var sectionSettings = this._settings[i];
+			if (opt_type == null || opt_type === sectionSettings.getType()) {
+				sectionSettings.getSection().enableColumnClass(colIndex, clsName, enabled);
+			}
+		}
+	}
+	return dirty;
+};
+/** @public
+* @param {number} colIndex
+* @param {string} clsName
+* @param {string=} opt_type Row type
+* @return {boolean}
+*/
+tr.Grid.prototype.hasColumnClass = function (colIndex, clsName, opt_type) {
+	var classes;
+	if (opt_type == null) {
+		classes = this._getNestedColumnDef(colIndex, "classes");
+	} else {
+		opt_type = this._toSectionType(opt_type);
+		classes = this._getNestedColumnDef(colIndex, opt_type, "classes");
+	}
+	return (classes &amp;&amp; classes[clsName]) ? true : false;
+};
+
+/** @public
+* @param {number} colIndex
+* @param {string=} alignment Available options are "center"|"right"|"left"|"c"|"r"|"l". Use empty string (falsy value) to reset back to default aliganment.
+*/
+tr.Grid.prototype.setColumnAlignment = function(colIndex, alignment) {
+	var ch = alignment ? alignment.charAt(0).toLowerCase() : "";
+
+	var dirty = 0;
+	dirty |= this.enableColumnClass(colIndex, "tr-align-left", ch === "l");
+	dirty |= this.enableColumnClass(colIndex, "tr-align-right", ch === "r");
+	dirty |= this.enableColumnClass(colIndex, "tr-align-center", ch === "c");
+	
+	if(dirty) {
+		this._dispatch("columnAlignmentChanged", {
+			"colIndex": colIndex,
+			"alignment": ch
+		});
+	}
+};
+/** @public
+* @param {number} colIndex
+* @return {string} Possible returned values are "default"|"left"|"center"|"right"
+*/
+tr.Grid.prototype.getColumnAlignment = function(colIndex) {
+	if(this.hasColumnClass(colIndex, "tr-align-right")) {
+		return "right";
+	} else if(this.hasColumnClass(colIndex, "tr-align-center")) {
+		return "center";
+	} else if(this.hasColumnClass(colIndex, "tr-align-left")) {
+		return "left";
+	}
+	return "default";
+};
+
+
+/** @public
+* @param {number} colIndex
+* @return {number}
+*/
+tr.Grid.prototype.getColumnLeft = function (colIndex) {
+	var colDef = this._columnDefs[colIndex];
+	if(colDef &amp;&amp; colDef.rightPinned) {
+		var gridWidth = this.getElement().clientWidth;
+		var contentWidth = this._layoutX.getTrackSize();
+		var colLeft = contentWidth &lt; gridWidth ? contentWidth : gridWidth;
+		var lastIndex = this.getColumnCount() - 1;
+		for(var i = lastIndex; i &gt;= colIndex; --i) {
+			colLeft -= this._layoutX.getLaneSize(i);
+		}
+		return colLeft;
+	} else if (this._startHScrollbarIndex &gt;= 0 &amp;&amp; colIndex &gt;= this._startHScrollbarIndex) {
+		return this._layoutX.getLaneStart(colIndex) - this._hscrollbar.getScrollLeft();
+	} else {
+		return this._layoutX.getLaneStart(colIndex);
+	}
+};
+/** @public
+* @param {number} colIndex
+* @return {number}
+*/
+tr.Grid.prototype.getColumnRight = function (colIndex) {
+	return this.getColumnLeft(colIndex) + this._layoutX.getLaneSize(colIndex);
+};
+/** @public
+* @param {number} colIndex
+* @return {number}
+*/
+tr.Grid.prototype.getColumnWidth = function (colIndex) {
+	return this._layoutX.getLaneSize(colIndex);
+};
+/** @public
+* @param {number} colIndex
+* @return {number}
+*/
+tr.Grid.prototype.getColumnCustomLaneSize = function (colIndex) {
+	return this._layoutX.getCustomLaneSize(colIndex);
+};
+/** @private
+* @param {Array.&lt;number&gt;} indices
+* @param {Array.&lt;number&gt;} widths
+* @return {Array.&lt;number&gt;}
+*/
+tr.Grid.prototype._calculateColumnWidths = function (indices, widths) {
+	if(!this._preserveGridSize) {
+		return widths;
+	}
+
+	var i, newWidth = 0, settingCols = {};
+	var len = indices.length;
+	var calWidths = new Array(len);
+	for (i = 0; i &lt; len; i++) {
+		settingCols[indices[i]] = true;
+		calWidths[i] = widths[i];
+		newWidth += widths[i];
+	}
+	var fixedSize = 0, scalableCount = 0;
+	var colCount = this.getColumnCount();
+	var layoutX = this._layoutX;
+
+	for(i = 0; i &lt; colCount; i++) {
+		if (settingCols[i]) { continue; }
+		if (layoutX.isLaneVisible(i)) { // If column is visible
+			if (!layoutX.getLaneScalability(i)) {
+				fixedSize += layoutX.getLaneSize(i);
+			} else {
+				fixedSize += layoutX.getMinimumLaneSize(i);
+				scalableCount++;
+			}
+		}
+	}
+	var gridSize = this.getContentWidth();
+	var excess = newWidth + fixedSize - gridSize;
+
+	if (scalableCount &lt; 1 || excess &gt; 0) {
+		layoutX.resetLaneToDefaultSize();
+		layoutX.setTrackSize(gridSize, this._reservedSpace);
+		fixedSize = 0;
+		for(i = 0; i &lt; colCount; i++) {
+			if (settingCols[i]) { continue; }
+			if (layoutX.isLaneVisible(i)) { // If column is visible
+				if (!layoutX.getLaneScalability(i)) {
+					fixedSize += layoutX.getLaneSize(i);
+				} else {
+					fixedSize += layoutX.getMinimumLaneSize(i);
+				}
+			}
+		}
+		excess = newWidth + fixedSize - gridSize;
+		if (excess &gt; 0) {
+			excess = excess / len;
+			for (i = 0; i &lt; len; i++) {
+				calWidths[i] -= excess;
+			}
+		}
+	}
+	return calWidths;
+};
+/** @public
+* @param {number} colIndex
+* @param {number} px
+* @param {boolean=} opt_scalable If not defined false value is used instead
+* @return {boolean} True if there is any changed
+* @fires tr.Grid#widthChanged
+* @example
+* grid.setColumnWidth(0, 100); // The first column will have a fixed width
+* grid.setColumnWidth(1, 100, true); // The second column will have a percentage width where 100 is the weight comparing with other percentage column
+*/
+tr.Grid.prototype.setColumnWidth = function (colIndex, px, opt_scalable) {
+	var calWidths = this._calculateColumnWidths([colIndex], [px]);
+	var dirty = this._setColumnWidth(colIndex, calWidths[0], opt_scalable);
+	if (dirty) {
+		this._syncLayoutToColumns(colIndex, colIndex + 1);
+	}
+	return dirty;
+};
+/** Specifies multiple column widths all at once.
+* @public
+* @param {Array.&lt;number&gt;} columnWidths in pixel. If the specified value is undefined or null, nothing is performed on that column.
+* @param {(boolean|Array.&lt;boolean&gt;)=} opt_proportion This will make columns scale in proportion specified by the given width
+* @return {boolean} True if there is any changed
+* @fires tr.Grid#widthChanged
+* @example
+* grid.setColumnWidths([1, 2, 1, 1], true); // The first four columns have percentage width with the second column is twice as big as the others
+* grid.setColumnWidths([1, 200, 1, 150], [true, false, true]); // The first column make column scale, seconds make column pixel, third make column scale and four make column pixel
+*/
+tr.Grid.prototype.setColumnWidths = function (columnWidths, opt_proportion) {
+	var dirty = 0;
+	var indices = [], widths = [], propotions = [], i;
+	for(i = columnWidths.length; --i &gt;= 0;) {
+		var px = columnWidths[i];
+		if(px != null) {
+			indices.push(i);
+			widths.push(px);
+		}
+		var proportionMode = Array.isArray(opt_proportion) ? opt_proportion[i] : opt_proportion;
+		propotions.push(proportionMode);
+	}
+	var calWidths = this._calculateColumnWidths(indices, widths);
+	for(i = 0; i &lt; calWidths.length; i++) {
+		dirty |= this._setColumnWidth(indices[i], calWidths[i], propotions[i] );
+	}
+
+	if (dirty) {
+		this._syncLayoutToColumns(0, columnWidths.length);
+	}
+	return dirty ? true : false;
+};
+/** Use {@link tr.Grid#hideColumn} to hide the column
+* @public
+* @param {number} colIndex
+* @return {boolean}
+*/
+tr.Grid.prototype.isColumnVisible = function (colIndex) {
+	return this._layoutX.isLaneVisible(colIndex);
+};
+/** Note that the hidden columns continue to exist and occupy the index. So there is no index shifted after this function call.
+* @public
+* @param {number} colIndex
+* @param {boolean=} hidden If the value is true or undefined, hide the specified column. Otherwise, show the column
+* @fires tr.Grid#widthChanged
+* @fires tr.Grid#columnVisibilityChanged
+* @see {@link tr.Grid#isColumnVisible}
+* @see {@link tr.Grid#hideColumns}
+* @see {@link tr.Grid#showAllColumns}
+*/
+tr.Grid.prototype.hideColumn = function (colIndex, hidden) {
+	var visibility = hidden === false;
+	this.setColumnVisibility(colIndex, visibility, 0);
+};
+/** Hide multiple columns at once, improving the performance. Note that the hidden columns continue to exist and occupy the index. So there is no index shifted after this function call.
+* @public
+* @param {Array.&lt;number&gt;} colIndices
+* @param {boolean=} hidden If the value is true or undefined, hide the specified columns. Otherwise, show the columns
+* @fires tr.Grid#widthChanged
+* @fires tr.Grid#columnVisibilityChanged
+* @see {@link tr.Grid#hideColumn}
+* @see {@link tr.Grid#showAllColumns}
+*/
+tr.Grid.prototype.hideColumns = function (colIndices, hidden) {
+	var len = Array.isArray(colIndices) ? colIndices.length : 0;
+	var changeIndices = [];
+	var colCount = this.getColumnCount();
+	hidden = hidden !== false;
+	for (var i = 0; i &lt; len; ++i) {
+		var colIndex = colIndices[i];
+		if (colIndex &gt;= 0 &amp;&amp; colIndex &lt; colCount) {
+			if (this._layoutX.hideLane(colIndex, hidden, 0)) {
+				changeIndices.push(colIndex);
+			}
+		}
+	}
+	if (changeIndices.length) {
+		this._syncLayoutToColumns();
+		this.requestRowRefresh();
+
+		if (this._hasListener("columnVisibilityChanged")) {
+			var e = {};
+			e["colIndices"] = changeIndices;
+			e["hidden"] = hidden;
+			this._dispatch("columnVisibilityChanged", e);
+		}
+	}
+};
+/** @public
+* @fires tr.Grid#widthChanged
+* @fires tr.Grid#columnVisibilityChanged
+* @see {@link tr.Grid#hideColumn}
+* @see {@link tr.Grid#hideColumns}
+*/
+tr.Grid.prototype.showAllColumns = function () {
+	var changeIndices = [];
+	var colCount = this.getColumnCount();
+	for (var c = 0; c &lt; colCount; ++c) {
+		if (this._layoutX.hideLane(c, false, 0)) {
+			changeIndices.push(c);
+		}
+	}
+	if (changeIndices.length) {
+		this._syncLayoutToColumns();
+		this.requestRowRefresh();
+
+		if (this._hasListener("columnVisibilityChanged")) {
+			var e = {};
+			e["colIndices"] = changeIndices;
+			e["hidden"] = false;
+			this._dispatch("columnVisibilityChanged", e);
+		}
+	}
+};
+/** @public
+* @param {number} colIndex
+* @return {number}
+*/
+tr.Grid.prototype.getMinimumColumnWidth = function (colIndex) {
+	return this._layoutX.getMinimumLaneSize(colIndex);
+};
+/** @public
+* @param {number} colIndex
+* @param {number} width
+* @fires tr.Grid#widthChanged
+*/
+tr.Grid.prototype.setMinimumColumnWidth = function (colIndex, width) {
+	if (this._layoutX.setMinimumLaneSize(colIndex, width)) {
+		this._syncLayoutToColumns(colIndex, colIndex + 1);
+	}
+};
+/** @public
+* @param {Array.&lt;number|null&gt;} minWidths
+* @param {boolean=} proportion This will make the column expand in proportion of its minimum width when there is enough space.
+* @fires tr.Grid#widthChanged
+* @return {boolean} True if there is any change
+*/
+tr.Grid.prototype.setMinimumColumnWidths = function (minWidths, proportion) {
+	var dirty = 0;
+	var first = NaN;
+	var last = NaN;
+	for (var c = minWidths.length; --c &gt;= 0; ) {
+		var minWidth = minWidths[c];
+		if (minWidth != null) {
+			if(!last) { last = c; }
+			first = c;
+			dirty |= this._layoutX.setMinimumLaneSize(c, minWidth, proportion);
+		}
+	}
+	if (dirty) {
+		this._syncLayoutToColumns(first, last + 1);
+	}
+	return dirty ? true : false;
+};
+/** @public
+* @param {number} colIndex
+* @return {boolean}
+*/
+tr.Grid.prototype.getColumnScalability = function (colIndex) {
+    return this._layoutX.getLaneScalability(colIndex);
+};
+/** @public
+* @param {number|boolean} val column index or default column scalability
+* @param {boolean=} opt_scalable
+* @return {boolean}
+* @fires tr.Grid#widthChanged
+*/
+tr.Grid.prototype.setColumnScalability = function (val, opt_scalable) {
+	var dirty = false;
+	if (tr.isNumber(val)) {
+		opt_scalable = (opt_scalable !== false);
+		dirty = this._layoutX.setLaneScalability(/** @type{number} */(val), opt_scalable);
+		if (dirty) {
+			this._syncLayoutToColumns(/** @type{number} */(val), val + 1);
+		}
+	} else {
+		this.setDefaultColumnScalable(/** @type{boolean} */(val));
+	}
+	return dirty;
+};
+/** @public
+* @param {boolean} scalable
+*/
+tr.Grid.prototype.setDefaultColumnScalable = function (scalable) {
+    this._layoutX.setDefaultScalability(!!scalable);
+};
+/** @public
+* @return {boolean}
+*/
+tr.Grid.prototype.resetColumnWidths = function () {
+  var dirty = this._layoutX.resetLaneToDefaultSize();
+  if (dirty) {
+  	this._syncLayoutToColumns(0, this.getColumnCount());
+  }
+  return dirty;
+};
+/** @public
+* @param {number} colIndex
+* @param {number} width
+*/
+tr.Grid.prototype.setColumnDefaultWidth = function (colIndex, width) {
+  this._layoutX.setLaneDefaultSize(colIndex, width);
+};
+/** @public
+* @param {boolean} preserve=false
+*/
+tr.Grid.prototype.preserveProportion = function (preserve) {
+  this._preserveProportion = preserve === true;
+};
+/** @public
+* @return {boolean} Proportion preserved
+*/
+tr.Grid.prototype.isProportionPreserved = function () {
+	return this._preserveProportion;
+};
+/** @public
+* @param {boolean} preserve=false
+*/
+tr.Grid.prototype.preserveGridSize = function (preserve) {
+  this._preserveGridSize = preserve === true;
+};
+/** @public
+* @param {number} colIndex
+* @return {Object} userData
+*/
+tr.Grid.prototype.getColumnData = function (colIndex) {
+	return this._getColumnDef(colIndex)[tr.res.columnData] || null;
+};
+/** @public
+* @param {number} colIndex
+* @param {Object} userData
+* @return {Object}
+*/
+tr.Grid.prototype.setColumnData = function (colIndex, userData) { // TODO: Deprecate this method
+	this._getColumnDef(colIndex)[tr.res.columnData] = userData;
+	return userData;
+};
+/** @public
+* @param {number} colIndex
+* @return {!Object}
+*/
+tr.Grid.prototype.newColumnData = function (colIndex) {
+	return this.getColumnData(colIndex) || {};
+};
+/** @public
+* @param {number} colIndex
+* @param {boolean=} alwaysRender
+*/
+tr.Grid.prototype.setAlwaysRenderColumn = function(colIndex, alwaysRender) {
+	this.getColumnData(colIndex)["alwaysRender"] = (alwaysRender !== false);
+};
+/** @private
+* @param {number} colIndex
+* @return {!boolean}
+*/
+tr.Grid.prototype._isAlwaysRenderColumn = function (colIndex) {
+	var colData = this.getColumnData(colIndex);
+	if(colData) {
+		return colData["alwaysRender"] === true;
+	}
+	return false;
+};
+
+/** @public
+* @return {boolean}
+*/
+tr.Grid.prototype.getFitContentWidth = function () {
+	return this._fitContentWidth;
+};
+/** @public
+* @param {boolean} bool
+*/
+tr.Grid.prototype.setFitContentWidth = function (bool) {
+	if (this._fitContentWidth !== bool) {
+		this._fitContentWidth = bool;
+		this._topNode.enableClass("fit-width", this._fitContentWidth);
+	}
+};
+
+/** A plugin can be loaded only once
+* @public
+* @param {*} pluginRef Plugin/extension instance. Plugin or extension name (string) is deprecated in favor of html import syntax
+* @param {Object=} opt_options Option for initialize the given plugin
+* @return {*} Return the plugin that has been successfully loaded. Returns null if the plugin is not loaded
+* @example
+* grid.loadPlugin(new grid.InCellEditingPlugin());
+*/
+tr.Grid.prototype.loadPlugin = function (pluginRef, opt_options) {
+	var pluginInstance = null;
+	if (typeof pluginRef === "string") {
+		var trNamespace = window["tr"];
+		var gridNamespace = trNamespace ? trNamespace["grid"] : null;
+		if(!gridNamespace) {
+			return null;
+		}
+		if (gridNamespace[pluginRef]) {
+			pluginInstance = new gridNamespace[pluginRef]();
+		} else if (gridNamespace[pluginRef + "Plugin"] ) {
+			pluginInstance = new gridNamespace[pluginRef + "Plugin"]();
+		} else {
+			return null;
+		}
+	} else {
+		pluginInstance = pluginRef;
+	}
+
+	if (!pluginInstance || !pluginInstance["getName"]) {
+		return null;
+	}
+
+	var pluginName = pluginInstance["getName"]();
+	if(!pluginName) {
+		return null;
+	}
+
+	var prevInstance = this._plugins[pluginName];
+	if (prevInstance) {
+		if(prevInstance === pluginInstance) {
+			return prevInstance; // The same instance is loaded twice
+		}
+		console.log("WARNING: Two of the same " + pluginName + "s cannot be loaded on a single grid. The existing plugin is replaced.");
+		this.unloadPlugin(pluginName);
+	}
+
+	if (pluginInstance["initialize"]) {
+		pluginInstance["initialize"](this, opt_options);
+	}
+	this._plugins[pluginName] = pluginInstance;
+
+	return pluginInstance;
+};
+/** @public
+* @param {*} pluginRef Plugin name (string) or instance
+* @return {*|null}
+*/
+tr.Grid.prototype.unloadPlugin = function (pluginRef) {
+	var pluginInstance;
+	if (pluginRef) {
+		var pluginName = "";
+		if (typeof pluginRef === "string") {
+			pluginName = pluginRef;
+		} else if (pluginRef["getName"]) {
+			pluginName = pluginRef["getName"]();
+		}
+
+		pluginInstance = this._plugins[pluginName];
+		if(!pluginInstance) {
+			pluginName += "Plugin";
+			pluginInstance = this._plugins[pluginName];
+		}
+
+		if (pluginInstance) {
+			if (pluginInstance["unload"]) {
+				pluginInstance["unload"](this);
+			}
+
+			delete this._plugins[pluginName];
+		}
+	}
+	return pluginInstance || null;
+};
+/** Return null if the specified plugin has not been loaded
+* @public
+* @param {string} pluginName
+* @return {*|null} plugin Return null if the specified plugin has not been loaded
+*/
+tr.Grid.prototype.getPlugin = function (pluginName) {
+	var p = this._plugins[pluginName];
+	if (!p) {
+		p = this._plugins[pluginName + "Plugin"];
+	}
+	return p || null;
+};
+/** Get a list of all plugin instances
+* @public
+* @return {!Array}
+*/
+tr.Grid.prototype.getPlugins = function () {
+	var list = [];
+	for (var key in this._plugins) {
+		list.push(this._plugins[key]);
+	}
+	return list;
+};
+/** Get a list of existing plugin names
+* @public
+* @return {!Array.&lt;string&gt;}
+*/
+tr.Grid.prototype.getPluginList = function () {
+	var list = [];
+	for (var key in this._plugins) {
+		list.push(key);
+	}
+	return list;
+};
+
+/** Vertical scrollbar will automatically appear for the rest of the sections, when container of Grid does NOT have enough space for Grid's content.
+* @public
+* @param {(string|number|null)=} opt_frozenSection the last section that will be fixed in place. &lt;br&gt;
+* Negative value means applying the scrollbar to all sections. &lt;br&gt;
+* null value means disabling the feature.
+*/
+tr.Grid.prototype.freezeSection = function (opt_frozenSection) {
+	this._fixFrozenTopSections = true;
+	this._freezeTopSectionAt(opt_frozenSection);
+};
+
+/** Vertical scrollbar will automatically appear for the rest of the sections, when container of Grid does NOT have enough space for Grid's content.
+* @private
+* @param {(string|number|null)=} opt_frozenSection the last section that will be fixed in place. &lt;br&gt;
+* Negative value means applying the scrollbar to all sections. &lt;br&gt;
+* null value means disabling the feature.
+*/
+tr.Grid.prototype._freezeTopSectionAt = function (opt_frozenSection) {
+	if (typeof opt_frozenSection == "number") {
+		var newIndex = opt_frozenSection + 1;
+		if (newIndex === this._startVScrollbarIndex) return; // same position then do nothing
+		this._startVScrollbarIndex = newIndex;
+	} else {
+		this._startVScrollbarIndex = -1;
+		if (typeof opt_frozenSection == "string") {
+			this._tempFrozenSectionRef = opt_frozenSection;
+		}
+	}
+	this._onSectionCountChanged();
+};
+
+/** @public
+* @param {number} frozenCount the amount of sections that will be fixed in place (from bottom up).
+*/
+tr.Grid.prototype.freezeFooter = function (frozenCount) {
+	this._fixFrozenBottomSection = true;
+	if (this._frozenFooterCount === frozenCount) return;
+	this._setFrozenFooter(frozenCount);
+	this._onSectionCountChanged();
+};
+/** @private
+* @param {number} frozenCount
+*/
+tr.Grid.prototype._setFrozenFooter = function (frozenCount) {
+	if (this._frozenFooterCount === frozenCount) return;
+	this._frozenFooterCount = frozenCount;
+	this._vscrollbar.setFooterCount(frozenCount); // Vertical scrollbar needs to know number of body sections for framing (excluding header and footer sections)
+	this._hscrollbar.setFooterCount(frozenCount); // Horizontal scrollbar needs this for determining the scrollbar track width
+};
+
+/** @public
+* @return {number} Total footer count
+*/
+tr.Grid.prototype.getFooterCount = function () {
+	return this._frozenFooterCount;
+};
+
+/** Left columns will be frozen and horizontal scrollbar will automatically appear for the rest columns. This will happens only when the container of grid does NOT have enough space for the grid's content.
+* @public
+* @param {(number|null)=} frozenColIndex Last column index to be fixed/pinned on the left side. &lt;br&gt;
+* Use negative value (-1) make horizontal scrollbar bar cover the first column. &lt;br&gt;
+* Use null value to disable the scrollbar
+* @param {number=} numRightColumn Number of columns on the right side to be fixed/pinned on the right side
+* @example
+* grid.freezeColumn(0); // The first column is pinned to the left side
+* grid.freezeColumn(1); // The first two columns are pinned to the left side
+* grid.freezeColumn(-1); // Grid's horizontal scrollbar will cover entire are of the grid.
+* grid.freezeColumn(null); // Turn off grid's horizontal scrollbar
+* grid.freezeColumn(-1, 1); // The last column is pinned to the right side
+* grid.freezeColumn(-1, 2); // The last two columns are pinned to the right side
+* grid.freezeColumn(0, 2); // Grid's horizontal scrollbar will affect only the middle part
+*/
+tr.Grid.prototype.freezeColumn = function (frozenColIndex, numRightColumn) {
+	if (frozenColIndex || frozenColIndex === 0) {
+		this._startHScrollbarIndex = (frozenColIndex &gt;= 0) ? frozenColIndex + 1 : 0;
+	} else {
+		if (frozenColIndex === undefined) {
+			this._startHScrollbarIndex = 0;
+		} else {
+			this._startHScrollbarIndex = -1;
+			this._hscrollbar.setScrollContent( // TODO: Check if thisis needed
+				this,
+				this._getAllSections(),
+				this.getColumnCount(),
+				this._countPinnedRightColumns()
+			);
+		}
+	}
+	if(numRightColumn != null) {
+		this._pinRightColumns(numRightColumn &gt; 0 ? numRightColumn : 0);
+	}
+
+	this._onColumnCountChanged(); // Activate horizontal scrollbar and column virtualization
+	this._updateScrollbarWidth(true, true);
+
+	var len = this._settings.length;
+	for(var i = 0; i &lt; len; ++i) {
+		this._settings[i].getSection().updateStretchedCells();
+	}
+};
+/** @private
+* @param {number} numRightColumn Number of columns on the right side to be fixed/pinned on the right side
+*/
+tr.Grid.prototype._pinRightColumns = function (numRightColumn) {
+	this._pinnedRightColumnCount = numRightColumn;
+	var len = this.getColumnCount();
+	for (var i = len; --i &gt;= 0;) {
+		var colDef = this._getColumnDef(i);
+		if(--numRightColumn &gt;= 0) {
+			colDef.rightPinned = true;
+		} else if(colDef.rightPinned) {
+			colDef.rightPinned = false;
+		}
+	}
+};
+
+/** @private
+* @return {number} numLeftColumn Number of columns on the left side to be fixed/pinned on the left side
+*/
+tr.Grid.prototype._countPinnedLeftColumns = function () {
+	return this._startHScrollbarIndex &gt;= 0 ? this._startHScrollbarIndex : 0;
+};
+/** @private
+* @return {number} numRightColumn Number of columns on the right side to be fixed/pinned on the right side
+*/
+tr.Grid.prototype._countPinnedRightColumns = function () {
+	var sum = 0;
+	for(var i = this._columnDefs.length; --i &gt;= 0;) {
+		var colDef = this._columnDefs[i];
+		if(colDef &amp;&amp; colDef.rightPinned) {
+			++sum;
+		} else {
+			break;
+		}
+	}
+	return sum;
+};
+
+/** @public
+* @param {number} colIndex
+* @return {boolean} return weather colIndex in pinned or not
+*/
+tr.Grid.prototype.isPinnedColumn = function (colIndex) {
+	return colIndex &lt; this.getFrozenColumnCount() || colIndex &gt;= this.getFirstPinnedRightIndex();
+};
+/** Returns number of pinned left columns.
+* @public
+* @return {number}
+*/
+tr.Grid.prototype.getFrozenColumnCount = function() {
+	var count = this._startHScrollbarIndex;
+	//Count maybe &lt; 0 in the cass that null is passed to grid.freezeColumn(null);
+	//which indicates that the HScrollbar is disabled
+	if (count &lt; 0) {
+		count = 0;
+	}
+	return count;
+};
+/** Returns number of pinned left columns. This is an alias to getFrozenColumnCount
+* @public
+* @function
+* @return {number}
+*/
+tr.Grid.prototype.getPinnedLeftColumnCount = tr.Grid.prototype.getFrozenColumnCount;
+/** Returns number of pinned right columns.
+* @public
+* @return {number}
+*/
+tr.Grid.prototype.getPinnedRightColumnCount = function() {
+	return this._pinnedRightColumnCount;
+};
+/** @public
+* @return {number} If there is no pinned right column, column count is returned
+*/
+tr.Grid.prototype.getFirstPinnedRightIndex = function () {
+	return this.getColumnCount() - this._pinnedRightColumnCount;
+};
+
+/** Sometimes there is a change in layout without Grid noticing it (e.g tab pane is switched, or parent is hidden from view). &lt;br&gt;
+* Hence, the layout must be manually and explicitly update by calling this method.
+* @public
+* @fires tr.Grid#widthChanged
+*/
+tr.Grid.prototype.updateLayout = function () {
+	if(this._disposed || this._layoutUpdating) { return; }
+	this._layoutUpdating = true;
+
+	this._dispatch("preForcedUpdate", {});
+	this._updateLayout();
+
+	if(this._colVirtualizer.isEnabled()) {
+		this._activateColumns();
+	}
+
+	this._layoutUpdating = false;
+};
+
+/** @public
+* @param {boolean} updateHeight
+* @param {boolean} updateWidth
+*/
+tr.Grid.prototype.updateScrollbars = function(updateHeight, updateWidth) {
+	if (updateWidth) {
+		this._updateScrollbarWidth(true, false);
+	}
+
+	if (updateHeight) {
+		this._updateScrollbarHeight(true, false);
+	}
+};
+
+/** Stop grid from updating layout to improve performance during multiple layout changes. Unfreeze the layout once all changes have been made.
+* @public
+* @param {boolean=} opt_bool
+* @return {boolean} Previous freezing state (Used for restoring original state)
+* @fires tr.Grid#widthChanged
+* @see {@link tr.Grid#isLayoutFrozen}
+*/
+tr.Grid.prototype.freezeLayout = function (opt_bool) {
+	opt_bool = opt_bool !== false;
+	var prevState = this._frozenLayout;
+	if (prevState !== opt_bool) {
+		this._frozenLayout = opt_bool;
+		var dispatcher = null;
+		if (!this._frozenLayout) {
+			dispatcher = this._getEvent("widthChanged");
+			if (dispatcher !== null) { // Width has not yet changed so we need to disable it first
+				dispatcher.disable();
+			}
+			this._onSectionCountChanged();
+			this._onColumnCountChanged(); // Update horizontal scrollbar
+			if(this._colVirtualizer.isEnabled()) {
+				this._activateColumns();
+			}
+		}
+
+		this._rowHeightSync = false;
+		var s, section;
+		var sectionCount = this._settings.length;
+		for (s = 0; s &lt; sectionCount; s++) {
+			section = this._settings[s].getSection();
+			section.setFrozenLayout(this._frozenLayout);
+		}
+
+		if (!this._frozenLayout) {
+			this._syncLayoutToColumns(0, this.getColumnCount()); // Column layout should be synchronized after sections are unfrozen
+			if (dispatcher !== null) { // Layout has been changed dispatch it
+				dispatcher.enable();
+				dispatcher.dispatch({});
+			}
+
+			var viewChanged = this._syncRowHeights();
+			if(!viewChanged) { // Always update virtualizer
+				this._rowVirtualizer.update(true); // Force section activation
+			}
+		}
+		this._rowHeightSync = true;
+	}
+	return prevState;
+};
+/** Deprecated. Please use freezeLayout instead
+* @public
+* @param {boolean=} opt_bool
+* @fires tr.Grid#widthChanged
+* @see {@link tr.Grid#freezeLayout}
+*/
+tr.Grid.prototype.unfreezeLayout = function (opt_bool) {
+	this.freezeLayout(opt_bool === false);
+};
+/** @public
+* @return {boolean}
+*/
+tr.Grid.prototype.isLayoutFrozen = function () {
+	return this._frozenLayout;
+};
+
+/** Deprecated
+* @public
+* @function
+* @param {boolean=} opt_shown
+* @see {@link tr.Grid#toggleBorders}
+*/
+tr.Grid.prototype.showBorders = tr._deprecatedFunction;
+/** Deprecated
+* @public
+* @function
+* @param {boolean=} opt_hidden
+* @see {@link tr.Grid#toggleBorders}
+*/
+tr.Grid.prototype.hideBorders = tr._deprecatedFunction;
+/** Toggle borders around grid element. WARNING: You will need to manually call updateLayout() method, if you call this method at run-time
+* @public
+* @param {boolean=} forcedVal If value is true, show border lines, otherwise hide them
+*/
+tr.Grid.prototype.toggleBorders = function(forcedVal) {
+	this._toggleClass("no-borders", forcedVal != null ? !forcedVal : null);
+};
+/** Toggle both horizontal and vertical gridlines. This applies to ONLY content sections.
+* @public
+* @param {boolean=} forcedVal If value is true, show gridlines, otherwise hide them
+*/
+tr.Grid.prototype.toggleGridlines = function(forcedVal) {
+	this._toggleClass("no-gridlines", forcedVal != null ? !forcedVal : null);
+};
+/** Toggle vertical gridlines. This applies to all sections.
+* @public
+* @param {boolean=} forcedVal If value is true, show vertical lines, otherwise hide them
+*/
+tr.Grid.prototype.toggleVerticalLines = function(forcedVal) {
+	this._toggleClass("no-vertical-grid-line", forcedVal != null ? !forcedVal : null);
+};
+/** Toggle horizontal gridlines. This applies to all sections.
+* @public
+* @param {boolean=} forcedVal If value is true, show horizontal lines, otherwise hide them
+*/
+tr.Grid.prototype.toggleHorizontalLines = function(forcedVal) {
+	this._toggleClass("no-horizontal-grid-line", forcedVal != null ? !forcedVal : null);
+};
+/** @private
+* @param {string} cls CSS Class to be toggled
+* @param {(boolean|null)=} forcedVal If true show border lines, otherwise hide them
+*/
+tr.Grid.prototype._toggleClass = function(cls, forcedVal) {
+	var elem = this._topNode.getElement();
+	if(elem) {
+		if(forcedVal == null) {
+			forcedVal = !elem.classList.contains(cls);
+		}
+		if(forcedVal) {
+			elem.classList.add(cls);
+		} else {
+			elem.classList.remove(cls);
+		}
+	}
+};
+/** @private
+* @param {Element} elem
+* @param {string} cls CSS Class to be checked
+* @return {boolean}
+*/
+tr.Grid.prototype._containsClass = function(elem, cls) {
+	if(elem) {
+		return elem.classList.contains(cls);
+	}
+	return false;
+};
+
+/** @public
+* @return {Array.&lt;string&gt;}
+*/
+tr.Grid.prototype.getDataColumnMap = function () {
+	var dataMap = [];
+	for (var i = this.getColumnCount(); --i &gt;= 0; ) {
+		dataMap[i] = this.getDataColumnName(i);
+	}
+	return dataMap;
+};
+/** For indirectional one to one data binding
+* @public
+* @param {Array.&lt;string&gt;=} opt_dataMap index in the array will be matched with the display column
+*/
+tr.Grid.prototype.setDataColumnMap = function (opt_dataMap) {
+	var i, colDef;
+	if (opt_dataMap) {
+		for (i = opt_dataMap.length; --i &gt;= 0; ) {
+			colDef = this._getColumnDef(i);
+			colDef[tr.res.dataColumnName] = opt_dataMap[i];
+		}
+	} else {
+		for (i = this._columnDefs.length; --i &gt;= 0; ) {
+			colDef = this._columnDefs[i];
+			if (colDef &amp;&amp; colDef[tr.res.dataColumnName] !== undefined) {
+				colDef[tr.res.dataColumnName] = undefined;
+			}
+		}
+	}
+};
+/** @public
+* @param {number} colIndex
+* @return {string}
+*/
+tr.Grid.prototype.getDataColumnName = function (colIndex) {
+	var colDef = this._getColumnDef(colIndex);
+	var dataColumnName = colDef[tr.res.dataColumnName];
+	return dataColumnName || "";
+};
+/** @public
+* @param {number} colIndex
+* @param {(string|null)=} opt_dataColumnName Use string for normal mapping, null to disable, and undefined for default mapping
+*/
+tr.Grid.prototype.setDataColumnName = function (colIndex, opt_dataColumnName) {
+	this._getColumnDef(colIndex)[tr.res.dataColumnName] = opt_dataColumnName;
+};
+
+/** If the given column has no rendering handler, this default handler will be executed instead
+* @public
+* @param {Function} handler that takes json object as a first parameter
+* @see {tr.Grid#setColumnRenderingHandler}
+*/
+tr.Grid.prototype.setDefaultRenderingHandler = function (handler) {
+	this._renderingHandler = (typeof handler === "function") ? handler : null;
+};
+/** If the given column has no data binding handler, this handler will be executed instead
+* @public
+* @param {Function} handler that takes json object as a first parameter
+* @see {tr.Grid#setColumnDataBindingHandler}
+*/
+tr.Grid.prototype.setDefaultDataBindingHandler = function (handler) {
+	this._dataBindingHandler = (typeof handler === "function") ? handler : null;
+};
+/** @public
+* @param {number} c
+* @param {*} func
+* @see {tr.Grid#setDefaultRenderingHandler}
+*/
+tr.Grid.prototype.setColumnRenderingHandler = function(c, func) {
+	this._getColumnDef(c)["renderingHandler"] = (typeof func === "function") ? func : null;
+};
+/** @public
+* @param {number} c
+* @param {*} func
+* @see {tr.Grid#setDefaultDataBindingHandler}
+*/
+tr.Grid.prototype.setColumnDataBindingHandler = function(c, func) {
+	this._getColumnDef(c)["dataBindingHandler"] = (typeof func === "function") ? func : null;
+};
+/** @public
+* @param {number} c
+* @return {Function} func
+*/
+tr.Grid.prototype.getColumnRenderingHandler = function(c) {
+	return this._getColumnDef(c)["renderingHandler"] || null;
+};
+/** @public
+* @param {number} c
+* @return {Function} func
+*/
+tr.Grid.prototype.getColumnDataBindingHandler = function(c) {
+	return this._getColumnDef(c)["dataBindingHandler"] || null;
+};
+
+/** Rows will be highlighted when mouse is hoved over rows. This will works only with content section
+* @public
+* @param {boolean=} opt_enabled
+*/
+tr.Grid.prototype.enableRowHighlighting = function (opt_enabled) {
+	if (opt_enabled == null) { opt_enabled = true; }
+
+	if (this._rowHighlighting !== opt_enabled) {
+		this._rowHighlighting = opt_enabled;
+		var contentSections = this.getAllSections(tr.res.content);
+		for (var i = contentSections.length; --i &gt;= 0; ) {
+			contentSections[i].enableRowHighlighting(this._rowHighlighting);
+		}
+	}
+};
+
+/** Get target from the given object for hit testing
+* @private
+* @param {!tr.IElementControl|Element|Event|MouseEvent} obj Element, Browser's Event object, Browser's Mouse Event object are all valid
+* @return {Element}
+*/
+tr.Grid.prototype._getTarget = function (obj) {
+	var targetEl = /** @type{Element} */(obj["target"]);
+	if(targetEl) { // The Given object is an Event object
+		var path = null;
+		if(!this._topNode.getElement().contains(targetEl)) {
+			if(obj["composedPath"]) { // Handle the case where grid is used in the Shadow Dom
+				path = /** @type{Array.&lt;Element&gt;} */(obj["composedPath"]());
+			} else { // 'path' property is an alternative to composedPath, but it is a non-standard property
+				path = /** @type{Array.&lt;Element&gt;} */(obj["path"]);
+			}
+		}
+		if(path) {
+			return path[0] || null;
+		} else {
+			return targetEl;
+		}
+	} else {
+		if(obj["getElement"]) { // The Given object is implementing tr.IElementControl
+			return /** @type{Element} */(obj["getElement"]());
+		} else if(tr.isElement(obj)){ // The Given object is just an element
+			return /** @type{Element} */(obj);
+		}
+	}
+	return null;
+};
+/** Return all information, from Grid and its internal components, related to the given position.
+* @public
+* @param {!tr.IElementControl|Element|Event|MouseEvent} obj Element, Browser's Event object, Browser's Mouse Event object are all valid
+* @param {Object=} context An object that stores returned values
+* @return {!tr.Grid.MouseInfo}
+*/
+tr.Grid.prototype.getRelativePosition = function (obj, context) {
+	if(!obj) {
+		return {};
+	}
+
+	var ret_obj = context || {};
+	var targetEl = this._getTarget(obj);
+
+	// Calculate object's x and y coordinates that are relative to the top left of this grid
+	if(obj["target"]) { // The Given object is an Event object
+		tr.getRelativePosition(/** @type{Event} */(obj), this.getElement(), ret_obj);
+	} else if(targetEl) {
+		tr.getRelativePosition(targetEl, this.getElement(), ret_obj);
+	}
+
+	// The coordinates must be scaled by the zoom factor
+	if (this._zoomFactor !== 1) {
+		ret_obj["x"] /= this._zoomFactor;
+		ret_obj["y"] /= this._zoomFactor;
+	}
+
+	// Find closest element with "column" class
+	var colElement = (targetEl) ? tr.closestElement(targetEl, "column") : null;
+
+	if (!colElement) {
+		return ret_obj;
+	}
+	ret_obj["hit"] = false;
+	ret_obj["columnElement"] = colElement;
+	ret_obj["grid"] = this;
+	ret_obj["clientX"] = obj["clientX"];
+	ret_obj["clientY"] = obj["clientY"];
+	ret_obj["zoomFactor"] = this._zoomFactor;
+
+	var sectionElement = tr.closestElement(colElement, "tr-lg");
+	if(!sectionElement) { // Column element is not in the document (the column is hidden)
+		return ret_obj;
+	}
+	ret_obj[tr.res.sectionName] = sectionElement["id"] || tr.closestElement(colElement, "tr-vlg")["id"];
+
+	// Find section
+	var sectionSettings = this.getSectionSettings(ret_obj[tr.res.sectionName]);
+	if (!sectionSettings) {
+		return ret_obj; // Cannot find a section from the given id
+	}
+	sectionSettings.extendEventArg(ret_obj);
+
+	// Find column index
+	var section = sectionSettings.getSection();
+	var colIndex = section.getColumnIndex(ret_obj["columnElement"]);
+	if (colIndex &lt; 0) {
+		return ret_obj; // The given columnElement does not resolve in any column index
+	}
+	ret_obj[tr.res.colIndex] = colIndex;
+
+	var cellElement = tr.closestElement(targetEl, "cell");
+	if(!cellElement) {
+		return ret_obj;
+	}
+	ret_obj["cellElement"] = cellElement;
+
+	// Find row index
+	if (this._hitTestY(-1, ret_obj) === false) { // hitTestY requires only sectionSettings, colIndex, and cellElement
+		return ret_obj;
+	}
+
+	ret_obj["cell"] = section.getCell(colIndex, ret_obj["rowIndex"]);
+	ret_obj["hit"] = true;
+	return ret_obj;
+};
+
+/** @public
+* @param {string} str data column name
+* @return {number} Return negative if the mouse is not hit
+*/
+tr.Grid.prototype.getColumnIndex = function (str) {
+	for(var c = this.getColumnCount(); --c &gt;= 0;) {
+		if(str === this.getDataColumnName(c)) {
+			return c;
+		}
+	}
+	return -1;
+};
+
+/** @public
+* @return {!tr.IElementControl}
+*/
+tr.Grid.prototype.getVScrollbar = function () {
+	return this._vscrollbar;
+};
+/** @public
+* @return {!tr.IElementControl}
+*/
+tr.Grid.prototype.getHScrollbar = function () {
+	return this._hscrollbar;
+};
+/** @public
+* @param {boolean=} opt_hide True if autohide (default) or false to keep scrollbars permanently
+*/
+tr.Grid.prototype.autoHideScrollbars = function(opt_hide){
+	opt_hide = opt_hide !== undefined ? opt_hide : true;
+	this._vscrollbar.setAutoHide(opt_hide);
+	this._hscrollbar.setAutoHide(opt_hide);
+};
+/** @public
+* @ignore
+* @return {number}
+*/
+tr.Grid.prototype.getVScrollStartIndex = function () {
+	return this._startVScrollbarIndex;
+};
+/** @public
+* @ignore
+* @return {number}
+*/
+tr.Grid.prototype.getHScrollStartIndex = function () {
+	return this._startHScrollbarIndex;
+};
+/** @public
+* @param {number} colIndex
+* @param {boolean=} leftOfView Default is false. If true, always make to specified column at the left most of the view.
+* @return {boolean} Return true, if there is any change
+*/
+tr.Grid.prototype.scrollToColumn = function (colIndex, leftOfView) {
+	if(!this._updateScrollbar(this._hscrollbar)) {
+		return false;
+	}
+
+	var colCount = this._layoutX.getLaneCount();
+	if (colIndex &lt;= 0) {
+		colIndex = 0;
+	} else if (colIndex &gt;= colCount) {
+		colIndex = colCount - 1;
+	}
+	if(this.isPinnedColumn(colIndex)) {
+		return false;
+	}
+
+	var widthOffset = this._startHScrollbarIndex &gt; 0 ? this._layoutX.getLaneStart(this._startHScrollbarIndex) : 0;
+	var scrollLeft = this._hscrollbar.getScrollLeft();
+	var viewLeft = scrollLeft + widthOffset;
+	var viewWidth = this._hscrollbar.getWidth();
+	var viewTopIndex = this._layoutX.hitTest(viewLeft);
+	var laneLeft = this._layoutX.getLaneStart(colIndex);
+	var laneSize = this._layoutX.getLaneSize(colIndex);
+
+	if (leftOfView || laneSize &gt;= viewWidth || colIndex &lt;= viewTopIndex) {
+		var toLeftOfView = laneLeft - widthOffset;
+		if(scrollLeft !== toLeftOfView) {
+			this._hscrollbar.setScrollLeft(toLeftOfView);
+			return true;
+		}
+	} else {
+		var viewRight = viewLeft + viewWidth;
+		var viewRightIndex = this._layoutX.hitTest(viewRight - 0.1);
+		if (colIndex &gt;= viewRightIndex) {
+			var laneRight = laneLeft + laneSize;
+			var toEndOfView = scrollLeft + laneRight - viewRight; // Fit end of column into the view
+
+			this._hscrollbar.setScrollLeft(toEndOfView);
+			return true;
+		}
+	}
+	return false;
+};
+/** @public
+* @override
+* @return {number} pixels
+*/
+tr.Grid.prototype.getScrollLeft = function () {
+	return this._updateScrollbar(this._hscrollbar) ? this._hscrollbar.getScrollLeft() : 0;
+};
+/** @public
+* @param {number} pixels
+*/
+tr.Grid.prototype.setScrollLeft = function (pixels) {
+	if(!this._updateScrollbar(this._hscrollbar)) {
+		return;
+	}
+
+	this._hscrollbar.setScrollLeft(pixels);
+};
+/** @public
+* @param {number} pixels
+*/
+tr.Grid.prototype.scrollRight = function (pixels) {
+	this.setScrollLeft(this._hscrollbar.getScrollLeft() + pixels);
+};
+/** @public */
+tr.Grid.prototype.getScrollWidth = function () {
+	if(!this._updateScrollbar(this._hscrollbar)) {
+		return 0;
+	}
+	return this._hscrollbar.getContentWidth();
+};
+/** Return the scroll value (in pixels) to make specified row visible in the view
+* @public
+* @param {tr.Grid.SectionReference} sectionRef Specify section that the given rowIndex is related to. Use null for the first scrollable section (first non-frozen section)
+* @param {number} rowIndex
+* @param {boolean=} topOfView=false. If true, Make to specified row at the top of the view.
+* @returns {number|null} The scroll value (in pixels)
+*/
+tr.Grid.prototype.getYScrollVal = function (sectionRef, rowIndex, topOfView) {
+	if(!this._updateScrollbar(this._vscrollbar)) {
+		return null;
+	}
+	var section = null;
+	if(sectionRef) {
+		section = this.getSection(sectionRef);
+	}
+
+	var rowCount = this._layoutY.getLaneCount();
+	var rowIndexOffset = (section) ? section.getRowOffset() : this._sectionStarts[this._startVScrollbarIndex];
+
+	if(rowIndexOffset) {
+		rowIndex += rowIndexOffset;
+	}
+	if (rowIndex &lt;= 0) { rowIndex = 0; }
+	else if (rowIndex &gt;= rowCount) { rowIndex = rowCount - 1; }
+
+	var heightOffset = this._layoutY.getLaneStart(rowIndexOffset);
+	var scrollTop = this._vscrollbar.getScrollTop();
+	var viewTop = scrollTop + heightOffset;
+	var viewTopIndex = section ? section.getFirstIndexInView() : this._layoutY.hitTest(viewTop); // TODO: Make it work in zooming mode
+
+	var scrollIndex = -1;
+	if (topOfView) {
+		scrollIndex = rowIndex;
+	} else {
+		if(rowIndex &lt;= viewTopIndex) { // Scroll up
+			scrollIndex = rowIndex - 3; // Have some spaces at the top for more appealing visual
+			if(scrollIndex &lt; 0) {
+				scrollIndex = 0;
+			}
+		} else { // Scroll down
+			var viewHeight = this._vscrollbar.getHeight();
+			var viewBottom = viewTop + viewHeight;
+			var viewBottomIndex = section ? section.getLastIndexInView() : this._layoutY.hitTest(viewBottom - 0.1);
+			if (rowIndex &gt;= viewBottomIndex) {
+				var viewIndexSize = viewBottomIndex - viewTopIndex;
+				scrollIndex = rowIndex - viewIndexSize + 3;
+				if(scrollIndex &lt; 0) {
+					scrollIndex = 0;
+				}
+			}
+		}
+	}
+
+	return (scrollIndex &gt;= 0) ? (this._layoutY.getLaneStart(scrollIndex) - heightOffset) : null;
+};
+/** Scroll up or down to make specified row visible in the view
+* @public
+* @param {tr.Grid.SectionReference} sectionRef Specify section that the given rowIndex is related to. Use null for the first scrollable section (first non-frozen section)
+* @param {number} rowIndex
+* @param {boolean=} topOfView=false. If true, Make to specified row at the top of the view.
+*/
+tr.Grid.prototype.scrollToRow = function (sectionRef, rowIndex, topOfView) {
+	var scrollVal = this.getYScrollVal(sectionRef, rowIndex, topOfView);
+	if(scrollVal !== null) {
+		this._vscrollbar.setScrollTop(scrollVal);
+	}
+};
+/** @public
+* @return {Object} Returns null if vscrollbar does not exists
+*/
+tr.Grid.prototype.getVScrollView = function () {
+	if(!this._updateScrollbar(this._vscrollbar)) {
+		return null;
+	}
+
+	var rowCount = this._layoutY.getLaneCount();
+	if (rowCount === 0) { return null; }
+
+	var rowIndexOffset = this._sectionStarts[this._startVScrollbarIndex];
+	var heightOffset = this._layoutY.getLaneStart(rowIndexOffset);
+	var viewTop = this._vscrollbar.getScrollTop() + heightOffset;
+	var viewHeight = this._vscrollbar.getHeight();
+	var viewBottom = viewTop + viewHeight;
+	var topRowIndex = this._layoutY.hitTest(viewTop);
+	var bottomRowIndex = this._layoutY.hitTest(viewBottom - 0.1);
+
+	var laneTop = this._layoutY.getLaneStart(topRowIndex);
+	var laneBottom = this._layoutY.getLaneEnd(bottomRowIndex);
+
+	var prevAnchor = viewTop - viewHeight;
+	var prevPage = (prevAnchor &lt;= heightOffset) ? rowIndexOffset : this._layoutY.hitTest(prevAnchor) + 1;
+	var nextAnchor = viewBottom + viewHeight;
+	var trackSize = this._layoutY.getTrackSize();
+	var nextPage = (nextAnchor &gt;= trackSize) ? rowCount - 1 : this._layoutY.hitTest(nextAnchor - 0.1) - 1;
+
+	topRowIndex -= rowIndexOffset;
+	bottomRowIndex -= rowIndexOffset;
+	var obj = {};
+	obj["viewTop"] = viewTop - heightOffset;
+	obj["viewBottom"] = viewBottom - heightOffset;
+	obj["topRowIndex"] = topRowIndex;
+	obj["bottomRowIndex"] = bottomRowIndex;
+	obj["firstFullRow"] = (laneTop &lt; viewTop) ? topRowIndex + 1 : topRowIndex;
+	obj["lastFullRow"] = (laneBottom &gt; viewBottom) ? bottomRowIndex - 1 : bottomRowIndex;
+	obj["prevPageRowIndex"] = prevPage - rowIndexOffset;
+	obj["nextPageRowIndex"] = nextPage - rowIndexOffset;
+	return obj;
+};
+/** @public
+* @override
+* @return {number} pixels
+*/
+tr.Grid.prototype.getScrollTop = function () {
+	return this._updateScrollbar(this._vscrollbar) ? this._vscrollbar.getScrollTop() : 0;
+};
+/** @public
+* @param {number} pixels
+*/
+tr.Grid.prototype.setScrollTop = function (pixels) {
+	if(!this._updateScrollbar(this._vscrollbar)) {
+		return;
+	}
+
+	this._vscrollbar.setScrollTop(pixels);
+};
+/** @public
+* @param {number} pixels
+*/
+tr.Grid.prototype.scrollDown = function (pixels) {
+	this.setScrollTop(this._vscrollbar.getScrollTop() + pixels);
+};
+/** @public */
+tr.Grid.prototype.getScrollHeight = function () {
+	if(!this._updateScrollbar(this._vscrollbar)) {
+		return 0;
+	}
+	return this._vscrollbar.getContentHeight();
+};
+
+/** @public
+* @ignore
+* @param {boolean} bool
+*/
+tr.Grid.prototype.enableAutoSetDataSource = function (bool) {
+	this._autoSetDataSource = bool;
+};
+
+/** @public
+* @return {!tr.grid.Virtualizer}
+*/
+tr.Grid.prototype.getRowVirtualizer = function () {
+	return this._rowVirtualizer;
+};
+
+
+/** @public
+* @return {!tr.grid.Virtualizer}
+*/
+tr.Grid.prototype.getColumnVirtualizer = function () {
+	return this._colVirtualizer;
+};
+
+/** No runtime support
+* @public
+* @param {boolean} opt_enabled
+*/
+tr.Grid.prototype.enableRowVirtualization = function (opt_enabled) {
+	this._rowVirtualizer.enable(opt_enabled);
+	if (this._rowVirtualizer.isEnabled()) {
+		if (this._vscrollbar.isEnabled()) {
+			this._rowVirtualizer.activate();
+		} else {
+			this._rowVirtualizer.deactivate();
+		}
+	} else {
+		this._rowVirtualizer.deactivate();
+	}
+};
+/** No runtime support
+* @public
+* @param {boolean=} opt_enabled
+*/
+tr.Grid.prototype.enableColumnVirtualization = function (opt_enabled) {
+	this._colVirtualizer.enable(opt_enabled);
+
+	var colVir = this._colVirtualizer.isEnabled();
+	for (var i = this._settings.length; --i &gt;= 0; ) {
+		var sectionSettings = this._settings[i];
+		sectionSettings.enableColumnVirtualization(colVir);
+	}
+};
+
+/** Scrolling step will be multiple of the default row height in pixels. For example, if default row height is 32 pixel and row scrolling step is 2, &lt;br&gt;
+* then the actual scrolling step for vertical scrollbar will be (32 * 2) = 64 pixels
+* @public
+* @param {number} rowCount Number of rows for a single scrolling step. Use zero to disable this feature.
+*/
+tr.Grid.prototype.setRowScrollingStep = function (rowCount) {
+	this._rowScrollingStep = (rowCount &gt; 0) ? rowCount : 0;
+	this._vscrollbar.setScrollingStep(this._layoutY.getDefaultLaneSize() * this._rowScrollingStep);
+};
+
+/** Allows other elements such as background to accept wheel event and scroll grid's vertical scrollbar
+* @public
+* @return {function(Event)}
+*/
+tr.Grid.prototype.getVMouseWheelHandler = function () {
+	return this._vscrollbar.getDefaultMouseWheelLogic();
+};
+/** Synchronize two vertical scrollbars of two grid, by hiding its scrollbar and using the one from the given grid
+* @public
+* @param {tr.Grid} subGrid
+*/
+tr.Grid.prototype.synchronizeVScrollbar = function (subGrid) {
+	subGrid.unlisten("mousemove", subGrid._onMouseMove);
+	subGrid.listen("mousemove", this._onMouseMove);
+
+	var vscrollbar = subGrid.getVScrollbar();
+	vscrollbar._mainScrollbar = this._vscrollbar; // HACK
+	
+	vscrollbar.setStyle("visibility", "hidden");
+	vscrollbar.setStyle("pointerEvents", "none");
+	vscrollbar.disableMouseWheel(); // Disable sub-grid wheel behavior
+	vscrollbar.attachToExternalElement(this._vscrollbar.getParent()); // MouseWheel event is still available on the main
+
+	// TODO: Check if we need to re-append this._vscrollbar to move it to the front over other grid elements.
+	this._vscrollbar.listen("scroll", subGrid._onSyncVScroll);
+};
+
+/** Fires data binding event without actual change in the data source. &lt;br&gt;
+* This will force visual elements to be re-rendered with the latest data in the data source.
+* @public
+* @param {tr.Grid.SectionReference=} sectionRef If not defined, "content" is used
+* @param {number=} fromRowIndex INCLUSIVE If the value is undefined, the first row index will be used
+* @param {number=} lastRowIndex INCLUSIVE If the value is undefined, the last row index will be used
+* @param {Object=} userParam Addtional parameters to be fired with the event
+* @fires tr.Grid#preSectionDataBinding
+* @fires tr.Grid#columnDataBinding
+* @fires tr.Grid#postSectionDataBinding
+*/
+tr.Grid.prototype.updateRowData = function (sectionRef, fromRowIndex, lastRowIndex, userParam) {
+	var ss = this.getSectionSettings(sectionRef || tr.res.content);
+	if (ss) {
+		ss.updateRowData(fromRowIndex, lastRowIndex, userParam);
+	}
+};
+/** Re-render all sections (headers and contents) in grid. Layout will not be affected by this method
+* @public
+*/
+tr.Grid.prototype.rerender = function () {
+	var sectionCount = this._settings.length;
+	for (var s = 0; s &lt; sectionCount; s++) { // for each section
+		this._settings[s].rerender();
+	}
+};
+/** Set a timer to call updateRowData only once to avoid performance issue due to multiple call of updateRowData()
+* @public
+*/
+tr.Grid.prototype.requestRowRefresh = function() {
+	if(!this._rowRefreshTimer) {
+		this._rowRefreshTimer = setTimeout(this._onRowRefresh, 100);
+	}
+};
+
+/** prevent bind data process
+* @public
+* @param {boolean=} disabled
+*/
+tr.Grid.prototype.deactivateRendering = function(disabled) {
+	disabled = disabled !== false;
+
+	// if option value not changed then do nothing
+	if (disabled == this._noBinding) return;
+
+	this._noBinding = disabled;
+	var contentSection = this.getSectionSettings(tr.res.content);
+	if (!contentSection) return;
+
+	contentSection.disableDataBinding(disabled);
+
+	if (!disabled) {
+		this.requestRowRefresh();
+	}
+};
+
+/** @private */
+tr.Grid.prototype._onRowRefresh = function() {
+	this._rowRefreshTimer = 0;
+	this.updateRowData();
+};
+
+/** @public
+* @ignore
+* @param {boolean=} opt_bool
+*/
+tr.Grid.prototype.disableLazyRendering = function(opt_bool) {
+	console.log("WARNING: This function is deprecated.");
+};
+
+/** @param {tr.Grid.SectionReference} sectionRef
+* @param {number|string} colRef Either column index or data column name
+* @param {number|string} rowRef Row Index of the display section or row id of the data table
+* @return {*} Returns undefined if not success
+*/
+tr.Grid.prototype.getData = function (sectionRef, colRef, rowRef) {
+	var sectionSettings = this.getSectionSettings(sectionRef);
+	if (!sectionSettings) { return; }
+
+	var colName = this._toDataColumnName(colRef);
+
+	return sectionSettings.getData(colName, rowRef);
+};
+/** Do not used this method too often. This method is slow. It is always better to set data directly to the data table
+* @param {tr.Grid.SectionReference} sectionRef
+* @param {number|string} colRef Either column index or data column name
+* @param {number|string} rowRef Row Index of the display section or row id of the data table
+* @param {*} data
+* @return {boolean} True for successful data setting
+*/
+tr.Grid.prototype.setData = function (sectionRef, colRef, rowRef, data) {
+	var sectionSettings = this.getSectionSettings(sectionRef);
+	if (sectionSettings &amp;&amp; sectionSettings.isDataBindable()) {
+		var colName = this._toDataColumnName(colRef);
+		return sectionSettings.setData(colName, rowRef, data);
+	}
+	return false;
+};
+
+/** Do not used this method too often. This method is slow. It is always better to set data directly to the data table
+* @param {tr.Grid.SectionReference} sectionRef
+* @param {number|string} rowRef Row Index of the display section or row id of the data table
+* @return {boolean} True for successful data setting
+*/
+tr.Grid.prototype.removeRowData = function (sectionRef, rowRef) {
+	var sectionSettings = this.getSectionSettings(sectionRef);
+	if (sectionSettings &amp;&amp; sectionSettings.isDataBindable()) {
+		return sectionSettings.removeRowData(rowRef);
+	}
+	return false;
+};
+
+/** @param {string} method */
+tr.Grid.prototype.setHidingMethod = function (method) {
+	if(!method) { method = ""; }
+	if(this._hidingMethod !== method) {
+		this._hidingMethod = method;
+		var sections = this.getAllSections();
+		for(var i = sections.length; --i &gt;= 0;) {
+			sections[i].setHidingMethod(method);
+		}
+	}
+};
+
+/** @public
+* @ignore
+* @return {!tr.grid.TrackLayout}
+*/
+tr.Grid.prototype.getHorizontalLayout = function () {
+	return this._layoutX;
+};
+/** @public
+* @ignore
+* @param {number} colIndex
+* @param {boolean} bool
+* @param {number} flag Default is 0
+* @return {boolean}
+*/
+tr.Grid.prototype.setColumnVisibility = function (colIndex, bool, flag) {
+	if (this._layoutX.hideLane(colIndex, !bool, flag)) {
+		this._syncLayoutToColumns(colIndex, colIndex + 1);
+
+		if (bool) { // If column turns back to visible, update ui. TODO: This will cause a rendering issue for column grouping
+			this.requestRowRefresh();
+		}
+		if (this._hasListener("columnVisibilityChanged")) {
+			var e = {};
+			e[tr.res.colIndex] = colIndex;
+			e["hidden"] = !bool;
+			this._dispatch("columnVisibilityChanged", e);
+		}
+		return true;
+	}
+	return false;
+};
+
+/** @public
+* @param {number} size
+* @return {boolean}
+*/
+tr.Grid.prototype.reserveRightSpace = function (size) {
+	if(this._reservedSpace !== size) {
+		this._reservedSpace = size;
+		for(var i = this._settings.length; --i &gt;= 0;) {
+			this._settings[i].getSection().reserveRightSpace(size);
+		}
+		this._onColumnCountChanged(); // Activate horizontal scrollbar and column virtualization
+		this._updateScrollbarWidth(true, true);
+		return true;
+	}
+	return false;
+};
+
+/** Get hidden input in grid &lt;br&gt;
+* this input for make grid can copy &lt;br&gt;
+* normal user should not touch it &lt;br&gt;
+* but sometime grid extension will have to use this element
+* @public
+* @return {Element}
+*/
+tr.Grid.prototype.getHiddenInput = function () {
+	return this._hiddenInput;
+};
+
+/** Focus grid element without bringing grid into window's view. This is useful when grid is very wide or tall, since window can be scrolled to focused element by default in some browsers.
+* @public
+* @see {@link https://developer.mozilla.org/en/docs/Web/API/HTMLElement/focus}
+* @see {@link http://help.dottoro.com/ljqmdirr.php}
+*/
+tr.Grid.prototype.focus = function () {
+	var elem = this._topNode.getElement();
+	var activeElem = document.activeElement;
+	if(elem &amp;&amp; elem !== activeElem) {
+		var x = window.pageXOffset;
+		var y = window.pageYOffset;
+		if(elem["setActive"]) { // Non-standard IE specific method
+			try { // MON-909
+				elem["setActive"]();
+			} catch (error) {
+				elem["focus"]({"preventScroll": true});
+			}
+		} else {
+			elem["focus"]({"preventScroll": true});
+		}
+		if(y !== window.pageYOffset || x !== window.pageXOffset) {
+			window.scrollTo(x, y); // Restore scrolling
+		}
+	}
+};
+
+/** @public
+* @return {boolean}
+*/
+tr.Grid.prototype.isBinding = function() {
+	return this._dispatchingDataChanged;
+};
+
+/**
+ * Hide row(s) in the Grid by specifying the rId
+ * @param {number | string} rowId rowId of the row to hide
+ * @param {boolean=} hidden if false, show instead of hide
+ * @public
+ */
+tr.Grid.prototype.hideRow = function (rowId, hidden) {
+	this._dataSource.hideRow(rowId, hidden);
+};
+/**
+ * Hide row(s) in the Grid by specifying the rIds
+ * @param {number | string | Array.&lt;number | string&gt;} rowIds rowId(s) of the rows to hide
+ * @param {boolean=} hidden if false, show instead of hide
+ * @public
+ */
+tr.Grid.prototype.hideRows = function (rowIds, hidden) {
+	if (!Array.isArray(rowIds)) {
+		this._dataSource.hideRow(/** @type{number | string} */(rowIds), hidden);
+	} else {
+		this._dataSource.hideRows(rowIds, hidden);
+	}
+};
+
+/**
+ * Show row(s) in the Grid by specifying the rIds
+ * @param {number | string | Array.&lt;number | string&gt;} rowIds rowId(s) of the rows to show
+ * @param {boolean=} shown if false, hide instead of show
+ * @public
+ */
+tr.Grid.prototype.showRows = function (rowIds, shown) {
+	if (!Array.isArray(rowIds)) {
+		this._dataSource.showRows([rowIds], shown);
+	} else {
+		this._dataSource.showRows(rowIds, shown);
+	}
+};
+
+/**
+ * Unhide all hidden rows in the Grid
+ * @public
+ */
+tr.Grid.prototype.unhideAllRows = function () {
+	this._dataSource.unhideAllRows();
+};
+
+/**
+ * @public
+ */
+tr.Grid.prototype.hasHiddenRow = function () {
+	return this._dataSource.hasHiddenRow();
+};
+
+//#endregion Public Methods
+
+//#region Private Methods
+/** @private
+* @return {!Array.&lt;tr.ILayoutGrid&gt;}
+*/
+tr.Grid.prototype._getAllSections = function () {
+	var sections = [];
+	var sectionCount = this._settings.length;
+	for (var i = 0; i &lt; sectionCount; i++) {
+		sections.push(this._settings[i].getSection());
+	}
+	return sections;
+};
+/** @private
+* @param {number} increment
+* @param {(MouseEvent|tr.Grid.SectionReference)=} identifier This can be MouseEvent, index, or element id or pointer reference
+* @param {string=} opt_type The next section with the specified type. Default is any type
+* @return {tr.grid.SectionSettings}
+*/
+tr.Grid.prototype._getNextSection = function (increment, identifier, opt_type) {
+	var nextAt = this.getSectionIndex(identifier) + increment;
+	if(opt_type == null) { return this.getSectionSettings(nextAt); }
+
+	opt_type = this._toSectionType(opt_type);
+	var count = this._settings.length;
+	while (nextAt &gt;= 0 &amp;&amp; nextAt &lt; count) {
+		var sectionSettings = this._settings[nextAt];
+		if (opt_type === sectionSettings.getType()) {
+			return /**@type{tr.grid.SectionSettings}*/(sectionSettings);
+		}
+		nextAt += increment;
+	}
+	return null;
+};
+
+/** @private
+* @param {*} val
+* @return {string}
+*/
+tr.Grid.prototype._toSectionType = function (val) {
+	if(tr.Grid._sectionType[/** @type{string} */(val)]) { return /** @type{string} */(val); }
+
+	if (tr.isString(val)) {
+		var lowerCaseStr = val.charAt(0).toLowerCase();
+		switch (lowerCaseStr) {
+			case "t": return tr.res.title;
+			case "h": return tr.res.header;
+			case "s": return tr.res.header;
+			case "f": return tr.res.footer;
+		}
+	}
+
+	return tr.res.content;
+};
+
+/** @private
+* @param {string=} opt_type Possible value are "content", "title", "header", and "footer"
+* @param {string=} sectionName
+* @return {tr.grid.SectionSettings|null}
+*/
+tr.Grid.prototype._newSection = function (opt_type, sectionName) {
+	if(sectionName) {
+		for(var i = this._settings.length; --i &gt;= 0;) {
+			if (this._settings[i].getId() === sectionName) { // check if section name isn't already used
+				return null;
+			}
+		}
+	}
+
+	opt_type = this._toSectionType(opt_type);
+	var section = (opt_type === tr.res.content) ? new grid.VirtualizedLayoutGrid() : new LayoutGrid();
+	section._setContext(this);
+
+	var sectionSettings = new grid.SectionSettings(section);
+	sectionSettings.setId(sectionName);
+	sectionSettings.setType(opt_type);
+
+	sectionSettings.listen("dataChanged", this._onSectionDataChanged);
+	sectionSettings.listen("rowAvailable", this._onRowAvailable);
+
+	var rowHighlighting = (opt_type === tr.res.content) ? this._rowHighlighting : false;
+	section.enableRowHighlighting(rowHighlighting);
+	section.enableShading(false); // No alternate shading
+	section.setHidingMethod(this._hidingMethod);
+
+	sectionSettings.enableColumnVirtualization(this._colVirtualizer.isEnabled());
+	section.setColumnCount(this._layoutX.getLaneCount());
+	section.reserveRightSpace(this._reservedSpace);
+	// TODO: Add any column customization
+	this._syncLayoutToSectionColumns(section);
+	this._syncStyleToSectionColumns(section, opt_type);
+
+	if (opt_type !== this._rowHeightException) { section.setDefaultRowHeight(this._layoutY.getDefaultLaneSize()); }
+	section.listen("rowHighlighted", this._onRowHightlighted);
+	section.listen("rowCountChanged", this._onRowCountChanged);
+	section.listen("rowHeightChanged", this._onRowHeightChanged);
+
+	if (this._autoSetDataSource) {
+		sectionSettings.setDataSource(this._dataSource);
+	}
+	return sectionSettings;
+};
+
+/** @private */
+tr.Grid.prototype._putToLast = function(section) {
+	var sectionCount = this._settings.length;
+	if (sectionCount === 0) {
+		section.setParent(this._topNode, true);
+	} else {
+		var lastGrid = this.getLastSection();
+		var nextSibling = lastGrid.getElement().nextSibling;
+		if (nextSibling !== null) {
+			section.insertBefore(nextSibling);
+		} else {
+			section.setParent(this._topNode);
+		}
+	}
+};
+
+/** @private
+* @param {tr.ILayoutGrid} section
+* @param {string} sectionType
+*/
+tr.Grid.prototype._syncStyleToSectionColumns = function (section, sectionType) {
+	var name;
+	for (var i = this._columnDefs.length; --i &gt;= 0; ) {
+		var colDef = this._getColumnDef(i);
+		var styles = colDef["styles"];
+		for (name in styles) {
+			section.setColumnStyle(i, name, styles[name]);
+		}
+		var classes = colDef["classes"];
+		for (name in classes) {
+			section.enableColumnClass(i, name, true);
+		}
+
+		var sectionDef = colDef[sectionType];
+		if(sectionDef) {
+			styles = sectionDef["styles"];
+			for (name in styles) {
+				section.setColumnStyle(i, name, styles[name]);
+			}
+			classes = sectionDef["classes"];
+			for (name in classes) {
+				section.enableColumnClass(i, name, true);
+			}
+		}
+	}
+};
+/** @private
+* @return {boolean}
+*/
+tr.Grid.prototype._syncRowHeights = function () {
+	var sectionCount = this._settings.length;
+	for (var s = 0; s &lt; sectionCount; ++s) {
+		this._syncSectionRowHeights(this._settings[s].getSection());
+	}
+	if (!this._frozenLayout) {
+		return this._updateScrollbarHeight(true, true);
+	}
+	return false;
+};
+/** @private
+* @param {tr.ILayoutGrid} section
+*/
+tr.Grid.prototype._syncSectionRowHeights = function (section) {
+	this._layoutY.copyFrom(
+		section.getRowLayout(),
+		this._sectionStarts[section.getIndex()]
+	);
+};
+
+/** @private
+* @param {number} colIndex
+* @param {number} px If this is negative
+* @param {boolean=} opt_scalable Default is false
+* @return {boolean} True if there is any changed
+*/
+tr.Grid.prototype._setColumnWidth = function (colIndex, px, opt_scalable) {
+	var dirty = false;
+	var layoutX = this._layoutX;
+	if(opt_scalable != null) {
+		dirty = layoutX.setLaneScalability(colIndex, opt_scalable ? true : false);
+	} else {
+		var scalable = layoutX.getLaneScalability(colIndex);
+		if(this._preserveProportion) {
+			if(scalable) {
+				//calculate the proportion
+				var colCount = this.getColumnCount();
+				var totalWeight = 0, totalWidth = 0;
+				for (var j = 0; j &lt; colCount; ++j) {
+					if(!layoutX.getLaneScalability(j)) { continue; }
+					var colWidth = layoutX.getLaneSize(j);
+					var colWeight = layoutX.getCustomLaneSize(j);
+					totalWeight += colWeight;
+					totalWidth += colWidth;
+				}
+				var oldWeight = layoutX.getCustomLaneSize(colIndex);
+				px = ((px * totalWeight) - (px * oldWeight)) / (totalWidth - px);
+				if(!px || px &lt; 0) {
+					px = totalWeight; // In case of new width exceeds total available width, set new weight as total weight
+				}
+			}
+		} else {
+			dirty = layoutX.setLaneScalability(colIndex, false);
+		}
+	}
+	dirty = layoutX.setLaneSize(colIndex, px) || dirty;
+	return dirty;
+};
+
+/** @private
+* @param {number} at
+* @param {number} count
+* @param {boolean=} atTheMiddle
+* @param {*=} ctx
+*/
+tr.Grid.prototype._dispatchColumnAddedEvent = function (at, count, atTheMiddle, ctx) {
+	if (this._hasListener(tr.res.columnAdded)) {
+		var e = {};
+		e["atTheMiddle"] = atTheMiddle;
+		if(count === 1) {
+			e[tr.res.colIndex] = at;
+			e["context"] = ctx;
+			this._dispatch(tr.res.columnAdded, e);
+		} else {
+			var ary = Array.isArray(ctx) ? ctx : [];
+			for (var i = 0; i &lt; count; ++i) {
+				e[tr.res.colIndex] = at + i;
+				e["context"] = ary[i];
+				this._dispatch(tr.res.columnAdded, e);
+			}
+		}
+	}
+
+	this._dispatchColumnRenderEvent({},
+		at, at + count,
+		0, this._settings.length,
+		NaN, NaN);
+};
+
+/** @private
+* @param {!Object} e
+* @param {number} fromC
+* @param {number} toC EXCLUSIVE
+* @param {number} fromS
+* @param {number} toS EXCLUSIVE
+* @param {number} fromR If NaN or negative value is given. The entire section will be updated
+* @param {number} toR EXCLUSIVE
+*/
+tr.Grid.prototype._dispatchColumnRenderEvent = function (e, fromC, toC, fromS, toS, fromR, toR) {
+	if (!(fromS &lt; toS)) { // Column is added before section
+		return;
+	}
+
+	e["sender"] = this; // Make sure that the sender is this grid
+	e[tr.res.fromColIndex] = fromC;
+	e[tr.res.toColIndex] = toC;
+
+	var s;
+	if (this._hasListener("preSectionRender")) {
+		for (s = fromS; s &lt; toS; ++s) {
+			this._settings[s].extendRenderEventArg(e, fromR, toR);
+			this._dispatch("preSectionRender", e);
+		}
+	}
+
+	// Dispatch column render event
+	for (var c = fromC; c &lt; toC; ++c) { // For each column
+		var handler = this.getColumnRenderingHandler(c) || this._renderingHandler;
+		if (handler) {
+			e[tr.res.colIndex] = c;
+			e[tr.res.dataColumnName] = this.getDataColumnName(c);
+
+			for (s = fromS; s &lt; toS; ++s) { // For each section
+				var sectionSettings = this._settings[s];
+				sectionSettings.extendRenderEventArg(e, fromR, toR);
+
+				var section = sectionSettings.getSection();
+				var startR = e[tr.res.fromRowIndex];
+				var destR = e[tr.res.toRowIndex];
+				for (var r = startR; r &lt; destR; ++r) { // For each row
+					e[tr.res.rowIndex] = r;
+					e[tr.res.cell] = section["getCell"](c, r, false); // Accessing cell by using bracket allows extenal object to mock Section
+					handler(e);
+				}
+			}
+		}
+	}
+
+	if (this._hasListener("postSectionRender")) {
+		for (s = fromS; s &lt; toS; ++s) {
+			this._settings[s].extendRenderEventArg(e, fromR, toR);
+			this._dispatch("postSectionRender", e);
+		}
+	}
+
+	// Dispatch data binding event once after rendering for populating content of newly rendered cells
+	if (!e["noDataUpdate"] &amp;&amp; !this._noBinding) {
+		for (s = fromS; s &lt; toS; ++s) { // For each sectionSettings
+			this.updateRowData(this._settings[s], fromR, toR - 1);
+		}
+	}
+};
+/** @private
+* @param {Object} e
+*/
+tr.Grid.prototype._dispatchRowExpansionBinding = function (e) {
+	if (!this._hasListener("rowExpansionBinding")) {
+		return;
+	}
+
+	var dataView = /** @type{tr.DataView} */(e[tr.res.dataSource]);
+	if (!dataView || !dataView.getDataSource()) {
+		return;
+	}
+
+	var fromR = /** @type{number} */(e[tr.res.fromRowIndex]);
+	var toR = /** @type{number} */(e[tr.res.toRowIndex]);
+	var parents = dataView.getExpansionParents(fromR, toR);
+	var rids = dataView.getVisibleRowIds(true);
+
+	e["rowData"] = undefined;
+	e[tr.res.cell] = undefined;
+	for (var r = fromR; r &lt; toR; ++r) {
+		var parentRid = parents[r];
+		if(parentRid) { // Previous row is the row with expansion
+			e["originalRowData"] = dataView.getRowData(parentRid);
+			e["originalRowId"] = parentRid;
+			e["rowExpansion"] = true;
+		} else {
+			e["originalRowData"] = null;
+			e["originalRowId"] = null;
+			e["rowExpansion"] = false;
+		}
+		e["rowId"] = rids[r];
+		e[tr.res.rowIndex] = r;
+		this._dispatch("rowExpansionBinding", e);
+	}
+	e["originalRowData"] = null;
+	e["originalRowId"] = null;
+	e["rowExpansion"] = false;
+};
+
+/** @private
+* @param {number} num
+*/
+tr.Grid.prototype._removeColumn = function (num) {  // TODO: change the logic to use removeColumnAt
+	var colCount = this._layoutX.getLaneCount();
+	if (num &gt; colCount) { num = colCount; }
+	if (num &lt;= 0) { return; }
+
+	var newCount = colCount - num;
+	this._layoutX.setLaneCount(newCount);
+
+	for (var s = this._settings.length; --s &gt;= 0; ) {
+		var section = this._settings[s].getSection();
+		section.setColumnCount(newCount);
+	}
+
+	var removedCols = this._columnDefs.slice(newCount); // Shallow cloning
+	this._columnDefs.length = newCount;
+
+	this._onColumnCountChanged();
+	this._syncLayoutToColumns(newCount, 0, true); // Virtualizer's view bound will not be affected from column
+
+	if (this._hasListener(tr.res.columnRemoved)) {
+		var e = {};
+		for (var c = colCount; --c &gt;= newCount; ) {
+			var colDef = removedCols[c - newCount];
+			e[tr.res.colIndex] = c;
+			e[tr.res.columnData] = colDef ? colDef[tr.res.columnData] : null;
+			this._dispatch(tr.res.columnRemoved, e);
+		}
+	}
+};
+
+/** `section` variable in this scope can either be instance of LayoutGrid or SectionWriter (from tr-grid-printer).
+ * Need to force calling public methods (section["isColumnActive"] and section["getCell"]) so it works while being minified.
+ * @private
+* @param {!Object} e
+*/
+tr.Grid.prototype._onSectionDataChanged = function (e) {
+	if(this._dispatchingDataChanged) { return; } // Prevent infinite loop
+	this._dispatchingDataChanged = true;
+
+	var fromR = /** @type{number} */(e[tr.res.fromRowIndex]);
+	var toR = /** @type{number} */(e[tr.res.toRowIndex]);
+	var section = /** @type{tr.ILayoutGrid} */(e[tr.res.section]);
+	var dataView = /** @type{tr.DataView} */(e[tr.res.dataSource]);
+	var hasDataView = (dataView &amp;&amp; dataView.getDataSource()) ? 1 : 0;
+	var rids, rowDataCollection;
+	if(hasDataView) {
+		rids = dataView.getVisibleRowIds(true);
+		rowDataCollection = dataView.getMultipleRowData(rids, fromR, toR);
+		e["dataRows"] = rowDataCollection;
+	}
+	this._dispatch(tr.res.preSectionDataBinding, e);
+
+	var colCount = this._layoutX.getLaneCount();
+	var dataMap = this.getDataColumnMap();
+	for (var c = 0; c &lt; colCount; ++c) {
+		if(section["isColumnActive"](c) &amp;&amp; (this.isColumnVisible(c) || this._isAlwaysRenderColumn(c))) {
+			var handler = this.getColumnDataBindingHandler(c) || this._dataBindingHandler;
+			if (handler) {
+				var cid = dataMap[c];
+				e[tr.res.dataColumnName] = cid;
+				e[tr.res.colIndex] = c;
+
+				for (var r = fromR; r &lt; toR; ++r) {
+					if(hasDataView) {
+						var rowData = rowDataCollection[r];
+						if(!rowData) { // This is a header row
+							continue;
+						}
+
+						e["rowData"] = rowData;
+						e["rowId"] = rids[r];
+						e[tr.res.dataValue] = rowData[cid];
+					}
+					e[tr.res.rowIndex] = r;
+					e[tr.res.cell] = section["getCell"](c, r, false); // Accessing cell by using bracket allows extenal object to mock Section
+
+					handler(e);
+				}
+			}
+		}
+	}
+
+	this._dispatch(tr.res.postSectionDataBinding, e);
+
+	this._dispatchRowExpansionBinding(e);
+	this._dispatchingDataChanged = false;
+};
+
+/** @private
+* @param {tr.grid.VScrollbar|tr.grid.HScrollbar} scrollbar
+*/
+tr.Grid.prototype._updateScrollbar = function (scrollbar) {
+	if(scrollbar) {
+		if(scrollbar.isEnabled()) { scrollbar.update(); }
+		return scrollbar.isActive();
+	}
+	return false;
+};
+/** @private
+* @param {Object} e
+*/
+tr.Grid.prototype._onVScroll = function (e) {
+	this._rowVirtualizer.setViewOffset(this._vscrollbar.getScrollTop());  // Trigger virtualization event
+};
+/** @private
+* @param {Object} e
+*/
+tr.Grid.prototype._onHScroll = function (e) {
+	this._colVirtualizer.setViewOffset(this._hscrollbar.getScrollLeft()); // Trigger virtualization event
+};
+/** @private
+*/
+tr.Grid.prototype._onVScrollEnabled = function () {
+	this._updateScrollbarHeight(true, false);
+	if(this._rowVirtualizer.isEnabled()) {
+		this._rowVirtualizer.activate();
+	}
+	if(!this._vscrollbar.getAutoHide()) {
+		this._updateVScrollbar();
+	}
+};
+/** @private
+*/
+tr.Grid.prototype._onVScrollDisabled = function () {
+	if(this._rowVirtualizer.isEnabled()) {
+		this._rowVirtualizer.deactivate();
+	}
+};
+/** @private
+* @param {Object} e
+*/
+tr.Grid.prototype._onRowInViewChanged = function (e) { // Triggered from virtualizer
+	var fi = e[tr.res.firstIndex];
+	var ei = e[tr.res.lastIndex] + 1; // End index
+	var sectionCount = this._settings.length;
+	var updateRange = [0, 0];
+
+	for (var s = 0; s &lt; sectionCount; ++s) { // For each section
+		var sectionSettings = this._settings[s];
+		var section = sectionSettings.getSection();
+		if(section &amp;&amp; !section.getFrozenLayout()) { // Section may have been disposed or frozen
+			section.activateRows(fi, ei, updateRange);
+			this.updateRowData(sectionSettings,
+				updateRange[0],
+				updateRange[1] - 1
+			); // The updateRange are relative to the section
+		}
+	}
+};
+/** @private
+* @param {Object} e
+*/
+tr.Grid.prototype._onColInViewChanged = function (e) {
+	var pfi = e[tr.res.prevFirstIndex];
+	var pli = e[tr.res.prevLastIndex]; // INCLUSIVE
+	var fi = e[tr.res.firstIndex];
+	var li = e[tr.res.lastIndex]; // INCLUSIVE
+
+	var first = pfi &lt; fi ? pfi : fi;
+	var last = pli &gt; li ? pli : li; // INCLUSIVE
+
+	this._activateColumns(fi, li, first, last);
+
+	var rfi = this._rowVirtualizer.getFirstIndexInView();
+	var rli = this._rowVirtualizer.getLastIndexInView();
+	var sectionCount = this.getSectionCount();
+	for (var s = 0; s &lt; sectionCount; ++s) { // For each section
+		var sectionSettings = this._settings[s];
+		var rowIndexOffset = sectionSettings.getRowOffset();
+		this.updateRowData(sectionSettings, rfi - rowIndexOffset, rli - rowIndexOffset);
+	}
+};
+/** @private
+* @param {number=} fi First index in view
+* @param {number=} li Last index in view (inclusive)
+* @param {number=} first Starting index of range
+* @param {number=} last Ending index of range (inclusive)
+*/
+tr.Grid.prototype._activateColumns = function(fi, li, first, last) {
+	if (first == null) {
+		first = 0;
+	}
+
+	if (last == null) {
+		last = this.getColumnCount() - 1;
+	}
+
+	var activations = this._getColActivationList(fi, li, first, last);
+	var sectionCount = this.getSectionCount();
+	for(var s = sectionCount; --s &gt;= 0;) {
+		var sectionSettings = this._settings[s];
+		sectionSettings.activateColumns(activations, first, last);
+	}
+};
+/** @private
+* @param {number=} fi First index in view
+* @param {number=} li Last index in view (inclusive)
+* @param {number=} first Starting index of range
+* @param {number=} last Ending index of range (inclusive)
+* @return {Array.&lt;boolean&gt;}
+*/
+tr.Grid.prototype._getColActivationList = function (fi, li, first, last) {
+	if (first == null) { first = 0; }
+
+	var colCount = this.getColumnCount();
+	if (last == null) { last = colCount - 1; }
+
+	if (fi == null) {
+		fi = this._colVirtualizer.getFirstIndexInView();
+	}
+
+	if (li == null) {
+		li = this._colVirtualizer.getLastIndexInView();
+	}
+
+	var leftPinnedIndex = this._startHScrollbarIndex;
+	var rightPinnedIndex = this.getFirstPinnedRightIndex();
+	var activations = new Array(last + 1);
+	for (var c = first; c &lt;= last; ++c) {
+		activations[c] = (c &lt; leftPinnedIndex) ||
+			(c &gt;= fi &amp;&amp; c &lt;= li) ||
+			(c &gt;= rightPinnedIndex);
+	}
+	return activations;
+};
+/** @public
+* @ignore
+* @param {number} colIndex
+* @return {!Object}
+*/
+tr.Grid.prototype._getColumnDef = function (colIndex) {
+	if (colIndex &gt;= 0) {
+		var def = this._columnDefs[colIndex];
+		if (!def) {
+			def = this._columnDefs[colIndex] = {
+				"id": "" + tr.Grid._runningColumnId++, // Unique identifier
+				"columnData": {}
+			};
+		}
+		return def;
+	}
+	return {};
+};
+/** Retrieve 1 or 2 level of nested object definition
+* @private
+* @param {number} colIndex
+* @param {string=} firstLvl
+* @param {string=} secondLvl
+* @return {!Object}
+*/
+tr.Grid.prototype._getNestedColumnDef = function (colIndex, firstLvl, secondLvl) {
+	var def = this._getColumnDef(colIndex);
+	if(firstLvl) {
+		var parentDef = def;
+		def = parentDef[firstLvl];
+		if(!def) {
+			def = parentDef[firstLvl] = {};
+		}
+		if(secondLvl) {
+			parentDef = def;
+			def = parentDef[secondLvl];
+			if(!def) {
+				def = parentDef[secondLvl] = {};
+			}
+		}
+	}
+	return def;
+};
+/** @public
+* @ignore
+* @param {number} colIndex
+* @return {string}
+*/
+tr.Grid.prototype._getColumnId = function (colIndex) {
+	return this._getColumnDef(colIndex)["id"];
+};
+
+
+/** @private */
+tr.Grid.prototype._onWindowResize = function() {
+	this._updateLayout();
+	this._rowVirtualizer.setViewOffset(this._vscrollbar.getScrollTop());
+};
+/** @private */
+tr.Grid.prototype._onMouseMove = function () {
+	this._vscrollbar.flash();
+	this._hscrollbar.flash();
+};
+
+/** @private
+* @param {Object} e
+*/
+tr.Grid.prototype._onRowHightlighted = function (e) {
+	if (!this._hasListener("rowHighlighted")) { return; }
+
+	var section = e["sender"];
+	var settings = this.getSectionSettings(section.getId());
+	if (settings === null) { return; }
+
+	settings.extendEventArg(e);
+
+	var dataSource = settings.getDataSource();
+	if (dataSource !== null) {
+		e["rowId"] = dataSource.getRowId(/** @type{number} */(e[tr.res.rowIndex]));
+		e["dataRow"] = dataSource.getRowData(e["rowId"]);
+	}
+	this._dispatch("rowHighlighted", e);
+};
+/** @private
+* @param {Object} e
+*/
+tr.Grid.prototype._onRowCountChanged = function (e) {
+	if(this._disposed) {
+		return; // There is no need to do anything after grid is disposed
+	}
+	var section = /** @type {tr.ILayoutGrid} */(e["sender"]);
+	var prevRowCount = e["prevCount"];
+	var newRowCount = e["rowCount"];
+	var sectionIndex = section.getIndex();
+	var offset = this._updateSectionIndices(sectionIndex);
+	var i = 0;
+
+	if(prevRowCount &gt; newRowCount) { // case row removed
+		this._layoutY.removeLaneAt(offset, prevRowCount - newRowCount);
+		if(!this._layoutY.isHomogeneous()) {
+			this._syncSectionRowHeights(section);
+		}
+	} else { // case row added
+		var defaultHeight = this._layoutY.getDefaultLaneSize();
+		var customHeight = section.getDefaultRowHeight();
+
+		this._layoutY.insertLane(offset + prevRowCount, newRowCount - prevRowCount);
+		if (customHeight !== defaultHeight) {
+			for (i = prevRowCount; i &lt; newRowCount; ++i) {
+				this._layoutY.setLaneSize(offset + i, customHeight);
+			}
+		}
+	}
+
+	var paneChanged = (sectionIndex &lt;= this._startVScrollbarIndex) || (sectionIndex &gt;= this._getFooterStartIndex());
+	var forceUpdate = this._frozenFooterCount &gt; 0 ? true : false; // Prevent from footer section flashing
+	var viewChanged = this._updateScrollbarHeight(paneChanged, forceUpdate, e["noBinding"]); // Virtualization is triggered
+	if(!this._frozenLayout &amp;&amp; !viewChanged) { // Grid must activate newly created section if no event is dispatched from the row virtualizer
+		if(this._rowVirtualizer.isVirtualizable()) {
+			section.activateRows(this._rowVirtualizer.getFirstIndexInView(),
+				this._rowVirtualizer.getLastIndexInView());
+		} else {
+			section.activateRows();
+		}
+	}
+
+	if(!forceUpdate) {
+		this._updateVScrollbar(); // Asynchronous
+	}
+	if(prevRowCount &lt; newRowCount) {
+		this._dispatch("rowAdded", e);
+	} else if(prevRowCount &gt; newRowCount) {
+		this._dispatch("rowRemoved", e);
+	}
+};
+
+/** @private
+* @param {Object} e
+*/
+tr.Grid.prototype._onRowHeightChanged = function (e) {
+	if (!this._rowHeightSync) { return; }
+	if (this._disposed) { return; } // There is no need to sync anything after disposition
+	if(this._rowHeightConflator.conflate(e)) {
+		return;
+	}
+
+	var evts = this._rowHeightConflator.popAllData();
+
+	var len = evts.length;
+	var minSectionIndex = NaN;
+
+	// TODO: Set row height one by one is not good
+	for(var j = 0; j &lt; len; ++j) {
+		var evt = evts[j];
+		var section = /** @type {tr.ILayoutGrid} */(evt["sender"]);
+		if(!this._containsSection(section)) {
+			continue; // The section is no longer contained in this grid
+		}
+
+		var sectIndex = section.getIndex();
+		var relIndex = evt[tr.res.rowIndex];
+		var rowIndex = this.getRowIndex(sectIndex, relIndex);
+
+		var changeLength = evt["changeLength"];
+		for (var i = 0; i &lt; changeLength; ++i) {
+			if(this._layoutY.setLaneSize(rowIndex + i, section.getRowHeight(relIndex + i))) {
+				if(!(sectIndex &gt;= minSectionIndex)) {
+					minSectionIndex = sectIndex;
+				}
+			}
+		}
+	}
+
+	if(this._rowHeightConflator._needScrollbarUpdate) {
+		this._rowHeightConflator._needScrollbarUpdate = false;
+		this._updateScrollbarHeight(true, true);
+	} else if(minSectionIndex &gt;= 0) {
+		this._updateScrollbarHeight(minSectionIndex &lt; this._startVScrollbarIndex,
+			minSectionIndex &gt;= this._startVScrollbarIndex);
+	}
+};
+/** @private
+* @param {tr.ILayoutGrid} s
+*/
+tr.Grid.prototype._containsSection = function (s) {
+	for(var i = this._settings.length; --i &gt;= 0;) {
+		if(this._settings[i].getSection() === s) {
+			return true;
+		}
+	}
+	return false;
+};
+
+/** @private
+* @param {!Object} e
+*/
+tr.Grid.prototype._onRowAvailable = function (e) {
+	var sectionIndex = /** @type{number} */(e[tr.res.sectionIndex]);
+	this._dispatchColumnRenderEvent(e,
+		0, this.getColumnCount(),
+		sectionIndex, sectionIndex + 1,
+		e[tr.res.prevRowIndex], e[tr.res.rowIndex]);
+};
+
+/** @private
+* @param {boolean=} opt_suppressLayout
+*/
+tr.Grid.prototype._onSectionCountChanged = function (opt_suppressLayout) {
+	if(this._frozenLayout) { return; }
+
+	if (this._tempFrozenSectionRef) {
+		var startVScrollbarSection = this.getNextSection(this._tempFrozenSectionRef);
+		if (startVScrollbarSection !== null) {
+			this._startVScrollbarIndex = startVScrollbarSection.getIndex();
+			this._tempFrozenSectionRef = "";
+		}
+	}
+
+	if (this._startVScrollbarIndex &gt;= 0 &amp;&amp; this._startVScrollbarIndex &lt; this._getFooterStartIndex()) {
+		// TODO: should enable scrollbar inside DataSourceTreePlugin instead
+		this._vscrollbar.enable();
+
+		// Reinsert sections
+		this._vscrollbar.setScrollContent(this, this._getAllSections(), this._startVScrollbarIndex);
+
+		if(!opt_suppressLayout) {
+			this._updateScrollbarHeight(true, true);
+		}
+		this._syncLayoutToColumns();
+	} else {
+		this._vscrollbar.disable();
+	}
+};
+/** @private */
+tr.Grid.prototype._onColumnCountChanged = function () {
+	if(this._frozenLayout) { return; }
+
+	var colCount = this.getColumnCount();
+	var pinnedRight = this._countPinnedRightColumns();
+	var pinnedLeft = this._startHScrollbarIndex &gt;= 0 ? this._startHScrollbarIndex : colCount;
+
+	if (pinnedLeft + pinnedRight &lt; colCount) {
+		this._hscrollbar.enable();
+		this._colVirtualizer.activate();
+
+		this._hscrollbar.setScrollContent(
+			this,
+			this._getAllSections(),
+			this._startHScrollbarIndex,
+			pinnedRight
+		);
+	} else {
+		this._hscrollbar.disable();
+		this._colVirtualizer.deactivate();
+	}
+};
+
+/** @private
+* @param {Object} e
+*/
+tr.Grid.prototype._onSyncVScroll = function (e) {
+	this._vscrollbar.setScrollTop(e.scrollTop);
+};
+/** @private
+* @return {number} index of footer section
+*/
+tr.Grid.prototype._getFooterStartIndex = function () {
+	return this.getSectionCount() - this._frozenFooterCount;
+};
+/** @private
+* @return {number} pixel without zoom factor
+*/
+tr.Grid.prototype._getVScrollStart = function () {
+	return this._getSectionSize(0, this._startVScrollbarIndex);
+};
+/** @private
+* @return {number} pixel without zoom factor
+*/
+tr.Grid.prototype._getFooterSize = function () {
+	return (this._frozenFooterCount &gt; 0) ? this._getSectionSize(this._getFooterStartIndex()) : 0;
+};
+/** @private
+* @param {number=} startIndex
+* @param {number=} count
+* @return {number} pixel without zoom factor
+*/
+tr.Grid.prototype._getSectionSize = function (startIndex, count) {
+	if(!startIndex) {
+		startIndex = 0;
+	} else if(startIndex &lt; 0) {
+		return 0;
+	}
+	if(count == null) {
+		count = this.getSectionCount() - startIndex;
+	}
+	var startPos = this._layoutY.getLaneStart(
+		this._sectionStarts[startIndex]
+	);
+
+	var endIndex = startIndex + count;
+	var endPos = count &gt; 0 ? this._layoutY.getLaneStart(
+		this._sectionStarts[endIndex]
+	) : 0;
+	return endPos - startPos;
+};
+
+/** @private
+* @param {boolean} paneChanged
+* @param {boolean} contentChanged
+* @param {boolean=} noBinding
+* @return {boolean}
+*/
+tr.Grid.prototype._updateScrollbarHeight = function (paneChanged, contentChanged, noBinding) {
+	if(!this._vscrollbar.isEnabled()) {
+		return false;
+	}
+
+	var forceUpdateLayout = contentChanged;
+	var recalculation = paneChanged &amp;&amp; this._startVScrollbarIndex &gt;= 0;
+	var hasRowHeightChanged = this._rowHeightConflator.isConflating();
+	if(hasRowHeightChanged) {
+		this._rowHeightConflator._needScrollbarUpdate = true;
+
+		// Should not force layout-update while rowHeightConflator is executing
+		// because states have not updated and will actives scrollbar unintentionally.
+		forceUpdateLayout = false;
+	}
+
+	if (recalculation &amp;&amp; !hasRowHeightChanged) {
+		// Scroll Frame
+		var gridElem = this.getElement();
+		if(!gridElem) {
+			return false;
+		}
+
+		var gridParent = this.getParent();
+		var scrollFrame = this._vscrollbar.getParent();
+		if(scrollFrame) {
+			if(scrollFrame !== gridParent) { // If vscrollbar is attached to an external element
+				// Assume that there is always a horizontal scrollbar host underneath
+				if(scrollFrame.firstElementChild) {
+					scrollFrame = scrollFrame.firstElementChild;
+				}
+			}
+		} else {
+			scrollFrame = gridElem;
+			this._vscrollbar.setParent(scrollFrame);
+		}
+
+		var sectionStart = this._getVScrollStart();
+		var footerSize = this._getFooterSize();
+
+		if(scrollFrame !== gridElem) {
+			sectionStart += gridElem.clientTop;
+		}
+
+		// Scroll Track and Pane
+		this._vscrollbar.resetPaneSize(); // scrollFrame could have a dynamic height that rely on pane's content.
+		var containerHeight = scrollFrame.clientHeight - (sectionStart + footerSize) * this._zoomFactor;
+
+		// Pane size needs to be bigger when zooming out to keep the same view size
+		this._vscrollbar.setTop(sectionStart * this._zoomFactor);
+		this._vscrollbar.setTrackSize(containerHeight, containerHeight / this._zoomFactor);
+
+		// This calculation is for finding a appropriate dynamic buffer size
+		// because in the large content number, buffer need to be bigger.
+		// TODO: move buffer calculation to virtualizer
+		var defaultSize = this._layoutY.getDefaultLaneSize();
+		var viewSize = defaultSize * 12; // Display at least 12 rows
+
+		if (containerHeight &gt; viewSize) {
+			viewSize = (Math.ceil(containerHeight / defaultSize) + 4) * defaultSize;
+		}
+
+		// HACK: Due to fixed layout size we need to scale view size instead of content size, when zooming
+		// TODO: Check if zoom factor is used for virtualization correctly
+		this._rowVirtualizer.setViewSize(viewSize / this._zoomFactor);
+		this._rowVirtualizer.setViewBounds(this._startVScrollbarIndex, this.getFooterCount());
+	} else {
+		this._rowVirtualizer.validateVirtualization(); // Content height may be changed
+	}
+
+	var viewChanged = false;
+	if(!noBinding) {
+		viewChanged = this._rowVirtualizer.update(); // May fire onRowInViewChanged
+	}
+
+	this._vscrollbar.invalidate(forceUpdateLayout); // Update visual for vertical scrollbar
+
+	return viewChanged;
+};
+/** @private
+* @param {boolean} paneChanged
+* @param {boolean} contentChanged
+*/
+tr.Grid.prototype._updateScrollbarWidth = function (paneChanged, contentChanged) {
+	if (paneChanged &amp;&amp; this._startHScrollbarIndex &gt;= 0) {
+		// Scroll Frame
+		var gridElem = this.getElement();
+		var scrollFrame = this._hscrollbar.getParent();
+		if (!scrollFrame) {
+			scrollFrame = this.getParent() || gridElem;
+			this._hscrollbar.setParent(scrollFrame);
+		}
+
+		// Frozen Area
+		var leftFrozenArea = this._layoutX.getLaneStart(this._startHScrollbarIndex);
+
+		var colCount = this._layoutX.getLaneCount();
+		var rightFrozenArea = 0;
+		var rightPinnedCount = this._countPinnedRightColumns();
+		if (rightPinnedCount) {
+			rightFrozenArea = this._layoutX.getLaneStart(colCount) -
+				this._layoutX.getLaneStart(colCount - rightPinnedCount);
+		}
+
+		// Scroll Track and Pane
+		var gridClientWidth = (scrollFrame !== gridElem) ? gridElem.clientLeft : 0;
+		var containerWidth = scrollFrame.clientWidth -
+				(leftFrozenArea + gridClientWidth + rightFrozenArea) * this._zoomFactor;
+
+		if (rightPinnedCount &gt; 0) {
+			containerWidth = containerWidth - this._reservedSpace;
+		}
+
+		this._hscrollbar.setPaneLeft(leftFrozenArea);
+		this._hscrollbar.setLeft((leftFrozenArea + gridClientWidth) * this._zoomFactor);
+		this._hscrollbar.setTrackSize(containerWidth, containerWidth / this._zoomFactor);
+
+		var defaultSize = this._layoutX.getDefaultLaneSize();
+		var viewSize = defaultSize * 4; // Display at least 4 column
+		if (containerWidth &gt; viewSize) {
+			viewSize = containerWidth;
+		}
+		this._colVirtualizer.setViewSize(viewSize / this._zoomFactor);
+		this._colVirtualizer.setViewBounds(this._startHScrollbarIndex, rightPinnedCount);
+	} else {
+		this._colVirtualizer.validateVirtualization(); // Content width may be changed
+	}
+
+	this._colVirtualizer.update();
+
+	this._hscrollbar.invalidate(contentChanged);  // Update content width
+};
+
+/** @private
+* @ignore
+* @param {number} relativeY y position that is relative to the top left this object.
+* @param {!Object} returnedObj
+* @return {boolean}
+*/
+tr.Grid.prototype._hitTestY = function (relativeY, returnedObj) {
+	var sectionSettings;
+	if (returnedObj[tr.res.sectionSettings]) {
+		sectionSettings = returnedObj[tr.res.sectionSettings];
+	} else {
+		var rowIndex;
+		if (returnedObj[tr.res.rowIndex] == 'number') {
+			rowIndex = returnedObj['rowIndex'];
+		} else {
+			rowIndex = this._layoutY.hitTest(relativeY);
+		}
+		var validRowIndex = (rowIndex &gt;= 0) ? rowIndex : ~rowIndex; // TODO: Check if this is necessary
+		var sectionIndex = tr.upperBound(this._sectionStarts, validRowIndex) - 1;
+		returnedObj[tr.res.sectionIndex] = sectionIndex;
+		sectionSettings = this._settings[sectionIndex];
+		if(!sectionSettings) { // Cannot find SectionSettings
+			return false;
+		}
+		sectionSettings.extendEventArg(returnedObj);
+	}
+
+	var section = sectionSettings.getSection();
+	if(returnedObj[tr.res.colIndex] !== undefined &amp;&amp; returnedObj["cellElement"]) {
+		returnedObj[tr.res.rowIndex] = section.getCellIndex(returnedObj[tr.res.colIndex], returnedObj["cellElement"]);
+	} else {
+		returnedObj[tr.res.rowIndex] = rowIndex + section.getRowOffset();
+	}
+
+	return true;
+};
+
+/** @private
+* @param {number=} from
+* @param {number=} to
+* @param {boolean=} opt_forceDispatching
+* @fires tr.Grid#widthChanged
+*/
+tr.Grid.prototype._syncLayoutToColumns = function (from, to, opt_forceDispatching) {
+	if (this._frozenLayout) { return; }
+	var colCount = this._layoutX.getLaneCount();
+	var forceUpdate = this.fillParentWidth(100); // Resize all columns if there is a scaling column
+	if (forceUpdate || (from == null) || (to == null)) {
+		from = 0;
+		to = colCount;
+		forceUpdate = true;
+	}
+
+	var sectCount = this._settings.length;
+	if (sectCount &lt;= 0) { return; }
+
+	var dirty = false;
+	if(from &lt; to) {
+		for (var i = 0; i &lt; sectCount; ++i) {
+			dirty = this._syncLayoutToSectionColumns(this._settings[i].getSection(), from, to) || dirty;
+		}
+	}
+
+	// TODO: Check if "to" should be greater than or equal to first pinnied right index
+	var shouldUpdate = forceUpdate || (from &lt; this._startHScrollbarIndex) || (to &gt; this.getFirstPinnedRightIndex());
+	this._updateScrollbarWidth(shouldUpdate, true);
+
+	if (dirty || opt_forceDispatching) {
+		this._dispatch("widthChanged", {
+			"from": from,
+			"to": to,
+			"colChanged": from
+		});
+	}
+};
+/** @private
+* @param {tr.ILayoutGrid} section
+* @param {number=} opt_from
+* @param {number=} opt_to
+* @return {boolean} True if there is any change
+*/
+tr.Grid.prototype._syncLayoutToSectionColumns = function (section, opt_from, opt_to) {
+	if (opt_from == null) { opt_from = 0; }
+	if (opt_to == null) { opt_to = this._layoutX.getLaneCount(); }
+
+	var dirty = 0;
+	for (var i = opt_from; i &lt; opt_to; ++i) {
+		dirty |= section._setColumnWidth(i, this._layoutX.getLaneSize(i));
+	}
+	if(dirty &amp;&amp; !this._frozenLayout) {
+		section._updateColumnLayout(); // TODO: This could be further improved by identifying first dirty index
+		return true;
+	}
+	return false;
+};
+
+/** @private
+* @param {number|string} colRef
+* @return {string}
+*/
+tr.Grid.prototype._toDataColumnName = function (colRef) {
+	if (tr.isNumber(colRef)) {
+		return this.getDataColumnName(/** @type{number} */(colRef));
+	}
+	return /** @type{string} */(colRef);
+};
+
+/** @private
+* @param {number} from
+* @return {number} offset value at the given index
+*/
+tr.Grid.prototype._updateSectionIndices = function (from) {
+	if(this._updatePaddingBottomSect()) { // Bottom padding must always be at the last section
+		--from; // The section has been moved, so we shift the position required for update
+	}
+
+	if (from &lt; 0) { from = 0; }
+
+	// Adjust Index offsets for hittest
+	var sectionCount = this._settings.length;
+	var first = this._settings[0] || null;
+	if (first !== this._firstSettings) {
+		if (this._firstSettings) { this._firstSettings.getSection().removeClass("first"); }
+		this._firstSettings = first;
+		if (this._firstSettings) { this._firstSettings.getSection().addClass("first"); }
+	}
+	var last = this._settings[sectionCount - 1] || null;
+	if (last !== this._lastSettings) {
+		if (this._lastSettings) { this._lastSettings.getSection().removeClass("last"); }
+		this._lastSettings = last;
+		if (this._lastSettings) { this._lastSettings.getSection().addClass("last"); }
+	}
+
+	this._sectionStarts.length = sectionCount + 1;
+	this._sectionStarts[0] = 0;
+	for (var i = from; i &lt; sectionCount; ++i) {
+		var section = this._settings[i].getSection();
+		section.setIndex(i);
+		section.setRowOffset(this._sectionStarts[i]);
+		this._sectionStarts[i + 1] = this._sectionStarts[i] + section.getRowCount();
+	}
+
+	return this._sectionStarts[from];
+};
+
+/** @private */
+tr.Grid.prototype._updateLayout = function () {
+	if(this._disposed) { return; }
+
+	this._syncLayoutToColumns(); // Update only if need
+
+	this._updateScrollbarHeight(true, true);
+	this._updateScrollbarWidth(true, true);
+
+	var sectionCount = this.getSectionCount();
+	for (var s = 0; s &lt; sectionCount; ++s) {
+		var settings = this._settings[s];
+		var section = settings.getSection();
+		if(settings.getType() == tr.res.title) { // Currently we only need title to be updated
+			section.updateLayout();
+		}
+		if(section.getReservedSpace()) {
+			// TODO: should update right space's style inside section.updateLayout function
+			section._updateRightSpaceStyle(this._hscrollbar.isActive() &amp;&amp; !this._pinnedRightColumnCount);
+		}
+	}
+};
+
+/** @private */
+tr.Grid.prototype._updateVScrollbar = function() {
+	if (this._disposed || !this._vscrollbar.isEnabled()) { return; } // There is no need to sync anything after disposition
+	if(this._vScrollbarConflator.conflate()) {
+		return;
+	}
+	this._vscrollbar.update();
+};
+
+//#endregion Private Methods
+
+goog.exportSymbol("tr.Grid", tr.Grid);
+(function() {
+var pt = tr.Grid.prototype;
+var methodMap = {
+	"dispose": pt.dispose,
+	"isDisposed": pt.isDisposed,
+	"setParent": pt.setParent,
+	"insertBefore": pt.insertBefore,
+	"show": pt.show,
+
+	"getConfigObject": pt.getConfigObject,
+
+	"fillParentWidth": pt.fillParentWidth,
+	"getContentWidth": pt.getContentWidth,
+
+	"loadPlugin": pt.loadPlugin,
+	"unloadPlugin": pt.unloadPlugin,
+	"getPlugin": pt.getPlugin,
+	"getPlugins": pt.getPlugins,
+	"getPluginList": pt.getPluginList,
+
+	"getSectionCount": pt.getSectionCount,
+	"addSection": pt.addSection,
+	"addSectionAt": pt.addSectionAt,
+	"removeSection": pt.removeSection,
+	"removeSectionAt": pt.removeSectionAt,
+	"removeLastSection": pt.removeLastSection,
+	"getSection": pt.getSection,
+	"getSectionSettings": pt.getSectionSettings,
+
+	"getAllSections": pt.getAllSections,
+	"getAllSectionSettings": pt.getAllSectionSettings,
+	"getSectionIndex": pt.getSectionIndex,
+	"getSectionTop": pt.getSectionTop,
+	"getPreviousSection": pt.getPreviousSection,
+	"getNextSection": pt.getNextSection,
+	"getLastSection": pt.getLastSection,
+
+	"getCell": pt.getCell,
+	"getCellInfo": pt.getCellInfo,
+	"getNextCellInRow": pt.getNextCellInRow,
+	"getPrevCellInRow": pt.getPrevCellInRow,
+	"getNextCell": pt.getNextCell,
+	"getPrevCell": pt.getPrevCell,
+
+	"getColumnCount": pt.getColumnCount,
+	"setColumnCount": pt.setColumnCount,
+	"removeColumnAt": pt.removeColumnAt,
+	"removeAllColumns": pt.removeAllColumns,
+	"insertColumn": pt.insertColumn,
+	"insertColumns": pt.insertColumns,
+	"moveColumn": pt.moveColumn,
+
+	"addRow": pt.addRow,
+	"removeRow": pt.removeRow,
+	"getRowCount": pt.getRowCount,
+	"setSectionRowCount": pt.setSectionRowCount,
+	"getRowIndex": pt.getRowIndex,
+	"getRelativeIndex": pt.getRelativeIndex,
+	"getColumnIndex": pt.getColumnIndex,
+	"removeAllRows": pt.removeAllRows,
+	"removeAllSections": pt.removeAllSections,
+	"setBottomPaddingSection": pt.setBottomPaddingSection,
+
+	"getDefaultRowHeight": pt.getDefaultRowHeight,
+	"setDefaultRowHeight": pt.setDefaultRowHeight,
+
+	"getDataSource": pt.getDataSource,
+	"setDataSource": pt.setDataSource,
+	"setDataConflationRate": pt.setDataConflationRate,
+	"getDataConflationRate": pt.getDataConflationRate,
+
+	"getColumnTemplate": pt.getColumnTemplate,
+	"setColumnTemplate": pt.setColumnTemplate,
+	"setColumnStyle": pt.setColumnStyle,
+	"enableColumnClass": pt.enableColumnClass,
+	"hasColumnClass": pt.hasColumnClass,
+	"setColumnAlignment": pt.setColumnAlignment,
+	"getColumnAlignment": pt.getColumnAlignment,
+	"getColumnLeft": pt.getColumnLeft,
+	"getColumnRight": pt.getColumnRight,
+	"getColumnWidth": pt.getColumnWidth,
+	"setColumnWidth": pt.setColumnWidth,
+	"setColumnWidths": pt.setColumnWidths,
+	"resetColumnWidths": pt.resetColumnWidths,
+	"setColumnDefaultWidth": pt.setColumnDefaultWidth,
+	"preserveProportion": pt.preserveProportion,
+	"isProportionPreserved": pt.isProportionPreserved,
+	"preserveGridSize": pt.preserveGridSize,
+	"isColumnVisible": pt.isColumnVisible,
+	"hideColumn": pt.hideColumn,
+	"hideColumns": pt.hideColumns,
+	"showAllColumns": pt.showAllColumns,
+	"getColumnScalability": pt.getColumnScalability,
+	"setColumnScalability": pt.setColumnScalability,
+	"setDefaultColumnScalable": pt.setDefaultColumnScalable,
+	"getMinimumColumnWidth": pt.getMinimumColumnWidth,
+	"setMinimumColumnWidth": pt.setMinimumColumnWidth,
+	"setMinimumColumnWidths": pt.setMinimumColumnWidths,
+	"getColumnData": pt.getColumnData,
+	"setColumnData": pt.setColumnData,
+	"newColumnData": pt.newColumnData,
+	"setColumnVisibility": pt.setColumnVisibility,
+	"getColumnCustomLaneSize": pt.getColumnCustomLaneSize,
+	"setAlwaysRenderColumn": pt.setAlwaysRenderColumn,
+
+	"getFitContentWidth": pt.getFitContentWidth,
+	"setFitContentWidth": pt.setFitContentWidth,
+
+	"getColumnRenderEvent": pt.getColumnRenderEvent,
+	"getColumnDataBindingEvent": pt.getColumnDataBindingEvent,
+
+	"freezeSection": pt.freezeSection,
+	"freezeFooter": pt.freezeFooter,
+	"freezeColumn": pt.freezeColumn,
+	"freezeLayout": pt.freezeLayout,
+	"unfreezeLayout": pt.unfreezeLayout,
+	"isLayoutFrozen": pt.isLayoutFrozen,
+	"getFooterCount": pt.getFooterCount,
+	"isPinnedColumn": pt.isPinnedColumn,
+	"getFrozenColumnCount": pt.getFrozenColumnCount,
+	"getPinnedLeftColumnCount": pt.getPinnedLeftColumnCount,
+	"getPinnedRightColumnCount": pt.getPinnedRightColumnCount,
+	"getFirstPinnedRightIndex": pt.getFirstPinnedRightIndex,
+
+	"updateLayout": pt.updateLayout,
+	"updateScrollbars": pt.updateScrollbars,
+
+	"showBorders": pt.showBorders,
+	"hideBorders": pt.hideBorders,
+	"toggleBorders": pt.toggleBorders,
+	"toggleGridlines": pt.toggleGridlines,
+	"toggleVerticalLines": pt.toggleVerticalLines,
+	"toggleHorizontalLines": pt.toggleHorizontalLines,
+
+	"getVScrollbar": pt.getVScrollbar,
+	"getHScrollbar": pt.getHScrollbar,
+	"scrollToColumn": pt.scrollToColumn,
+	"getScrollLeft": pt.getScrollLeft,
+	"setScrollLeft": pt.setScrollLeft,
+	"scrollRight": pt.scrollRight,
+	"getScrollWidth": pt.getScrollWidth,
+
+	"getYScrollVal": pt.getYScrollVal,
+	"scrollToRow": pt.scrollToRow,
+	"getScrollTop": pt.getScrollTop,
+	"setScrollTop": pt.setScrollTop,
+	"scrollDown": pt.scrollDown,
+	"getVScrollView": pt.getVScrollView,
+	"getScrollHeight": pt.getScrollHeight,
+	"autoHideScrollbars": pt.autoHideScrollbars,
+	"getVScrollStartIndex": pt.getVScrollStartIndex,
+	"getHScrollStartIndex": pt.getHScrollStartIndex,
+
+	"getColumnVirtualizer": pt.getColumnVirtualizer,
+	"getRowVirtualizer": pt.getRowVirtualizer,
+	"getDataColumnMap": pt.getDataColumnMap,
+	"setDataColumnMap": pt.setDataColumnMap,
+	"getDataColumnName": pt.getDataColumnName,
+	"setDataColumnName": pt.setDataColumnName,
+
+	"setDefaultRenderingHandler": pt.setDefaultRenderingHandler,
+	"setDefaultDataBindingHandler": pt.setDefaultDataBindingHandler,
+	"setColumnRenderingHandler": pt.setColumnRenderingHandler,
+	"setColumnDataBindingHandler": pt.setColumnDataBindingHandler,
+	"getColumnRenderingHandler": pt.getColumnRenderingHandler,
+	"getColumnDataBindingHandler": pt.getColumnDataBindingHandler,
+	"isBinding": pt.isBinding,
+
+	"enableRowHighlighting": pt.enableRowHighlighting,
+	"getRelativePosition": pt.getRelativePosition,
+	"enableRowVirtualization": pt.enableRowVirtualization,
+	"enableColumnVirtualization": pt.enableColumnVirtualization,
+	"setRowScrollingStep": pt.setRowScrollingStep,
+	"getVMouseWheelHandler": pt.getVMouseWheelHandler,
+	"synchronizeVScrollbar": pt.synchronizeVScrollbar,
+
+	"updateRowData": pt.updateRowData,
+	"rerender": pt.rerender,
+	"getData": pt.getData,
+	"setData": pt.setData,
+	"removeRowData": pt.removeRowData,
+
+	"setHidingMethod": pt.setHidingMethod,
+	"reserveRightSpace": pt.reserveRightSpace,
+	"getHiddenInput": pt.getHiddenInput,
+	"focus": pt.focus,
+
+	"requestRowRefresh": pt.requestRowRefresh,
+	"disableLazyRendering": pt.disableLazyRendering,
+	"deactivateRendering": pt.deactivateRendering,
+
+	"hideRow": pt.hideRow,
+	"hideRows": pt.hideRows,
+	"showRows": pt.showRows,
+	"unhideAllRows": pt.unhideAllRows,
+	"hasHiddenRow": pt.hasHiddenRow
+};
+// Export methods for Closure's advanced compilation
+for(var methodName in methodMap) {
+	goog.exportProperty(pt, methodName, methodMap[methodName]);
+}
+})();
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="AdFin.html">AdFin</a></li><li><a href="DateTime.html">DateTime</a></li><li><a href="Info.html">Info</a></li><li><a href="Logic.html">Logic</a></li><li><a href="Math.html">Math</a></li><li><a href="Realtime.html">Realtime</a></li><li><a href="Statistic.html">Statistic</a></li><li><a href="Text.html">Text</a></li><li><a href="tr.ElementFrameWork.html">ElementFrameWork</a></li><li><a href="tr.PipDefinition.html">PipDefinition</a></li></ul><h3>Classes</h3><ul><li><a href="tr.ADCSubscription.html">ADCSubscription</a></li><li><a href="tr.AdFinSubscription.html">AdFinSubscription</a></li><li><a href="tr.cgrid.editor.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.filter.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.formatter.AsyncFormatter.html">AsyncFormatter</a></li><li><a href="tr.cgrid.formatter.CheckBox.html">CheckBox</a></li><li><a href="tr.cgrid.formatter.UpDownColor.html">UpDownColor</a></li><li><a href="tr.ColumnStats.html">ColumnStats</a></li><li><a href="tr.CompositeGrid.html">CompositeGrid</a></li><li><a href="tr.DataCache.html">DataCache</a></li><li><a href="tr.DataTable.html">DataTable</a></li><li><a href="tr.DataView.html">DataView</a></li><li><a href="tr.DropDown.html">DropDown</a></li><li><a href="tr.ElementControl.html">ElementControl</a></li><li><a href="tr.ElementWrapper.html">ElementWrapper</a></li><li><a href="tr.Event.html">Event</a></li><li><a href="tr.EventDispatcher.html">EventDispatcher</a></li><li><a href="tr.EventDispatcher.extendClass-tempCtor.html">tempCtor</a></li><li><a href="tr.EventManager.html">EventManager</a></li><li><a href="tr.FieldFormatter.html">FieldFormatter</a></li><li><a href="tr.fn.Engine.html">Engine</a></li><li><a href="tr.fn.Formula.html">Formula</a></li><li><a href="tr.fn.VariableToken.html">VariableToken</a></li><li><a href="tr.Grid.html">Grid</a></li><li><a href="tr.grid.BidOfferSpan.html">BidOfferSpan</a></li><li><a href="tr.grid.Blinker.html">Blinker</a></li><li><a href="tr.grid.Cell.html">Cell</a></li><li><a href="tr.grid.CellBlinkingPlugin.html">CellBlinkingPlugin</a></li><li><a href="tr.grid.CellEditingPlugin.html">CellEditingPlugin</a></li><li><a href="tr.grid.CellFloatingPanel.html">CellFloatingPanel</a></li><li><a href="tr.grid.CellPainter.html">CellPainter</a></li><li><a href="tr.grid.CellSpan.html">CellSpan</a></li><li><a href="tr.grid.CellSpans.html">CellSpans</a></li><li><a href="tr.grid.CellWriter.html">CellWriter</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html">CheckboxColumnPlugin</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html">CollapsibleHeaderPlugin</a></li><li><a href="tr.grid.ColumnFilterPlugin.html">ColumnFilterPlugin</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html">ColumnGroupingPlugin</a></li><li><a href="tr.grid.ColumnSelectionPlugin.html">ColumnSelectionPlugin</a></li><li><a href="tr.grid.ColumnStackingPlugin.html">ColumnStackingPlugin</a></li><li><a href="tr.grid.ColumnWidthAdjustingPlugin.html">ColumnWidthAdjustingPlugin</a></li><li><a href="tr.grid.Conflator.html">Conflator</a></li><li><a href="tr.grid.DataSourceTreePlugin.html">DataSourceTreePlugin</a></li><li><a href="tr.grid.DirectContentBindingPlugin.html">DirectContentBindingPlugin</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html">DragAndDropTitlePlugin</a></li><li><a href="tr.grid.DraggableContentPlugin.html">DraggableContentPlugin</a></li><li><a href="tr.grid.FindBar.html">FindBar</a></li><li><a href="tr.grid.FindBarPlugin.html">FindBarPlugin</a></li><li><a href="tr.grid.GroupStatisticsPlugin.html">GroupStatisticsPlugin</a></li><li><a href="tr.grid.HeatMapRenderer.html">HeatMapRenderer</a></li><li><a href="tr.grid.HScrollbar.html">HScrollbar</a></li><li><a href="tr.grid.IndexMarker.html">IndexMarker</a></li><li><a href="tr.grid.MovableHeaderPlugin.html">MovableHeaderPlugin</a></li><li><a href="tr.grid.NumberFormatter.html">NumberFormatter</a></li><li><a href="tr.grid.PercentBar.html">PercentBar</a></li><li><a href="tr.grid.PercentBarRenderer.html">PercentBarRenderer</a></li><li><a href="tr.grid.Plugin.html">Plugin</a></li><li><a href="tr.grid.RangeBar.html">RangeBar</a></li><li><a href="tr.grid.ResizableTitlePlugin.html">ResizableTitlePlugin</a></li><li><a href="tr.grid.Reverter.html">Reverter</a></li><li><a href="tr.grid.RowHeightAdjustingPlugin.html">RowHeightAdjustingPlugin</a></li><li><a href="tr.grid.RowSelectionPlugin.html">RowSelectionPlugin</a></li><li><a href="tr.grid.Scrollbar.html">Scrollbar</a></li><li><a href="tr.grid.SectionSettings.html">SectionSettings</a></li><li><a href="tr.grid.SmartTooltipsPlugin.html">SmartTooltipsPlugin</a></li><li><a href="tr.grid.SortableTitlePlugin.html">SortableTitlePlugin</a></li><li><a href="tr.grid.TreeIndentingPlugin.html">TreeIndentingPlugin</a></li><li><a href="tr.grid.Virtualizer.html">Virtualizer</a></li><li><a href="tr.grid.VScrollbar.html">VScrollbar</a></li><li><a href="tr.grid.ZoomPlugin.html">ZoomPlugin</a></li><li><a href="tr.HttpRequest.html">HttpRequest</a></li><li><a href="tr.IntervalSubscription.html">IntervalSubscription</a></li><li><a href="tr.LayoutGrid.html">LayoutGrid</a></li><li><a href="tr.ListMenu.html">ListMenu</a></li><li><a href="tr.MenuItem.html">MenuItem</a></li><li><a href="tr.MockArchive.html">MockArchive</a></li><li><a href="tr.MockJET.html">MockJET</a></li><li><a href="tr.MockQuotes.html">MockQuotes</a></li><li><a href="tr.MockQuotes2.html">MockQuotes2</a></li><li><a href="tr.MockSubscription.html">MockSubscription</a></li><li><a href="tr.MockSubscriptions.html">MockSubscriptions</a></li><li><a href="tr.Popup.html">Popup</a></li><li><a href="tr.PopupMenu.html">PopupMenu</a></li><li><a href="tr.PrintTrait.html">PrintTrait</a></li><li><a href="tr.RequestQueue.html">RequestQueue</a></li><li><a href="tr.Segment.html">Segment</a></li><li><a href="tr.SegmentCollection.html">SegmentCollection</a></li><li><a href="tr.TSISubscription.html">TSISubscription</a></li></ul><h3>Interfaces</h3><ul><li><a href="tr.cgrid.ICompositeExtension.html">ICompositeExtension</a></li><li><a href="tr.grid.IPlugin.html">IPlugin</a></li><li><a href="tr.IElementControl.html">IElementControl</a></li><li><a href="tr.ILayoutGrid.html">ILayoutGrid</a></li></ul><h3>Events</h3><ul><li><a href="tr.CompositeGrid.html#event:cellClicked">cellClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellDblClicked">cellDblClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellMouseDown">cellMouseDown</a></li><li><a href="tr.CompositeGrid.html#event:cellRightClicked">cellRightClicked</a></li><li><a href="tr.CompositeGrid.html#event:columnSorted">columnSorted</a></li><li><a href="tr.CompositeGrid.html#event:editorAttached">editorAttached</a></li><li><a href="tr.CompositeGrid.html#event:editorDetached">editorDetached</a></li><li><a href="tr.CompositeGrid.html#event:filterAdded">filterAdded</a></li><li><a href="tr.CompositeGrid.html#event:filterCleared">filterCleared</a></li><li><a href="tr.CompositeGrid.html#event:filterModified">filterModified</a></li><li><a href="tr.CompositeGrid.html#event:filterRemoved">filterRemoved</a></li><li><a href="tr.CompositeGrid.html#event:mouseLeaveCell">mouseLeaveCell</a></li><li><a href="tr.CompositeGrid.html#event:mouseOverCell">mouseOverCell</a></li><li><a href="tr.CompositeGrid.html#event:pageChanged">pageChanged</a></li><li><a href="tr.CompositeGrid.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.DataCache.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataCache.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataTable.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataTable.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataView.html#event:beforeFiltering">beforeFiltering</a></li><li><a href="tr.DataView.html#event:beforeGroupAdded">beforeGroupAdded</a></li><li><a href="tr.DataView.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataView.html#event:groupAdded">groupAdded</a></li><li><a href="tr.DataView.html#event:groupCriteriaChanged">groupCriteriaChanged</a></li><li><a href="tr.DataView.html#event:pageCountChanged">pageCountChanged</a></li><li><a href="tr.DataView.html#event:pageIndexChanged">pageIndexChanged</a></li><li><a href="tr.DataView.html#event:preDisposed">preDisposed</a></li><li><a href="tr.Formula.html#event:dataCacheChanged">dataCacheChanged</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:cancelled">cancelled</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:change">change</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:closed">closed</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:editorOpened">editorOpened</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:preEditorOpening">preEditorOpening</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:click">click</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:columnCollapsed">columnCollapsed</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:groupChanged">groupChanged</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:render">render</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:columnMoved">columnMoved</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:drag">drag</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragEnd">dragEnd</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragStart">dragStart</a></li><li><a href="tr.grid.FindBarPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:groupMoved">groupMoved</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:sectionMoved">sectionMoved</a></li><li><a href="tr.grid.RowSelectionPlugin.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:columnSorted">columnSorted</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preClicked">preClicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preDataSorting">preDataSorting</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.Grid.html#event:columnAdded">columnAdded</a></li><li><a href="tr.Grid.html#event:columnAlignmentChanged">columnAlignmentChanged</a></li><li><a href="tr.Grid.html#event:columnRemoved">columnRemoved</a></li><li><a href="tr.Grid.html#event:columnVisibilityChanged">columnVisibilityChanged</a></li><li><a href="tr.Grid.html#event:dataSourceChanged">dataSourceChanged</a></li><li><a href="tr.Grid.html#event:postSectionDataBinding">postSectionDataBinding</a></li><li><a href="tr.Grid.html#event:rowExpansionBinding">rowExpansionBinding</a></li><li><a href="tr.Grid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Grid.html#event:sectionAdded">sectionAdded</a></li><li><a href="tr.Grid.html#event:widthChanged">widthChanged</a></li><li><a href="tr.HttpRequest.html#event:abort">abort</a></li><li><a href="tr.HttpRequest.html#event:error">error</a></li><li><a href="tr.HttpRequest.html#event:load">load</a></li><li><a href="tr.HttpRequest.html#event:loadend">loadend</a></li><li><a href="tr.HttpRequest.html#event:loadstart">loadstart</a></li><li><a href="tr.HttpRequest.html#event:timeout">timeout</a></li><li><a href="tr.IElementControl.html#event:blur">blur</a></li><li><a href="tr.IElementControl.html#event:change">change</a></li><li><a href="tr.IElementControl.html#event:click">click</a></li><li><a href="tr.IElementControl.html#event:contextmenu">contextmenu</a></li><li><a href="tr.IElementControl.html#event:dblclick">dblclick</a></li><li><a href="tr.IElementControl.html#event:drag">drag</a></li><li><a href="tr.IElementControl.html#event:dragend">dragend</a></li><li><a href="tr.IElementControl.html#event:dragenter">dragenter</a></li><li><a href="tr.IElementControl.html#event:dragleave">dragleave</a></li><li><a href="tr.IElementControl.html#event:dragover">dragover</a></li><li><a href="tr.IElementControl.html#event:dragstart">dragstart</a></li><li><a href="tr.IElementControl.html#event:drop">drop</a></li><li><a href="tr.IElementControl.html#event:focus">focus</a></li><li><a href="tr.IElementControl.html#event:formchange">formchange</a></li><li><a href="tr.IElementControl.html#event:forminput">forminput</a></li><li><a href="tr.IElementControl.html#event:input">input</a></li><li><a href="tr.IElementControl.html#event:invalid">invalid</a></li><li><a href="tr.IElementControl.html#event:keydown">keydown</a></li><li><a href="tr.IElementControl.html#event:keypress">keypress</a></li><li><a href="tr.IElementControl.html#event:keyup">keyup</a></li><li><a href="tr.IElementControl.html#event:mousedown">mousedown</a></li><li><a href="tr.IElementControl.html#event:mousemove">mousemove</a></li><li><a href="tr.IElementControl.html#event:mouseout">mouseout</a></li><li><a href="tr.IElementControl.html#event:mouseover">mouseover</a></li><li><a href="tr.IElementControl.html#event:mouseup">mouseup</a></li><li><a href="tr.IElementControl.html#event:mousewheel">mousewheel</a></li><li><a href="tr.IElementControl.html#event:reset">reset</a></li><li><a href="tr.IElementControl.html#event:scroll">scroll</a></li><li><a href="tr.IElementControl.html#event:select">select</a></li><li><a href="tr.IElementControl.html#event:submit">submit</a></li><li><a href="tr.ILayoutGrid.html#event:blur">blur</a></li><li><a href="tr.ILayoutGrid.html#event:change">change</a></li><li><a href="tr.ILayoutGrid.html#event:click">click</a></li><li><a href="tr.ILayoutGrid.html#event:contextmenu">contextmenu</a></li><li><a href="tr.ILayoutGrid.html#event:dblclick">dblclick</a></li><li><a href="tr.ILayoutGrid.html#event:drag">drag</a></li><li><a href="tr.ILayoutGrid.html#event:dragend">dragend</a></li><li><a href="tr.ILayoutGrid.html#event:dragenter">dragenter</a></li><li><a href="tr.ILayoutGrid.html#event:dragleave">dragleave</a></li><li><a href="tr.ILayoutGrid.html#event:dragover">dragover</a></li><li><a href="tr.ILayoutGrid.html#event:dragstart">dragstart</a></li><li><a href="tr.ILayoutGrid.html#event:drop">drop</a></li><li><a href="tr.ILayoutGrid.html#event:focus">focus</a></li><li><a href="tr.ILayoutGrid.html#event:formchange">formchange</a></li><li><a href="tr.ILayoutGrid.html#event:forminput">forminput</a></li><li><a href="tr.ILayoutGrid.html#event:input">input</a></li><li><a href="tr.ILayoutGrid.html#event:invalid">invalid</a></li><li><a href="tr.ILayoutGrid.html#event:keydown">keydown</a></li><li><a href="tr.ILayoutGrid.html#event:keypress">keypress</a></li><li><a href="tr.ILayoutGrid.html#event:keyup">keyup</a></li><li><a href="tr.ILayoutGrid.html#event:mousedown">mousedown</a></li><li><a href="tr.ILayoutGrid.html#event:mousemove">mousemove</a></li><li><a href="tr.ILayoutGrid.html#event:mouseout">mouseout</a></li><li><a href="tr.ILayoutGrid.html#event:mouseover">mouseover</a></li><li><a href="tr.ILayoutGrid.html#event:mouseup">mouseup</a></li><li><a href="tr.ILayoutGrid.html#event:mousewheel">mousewheel</a></li><li><a href="tr.ILayoutGrid.html#event:reset">reset</a></li><li><a href="tr.ILayoutGrid.html#event:scroll">scroll</a></li><li><a href="tr.ILayoutGrid.html#event:select">select</a></li><li><a href="tr.ILayoutGrid.html#event:submit">submit</a></li><li><a href="tr.LayoutGrid.html#event:rowCountChanged">rowCountChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHeightChanged">rowHeightChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Popup.html#event:hidden">hidden</a></li><li><a href="tr.Popup.html#event:shown">shown</a></li><li><a href="tr.PopupMenu.html#event:hidden">hidden</a></li><li><a href="tr.PopupMenu.html#event:shown">shown</a></li><li><a href="tr.PrintTrait.html#event:afterprint">afterprint</a></li><li><a href="tr.PrintTrait.html#event:beforeprint">beforeprint</a></li><li><a href="tr.PrintTrait.html#event:pageCounting">pageCounting</a></li></ul><h3>Global</h3><ul><li><a href="global.html#cellRef%255Bundefined%255D">cellRef[undefined]</a></li><li><a href="global.html#e%255Bundefined%255D">e[undefined]</a></li><li><a href="global.html#.textContent">.textContent</a></li><li><a href="global.html#get">get</a></li><li><a href="global.html#input%255Bundefined%255D">input[undefined]</a></li><li><a href="global.html#q%255Bundefined%255D">q[undefined]</a></li><li><a href="global.html#sortingDef%255B1%255D">sortingDef[1]</a></li></ul>
+</nav>
+
+
+<script src="scripts/linenumber.js"> </script>
+<script src="scripts/prettify.js"> </script>
+<script> prettyPrint(); </script>
+</body>
+</html>

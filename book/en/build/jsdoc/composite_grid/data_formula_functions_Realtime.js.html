@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: data/formula/functions/Realtime.js</title>
+
+    <script src="scripts/prettify.js"> </script>
+    <script src="scripts/lang-css.js"> </script>
+    <!--[if lt IE 9]&gt;
+      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
+    &lt;![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/default.css">
+    <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
+</head>
+
+<body>
+
+<div id="main-template" class="elf-template">
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>goog.provide("tr.fn.Realtime");
+
+goog.require("tr.fn.Formula");
+goog.require("tr.ADCSubscription");
+goog.require("tr.TSISubscription");
+goog.require("tr.AdFinSubscription");
+
+goog.require("tr.fn.DateTime");
+
+/**
+ * @namespace Realtime
+ * @description
+ * {lang=en} Realtime data access function
+ * {lang=ja} リアルタイム データ アクセス関数
+ * {lang=zh} 实时数据访问函数
+ * {lang=hant} Realtime data access function
+ * {lang=ko} 실시간 데이터 액세스 함수
+ * {lang=ru} Realtime data access function
+ */
+tr.fn.Realtime = {};
+
+/**
+* @function TR
+* @suppress {globalThis}
+* @memberof Realtime
+* @description
+*    {lang=en} The TR function is used for retrieving the data from Analytic Data Cloud service (ADC) or Snapshot Service (SnS). To use with 1 parameter (field), the data of corresponding RIC of that row will be returned. To use with 2 parameters (RIC and field), the data of specified RIC and field will be returned. Sns fields are available for upward compatibility. It is recommended that only ADC fields are used.
+*    {lang=ja} TR 関数は、Analytic Data Cloud サービス (ADC) または Snapshot サービス (SnS) からデータを読み込んでいます。1つのパラメータ (フィールド) を使用するには、その行の対応する RIC のデータが返されます。2つのパラメータ (RIC およびフィールド) を使用するには、指定された RIC およびフィールドのデータが返されます。
+*    {lang=zh} TR 函数用于从分析数据云服务 (ADC) 或or 快照服务 (SnS) 中获取数据。要与 1 个参数 (字段) 一起使用，该行对应 RIC 的数据将被返回。要与 2 个参数 (RIC 和字段) 一起使用，指定 RIC 和字段的数据将被返回。
+*    {lang=hant} TR 函數用於從分析數據云服務 (ADC) 或or 快照服務 (SnS) 中獲取數據。要與 1 個參數 (字段) 一起使用，該行對應 RIC 的數據將被返回。要與 2 個參數 (RIC 和字段) 一起使用，指定 RIC 和字段的數據將被返回。
+*    {lang=ko} TR 함수는 Analytic Data Cloud 서비스(ADC) 또는 Snapshot Service(SnS)에서 데이터를 검색하는 데 사용됩니다. 매개변수 1개(필드)와 함께 사용하면 그 행의 해당 RIC 데이터가 반환됩니다. 매개변수 2개(RIC와 필드)와 함께 사용하면 지정된 RIC와 필드의 데이터가 반환됩니다. Snapshot Service(SnS) 필드는 상위 호환성을 위해 사용할 수 있습니다. ADC 필드만 사용하는 것이 좋습니다.
+*    {lang=ru} The TR function is used for retrieving the data from Analytic Data Cloud service (ADC) or Snapshot Service (SnS). To use with 1 parameter (field), the data of corresponding RIC of that row will be returned. To use with 2 parameters (RIC and field), the data of specified RIC and field will be returned. Sns fields are available for upward compatibility. It is recommended that only ADC fields are used.
+*    {lang=de} Die TR-Funktion wird zum Abrufen der Daten vom Analytic Data Cloud Service (ADC) oder Snapshot Service (SnS) verwendet. Bei Verwendung mit 1 Parameter (Feld) werden die Daten des entsprechenden RIC's dieser Zeile ausgegeben. Bei Verwendung mit 2 Parametern (RIC und Feld) werden die Daten des angegebenen RIC's und des Feldes ausgegeben. Sns-Felder sind für die Aufwärtskompatibilität verfügbar. Es wird empfohlen, nur ADC-Felder zu verwenden.
+* @param {string} param1
+*    {lang=en} ADC field. RIC if param2 is specified
+*    {lang=ja} ADC フィールド。param2 が指定されているときは、RIC
+*    {lang=zh} ADC 字段。如果指定了 param2，则为RIC
+*    {lang=hant} ADC 字段。如果指定了 param2，則為RIC
+*    {lang=ko} ADC 필드. param2가 지정되면 RIC
+*    {lang=ru} ADC field. RIC if param2 is specified
+*    {lang=de} ADC-Feld. RIC, wenn param2 angegeben ist
+* @param {string=} param2
+*    {lang=en} ADC field
+*    {lang=ja} ADC フィールド
+*    {lang=zh} ADC 字段
+*    {lang=hant} ADC 字段
+*    {lang=ko} ADC 필드
+*    {lang=ru} ADC field
+*    {lang=de} ADC-Feld
+* @return {*}
+*    {lang=en} Returned value can be string, number, or boolean
+*    {lang=ja} 返される値は文字列、数値またはブール型です
+*    {lang=zh} 返回值可以是字符串、数字或布尔数据
+*    {lang=hant} 返回值可以是字符串、數字或布爾數據
+*    {lang=ko} 반환된 값은 문자열, 숫자 또는 불리언
+*    {lang=ru} Returned value can be string, number, or boolean
+*    {lang=de} Der ausgegebene Wert kann eine Zeichenfolge, eine Zahl oder ein boolescher Wert sein.
+* @example
+* =TR("TR.PriceClose")
+* =TR("TRI.TO", "TR.Volume")
+* =TR("TR.PRICECLOSE(SDATE=0D,CURN=USD)")
+* =((TR("TR.PRICECLOSE(SDATE=0D,CURN=USD)")/TR("TR.PRICECLOSE(SDATE=CY0,CURN=USD)")))-1
+*/
+tr.fn.Realtime["TR"] = function(param1, param2) {
+	var argsLen = arguments.length;
+	var field, res;
+	if(argsLen === 1) { // TR("field")
+		field = arguments[0];
+		if(typeof field !== "string" || field === "") {
+			this.setDataError("Pending data");
+			return;
+		}
+
+		if(this.addField(field)) { // Dispatch event to subscribe field
+			this.setDataError("Pending data");
+			return;
+		}
+
+		return this["__D"](field); // Get the data from the cache. Return as it has.
+	} else if(argsLen === 2) { // TR("RIC", "field")
+		var symbol = arguments[0];
+		field = arguments[1];
+
+		if (typeof symbol !== "string" || symbol === "" || typeof field !== "string" || field === "") {
+			this.setDataError("Pending data");
+			return;
+		}
+
+		// Init ADC service if not exist
+		var adcService = this.getIntervalService("ADC");
+		if (!adcService) {
+			adcService = tr.fn.ADCService.create();
+			if (!adcService) {
+				this.setDataError("Pending data");
+				return;
+			}
+			this.setIntervalService("ADC", adcService);
+		}
+
+		res = adcService["addSymbolToField"](symbol, field); // Get the cache data from service.
+		if (res === tr.ADCSubscription.PENDING_DATA) { // Invalid field or Pending data from requesting
+			this.setDataError("Pending data");
+		}
+		return res;
+	}
+
+};
+
+/**
+* @function RECORD
+* @suppress {globalThis}
+* @memberof Realtime
+* @description
+*    {lang=en} Return realtime value of the specified symbol and field
+*    {lang=ja} 指定の RIC およびフィールドのリアルタイム値を返します
+*    {lang=zh} 返回指定代码与字段的实时值
+*    {lang=hant} 返回指定代碼與字段的實時值
+*    {lang=ko} 지정된 기호 및 필드의 실시간 값을 반환
+*    {lang=ru} Return realtime value of the specified symbol and field
+*    {lang=de} Echtzeitwert des angegebenen Symbols und Felds ausgeben
+* @param {string} symbol
+*    {lang=en} RIC
+*    {lang=ja} RIC
+*    {lang=zh} RIC
+*    {lang=hant} RIC
+*    {lang=ko} RIC
+*    {lang=ru} RIC
+*    {lang=de} RIC
+* @param {string|number} field
+*    {lang=en} Realtime field
+*    {lang=ja} リアルタイム フィールド
+*    {lang=zh} 实时字段
+*    {lang=hant} 實時字段
+*    {lang=ko} 실시간 필드
+*    {lang=ru} Realtime field
+*    {lang=de} Echtzeit-Feld
+* @return {*}
+*    {lang=en} Returned value can be string, or number
+*    {lang=ja} 返される値は文字列または数値です
+*    {lang=zh} 返回值可以是字符串或数字
+*    {lang=hant} 返回值可以是字符串或數字
+*    {lang=ko} 반환된 값은 문자열 또는 숫자
+*    {lang=ru} Returned value can be string, or number
+*    {lang=de} Der ausgegebene Wert kann eine Zeichenfolge oder eine Zahl sein
+* @example
+*    =RECORD("FRF=","BID")
+*/
+tr.fn.Realtime["RECORD"] = function(symbol, field) {
+	var fieldType = typeof field;
+	if (typeof symbol !== "string" || symbol === "" || (fieldType !== "string" &amp;&amp; fieldType !== "number") || field === "") {
+		this.setDataError("Pending data");
+		return;
+	}
+
+	// Init realtime service if not exist
+	var rtService = this.getRealtimeService();
+	if (!rtService) {
+		rtService = tr.fn.RealtimeService.create();
+		if (!rtService) {
+			this.setDataError("Pending data");
+			return;
+		}
+		rtService.fidMapping = {};
+		rtService['start']();
+		this.setRealtimeService(rtService);
+	}
+
+	var isValidField = true;
+	var fid;
+	if(fieldType === "number") {
+		fid = field;
+		field = field + "";
+	} else {
+		fid = +field;
+	}
+	var isFieldId = (fid === fid); // Input field is field id
+	if(isFieldId) {
+		isValidField = false;
+		var fname = rtService.fidMapping[field]; // Possible types are undefined and string. Field number key does not have boolean type.
+		if(fname) { // Has mapping in local scope
+			field = fname; // Change to real-time field
+			isValidField = true;
+		}
+
+		if(!isValidField) { // No mapping in local scope
+			var retriedCount = 0;
+			fname = tr.fn.RealtimeService._fidMapping[field]; // Check the field id mapping in global scope. Possible type are undefined, string, number and tr.HttpRequest
+			switch(typeof fname) {
+				case "number": // Request error
+					if(fname &gt;= 3) { // Tryfor 3 times then need to wait for 5 minutes
+						break;
+					}
+					retriedCount = fname;
+				case "undefined": // No mapping in global scope
+					fname = tr.fn.RealtimeService._resolveFieldId(this, field, retriedCount);
+				case "object": // Pending request, tr.HttpRequest
+					fname.then(function(name) {
+						if(name &amp;&amp; typeof name === "string") {
+							rtService.fidMapping[field] = name; // Cache in local scope
+							rtService['addFields'](name);
+						}
+						return name; // For chaining
+					});
+					break;
+				case "string":
+					rtService.fidMapping[field] = fname; // Cache in local scope
+					field = fname; // Change to real-time field
+					isValidField = true;
+					break;
+			}
+		}
+
+		if(field === "") { // Resolved field can be ""
+			isValidField = false;
+		}
+
+		if(!isValidField) { // Cannot resolve the field id
+			this.setDataError("Pending data");
+		}
+	}
+
+	if(isValidField &amp;&amp; !rtService.fidMapping[field]) { // The resolve field/normal field need to be subscribed.
+		rtService['addFields'](field);
+		rtService.fidMapping[field] = true; // Indicate that field is subscribe or not
+	}
+
+	var res;
+	var data = this.getCachedData(symbol);
+	if (!data) {
+		rtService['addRic'](symbol);
+		this.setCachedData(symbol, {});
+	} else {
+		res = data[field];
+		if(res === undefined &amp;&amp; rtService["hasField"](field)) {
+			res = NaN; // Real-time that does not have the value will fall in this case. // NaN is not available to proceed data that may cause error calculation
+			data[field] = res; // Cache for next time
+		}
+	}
+
+	if (res === undefined) {
+		this.setDataError("Pending data");
+	}
+	return res;
+};
+
+/**
+* @function MTXSERIES
+* @suppress {globalThis}
+* @memberof Realtime
+* @description
+*    {lang=en} The MTXSERIES function is used for retrieving the data from Time Series service (MTXSERIES). To use with 2 parameters (date and field), the data of corresponding RIC of that row will be returned. To use with 3 parameters (RIC, date and field), the data of specified RIC will be returned.
+*    {lang=ja} MTXSERIES 関数は、タイムシリーズ サービス (MTXSERIES) からデータを読み込んでいます。2つのパラメータ (日付、フィールド) を使用すると、その行の対応する RIC のデータが返されます。3つのパラメータ (RIC、日付、フィールド) を使用すると、指定された RIC のデータが返されます。
+*    {lang=zh} MTXSERIES 函数用于从时间序列服务 (MTXSERIES) 获取数据。要与 2 个参数 (日期与字段) 一起使用，该行相应 RIC 的数据将被返回。要与 3 个参数 (RIC、日期与字段) 一起使用，指定 RIC 的数据将被返回。
+*    {lang=hant} MTXSERIES 函數用於從時間序列服務 (MTXSERIES) 獲取數據。要與 2 個參數 (日期與字段) 一起使用，該行相應 RIC 的數據將被返回。要與 3 個參數 (RIC、日期與字段) 一起使用，指定 RIC 的數據將被返回。
+*    {lang=ko} MTXSERIES 함수는 시계열 서비스(MTXSERIES)에서 데이터를 검색하는 데 사용됩니다. 매개변수 2개(데이터 및 필드)와 함께 사용하면 그 행의 해당 RIC 데이터가 반환됩니다. 매개변수 3개(RIC와 데이터, 필드)와 함께 사용하면 지정된 RIC의 데이터가 반환됩니다.
+*    {lang=ru} The MTXSERIES function is used for retrieving the data from Time Series service (MTXSERIES). To use with 2 parameters (date and field), the data of corresponding RIC of that row will be returned. To use with 3 parameters (RIC, date and field), the data of specified RIC will be returned.
+*    {lang=de} Die Funktion MTXSERIES wird zum Abrufen der Daten vom Zeitreihen-Service (MTXSERIES) verwendet. Bei Verwendung mit 2 Parametern (Datum und Feld) werden die Daten des entsprechenden RIC's dieser Zeile ausgegeben. Bei Verwendung mit 3 Parametern (RIC, Datum und Feld) werden die Daten des angegebenen RIC's ausgegeben.
+* @param {string|number} param1
+*    {lang=en} Relative date or absolute date. RIC if param3 is specified
+*    {lang=ja} 相対日時または絶対日時。param3 が指定されているときは、RIC
+*    {lang=zh} 相对日期或绝对日期。如果指定了 param3，则为RIC
+*    {lang=hant} 相對日期或絕對日期。如果指定了 param3，則為RIC
+*    {lang=ko} 상대 날짜나 절대 날짜. param3이 지정되면 RIC
+*    {lang=ru} Relative date or absolute date. RIC if param3 is specified
+*    {lang=de} Relatives Datum oder absolutes Datum. RIC, wenn param3 angegeben ist
+* @param {string|number} param2
+*    {lang=en} Time Series field. Date if param3 is specified
+*    {lang=ja} タイムシリーズ フィールドparam3 が指定されているときは、日付
+*    {lang=zh} 时间序列字段。如果指定了 param3，则为日期
+*    {lang=hant} 時間序列字段。如果指定了 param3，則為日期
+*    {lang=ko} 시계열 필드. param3이 지정되면 날짜
+*    {lang=ru} Time Series field. Date if param3 is specified
+*    {lang=de} Zeitreihen-Feld. Datum, wenn param3 angegeben ist
+* @param {string=} param3
+*    {lang=en} Time Series field
+*    {lang=ja} タイムシリーズ フィールド
+*    {lang=zh} 时间序列字段
+*    {lang=hant} 時間序列字段
+*    {lang=ko} 시계열 필드
+*    {lang=ru} Time Series field
+*    {lang=de} Zeitreihen-Feld. Datum, wenn param3 angegeben ist
+* @return {*}
+*    {lang=en} Returned value will be number
+*    {lang=ja} 返される値は数値です
+*    {lang=zh} 返回值将是一个数字
+*    {lang=hant} 返回值將是一個數字
+*    {lang=ko} 반환된 값은 숫자
+*    {lang=ru} Returned value will be number
+*    {lang=de} Der ausgegebene Wert ist eine Zahl
+* @example
+* =MTXSERIES("1D", "BID.CLOSE") // Get BID.CLOSE of 1 day ago
+* =MTXSERIES("0D", "BID.CLOSE") // Get BID.CLOSE of today (update every 1 hour)
+* =MTXSERIES("1D2W3M4Q5Y", "BID.CLOSE") // D, W, M, Q and Y can be used for Day, Week, Month, Quarter and Year respectively.
+* =MTXSERIES("2017-02-22", "ASK.CLOSE")
+* =MTXSERIES(TODAY()-1, "ASK.CLOSE") // Get ASK.CLOSE of 1 day ago
+*
+* =MTXSERIES("TRI.TO", "1Q", "BID.CLOSE")
+* =MTXSERIES("TRI.TO","2016-11-22", "ASK.CLOSE")
+*/
+tr.fn.Realtime["MTXSERIES"] = function(param1, param2, param3) {
+	var argsLen = arguments.length;
+	var symbol, date, field;
+	if(argsLen === 2) { // TSI("Date", "Field")
+		this.addField("X_RIC_NAME", "idn"); // Add required field for triggering when adding new RIC
+		date = arguments[0];
+		field = arguments[1];
+		symbol = this["__D"]("X_RIC_NAME");
+	} else if(argsLen === 3) { // TSI("RIC", Date", "Field")
+		symbol = arguments[0];
+		date = arguments[1];
+		field = arguments[2];
+	} else { // Invalid used of TSI function
+		return;
+	}
+
+	if(typeof date === "number") { // To support date number since 1 Jan, 1900 (value is 1) that normally used in DateTime function
+		date = tr.fn.DateTime["DATETEXT"](date);
+	}
+
+	if (typeof symbol !== "string" || symbol === ""
+			|| typeof date !== "string" || date === ""
+			|| typeof field !== "string" || field === "") {
+		this.setDataError("Pending data");
+		return;
+	}
+
+	// Init tsi service if not exist
+	var tsiService = this.getIntervalService("TSI");
+	if (!tsiService) {
+		tsiService = tr.fn.TSIService.create();
+		if (!tsiService) {
+			this.setDataError("Pending data");
+			return;
+		}
+		this.setIntervalService("TSI", tsiService);
+	}
+
+	var res = tsiService["addSymbolAndFieldToPeriod"](symbol, field, date); // Get the cache data from service.;
+	if (res === tr.TSISubscription.PENDING_DATA) { // Pending data from requesting, Invalid field will return null
+		this.setDataError("Pending data");
+	}
+	return res;
+};
+
+/**
+* @ignore
+*/
+tr.fn.RealtimeService = {};
+
+/**
+* @ignore
+* @private
+* @type {Object}
+*/
+tr.fn.RealtimeService._quotes2 = null;
+
+/**
+* @ignore
+* @private
+* @type {Object.&lt;string, *&gt;}
+*/
+tr.fn.RealtimeService._fidMapping = {};
+
+/**
+* @ignore
+* @private
+* @type {string}
+*/
+tr.fn.RealtimeService._udipServiceUrl = "/Apps/UdipApi/GetFields";
+
+/**
+* @ignore
+* @public
+* @return {Object}
+*/
+tr.fn.RealtimeService.create = function() {
+	var quotes2 = tr.fn.RealtimeService._quotes2;
+	if (!quotes2) {
+		var j = window ? window["JET"] : null;
+		if (j &amp;&amp; j["Quotes2"]) {
+			quotes2 = j["Quotes2"];
+			tr.fn.RealtimeService._quotes2 = quotes2;
+		} else {
+			return null;
+		}
+	}
+	return quotes2['create']();
+};
+
+/**
+* @ignore
+* @public
+* @param {Object} quotes2
+*/
+tr.fn.RealtimeService.setQuote2 = function(quotes2) {
+	tr.fn.RealtimeService._quotes2 = quotes2;
+};
+
+/**
+* @ignore
+* @private
+* @param {tr.fn.Formula} formula
+* @param {string} fid
+* @param {number=} opt_retriedCount
+* @return {string|tr.HttpRequest}
+*/
+tr.fn.RealtimeService._resolveFieldId = function(formula, fid, opt_retriedCount) {
+	var value = tr.fn.RealtimeService._fidMapping[fid];
+	var isValidType = (typeof value === "string" || value instanceof tr.HttpRequest);
+	if(value &amp;&amp; isValidType) {
+		return /** @type{string|tr.HttpRequest} */ (value); // Returned value can be string, tr.HttpRequest object
+	}
+
+	if(opt_retriedCount == null) {
+		opt_retriedCount = 0;
+	}
+
+	var payload = {
+		"universe": [
+			"Public",
+			"PublicPrivate"
+		],
+		"UUID": "",
+		"sources": [
+			"RT"
+		],
+		"language": "en-US",
+		"sortBy": "relevance",
+		"searchText": fid
+	};
+
+	var http = new HttpRequest(tr.fn.RealtimeService._udipServiceUrl, payload);
+	http.then(function(json) {
+		var data = json["data"] &amp;&amp; json["data"]["fields"] &amp;&amp; json["data"]["fields"][0];
+		var value = "";
+		if(data &amp;&amp; data["oid"] === fid) {
+			tr.fn.RealtimeService._fidMapping[fid] = data["path"]; // Cache the value instead of tr.HttpRequest object
+			value = data["path"];
+		}
+		return value;
+	}).catch(function() {
+		if(http.getResponseStatus() === 200) { // Successful response but no data
+			tr.fn.RealtimeService._fidMapping[fid] = "";
+			return "";
+		}
+
+		opt_retriedCount++;
+		tr.fn.RealtimeService._fidMapping[fid] = opt_retriedCount; // Cache the count
+		if(opt_retriedCount &lt; 3) {
+			formula.dispatchDataChanged(); // Force re-calculate data
+		} else {
+			setTimeout(function() {
+				delete tr.fn.RealtimeService._fidMapping[fid]; // Delete from mapping. It can be request again when there is any new request.
+				formula.dispatchDataChanged(); // Force re-calculate data
+			}, 300000);
+		}
+		return "";
+	});
+
+	tr.fn.RealtimeService._fidMapping[fid] = http; // Cache the request for preventing same fid
+
+	return http.send();
+};
+
+/**
+* @ignore
+*/
+tr.fn.ADCService = {};
+
+/**
+* @ignore
+* @private
+* @type {Object}
+*/
+tr.fn.ADCService._adcSubscription = null;
+
+/**
+* @ignore
+* @private
+* @type {string}
+*/
+tr.fn.ADCService._uuid = "GUEST";
+
+/**
+* @ignore
+* @private
+* @type {string}
+*/
+tr.fn.ADCService._adcProductId = "ANONYMOUS";
+
+/**
+* @ignore
+* @private
+* @type {string}
+*/
+tr.fn.ADCService._adcUrl = "/datacloud/rest/select";
+
+/**
+* @ignore
+* @public
+* @return {Object}
+*/
+tr.fn.ADCService.create = function() {
+	var adcSub = tr.fn.ADCService._adcSubscription;
+	if (!adcSub) {
+		var j = window ? window["JET"] : null;
+		if (j) {
+			adcSub = new ADCSubscription();
+			adcSub.setJet(j);
+			tr.fn.ADCService._adcSubscription = adcSub;
+			tr.fn.ADCService.setDataCloudSettings();
+		} else {
+			return null;
+		}
+	}
+	return adcSub;
+};
+
+/**
+* @ignore
+* @public
+* @param {string=} uuid
+* @param {string=} productId
+* @param {string=} adcUrl
+* @param {string=} lang
+*/
+tr.fn.ADCService.setDataCloudSettings = function(uuid, productId, adcUrl, lang) {
+	if(uuid) {
+		tr.fn.ADCService._uuid = uuid;
+	}
+	if(productId) {
+		tr.fn.ADCService._adcProductId = productId;
+	}
+	if(adcUrl) {
+		tr.fn.ADCService._adcUrl = adcUrl;
+	}
+	if(lang) {
+		tr.fn.ADCService._lang = lang;
+	}
+	if(tr.fn.ADCService._adcSubscription) { // In case set the settings after the service was created.
+		uuid = tr.fn.ADCService._uuid;
+		productId = tr.fn.ADCService._adcProductId;
+		adcUrl = tr.fn.ADCService._adcUrl;
+		lang = tr.fn.ADCService._lang;
+
+		tr.fn.ADCService._adcSubscription.setDataCloudSettings(uuid, productId, adcUrl, lang);
+	}
+};
+
+
+/**
+* @ignore
+*/
+tr.fn.TSIService = {};
+
+/**
+* @ignore
+* @private
+* @type {Object}
+*/
+tr.fn.TSIService._tsiSubscription = null;
+
+/**
+* @ignore
+* @private
+* @type {string}
+*/
+tr.fn.TSIService._tsiSharedServiceUrl = "/Apps/shared-services/service/TsMultiRICTimeSeries/GetMultiRICTimeSeries";
+/**
+* @ignore
+* @private
+* @type {string}
+*/
+tr.fn.TSIService._tsiTaServiceUrl = "/Apps/TAService";
+
+/**
+* @ignore
+* @public
+* @return {Object}
+*/
+tr.fn.TSIService.create = function() {
+	var tsiSub = tr.fn.TSIService._tsiSubscription;
+	if (!tsiSub) {
+		tsiSub = new TSISubscription();
+		tr.fn.TSIService._tsiSubscription = tsiSub;
+		tr.fn.TSIService.setTSISettings();
+	}
+	return tsiSub;
+};
+
+/**
+* @ignore
+* @public
+* @param {string=} sharedServiceUrl
+* @param {string=} taServiceUrl
+*/
+tr.fn.TSIService.setTSISettings = function(sharedServiceUrl, taServiceUrl) {
+	if(sharedServiceUrl) {
+		tr.fn.TSIService._tsiSharedServiceUrl = sharedServiceUrl;
+	}
+	if(taServiceUrl) {
+		tr.fn.TSIService._tsiTaServiceUrl = taServiceUrl;
+	}
+	if(tr.fn.TSIService._tsiSubscription) { // In case set the settings after the service was created.
+		tr.fn.TSIService._tsiSubscription.setTSISettings(tr.fn.TSIService._tsiSharedServiceUrl, tr.fn.TSIService._tsiTaServiceUrl);
+	}
+};
+
+/**
+* @ignore
+*/
+tr.fn.AdFinService = {};
+
+/**
+* @ignore
+* @private
+* @type {string}
+*/
+tr.fn.AdFinService._uuid = "GUEST";
+
+/**
+* @ignore
+* @private
+* @type {string}
+*/
+tr.fn.AdFinService._adfinProductId = "TMON";
+
+/**
+* @ignore
+* @private
+* @type {Object}
+*/
+tr.fn.AdFinService._adFinSubscription = null;
+
+/**
+* @ignore
+* @private
+* @type {string|null}
+*/
+tr.fn.AdFinService._tracsPlugInUrl = null;
+
+/**
+* @ignore
+* @public
+* @return {Object}
+*/
+tr.fn.AdFinService.create = function() {
+	var adfinSub = tr.fn.AdFinService._adFinSubscription;
+	if (!adfinSub) {
+		adfinSub = new AdFinSubscription();
+		tr.fn.AdFinService._adFinSubscription = adfinSub;
+		tr.fn.AdFinService.setAdFinSettings();
+	}
+	return adfinSub;
+};
+
+/**
+* @ignore
+* @public
+* @param {(string|null)=} uuid
+* @param {(string|null)=} productId
+* @param {(string|null)=} adfinUrl
+*/
+tr.fn.AdFinService.setAdFinSettings = function(uuid, productId, adfinUrl) {
+	if(uuid) {
+		tr.fn.AdFinService._uuid = uuid;
+	}
+	if(productId) {
+		tr.fn.AdFinService._adfinProductId = productId;
+	}
+	if(adfinUrl) {
+		tr.fn.AdFinService._tracsPlugInUrl = adfinUrl;
+	}
+	if(tr.fn.AdFinService._adFinSubscription) { // In case set the settings after the service was created.
+		uuid = tr.fn.AdFinService._uuid;
+		productId = tr.fn.AdFinService._adfinProductId;
+		adfinUrl = tr.fn.AdFinService._tracsPlugInUrl;
+
+		tr.fn.AdFinService._adFinSubscription.setAdFinSettings(uuid, productId, adfinUrl);
+	}
+};
+
+goog.exportSymbol("tr.fn.Realtime", tr.fn.Realtime);
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="AdFin.html">AdFin</a></li><li><a href="DateTime.html">DateTime</a></li><li><a href="Info.html">Info</a></li><li><a href="Logic.html">Logic</a></li><li><a href="Math.html">Math</a></li><li><a href="Realtime.html">Realtime</a></li><li><a href="Statistic.html">Statistic</a></li><li><a href="Text.html">Text</a></li><li><a href="tr.ElementFrameWork.html">ElementFrameWork</a></li><li><a href="tr.PipDefinition.html">PipDefinition</a></li></ul><h3>Classes</h3><ul><li><a href="tr.ADCSubscription.html">ADCSubscription</a></li><li><a href="tr.AdFinSubscription.html">AdFinSubscription</a></li><li><a href="tr.cgrid.editor.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.filter.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.formatter.AsyncFormatter.html">AsyncFormatter</a></li><li><a href="tr.cgrid.formatter.CheckBox.html">CheckBox</a></li><li><a href="tr.cgrid.formatter.UpDownColor.html">UpDownColor</a></li><li><a href="tr.ColumnStats.html">ColumnStats</a></li><li><a href="tr.CompositeGrid.html">CompositeGrid</a></li><li><a href="tr.DataCache.html">DataCache</a></li><li><a href="tr.DataTable.html">DataTable</a></li><li><a href="tr.DataView.html">DataView</a></li><li><a href="tr.DropDown.html">DropDown</a></li><li><a href="tr.ElementControl.html">ElementControl</a></li><li><a href="tr.ElementWrapper.html">ElementWrapper</a></li><li><a href="tr.Event.html">Event</a></li><li><a href="tr.EventDispatcher.html">EventDispatcher</a></li><li><a href="tr.EventDispatcher.extendClass-tempCtor.html">tempCtor</a></li><li><a href="tr.EventManager.html">EventManager</a></li><li><a href="tr.FieldFormatter.html">FieldFormatter</a></li><li><a href="tr.fn.Engine.html">Engine</a></li><li><a href="tr.fn.Formula.html">Formula</a></li><li><a href="tr.fn.VariableToken.html">VariableToken</a></li><li><a href="tr.Grid.html">Grid</a></li><li><a href="tr.grid.BidOfferSpan.html">BidOfferSpan</a></li><li><a href="tr.grid.Blinker.html">Blinker</a></li><li><a href="tr.grid.Cell.html">Cell</a></li><li><a href="tr.grid.CellBlinkingPlugin.html">CellBlinkingPlugin</a></li><li><a href="tr.grid.CellEditingPlugin.html">CellEditingPlugin</a></li><li><a href="tr.grid.CellFloatingPanel.html">CellFloatingPanel</a></li><li><a href="tr.grid.CellPainter.html">CellPainter</a></li><li><a href="tr.grid.CellSpan.html">CellSpan</a></li><li><a href="tr.grid.CellSpans.html">CellSpans</a></li><li><a href="tr.grid.CellWriter.html">CellWriter</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html">CheckboxColumnPlugin</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html">CollapsibleHeaderPlugin</a></li><li><a href="tr.grid.ColumnFilterPlugin.html">ColumnFilterPlugin</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html">ColumnGroupingPlugin</a></li><li><a href="tr.grid.ColumnSelectionPlugin.html">ColumnSelectionPlugin</a></li><li><a href="tr.grid.ColumnStackingPlugin.html">ColumnStackingPlugin</a></li><li><a href="tr.grid.ColumnWidthAdjustingPlugin.html">ColumnWidthAdjustingPlugin</a></li><li><a href="tr.grid.Conflator.html">Conflator</a></li><li><a href="tr.grid.DataSourceTreePlugin.html">DataSourceTreePlugin</a></li><li><a href="tr.grid.DirectContentBindingPlugin.html">DirectContentBindingPlugin</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html">DragAndDropTitlePlugin</a></li><li><a href="tr.grid.DraggableContentPlugin.html">DraggableContentPlugin</a></li><li><a href="tr.grid.FindBar.html">FindBar</a></li><li><a href="tr.grid.FindBarPlugin.html">FindBarPlugin</a></li><li><a href="tr.grid.GroupStatisticsPlugin.html">GroupStatisticsPlugin</a></li><li><a href="tr.grid.HeatMapRenderer.html">HeatMapRenderer</a></li><li><a href="tr.grid.HScrollbar.html">HScrollbar</a></li><li><a href="tr.grid.IndexMarker.html">IndexMarker</a></li><li><a href="tr.grid.MovableHeaderPlugin.html">MovableHeaderPlugin</a></li><li><a href="tr.grid.NumberFormatter.html">NumberFormatter</a></li><li><a href="tr.grid.PercentBar.html">PercentBar</a></li><li><a href="tr.grid.PercentBarRenderer.html">PercentBarRenderer</a></li><li><a href="tr.grid.Plugin.html">Plugin</a></li><li><a href="tr.grid.RangeBar.html">RangeBar</a></li><li><a href="tr.grid.ResizableTitlePlugin.html">ResizableTitlePlugin</a></li><li><a href="tr.grid.Reverter.html">Reverter</a></li><li><a href="tr.grid.RowHeightAdjustingPlugin.html">RowHeightAdjustingPlugin</a></li><li><a href="tr.grid.RowSelectionPlugin.html">RowSelectionPlugin</a></li><li><a href="tr.grid.Scrollbar.html">Scrollbar</a></li><li><a href="tr.grid.SectionSettings.html">SectionSettings</a></li><li><a href="tr.grid.SmartTooltipsPlugin.html">SmartTooltipsPlugin</a></li><li><a href="tr.grid.SortableTitlePlugin.html">SortableTitlePlugin</a></li><li><a href="tr.grid.TreeIndentingPlugin.html">TreeIndentingPlugin</a></li><li><a href="tr.grid.Virtualizer.html">Virtualizer</a></li><li><a href="tr.grid.VScrollbar.html">VScrollbar</a></li><li><a href="tr.grid.ZoomPlugin.html">ZoomPlugin</a></li><li><a href="tr.HttpRequest.html">HttpRequest</a></li><li><a href="tr.IntervalSubscription.html">IntervalSubscription</a></li><li><a href="tr.LayoutGrid.html">LayoutGrid</a></li><li><a href="tr.ListMenu.html">ListMenu</a></li><li><a href="tr.MenuItem.html">MenuItem</a></li><li><a href="tr.MockArchive.html">MockArchive</a></li><li><a href="tr.MockJET.html">MockJET</a></li><li><a href="tr.MockQuotes.html">MockQuotes</a></li><li><a href="tr.MockQuotes2.html">MockQuotes2</a></li><li><a href="tr.MockSubscription.html">MockSubscription</a></li><li><a href="tr.MockSubscriptions.html">MockSubscriptions</a></li><li><a href="tr.Popup.html">Popup</a></li><li><a href="tr.PopupMenu.html">PopupMenu</a></li><li><a href="tr.PrintTrait.html">PrintTrait</a></li><li><a href="tr.RequestQueue.html">RequestQueue</a></li><li><a href="tr.Segment.html">Segment</a></li><li><a href="tr.SegmentCollection.html">SegmentCollection</a></li><li><a href="tr.TSISubscription.html">TSISubscription</a></li></ul><h3>Interfaces</h3><ul><li><a href="tr.cgrid.ICompositeExtension.html">ICompositeExtension</a></li><li><a href="tr.grid.IPlugin.html">IPlugin</a></li><li><a href="tr.IElementControl.html">IElementControl</a></li><li><a href="tr.ILayoutGrid.html">ILayoutGrid</a></li></ul><h3>Events</h3><ul><li><a href="tr.CompositeGrid.html#event:cellClicked">cellClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellDblClicked">cellDblClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellMouseDown">cellMouseDown</a></li><li><a href="tr.CompositeGrid.html#event:cellRightClicked">cellRightClicked</a></li><li><a href="tr.CompositeGrid.html#event:columnSorted">columnSorted</a></li><li><a href="tr.CompositeGrid.html#event:editorAttached">editorAttached</a></li><li><a href="tr.CompositeGrid.html#event:editorDetached">editorDetached</a></li><li><a href="tr.CompositeGrid.html#event:filterAdded">filterAdded</a></li><li><a href="tr.CompositeGrid.html#event:filterCleared">filterCleared</a></li><li><a href="tr.CompositeGrid.html#event:filterModified">filterModified</a></li><li><a href="tr.CompositeGrid.html#event:filterRemoved">filterRemoved</a></li><li><a href="tr.CompositeGrid.html#event:mouseLeaveCell">mouseLeaveCell</a></li><li><a href="tr.CompositeGrid.html#event:mouseOverCell">mouseOverCell</a></li><li><a href="tr.CompositeGrid.html#event:pageChanged">pageChanged</a></li><li><a href="tr.CompositeGrid.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.DataCache.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataCache.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataTable.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataTable.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataView.html#event:beforeFiltering">beforeFiltering</a></li><li><a href="tr.DataView.html#event:beforeGroupAdded">beforeGroupAdded</a></li><li><a href="tr.DataView.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataView.html#event:groupAdded">groupAdded</a></li><li><a href="tr.DataView.html#event:groupCriteriaChanged">groupCriteriaChanged</a></li><li><a href="tr.DataView.html#event:pageCountChanged">pageCountChanged</a></li><li><a href="tr.DataView.html#event:pageIndexChanged">pageIndexChanged</a></li><li><a href="tr.DataView.html#event:preDisposed">preDisposed</a></li><li><a href="tr.Formula.html#event:dataCacheChanged">dataCacheChanged</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:cancelled">cancelled</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:change">change</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:closed">closed</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:editorOpened">editorOpened</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:preEditorOpening">preEditorOpening</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:click">click</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:columnCollapsed">columnCollapsed</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:groupChanged">groupChanged</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:render">render</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:columnMoved">columnMoved</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:drag">drag</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragEnd">dragEnd</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragStart">dragStart</a></li><li><a href="tr.grid.FindBarPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:groupMoved">groupMoved</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:sectionMoved">sectionMoved</a></li><li><a href="tr.grid.RowSelectionPlugin.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:columnSorted">columnSorted</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preClicked">preClicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preDataSorting">preDataSorting</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.Grid.html#event:columnAdded">columnAdded</a></li><li><a href="tr.Grid.html#event:columnAlignmentChanged">columnAlignmentChanged</a></li><li><a href="tr.Grid.html#event:columnRemoved">columnRemoved</a></li><li><a href="tr.Grid.html#event:columnVisibilityChanged">columnVisibilityChanged</a></li><li><a href="tr.Grid.html#event:dataSourceChanged">dataSourceChanged</a></li><li><a href="tr.Grid.html#event:postSectionDataBinding">postSectionDataBinding</a></li><li><a href="tr.Grid.html#event:rowExpansionBinding">rowExpansionBinding</a></li><li><a href="tr.Grid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Grid.html#event:sectionAdded">sectionAdded</a></li><li><a href="tr.Grid.html#event:widthChanged">widthChanged</a></li><li><a href="tr.HttpRequest.html#event:abort">abort</a></li><li><a href="tr.HttpRequest.html#event:error">error</a></li><li><a href="tr.HttpRequest.html#event:load">load</a></li><li><a href="tr.HttpRequest.html#event:loadend">loadend</a></li><li><a href="tr.HttpRequest.html#event:loadstart">loadstart</a></li><li><a href="tr.HttpRequest.html#event:timeout">timeout</a></li><li><a href="tr.IElementControl.html#event:blur">blur</a></li><li><a href="tr.IElementControl.html#event:change">change</a></li><li><a href="tr.IElementControl.html#event:click">click</a></li><li><a href="tr.IElementControl.html#event:contextmenu">contextmenu</a></li><li><a href="tr.IElementControl.html#event:dblclick">dblclick</a></li><li><a href="tr.IElementControl.html#event:drag">drag</a></li><li><a href="tr.IElementControl.html#event:dragend">dragend</a></li><li><a href="tr.IElementControl.html#event:dragenter">dragenter</a></li><li><a href="tr.IElementControl.html#event:dragleave">dragleave</a></li><li><a href="tr.IElementControl.html#event:dragover">dragover</a></li><li><a href="tr.IElementControl.html#event:dragstart">dragstart</a></li><li><a href="tr.IElementControl.html#event:drop">drop</a></li><li><a href="tr.IElementControl.html#event:focus">focus</a></li><li><a href="tr.IElementControl.html#event:formchange">formchange</a></li><li><a href="tr.IElementControl.html#event:forminput">forminput</a></li><li><a href="tr.IElementControl.html#event:input">input</a></li><li><a href="tr.IElementControl.html#event:invalid">invalid</a></li><li><a href="tr.IElementControl.html#event:keydown">keydown</a></li><li><a href="tr.IElementControl.html#event:keypress">keypress</a></li><li><a href="tr.IElementControl.html#event:keyup">keyup</a></li><li><a href="tr.IElementControl.html#event:mousedown">mousedown</a></li><li><a href="tr.IElementControl.html#event:mousemove">mousemove</a></li><li><a href="tr.IElementControl.html#event:mouseout">mouseout</a></li><li><a href="tr.IElementControl.html#event:mouseover">mouseover</a></li><li><a href="tr.IElementControl.html#event:mouseup">mouseup</a></li><li><a href="tr.IElementControl.html#event:mousewheel">mousewheel</a></li><li><a href="tr.IElementControl.html#event:reset">reset</a></li><li><a href="tr.IElementControl.html#event:scroll">scroll</a></li><li><a href="tr.IElementControl.html#event:select">select</a></li><li><a href="tr.IElementControl.html#event:submit">submit</a></li><li><a href="tr.ILayoutGrid.html#event:blur">blur</a></li><li><a href="tr.ILayoutGrid.html#event:change">change</a></li><li><a href="tr.ILayoutGrid.html#event:click">click</a></li><li><a href="tr.ILayoutGrid.html#event:contextmenu">contextmenu</a></li><li><a href="tr.ILayoutGrid.html#event:dblclick">dblclick</a></li><li><a href="tr.ILayoutGrid.html#event:drag">drag</a></li><li><a href="tr.ILayoutGrid.html#event:dragend">dragend</a></li><li><a href="tr.ILayoutGrid.html#event:dragenter">dragenter</a></li><li><a href="tr.ILayoutGrid.html#event:dragleave">dragleave</a></li><li><a href="tr.ILayoutGrid.html#event:dragover">dragover</a></li><li><a href="tr.ILayoutGrid.html#event:dragstart">dragstart</a></li><li><a href="tr.ILayoutGrid.html#event:drop">drop</a></li><li><a href="tr.ILayoutGrid.html#event:focus">focus</a></li><li><a href="tr.ILayoutGrid.html#event:formchange">formchange</a></li><li><a href="tr.ILayoutGrid.html#event:forminput">forminput</a></li><li><a href="tr.ILayoutGrid.html#event:input">input</a></li><li><a href="tr.ILayoutGrid.html#event:invalid">invalid</a></li><li><a href="tr.ILayoutGrid.html#event:keydown">keydown</a></li><li><a href="tr.ILayoutGrid.html#event:keypress">keypress</a></li><li><a href="tr.ILayoutGrid.html#event:keyup">keyup</a></li><li><a href="tr.ILayoutGrid.html#event:mousedown">mousedown</a></li><li><a href="tr.ILayoutGrid.html#event:mousemove">mousemove</a></li><li><a href="tr.ILayoutGrid.html#event:mouseout">mouseout</a></li><li><a href="tr.ILayoutGrid.html#event:mouseover">mouseover</a></li><li><a href="tr.ILayoutGrid.html#event:mouseup">mouseup</a></li><li><a href="tr.ILayoutGrid.html#event:mousewheel">mousewheel</a></li><li><a href="tr.ILayoutGrid.html#event:reset">reset</a></li><li><a href="tr.ILayoutGrid.html#event:scroll">scroll</a></li><li><a href="tr.ILayoutGrid.html#event:select">select</a></li><li><a href="tr.ILayoutGrid.html#event:submit">submit</a></li><li><a href="tr.LayoutGrid.html#event:rowCountChanged">rowCountChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHeightChanged">rowHeightChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Popup.html#event:hidden">hidden</a></li><li><a href="tr.Popup.html#event:shown">shown</a></li><li><a href="tr.PopupMenu.html#event:hidden">hidden</a></li><li><a href="tr.PopupMenu.html#event:shown">shown</a></li><li><a href="tr.PrintTrait.html#event:afterprint">afterprint</a></li><li><a href="tr.PrintTrait.html#event:beforeprint">beforeprint</a></li><li><a href="tr.PrintTrait.html#event:pageCounting">pageCounting</a></li></ul><h3>Global</h3><ul><li><a href="global.html#cellRef%255Bundefined%255D">cellRef[undefined]</a></li><li><a href="global.html#e%255Bundefined%255D">e[undefined]</a></li><li><a href="global.html#.textContent">.textContent</a></li><li><a href="global.html#get">get</a></li><li><a href="global.html#input%255Bundefined%255D">input[undefined]</a></li><li><a href="global.html#q%255Bundefined%255D">q[undefined]</a></li><li><a href="global.html#sortingDef%255B1%255D">sortingDef[1]</a></li></ul>
+</nav>
+
+
+<script src="scripts/linenumber.js"> </script>
+<script src="scripts/prettify.js"> </script>
+<script> prettyPrint(); </script>
+</body>
+</html>

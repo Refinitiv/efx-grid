@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: grid/plugins/GroupStatisticsPlugin.js</title>
+
+    <script src="scripts/prettify.js"> </script>
+    <script src="scripts/lang-css.js"> </script>
+    <!--[if lt IE 9]&gt;
+      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
+    &lt;![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/default.css">
+    <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
+</head>
+
+<body>
+
+<div id="main-template" class="elf-template">
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>goog.provide("tr.grid.GroupStatisticsPlugin");
+
+goog.require("tr.res");
+goog.require("tr.grid.IPlugin");
+goog.require("tr.grid.Plugin");
+goog.require("tr.DataView");
+goog.require("tr.grid.SectionSettings");
+goog.require("tr.grid.IndexMarker");
+
+/** @constructor
+ * @param {Array.&lt;number|boolean&gt;|null=} opt_restrictions By default all columns will be processed by this plugin
+ * @param {Array.&lt;number|boolean&gt;|null=} opt_exclusions By default no column will be excluded by this plugin
+* @extends {tr.grid.Plugin}
+* @implements {tr.grid.IPlugin}
+*/
+tr.grid.GroupStatisticsPlugin = function (opt_restrictions, opt_exclusions) {
+	this._onPreSectionDataBinding = goog.bind(this._onPreSectionDataBinding, this);
+	this._onPreSectionRender = goog.bind(this._onPreSectionRender, this);
+	this._onColumnAdded = goog.bind(this._onColumnAdded, this);
+	this._onColumnMoved = goog.bind(this._onColumnMoved, this);
+	this._onColumnRemoved = goog.bind(this._onColumnRemoved, this);
+
+	this._marker = new grid.IndexMarker(opt_restrictions, opt_exclusions);
+
+	if(this._predefinedOperations === null) {
+		this._predefinedOperations = {
+			"sum": tr.grid.GroupStatisticsPlugin.sum,
+			"min": tr.grid.GroupStatisticsPlugin.min,
+			"max": tr.grid.GroupStatisticsPlugin.max,
+			"mean": tr.grid.GroupStatisticsPlugin.mean,
+			"median": tr.grid.GroupStatisticsPlugin.median
+		};
+		tr.grid.GroupStatisticsPlugin.prototype._predefinedOperations = this._predefinedOperations;
+	}
+};
+goog.inherits(tr.grid.GroupStatisticsPlugin, tr.grid.Plugin);
+
+/** @override */
+tr.grid.GroupStatisticsPlugin.prototype.getName = function () {
+	return "GroupStatisticsPlugin"; // Read Only
+};
+
+/** @override */
+tr.grid.GroupStatisticsPlugin.prototype.initialize = function (host) {
+	this._host = host;
+	this._host.listen("preSectionRender", this._onPreSectionRender);
+	this._host.listen(tr.res.preSectionDataBinding, this._onPreSectionDataBinding);	
+	this._host.listen(tr.res.columnAdded, this._onColumnAdded);
+	this._host.listen(tr.res.columnMoved, this._onColumnMoved);
+	this._host.listen(tr.res.columnRemoved, this._onColumnRemoved);
+};
+
+/** @override */
+tr.grid.GroupStatisticsPlugin.prototype.unload = function (host) {
+	this._host.unlisten("preSectionRender", this._onPreSectionRender);
+	this._host.unlisten(tr.res.preSectionDataBinding, this._onPreSectionDataBinding);
+	this._host.unlisten(tr.res.columnAdded, this._onColumnAdded);
+	this._host.unlisten(tr.res.columnMoved, this._onColumnMoved);
+	this._host.unlisten(tr.res.columnRemoved, this._onColumnRemoved);
+	this._host = null;
+};
+
+/** Specify column to be processed by this plugin
+* @public
+* @return {tr.grid.IndexMarker}
+*/
+tr.grid.GroupStatisticsPlugin.prototype.getMarker = function () {
+	return this._marker;
+};
+
+//#region Public
+/** @public
+ * @param {string|number|null=} opt_col column name or column index
+ * @param {string|function(Array.&lt;number&gt;)|null=} opt_fn function name or function object that takes array of number as an argument
+ * @return {Object|number|null}
+ */
+tr.grid.GroupStatisticsPlugin.prototype.getColumnStat = function (opt_col, opt_fn) {
+	return this._calculateStat(this._host.getDataSource(), opt_col, opt_fn);
+};
+
+/** @public
+ * @param {tr.Grid.SectionReference} sectionRef
+ * @param {string|number|null=} opt_col column name or column index
+ * @param {string|function(Array.&lt;number&gt;)|null=} opt_fn function name or function object that takes array of number as an argument
+ * @return {Object|number|null}
+ */
+tr.grid.GroupStatisticsPlugin.prototype.getSectionStat = function (sectionRef, opt_col, opt_fn) {
+	var sectionSettings = this._host.getSectionSettings(sectionRef);
+	if(sectionSettings === null) { return null; }
+
+	return this._calculateStat(sectionSettings.getDataSource(), opt_col, opt_fn);
+};
+
+/** @public
+ * @return {Array.&lt;string&gt;}
+ */
+tr.grid.GroupStatisticsPlugin.prototype.getPredefinedOperations = function () {
+	var ary = [];
+	for(var key in this._predefinedOperations) {
+		ary.push(key);
+	}
+	return ary;
+};
+
+/** @public
+ * @return {string} 
+ */
+tr.grid.GroupStatisticsPlugin.prototype.getDefaultOperation = function () {
+	return this._defaultOperation;
+};
+
+/** @public
+ * @param {string} fnName 
+ */
+tr.grid.GroupStatisticsPlugin.prototype.setDefaultOperation = function (fnName) {
+	if(this._predefinedOperations[fnName] !== undefined) {
+		this._defaultOperation = fnName;
+	}
+};
+
+/** @public
+ * @param {Array.&lt;string&gt;|string|null} fnName 
+ */
+tr.grid.GroupStatisticsPlugin.prototype.setColumnOperations = function (fnName) {
+	if(tr.isString(fnName)) {
+		this.setDefaultOperation(/** @type{string} */(fnName));
+		this._operations = null;
+	} else {
+		this._operations = /** @type{Array.&lt;string&gt;} */(fnName) || null;
+	}
+};
+
+/** @public
+ * @param {boolean} enable 
+ */
+tr.grid.GroupStatisticsPlugin.prototype.setAutoStatCalculating = function (enable) {
+	this._autoStatCalculating = enable;
+};
+
+/** @public 
+ * @param {boolean} enable 
+ */
+tr.grid.GroupStatisticsPlugin.prototype.setAutoStatRendering = function (enable) {
+	this._autoStatRendering = enable;
+};
+
+/** Value true in this column means not include in calculation.
+* @public
+* @param {string} dataName
+*/
+tr.grid.GroupStatisticsPlugin.prototype.setFilterDataColumn = function (dataName) {
+	this._filterDataColumn = dataName;
+};
+//#endregion Public
+
+//#region Private Methods
+/** @override 
+* @ignore
+*/
+tr.grid.GroupStatisticsPlugin.prototype._onColumnAdded = function (e) {
+	if (!e["atTheMiddle"]) { return; }
+	
+	var colIndex = /** @type{number} */(e[tr.res.colIndex]);
+
+	this._marker.insertMarker(colIndex);
+	tr.insertArrayItem(this._operations, colIndex, null);
+};
+
+/** @override 
+* @ignore
+*/
+tr.grid.GroupStatisticsPlugin.prototype._onColumnMoved = function (e) {
+	var from = /** @type{number} */(e[tr.res.fromColIndex]);
+	var to = /** @type{number} */(e[tr.res.toColIndex]);
+
+	this._marker.moveMarker(from, to);
+	tr.moveArrayItem(this._operations, from, to);
+};
+
+/** @override 
+* @ignore
+*/
+tr.grid.GroupStatisticsPlugin.prototype._onColumnRemoved = function (e) {
+	if (!e["atTheMiddle"]) { return; }
+	
+	var colIndex = /** @type{number} */(e[tr.res.colIndex]);
+	
+	this._marker.removeMarker(colIndex);
+	if(this._operations !== null) {
+		this._operations.splice(colIndex, 1);
+	}
+};
+
+/** @private
+* @param {Object} e
+*/
+tr.grid.GroupStatisticsPlugin.prototype._onPreSectionRender = function (e) {
+	if (!this._autoStatRendering) { return; }
+	if (e[tr.res.sectionType] === tr.res.content) { return; }
+
+	var sectionSettings = /** @type{tr.grid.SectionSettings} */(e["sectionSettings"]);
+	var dataSource = /** @type{tr.DataView} */(sectionSettings.getDataSource());
+	if (dataSource === null) {
+		return; // This section has no data
+	}
+	var dataMap = this._getDataColumnMap();
+
+	var section = /** @type{tr.ILayoutGrid} */(e[tr.res.section]);
+	var toC = /** @type{number} */(e[tr.res.toColIndex]);
+	var toR = /** @type{number} */(e[tr.res.toRowIndex]);
+	for (var c = e[tr.res.fromColIndex]; c &lt; toC; ++c) {
+		if (!this._marker.isAllowed(c)) { continue; }
+
+		var result = this._calculateStat(dataSource, c, null, true);
+		if(result === undefined || result === null || result !== result) {
+			result = "NaN";
+		}
+
+		var fnName = null;
+		if (this._operations !== null) {
+			fnName = this._operations[c];
+		}
+		if (fnName === undefined || fnName === null) {
+			fnName = this._defaultOperation;
+		}
+		result = fnName.charAt(0).toUpperCase() + fnName.slice(1) + ": " + result;
+
+		for (var r = e[tr.res.fromRowIndex]; r &lt; toR; ++r) {
+			section.setCellContent(c, r, result);
+		}
+	}
+};
+
+/** @private
+* @param {Object} e
+*/
+tr.grid.GroupStatisticsPlugin.prototype._onPreSectionDataBinding = function (e) {
+	if (!this._autoStatCalculating) { return; }
+
+	var dataSource = /** @type{tr.DataView} */(e[tr.res.dataSource]);
+	e["stat"] = this._calculateStat(dataSource, null, null, true);
+};
+
+/** @private
+ * @param {tr.DataView} dataSource
+ * @param {string|number|null=} opt_col column name or column index
+ * @param {string|function(Array.&lt;number&gt;)|null=} opt_fn function name or function object that takes array of number as an argument
+ * @param {boolean=} opt_userPreference
+ * @return {Object|number|null}
+ */
+tr.grid.GroupStatisticsPlugin.prototype._calculateStat = function (dataSource, opt_col, opt_fn, opt_userPreference) {
+	if(dataSource === undefined || dataSource === null) { return null; }
+
+	var dataMap = this._getDataColumnMap();
+
+	var colName = opt_col;
+	var colIndex = -1;
+	if(tr.isNumber(opt_col)) {
+		colName = dataMap[/** @type {number} */(opt_col)];
+		if(colName === undefined || colName === null) {
+			return null;
+		}
+		if(opt_userPreference === true) {
+			colIndex = /** @type{number} */(opt_col);
+		}
+	}
+
+	var func = null;
+	if(colName !== null) {
+		func = this._getOperation(opt_fn, colIndex);
+		return this._calculateColumnStat(this._getColumnValues(dataSource, /** @type{string} */(colName)), func);
+	}
+
+	if(opt_userPreference !== true) {
+		func = this._getOperation(opt_fn, -1);
+	}
+	var stats = {}; 
+	for (var c = dataMap.length; --c &gt;= 0;) {
+		if (!this._marker.isAllowed(c)) { continue; }
+
+		colName = dataMap[c];
+		if(colName !== undefined &amp;&amp; colName !== null) {
+			var colValues = this._getColumnValues(dataSource, colName);
+			if(opt_userPreference === true) {
+				func = this._getOperation(opt_fn, c);
+			}
+			stats[colName] = this._calculateColumnStat(colValues, func);
+		}
+	}
+	return stats; // Object of column names
+};
+
+/** @private
+ * @param {*} opt_fn
+ * @param {number} colIndex
+ * @return {function(Array.&lt;number&gt;)|null} func
+ */
+tr.grid.GroupStatisticsPlugin.prototype._getOperation = function (opt_fn, colIndex) {
+	if(opt_fn === null) {
+		if(colIndex &gt;= 0) {
+			if (this._operations !== null) {
+				opt_fn = this._operations[colIndex];
+				if(this._predefinedOperations[opt_fn] === undefined) {
+					opt_fn = this._defaultOperation;
+				}
+			}
+			if (opt_fn === undefined || opt_fn === null) {
+				opt_fn = this._defaultOperation;
+			}
+		} else {
+			return null;
+		}
+	}
+
+	if(tr.isString(opt_fn)) {
+		var func = /** @type{function(Array.&lt;number&gt;)} */(this._predefinedOperations[/** @type{string} */(opt_fn)]);
+		if(func === undefined) {
+			window.console.log("WARNING: " + opt_fn + " operation does not defined");
+			return null;
+		}
+		return func;
+	} else if(tr.isFunction(opt_fn)) {
+		return /** @type{function(Array.&lt;number&gt;)} */(opt_fn);
+	}
+	return null;
+};
+
+/** @private
+ * @param {Array.&lt;number&gt;} colValues
+ * @param {function(Array.&lt;number&gt;)|null} func
+ * @return {Object.&lt;string, number&gt;|number} Object of all stat or number
+ */
+tr.grid.GroupStatisticsPlugin.prototype._calculateColumnStat = function (colValues, func) {
+	if(func !== null) {
+		return func(colValues); // Number is returned
+	}
+
+	// Calculate all statistic
+	var stat = {};
+	var len = colValues.length;
+	if(len &lt;= 0) {
+		stat["min"] = NaN;
+		stat["max"] = NaN;
+		stat["sum"] = NaN;
+		stat["mean"] = NaN;
+		stat["median"] = NaN;
+		return stat;
+	}
+	var val = colValues[0];
+	var min = val;
+	var max = val;
+	var sum = val;
+
+	for(var i = len; --i &gt; 0;) {
+		val = colValues[i];
+		if(val &lt; min) { min = val; }
+		if(max &lt; val) { max = val; }
+		sum += val;
+	}
+	stat["min"] = min;
+	stat["max"] = max;
+	stat["sum"] = sum;
+	stat["mean"] = sum / len;
+	stat["median"] = this._predefinedOperations["median"](colValues);
+	return stat;
+};
+
+/** @private
+ * @param {tr.DataView} dataSource
+ * @param {string} colName
+ * @return {!Array.&lt;number&gt;}
+ */
+tr.grid.GroupStatisticsPlugin.prototype._getColumnValues = function (dataSource, colName) {
+	var i = 0;
+	var colValues = [];
+	var rowCount = dataSource.getRowCount();
+	var rowId;
+	if (this._filterDataColumn) {
+		for (i = 0; i &lt; rowCount; ++i) {
+			rowId = dataSource.getRowId(i);
+			if (!dataSource.getData(rowId, this._filterDataColumn)) {
+				colValues.push(dataSource.getData(rowId, colName));
+			}
+		}
+	} else {
+		for (i = 0; i &lt; rowCount; ++i) {
+			rowId = dataSource.getRowId(i);
+			colValues.push(dataSource.getData(rowId, colName));
+		}
+	}
+	// Auto numeric convertion
+	if (!tr.isNumber(colValues[0]) &amp;&amp; // first
+		!tr.isNumber(colValues[colValues.length - 1]) &amp;&amp; // last
+		!tr.isNumber(colValues[Math.floor(colValues.length / 2)]) // middle
+		) {
+		for (i = colValues.length; --i &gt;= 0; ) {
+			colValues[i] = Number(colValues[i]);
+		}
+	}
+
+	return colValues;
+};
+
+/** @private
+ * @param {Array.&lt;number&gt;} colValues
+ * @return {number}
+ */
+tr.grid.GroupStatisticsPlugin.min = function (colValues) {
+	// WARNING: Normal looping is much more faster than Math.min.apply()
+	if(colValues.length &lt;= 0) { return NaN; }
+	var min = colValues[0];
+	for(var i = colValues.length; --i &gt; 0;) {
+		if(colValues[i] &lt; min) {
+			min = colValues[i];
+		}
+	}
+	return min;
+};
+/** @private
+ * @param {Array.&lt;number&gt;} colValues
+ * @return {number}
+ */
+tr.grid.GroupStatisticsPlugin.max = function (colValues) {
+	// WARNING: Normal looping is much more faster than Math.max.apply()
+	if(colValues.length &lt;= 0) { return NaN; }
+	var max = colValues[0];
+	for(var i = colValues.length; --i &gt; 0;) {
+		if(max &lt; colValues[i]) {
+			max = colValues[i];
+		}
+	}
+	return max;
+};
+
+/** @private
+ * @param {Array.&lt;number&gt;} colValues
+ * @return {number}
+ */
+tr.grid.GroupStatisticsPlugin.sum = function (colValues) {
+	var sum = 0;
+	for (var i = colValues.length; --i &gt;= 0;) {
+		sum += colValues[i];
+	}
+	return sum;
+};
+/** @private
+ * @param {Array.&lt;number&gt;} colValues
+ * @return {number}
+ */
+tr.grid.GroupStatisticsPlugin.mean = function (colValues) {
+	if(colValues.length &lt;= 0) { return NaN; }
+	var sum = tr.grid.GroupStatisticsPlugin.sum(colValues);
+	return sum / colValues.length;
+};
+/** @private
+ * @param {number} a
+ * @param {number} b
+ * @return {number}
+ */
+tr.grid.GroupStatisticsPlugin.compareNumber = function (a, b) {
+	return a - b;
+};
+/** @private
+ * @param {Array.&lt;number&gt;} colValues
+ * @return {number}
+ */
+tr.grid.GroupStatisticsPlugin.median = function (colValues) {
+	// WARNING: This is a super slow operation
+	var len = colValues.length;
+	if(len &lt;= 1) {
+		return (len &lt; 1) ? NaN : colValues[0];
+	}
+
+	var sortedValues = colValues.concat().sort(tr.grid.GroupStatisticsPlugin.compareNumber);
+	var half = len &gt;&gt; 1;
+	if (len &amp; 1) {
+		return sortedValues[half];
+	}
+	
+	return (sortedValues[half - 1] + sortedValues[half]) / 2.0;
+};
+//#endregion Private Methods
+
+//#region Private Members
+/** @private
+ * @type {boolean}
+ */
+tr.grid.GroupStatisticsPlugin.prototype._autoStatCalculating = true;
+/** @private
+ * @type {boolean}
+ */
+tr.grid.GroupStatisticsPlugin.prototype._autoStatRendering = false;
+
+
+/** @private
+ * @type {string}
+ */
+tr.grid.GroupStatisticsPlugin.prototype._defaultOperation = "sum";
+/** @private
+ * @type {Array.&lt;string&gt;}
+ */
+tr.grid.GroupStatisticsPlugin.prototype._operations = null;
+/** WARNING: This is intentional static variable
+ * @private
+ * @type {Object.&lt;string, Function&gt;}
+ */
+tr.grid.GroupStatisticsPlugin.prototype._predefinedOperations = null;
+
+/** @private
+* @type {string}
+*/
+tr.grid.GroupStatisticsPlugin.prototype._filterDataColumn = "";
+//#endregion Private Members
+
+
+goog.exportSymbol("tr.grid.GroupStatisticsPlugin", tr.grid.GroupStatisticsPlugin);
+tr.grid.GroupStatisticsPlugin._proto = tr.grid.GroupStatisticsPlugin.prototype;
+
+goog.exportProperty(tr.grid.GroupStatisticsPlugin._proto, "getName", tr.grid.GroupStatisticsPlugin._proto.getName);
+goog.exportProperty(tr.grid.GroupStatisticsPlugin._proto, "initialize", tr.grid.GroupStatisticsPlugin._proto.initialize);
+goog.exportProperty(tr.grid.GroupStatisticsPlugin._proto, "unload", tr.grid.GroupStatisticsPlugin._proto.unload);
+
+goog.exportProperty(tr.grid.GroupStatisticsPlugin._proto, "getMarker", tr.grid.GroupStatisticsPlugin._proto.getMarker);
+goog.exportProperty(tr.grid.GroupStatisticsPlugin._proto, "getColumnStat", tr.grid.GroupStatisticsPlugin._proto.getColumnStat);
+goog.exportProperty(tr.grid.GroupStatisticsPlugin._proto, "getSectionStat", tr.grid.GroupStatisticsPlugin._proto.getSectionStat);
+goog.exportProperty(tr.grid.GroupStatisticsPlugin._proto, "getPredefinedOperations", tr.grid.GroupStatisticsPlugin._proto.getPredefinedOperations);
+goog.exportProperty(tr.grid.GroupStatisticsPlugin._proto, "getDefaultOperation", tr.grid.GroupStatisticsPlugin._proto.getDefaultOperation);
+goog.exportProperty(tr.grid.GroupStatisticsPlugin._proto, "setDefaultOperation", tr.grid.GroupStatisticsPlugin._proto.setDefaultOperation);
+goog.exportProperty(tr.grid.GroupStatisticsPlugin._proto, "setColumnOperations", tr.grid.GroupStatisticsPlugin._proto.setColumnOperations);
+goog.exportProperty(tr.grid.GroupStatisticsPlugin._proto, "setAutoStatRendering", tr.grid.GroupStatisticsPlugin._proto.setAutoStatRendering);
+goog.exportProperty(tr.grid.GroupStatisticsPlugin._proto, "setAutoStatCalculating", tr.grid.GroupStatisticsPlugin._proto.setAutoStatCalculating);
+goog.exportProperty(tr.grid.GroupStatisticsPlugin._proto, "setFilterDataColumn", tr.grid.GroupStatisticsPlugin._proto.setFilterDataColumn);</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="AdFin.html">AdFin</a></li><li><a href="DateTime.html">DateTime</a></li><li><a href="Info.html">Info</a></li><li><a href="Logic.html">Logic</a></li><li><a href="Math.html">Math</a></li><li><a href="Realtime.html">Realtime</a></li><li><a href="Statistic.html">Statistic</a></li><li><a href="Text.html">Text</a></li><li><a href="tr.ElementFrameWork.html">ElementFrameWork</a></li><li><a href="tr.PipDefinition.html">PipDefinition</a></li></ul><h3>Classes</h3><ul><li><a href="tr.ADCSubscription.html">ADCSubscription</a></li><li><a href="tr.AdFinSubscription.html">AdFinSubscription</a></li><li><a href="tr.cgrid.editor.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.filter.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.formatter.AsyncFormatter.html">AsyncFormatter</a></li><li><a href="tr.cgrid.formatter.CheckBox.html">CheckBox</a></li><li><a href="tr.cgrid.formatter.UpDownColor.html">UpDownColor</a></li><li><a href="tr.ColumnStats.html">ColumnStats</a></li><li><a href="tr.CompositeGrid.html">CompositeGrid</a></li><li><a href="tr.DataCache.html">DataCache</a></li><li><a href="tr.DataTable.html">DataTable</a></li><li><a href="tr.DataView.html">DataView</a></li><li><a href="tr.DropDown.html">DropDown</a></li><li><a href="tr.ElementControl.html">ElementControl</a></li><li><a href="tr.ElementWrapper.html">ElementWrapper</a></li><li><a href="tr.Event.html">Event</a></li><li><a href="tr.EventDispatcher.html">EventDispatcher</a></li><li><a href="tr.EventDispatcher.extendClass-tempCtor.html">tempCtor</a></li><li><a href="tr.EventManager.html">EventManager</a></li><li><a href="tr.FieldFormatter.html">FieldFormatter</a></li><li><a href="tr.fn.Engine.html">Engine</a></li><li><a href="tr.fn.Formula.html">Formula</a></li><li><a href="tr.fn.VariableToken.html">VariableToken</a></li><li><a href="tr.Grid.html">Grid</a></li><li><a href="tr.grid.BidOfferSpan.html">BidOfferSpan</a></li><li><a href="tr.grid.Blinker.html">Blinker</a></li><li><a href="tr.grid.Cell.html">Cell</a></li><li><a href="tr.grid.CellBlinkingPlugin.html">CellBlinkingPlugin</a></li><li><a href="tr.grid.CellEditingPlugin.html">CellEditingPlugin</a></li><li><a href="tr.grid.CellFloatingPanel.html">CellFloatingPanel</a></li><li><a href="tr.grid.CellPainter.html">CellPainter</a></li><li><a href="tr.grid.CellSpan.html">CellSpan</a></li><li><a href="tr.grid.CellSpans.html">CellSpans</a></li><li><a href="tr.grid.CellWriter.html">CellWriter</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html">CheckboxColumnPlugin</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html">CollapsibleHeaderPlugin</a></li><li><a href="tr.grid.ColumnFilterPlugin.html">ColumnFilterPlugin</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html">ColumnGroupingPlugin</a></li><li><a href="tr.grid.ColumnSelectionPlugin.html">ColumnSelectionPlugin</a></li><li><a href="tr.grid.ColumnStackingPlugin.html">ColumnStackingPlugin</a></li><li><a href="tr.grid.ColumnWidthAdjustingPlugin.html">ColumnWidthAdjustingPlugin</a></li><li><a href="tr.grid.Conflator.html">Conflator</a></li><li><a href="tr.grid.DataSourceTreePlugin.html">DataSourceTreePlugin</a></li><li><a href="tr.grid.DirectContentBindingPlugin.html">DirectContentBindingPlugin</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html">DragAndDropTitlePlugin</a></li><li><a href="tr.grid.DraggableContentPlugin.html">DraggableContentPlugin</a></li><li><a href="tr.grid.FindBar.html">FindBar</a></li><li><a href="tr.grid.FindBarPlugin.html">FindBarPlugin</a></li><li><a href="tr.grid.GroupStatisticsPlugin.html">GroupStatisticsPlugin</a></li><li><a href="tr.grid.HeatMapRenderer.html">HeatMapRenderer</a></li><li><a href="tr.grid.HScrollbar.html">HScrollbar</a></li><li><a href="tr.grid.IndexMarker.html">IndexMarker</a></li><li><a href="tr.grid.MovableHeaderPlugin.html">MovableHeaderPlugin</a></li><li><a href="tr.grid.NumberFormatter.html">NumberFormatter</a></li><li><a href="tr.grid.PercentBar.html">PercentBar</a></li><li><a href="tr.grid.PercentBarRenderer.html">PercentBarRenderer</a></li><li><a href="tr.grid.Plugin.html">Plugin</a></li><li><a href="tr.grid.RangeBar.html">RangeBar</a></li><li><a href="tr.grid.ResizableTitlePlugin.html">ResizableTitlePlugin</a></li><li><a href="tr.grid.Reverter.html">Reverter</a></li><li><a href="tr.grid.RowHeightAdjustingPlugin.html">RowHeightAdjustingPlugin</a></li><li><a href="tr.grid.RowSelectionPlugin.html">RowSelectionPlugin</a></li><li><a href="tr.grid.Scrollbar.html">Scrollbar</a></li><li><a href="tr.grid.SectionSettings.html">SectionSettings</a></li><li><a href="tr.grid.SmartTooltipsPlugin.html">SmartTooltipsPlugin</a></li><li><a href="tr.grid.SortableTitlePlugin.html">SortableTitlePlugin</a></li><li><a href="tr.grid.TreeIndentingPlugin.html">TreeIndentingPlugin</a></li><li><a href="tr.grid.Virtualizer.html">Virtualizer</a></li><li><a href="tr.grid.VScrollbar.html">VScrollbar</a></li><li><a href="tr.grid.ZoomPlugin.html">ZoomPlugin</a></li><li><a href="tr.HttpRequest.html">HttpRequest</a></li><li><a href="tr.IntervalSubscription.html">IntervalSubscription</a></li><li><a href="tr.LayoutGrid.html">LayoutGrid</a></li><li><a href="tr.ListMenu.html">ListMenu</a></li><li><a href="tr.MenuItem.html">MenuItem</a></li><li><a href="tr.MockArchive.html">MockArchive</a></li><li><a href="tr.MockJET.html">MockJET</a></li><li><a href="tr.MockQuotes.html">MockQuotes</a></li><li><a href="tr.MockQuotes2.html">MockQuotes2</a></li><li><a href="tr.MockSubscription.html">MockSubscription</a></li><li><a href="tr.MockSubscriptions.html">MockSubscriptions</a></li><li><a href="tr.Popup.html">Popup</a></li><li><a href="tr.PopupMenu.html">PopupMenu</a></li><li><a href="tr.PrintTrait.html">PrintTrait</a></li><li><a href="tr.RequestQueue.html">RequestQueue</a></li><li><a href="tr.Segment.html">Segment</a></li><li><a href="tr.SegmentCollection.html">SegmentCollection</a></li><li><a href="tr.TSISubscription.html">TSISubscription</a></li></ul><h3>Interfaces</h3><ul><li><a href="tr.cgrid.ICompositeExtension.html">ICompositeExtension</a></li><li><a href="tr.grid.IPlugin.html">IPlugin</a></li><li><a href="tr.IElementControl.html">IElementControl</a></li><li><a href="tr.ILayoutGrid.html">ILayoutGrid</a></li></ul><h3>Events</h3><ul><li><a href="tr.CompositeGrid.html#event:cellClicked">cellClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellDblClicked">cellDblClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellMouseDown">cellMouseDown</a></li><li><a href="tr.CompositeGrid.html#event:cellRightClicked">cellRightClicked</a></li><li><a href="tr.CompositeGrid.html#event:columnSorted">columnSorted</a></li><li><a href="tr.CompositeGrid.html#event:editorAttached">editorAttached</a></li><li><a href="tr.CompositeGrid.html#event:editorDetached">editorDetached</a></li><li><a href="tr.CompositeGrid.html#event:filterAdded">filterAdded</a></li><li><a href="tr.CompositeGrid.html#event:filterCleared">filterCleared</a></li><li><a href="tr.CompositeGrid.html#event:filterModified">filterModified</a></li><li><a href="tr.CompositeGrid.html#event:filterRemoved">filterRemoved</a></li><li><a href="tr.CompositeGrid.html#event:mouseLeaveCell">mouseLeaveCell</a></li><li><a href="tr.CompositeGrid.html#event:mouseOverCell">mouseOverCell</a></li><li><a href="tr.CompositeGrid.html#event:pageChanged">pageChanged</a></li><li><a href="tr.CompositeGrid.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.DataCache.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataCache.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataTable.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataTable.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataView.html#event:beforeFiltering">beforeFiltering</a></li><li><a href="tr.DataView.html#event:beforeGroupAdded">beforeGroupAdded</a></li><li><a href="tr.DataView.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataView.html#event:groupAdded">groupAdded</a></li><li><a href="tr.DataView.html#event:groupCriteriaChanged">groupCriteriaChanged</a></li><li><a href="tr.DataView.html#event:pageCountChanged">pageCountChanged</a></li><li><a href="tr.DataView.html#event:pageIndexChanged">pageIndexChanged</a></li><li><a href="tr.DataView.html#event:preDisposed">preDisposed</a></li><li><a href="tr.Formula.html#event:dataCacheChanged">dataCacheChanged</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:cancelled">cancelled</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:change">change</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:closed">closed</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:editorOpened">editorOpened</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:preEditorOpening">preEditorOpening</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:click">click</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:columnCollapsed">columnCollapsed</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:groupChanged">groupChanged</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:render">render</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:columnMoved">columnMoved</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:drag">drag</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragEnd">dragEnd</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragStart">dragStart</a></li><li><a href="tr.grid.FindBarPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:groupMoved">groupMoved</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:sectionMoved">sectionMoved</a></li><li><a href="tr.grid.RowSelectionPlugin.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:columnSorted">columnSorted</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preClicked">preClicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preDataSorting">preDataSorting</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.Grid.html#event:columnAdded">columnAdded</a></li><li><a href="tr.Grid.html#event:columnAlignmentChanged">columnAlignmentChanged</a></li><li><a href="tr.Grid.html#event:columnRemoved">columnRemoved</a></li><li><a href="tr.Grid.html#event:columnVisibilityChanged">columnVisibilityChanged</a></li><li><a href="tr.Grid.html#event:dataSourceChanged">dataSourceChanged</a></li><li><a href="tr.Grid.html#event:postSectionDataBinding">postSectionDataBinding</a></li><li><a href="tr.Grid.html#event:rowExpansionBinding">rowExpansionBinding</a></li><li><a href="tr.Grid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Grid.html#event:sectionAdded">sectionAdded</a></li><li><a href="tr.Grid.html#event:widthChanged">widthChanged</a></li><li><a href="tr.HttpRequest.html#event:abort">abort</a></li><li><a href="tr.HttpRequest.html#event:error">error</a></li><li><a href="tr.HttpRequest.html#event:load">load</a></li><li><a href="tr.HttpRequest.html#event:loadend">loadend</a></li><li><a href="tr.HttpRequest.html#event:loadstart">loadstart</a></li><li><a href="tr.HttpRequest.html#event:timeout">timeout</a></li><li><a href="tr.IElementControl.html#event:blur">blur</a></li><li><a href="tr.IElementControl.html#event:change">change</a></li><li><a href="tr.IElementControl.html#event:click">click</a></li><li><a href="tr.IElementControl.html#event:contextmenu">contextmenu</a></li><li><a href="tr.IElementControl.html#event:dblclick">dblclick</a></li><li><a href="tr.IElementControl.html#event:drag">drag</a></li><li><a href="tr.IElementControl.html#event:dragend">dragend</a></li><li><a href="tr.IElementControl.html#event:dragenter">dragenter</a></li><li><a href="tr.IElementControl.html#event:dragleave">dragleave</a></li><li><a href="tr.IElementControl.html#event:dragover">dragover</a></li><li><a href="tr.IElementControl.html#event:dragstart">dragstart</a></li><li><a href="tr.IElementControl.html#event:drop">drop</a></li><li><a href="tr.IElementControl.html#event:focus">focus</a></li><li><a href="tr.IElementControl.html#event:formchange">formchange</a></li><li><a href="tr.IElementControl.html#event:forminput">forminput</a></li><li><a href="tr.IElementControl.html#event:input">input</a></li><li><a href="tr.IElementControl.html#event:invalid">invalid</a></li><li><a href="tr.IElementControl.html#event:keydown">keydown</a></li><li><a href="tr.IElementControl.html#event:keypress">keypress</a></li><li><a href="tr.IElementControl.html#event:keyup">keyup</a></li><li><a href="tr.IElementControl.html#event:mousedown">mousedown</a></li><li><a href="tr.IElementControl.html#event:mousemove">mousemove</a></li><li><a href="tr.IElementControl.html#event:mouseout">mouseout</a></li><li><a href="tr.IElementControl.html#event:mouseover">mouseover</a></li><li><a href="tr.IElementControl.html#event:mouseup">mouseup</a></li><li><a href="tr.IElementControl.html#event:mousewheel">mousewheel</a></li><li><a href="tr.IElementControl.html#event:reset">reset</a></li><li><a href="tr.IElementControl.html#event:scroll">scroll</a></li><li><a href="tr.IElementControl.html#event:select">select</a></li><li><a href="tr.IElementControl.html#event:submit">submit</a></li><li><a href="tr.ILayoutGrid.html#event:blur">blur</a></li><li><a href="tr.ILayoutGrid.html#event:change">change</a></li><li><a href="tr.ILayoutGrid.html#event:click">click</a></li><li><a href="tr.ILayoutGrid.html#event:contextmenu">contextmenu</a></li><li><a href="tr.ILayoutGrid.html#event:dblclick">dblclick</a></li><li><a href="tr.ILayoutGrid.html#event:drag">drag</a></li><li><a href="tr.ILayoutGrid.html#event:dragend">dragend</a></li><li><a href="tr.ILayoutGrid.html#event:dragenter">dragenter</a></li><li><a href="tr.ILayoutGrid.html#event:dragleave">dragleave</a></li><li><a href="tr.ILayoutGrid.html#event:dragover">dragover</a></li><li><a href="tr.ILayoutGrid.html#event:dragstart">dragstart</a></li><li><a href="tr.ILayoutGrid.html#event:drop">drop</a></li><li><a href="tr.ILayoutGrid.html#event:focus">focus</a></li><li><a href="tr.ILayoutGrid.html#event:formchange">formchange</a></li><li><a href="tr.ILayoutGrid.html#event:forminput">forminput</a></li><li><a href="tr.ILayoutGrid.html#event:input">input</a></li><li><a href="tr.ILayoutGrid.html#event:invalid">invalid</a></li><li><a href="tr.ILayoutGrid.html#event:keydown">keydown</a></li><li><a href="tr.ILayoutGrid.html#event:keypress">keypress</a></li><li><a href="tr.ILayoutGrid.html#event:keyup">keyup</a></li><li><a href="tr.ILayoutGrid.html#event:mousedown">mousedown</a></li><li><a href="tr.ILayoutGrid.html#event:mousemove">mousemove</a></li><li><a href="tr.ILayoutGrid.html#event:mouseout">mouseout</a></li><li><a href="tr.ILayoutGrid.html#event:mouseover">mouseover</a></li><li><a href="tr.ILayoutGrid.html#event:mouseup">mouseup</a></li><li><a href="tr.ILayoutGrid.html#event:mousewheel">mousewheel</a></li><li><a href="tr.ILayoutGrid.html#event:reset">reset</a></li><li><a href="tr.ILayoutGrid.html#event:scroll">scroll</a></li><li><a href="tr.ILayoutGrid.html#event:select">select</a></li><li><a href="tr.ILayoutGrid.html#event:submit">submit</a></li><li><a href="tr.LayoutGrid.html#event:rowCountChanged">rowCountChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHeightChanged">rowHeightChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Popup.html#event:hidden">hidden</a></li><li><a href="tr.Popup.html#event:shown">shown</a></li><li><a href="tr.PopupMenu.html#event:hidden">hidden</a></li><li><a href="tr.PopupMenu.html#event:shown">shown</a></li><li><a href="tr.PrintTrait.html#event:afterprint">afterprint</a></li><li><a href="tr.PrintTrait.html#event:beforeprint">beforeprint</a></li><li><a href="tr.PrintTrait.html#event:pageCounting">pageCounting</a></li></ul><h3>Global</h3><ul><li><a href="global.html#cellRef%255Bundefined%255D">cellRef[undefined]</a></li><li><a href="global.html#e%255Bundefined%255D">e[undefined]</a></li><li><a href="global.html#.textContent">.textContent</a></li><li><a href="global.html#get">get</a></li><li><a href="global.html#input%255Bundefined%255D">input[undefined]</a></li><li><a href="global.html#q%255Bundefined%255D">q[undefined]</a></li><li><a href="global.html#sortingDef%255B1%255D">sortingDef[1]</a></li></ul>
+</nav>
+
+
+<script src="scripts/linenumber.js"> </script>
+<script src="scripts/prettify.js"> </script>
+<script> prettyPrint(); </script>
+</body>
+</html>

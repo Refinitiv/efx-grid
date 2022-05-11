@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: grid/util/PrintTrait.js</title>
+
+    <script src="scripts/prettify.js"> </script>
+    <script src="scripts/lang-css.js"> </script>
+    <!--[if lt IE 9]&gt;
+      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
+    &lt;![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/default.css">
+    <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
+</head>
+
+<body>
+
+<div id="main-template" class="elf-template">
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>goog.provide("tr.PrintTrait");
+
+goog.require("tr.EventDispatcher");
+
+/** Trigger before the printing and print preview.
+* @event tr.PrintTrait#beforeprint
+* @property {number} pageWidth Width of the print page
+* @property {number} pageHeight Height of the print page
+*/
+/** Trigger after the printing is completed or cancelled. This event is fired only once at the end of printing
+* @event tr.PrintTrait#afterprint
+* @property {number} pageWidth Width of the current client window (not the print page)
+* @property {number} pageHeight Height of the current client window (not the print page)
+*/
+/** Trigger before actual print command and PrintTrait#beforeprint event. This event is mainly used for setting number of pages in the initial state. The given paper size is NOT from the print device.
+* @event tr.PrintTrait#pageCounting
+* @property {number} pageWidth Width of portrait "letter" paper type (739px)
+* @property {number} pageHeight Height of portrait "letter" paper type (978px)
+*/
+
+/** tr.PrintTrait simplify print process to 2 simple events ("beforeprint" and "afterprint")
+* @constructor
+* @extends{tr.EventDispatcher}
+* @suppress {checkTypes}
+* @param {HTMLIFrameElement=} opt_iframe Current Window object will be used if iframe is not specified
+*/
+tr.PrintTrait = function(opt_iframe) {
+	this._onKeyDown = this._onKeyDown.bind(this);
+	this._onMediaQuery = this._onMediaQuery.bind(this);
+	this._onBeforePrint = this._onBeforePrint.bind(this);
+	this._onAfterPrint = this._onAfterPrint.bind(this);
+	this.print = this.print.bind(this);
+
+	this._window = window;
+	if(opt_iframe &amp;&amp; opt_iframe.contentWindow) {
+		this._window = opt_iframe.contentWindow;
+	}
+	this._defaultPrint = this._window.print;
+
+	this._window.print = this.print;
+	this._window.addEventListener("keydown", this._onKeyDown, false);
+	this._window.addEventListener("beforeprint", this._onBeforePrint, false);
+	this._window.addEventListener("afterprint", this._onAfterPrint, false);
+	this._printMedia = this._window.matchMedia('print');
+	if(this._printMedia) {
+		this._printMedia.addListener(this._onMediaQuery);
+	}
+
+	this._eventArg = {};
+
+	this._addEvent("pageCounting");
+	this._addEvent("beforeprint");
+	this._addEvent("afterprint");
+};
+goog.inherits(tr.PrintTrait, tr.EventDispatcher);
+
+/** @type {number}
+* @private
+*/
+tr.PrintTrait.prototype._defaultWidth = 739;
+/** @type {number}
+* @private
+*/
+tr.PrintTrait.prototype._defaultHeight = 978;
+/** @type {Window}
+* @private
+*/
+tr.PrintTrait.prototype._window = null;
+/** @type {Function}
+* @private
+*/
+tr.PrintTrait.prototype._defaultPrint = null;
+/** @type {Object}
+* @private
+*/
+tr.PrintTrait.prototype._eventArg = null;
+/** @type {MediaQueryList}
+* @private
+*/
+tr.PrintTrait.prototype._printMedia = null;
+/** @type {boolean}
+* @private
+*/
+tr.PrintTrait.prototype._correction = false;
+/** @type {boolean}
+* @private
+*/
+tr.PrintTrait.prototype._fixedSize = false;
+
+
+/** @public
+* @suppress {checkTypes}
+*/
+tr.PrintTrait.prototype.dispose = function() {
+	this.unlistenAll();
+	this._window.print = this._defaultPrint;
+	this._defaultPrint = null;
+
+	this._window.removeEventListener("keydown", this._onKeyDown, false);
+	this._window.removeEventListener("beforeprint", this._onBeforePrint, false);
+	this._window.removeEventListener("afterprint", this._onAfterPrint, false);
+	this._window = null;
+
+	if(this._printMedia) {
+		this._printMedia.removeListener(this._onMediaQuery);
+	}
+
+	this._eventArg = null;
+};
+/** @public
+*/
+tr.PrintTrait.prototype.print = function() {
+	if(tr.isEikonDesktop()) { // DPI pixel reduced
+		this._defaultWidth = 672; // 692 for letter width
+		this._defaultHeight = 917;
+	} else {
+		this._defaultWidth = 717; // A4 safe width
+		this._defaultHeight = 978; // letter safe height
+	}
+	this._eventArg["pageWidth"] = this._defaultWidth;
+	this._eventArg["pageHeight"] = this._defaultHeight;
+	this._dispatch("pageCounting", /** @type{!Object} */(this._eventArg));
+
+	this._defaultPrint.call(this._window);
+};
+/** @public
+* @param {number} pageCount
+* @return {!Element}
+*/
+tr.PrintTrait.prototype.createBlankPages = function(pageCount) {
+	var rootElem = document.createElement("div");
+	for(var i = 0; i &lt; pageCount; ++i) {
+		var bp = document.createElement("div");
+		bp.className = "tr-blank-page";
+		rootElem.appendChild(bp);
+	}
+	rootElem.style.display = "block"; // This will beat any CSS selector
+	return rootElem;
+};
+/** @public
+* @param {number} pw Page width
+* @param {number} ph Page height
+* @return {!Element}
+*/
+tr.PrintTrait.prototype.createClientBox = function(pw, ph) {
+	var rootElem = document.createElement("div");
+	var styObj = rootElem.style;
+	styObj.width = pw + "px";
+	styObj.height = ph + "px";
+
+	styObj.display = "block";
+	styObj.border = "2px solid red";
+	styObj.boxSizing = "border-box";
+
+	styObj.fontSize = "3em";
+	rootElem.textContent = pw + " x " + ph;
+	return rootElem;
+};
+/** @public
+* @param {boolean} opt_enabled
+*/
+tr.PrintTrait.prototype.enablePaperSizeCorrection = function(opt_enabled) {
+	this._correction = (opt_enabled !== false);
+};
+/** @public
+* @param {boolean} opt_enabled
+*/
+tr.PrintTrait.prototype.fixPaperSize = function(opt_enabled) {
+	this._fixedSize = (opt_enabled !== false);
+};
+
+
+/** @private
+* @param {KeyboardEvent} e
+*/
+tr.PrintTrait.prototype._onKeyDown = function(e) {
+	var ctrlCmdKey = tr.isMac ? e.metaKey : e.ctrlKey;
+
+	if(ctrlCmdKey) {
+		if(e.altKey) {
+			return;
+		}
+		if(e.keyCode === 80) { // P
+			e.preventDefault();
+			e.stopPropagation();
+			this.print();
+		}
+	}
+};
+/** @private
+* @param {Object} e
+*/
+tr.PrintTrait.prototype._onMediaQuery = function(e) {
+	if (e["matches"]) {
+		this._onBeforePrint();
+	} else {
+		this._onAfterPrint();
+	}
+};
+/** @private
+* @param {Object=} e
+*/
+tr.PrintTrait.prototype._onBeforePrint = function(e) {
+	this._calculatePageSize(this._correction, this._fixedSize);
+	this._dispatch("beforeprint", /** @type{!Object} */(this._eventArg));
+};
+/** @private
+* @param {Object=} e
+*/
+tr.PrintTrait.prototype._onAfterPrint = function(e) {
+	this._calculatePageSize();
+	this._dispatch("afterprint", /** @type{!Object} */(this._eventArg));
+};
+/** @private
+* @param {boolean=} sizeCorrection
+* @param {boolean=} fixedSize
+* @return {boolean} True if there is any change
+*/
+tr.PrintTrait.prototype._calculatePageSize = function(sizeCorrection, fixedSize) {
+	if(tr.isIE) {
+		return false; // Cannot calculate paper size in IE
+	}
+	var cw = this._window.document.documentElement.clientWidth;
+	var	iw = this._window.innerWidth || 0;
+	var ch = this._window.document.documentElement.clientHeight;
+	var	ih = this._window.innerHeight || 0;
+	var nw = (cw &gt;= iw) ? cw : iw;
+	var nh = (ch &gt;= ih) ? ch : ih;
+
+	if(fixedSize) {
+		if(nw &gt; nh) {
+			nw = this._defaultHeight;
+			nh = this._defaultWidth;
+		} else {
+			nw = this._defaultWidth;
+			nh = this._defaultHeight;
+		}
+	} else if(sizeCorrection) {
+		var portrait = nh &gt;= nw;
+		var ar = this._calculateAspectRatio(nw, nh);
+		var paperSize = tr.PrintTrait._paperSizes[ar];
+		if(!paperSize) {
+			paperSize = tr.PrintTrait._paperSizes[ar - 1] || tr.PrintTrait._paperSizes[ar + 1];
+		}
+		if(paperSize) {
+			if(portrait) {
+				nw = paperSize[0];
+				nh = paperSize[1];
+			} else {
+				nh = paperSize[0];
+				nw = paperSize[1];
+			}
+		}
+	}
+
+	if(this._eventArg["pageWidth"] !== nw || this._eventArg["pageHeight"] !== nh) {
+		this._eventArg["pageWidth"] = nw;
+		this._eventArg["pageHeight"] = nh;
+		return true;
+	}
+	return false;
+};
+
+/** @private
+* @return {number}
+*/
+tr.PrintTrait.prototype._calculateAspectRatio = function(w, h) {
+	var portrait = h &gt;= w;
+	var ratio = (portrait) ? w / h : h / w;
+	return Math.floor(ratio * 1000); // Return 3 digit precision
+};
+
+/** @private
+* @type {Object.&lt;number, Array.&lt;number&gt;&gt;}
+*/
+tr.PrintTrait._paperSizes = {
+	702: [3101, 4414], // "A0"
+	699: [2168, 3100], // "A1"
+	697: [1511, 2167], // "A2"
+	692: [1046, 1511], // "A3"
+	685: [717, 1046], // "A4"
+	674: [483, 715], // "A5"
+	583: [739, 1266], // "legal"
+	755: [739, 978], // "letter"
+	629: [979, 1554]  // "tabloid"
+};
+
+window["tr.PrintTrait"] = tr.PrintTrait;
+tr.PrintTrait._proto = tr.PrintTrait.prototype;
+
+tr.PrintTrait._proto["dispose"] = tr.PrintTrait._proto.dispose;
+tr.PrintTrait._proto["print"] = tr.PrintTrait._proto.print;
+
+goog.exportSymbol("tr.PrintTrait", tr.PrintTrait);
+tr.PrintTrait._proto = tr.PrintTrait.prototype;
+
+goog.exportProperty(tr.PrintTrait._proto, "dispose", tr.PrintTrait._proto.dispose);
+goog.exportProperty(tr.PrintTrait._proto, "print", tr.PrintTrait._proto.print);
+goog.exportProperty(tr.PrintTrait._proto, "createBlankPages", tr.PrintTrait._proto.createBlankPages);
+goog.exportProperty(tr.PrintTrait._proto, "createClientBox", tr.PrintTrait._proto.createClientBox);
+goog.exportProperty(tr.PrintTrait._proto, "enablePaperSizeCorrection", tr.PrintTrait._proto.enablePaperSizeCorrection);
+goog.exportProperty(tr.PrintTrait._proto, "fixPaperSize", tr.PrintTrait._proto.fixPaperSize);
+
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="AdFin.html">AdFin</a></li><li><a href="DateTime.html">DateTime</a></li><li><a href="Info.html">Info</a></li><li><a href="Logic.html">Logic</a></li><li><a href="Math.html">Math</a></li><li><a href="Realtime.html">Realtime</a></li><li><a href="Statistic.html">Statistic</a></li><li><a href="Text.html">Text</a></li><li><a href="tr.ElementFrameWork.html">ElementFrameWork</a></li><li><a href="tr.PipDefinition.html">PipDefinition</a></li></ul><h3>Classes</h3><ul><li><a href="tr.ADCSubscription.html">ADCSubscription</a></li><li><a href="tr.AdFinSubscription.html">AdFinSubscription</a></li><li><a href="tr.cgrid.editor.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.filter.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.formatter.AsyncFormatter.html">AsyncFormatter</a></li><li><a href="tr.cgrid.formatter.CheckBox.html">CheckBox</a></li><li><a href="tr.cgrid.formatter.UpDownColor.html">UpDownColor</a></li><li><a href="tr.ColumnStats.html">ColumnStats</a></li><li><a href="tr.CompositeGrid.html">CompositeGrid</a></li><li><a href="tr.DataCache.html">DataCache</a></li><li><a href="tr.DataTable.html">DataTable</a></li><li><a href="tr.DataView.html">DataView</a></li><li><a href="tr.DropDown.html">DropDown</a></li><li><a href="tr.ElementControl.html">ElementControl</a></li><li><a href="tr.ElementWrapper.html">ElementWrapper</a></li><li><a href="tr.Event.html">Event</a></li><li><a href="tr.EventDispatcher.html">EventDispatcher</a></li><li><a href="tr.EventDispatcher.extendClass-tempCtor.html">tempCtor</a></li><li><a href="tr.EventManager.html">EventManager</a></li><li><a href="tr.FieldFormatter.html">FieldFormatter</a></li><li><a href="tr.fn.Engine.html">Engine</a></li><li><a href="tr.fn.Formula.html">Formula</a></li><li><a href="tr.fn.VariableToken.html">VariableToken</a></li><li><a href="tr.Grid.html">Grid</a></li><li><a href="tr.grid.BidOfferSpan.html">BidOfferSpan</a></li><li><a href="tr.grid.Blinker.html">Blinker</a></li><li><a href="tr.grid.Cell.html">Cell</a></li><li><a href="tr.grid.CellBlinkingPlugin.html">CellBlinkingPlugin</a></li><li><a href="tr.grid.CellEditingPlugin.html">CellEditingPlugin</a></li><li><a href="tr.grid.CellFloatingPanel.html">CellFloatingPanel</a></li><li><a href="tr.grid.CellPainter.html">CellPainter</a></li><li><a href="tr.grid.CellSpan.html">CellSpan</a></li><li><a href="tr.grid.CellSpans.html">CellSpans</a></li><li><a href="tr.grid.CellWriter.html">CellWriter</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html">CheckboxColumnPlugin</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html">CollapsibleHeaderPlugin</a></li><li><a href="tr.grid.ColumnFilterPlugin.html">ColumnFilterPlugin</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html">ColumnGroupingPlugin</a></li><li><a href="tr.grid.ColumnSelectionPlugin.html">ColumnSelectionPlugin</a></li><li><a href="tr.grid.ColumnStackingPlugin.html">ColumnStackingPlugin</a></li><li><a href="tr.grid.ColumnWidthAdjustingPlugin.html">ColumnWidthAdjustingPlugin</a></li><li><a href="tr.grid.Conflator.html">Conflator</a></li><li><a href="tr.grid.DataSourceTreePlugin.html">DataSourceTreePlugin</a></li><li><a href="tr.grid.DirectContentBindingPlugin.html">DirectContentBindingPlugin</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html">DragAndDropTitlePlugin</a></li><li><a href="tr.grid.DraggableContentPlugin.html">DraggableContentPlugin</a></li><li><a href="tr.grid.FindBar.html">FindBar</a></li><li><a href="tr.grid.FindBarPlugin.html">FindBarPlugin</a></li><li><a href="tr.grid.GroupStatisticsPlugin.html">GroupStatisticsPlugin</a></li><li><a href="tr.grid.HeatMapRenderer.html">HeatMapRenderer</a></li><li><a href="tr.grid.HScrollbar.html">HScrollbar</a></li><li><a href="tr.grid.IndexMarker.html">IndexMarker</a></li><li><a href="tr.grid.MovableHeaderPlugin.html">MovableHeaderPlugin</a></li><li><a href="tr.grid.NumberFormatter.html">NumberFormatter</a></li><li><a href="tr.grid.PercentBar.html">PercentBar</a></li><li><a href="tr.grid.PercentBarRenderer.html">PercentBarRenderer</a></li><li><a href="tr.grid.Plugin.html">Plugin</a></li><li><a href="tr.grid.RangeBar.html">RangeBar</a></li><li><a href="tr.grid.ResizableTitlePlugin.html">ResizableTitlePlugin</a></li><li><a href="tr.grid.Reverter.html">Reverter</a></li><li><a href="tr.grid.RowHeightAdjustingPlugin.html">RowHeightAdjustingPlugin</a></li><li><a href="tr.grid.RowSelectionPlugin.html">RowSelectionPlugin</a></li><li><a href="tr.grid.Scrollbar.html">Scrollbar</a></li><li><a href="tr.grid.SectionSettings.html">SectionSettings</a></li><li><a href="tr.grid.SmartTooltipsPlugin.html">SmartTooltipsPlugin</a></li><li><a href="tr.grid.SortableTitlePlugin.html">SortableTitlePlugin</a></li><li><a href="tr.grid.TreeIndentingPlugin.html">TreeIndentingPlugin</a></li><li><a href="tr.grid.Virtualizer.html">Virtualizer</a></li><li><a href="tr.grid.VScrollbar.html">VScrollbar</a></li><li><a href="tr.grid.ZoomPlugin.html">ZoomPlugin</a></li><li><a href="tr.HttpRequest.html">HttpRequest</a></li><li><a href="tr.IntervalSubscription.html">IntervalSubscription</a></li><li><a href="tr.LayoutGrid.html">LayoutGrid</a></li><li><a href="tr.ListMenu.html">ListMenu</a></li><li><a href="tr.MenuItem.html">MenuItem</a></li><li><a href="tr.MockArchive.html">MockArchive</a></li><li><a href="tr.MockJET.html">MockJET</a></li><li><a href="tr.MockQuotes.html">MockQuotes</a></li><li><a href="tr.MockQuotes2.html">MockQuotes2</a></li><li><a href="tr.MockSubscription.html">MockSubscription</a></li><li><a href="tr.MockSubscriptions.html">MockSubscriptions</a></li><li><a href="tr.Popup.html">Popup</a></li><li><a href="tr.PopupMenu.html">PopupMenu</a></li><li><a href="tr.PrintTrait.html">PrintTrait</a></li><li><a href="tr.RequestQueue.html">RequestQueue</a></li><li><a href="tr.Segment.html">Segment</a></li><li><a href="tr.SegmentCollection.html">SegmentCollection</a></li><li><a href="tr.TSISubscription.html">TSISubscription</a></li></ul><h3>Interfaces</h3><ul><li><a href="tr.cgrid.ICompositeExtension.html">ICompositeExtension</a></li><li><a href="tr.grid.IPlugin.html">IPlugin</a></li><li><a href="tr.IElementControl.html">IElementControl</a></li><li><a href="tr.ILayoutGrid.html">ILayoutGrid</a></li></ul><h3>Events</h3><ul><li><a href="tr.CompositeGrid.html#event:cellClicked">cellClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellDblClicked">cellDblClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellMouseDown">cellMouseDown</a></li><li><a href="tr.CompositeGrid.html#event:cellRightClicked">cellRightClicked</a></li><li><a href="tr.CompositeGrid.html#event:columnSorted">columnSorted</a></li><li><a href="tr.CompositeGrid.html#event:editorAttached">editorAttached</a></li><li><a href="tr.CompositeGrid.html#event:editorDetached">editorDetached</a></li><li><a href="tr.CompositeGrid.html#event:filterAdded">filterAdded</a></li><li><a href="tr.CompositeGrid.html#event:filterCleared">filterCleared</a></li><li><a href="tr.CompositeGrid.html#event:filterModified">filterModified</a></li><li><a href="tr.CompositeGrid.html#event:filterRemoved">filterRemoved</a></li><li><a href="tr.CompositeGrid.html#event:mouseLeaveCell">mouseLeaveCell</a></li><li><a href="tr.CompositeGrid.html#event:mouseOverCell">mouseOverCell</a></li><li><a href="tr.CompositeGrid.html#event:pageChanged">pageChanged</a></li><li><a href="tr.CompositeGrid.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.DataCache.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataCache.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataTable.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataTable.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataView.html#event:beforeFiltering">beforeFiltering</a></li><li><a href="tr.DataView.html#event:beforeGroupAdded">beforeGroupAdded</a></li><li><a href="tr.DataView.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataView.html#event:groupAdded">groupAdded</a></li><li><a href="tr.DataView.html#event:groupCriteriaChanged">groupCriteriaChanged</a></li><li><a href="tr.DataView.html#event:pageCountChanged">pageCountChanged</a></li><li><a href="tr.DataView.html#event:pageIndexChanged">pageIndexChanged</a></li><li><a href="tr.DataView.html#event:preDisposed">preDisposed</a></li><li><a href="tr.Formula.html#event:dataCacheChanged">dataCacheChanged</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:cancelled">cancelled</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:change">change</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:closed">closed</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:editorOpened">editorOpened</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:preEditorOpening">preEditorOpening</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:click">click</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:columnCollapsed">columnCollapsed</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:groupChanged">groupChanged</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:render">render</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:columnMoved">columnMoved</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:drag">drag</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragEnd">dragEnd</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragStart">dragStart</a></li><li><a href="tr.grid.FindBarPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:groupMoved">groupMoved</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:sectionMoved">sectionMoved</a></li><li><a href="tr.grid.RowSelectionPlugin.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:columnSorted">columnSorted</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preClicked">preClicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preDataSorting">preDataSorting</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.Grid.html#event:columnAdded">columnAdded</a></li><li><a href="tr.Grid.html#event:columnAlignmentChanged">columnAlignmentChanged</a></li><li><a href="tr.Grid.html#event:columnRemoved">columnRemoved</a></li><li><a href="tr.Grid.html#event:columnVisibilityChanged">columnVisibilityChanged</a></li><li><a href="tr.Grid.html#event:dataSourceChanged">dataSourceChanged</a></li><li><a href="tr.Grid.html#event:postSectionDataBinding">postSectionDataBinding</a></li><li><a href="tr.Grid.html#event:rowExpansionBinding">rowExpansionBinding</a></li><li><a href="tr.Grid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Grid.html#event:sectionAdded">sectionAdded</a></li><li><a href="tr.Grid.html#event:widthChanged">widthChanged</a></li><li><a href="tr.HttpRequest.html#event:abort">abort</a></li><li><a href="tr.HttpRequest.html#event:error">error</a></li><li><a href="tr.HttpRequest.html#event:load">load</a></li><li><a href="tr.HttpRequest.html#event:loadend">loadend</a></li><li><a href="tr.HttpRequest.html#event:loadstart">loadstart</a></li><li><a href="tr.HttpRequest.html#event:timeout">timeout</a></li><li><a href="tr.IElementControl.html#event:blur">blur</a></li><li><a href="tr.IElementControl.html#event:change">change</a></li><li><a href="tr.IElementControl.html#event:click">click</a></li><li><a href="tr.IElementControl.html#event:contextmenu">contextmenu</a></li><li><a href="tr.IElementControl.html#event:dblclick">dblclick</a></li><li><a href="tr.IElementControl.html#event:drag">drag</a></li><li><a href="tr.IElementControl.html#event:dragend">dragend</a></li><li><a href="tr.IElementControl.html#event:dragenter">dragenter</a></li><li><a href="tr.IElementControl.html#event:dragleave">dragleave</a></li><li><a href="tr.IElementControl.html#event:dragover">dragover</a></li><li><a href="tr.IElementControl.html#event:dragstart">dragstart</a></li><li><a href="tr.IElementControl.html#event:drop">drop</a></li><li><a href="tr.IElementControl.html#event:focus">focus</a></li><li><a href="tr.IElementControl.html#event:formchange">formchange</a></li><li><a href="tr.IElementControl.html#event:forminput">forminput</a></li><li><a href="tr.IElementControl.html#event:input">input</a></li><li><a href="tr.IElementControl.html#event:invalid">invalid</a></li><li><a href="tr.IElementControl.html#event:keydown">keydown</a></li><li><a href="tr.IElementControl.html#event:keypress">keypress</a></li><li><a href="tr.IElementControl.html#event:keyup">keyup</a></li><li><a href="tr.IElementControl.html#event:mousedown">mousedown</a></li><li><a href="tr.IElementControl.html#event:mousemove">mousemove</a></li><li><a href="tr.IElementControl.html#event:mouseout">mouseout</a></li><li><a href="tr.IElementControl.html#event:mouseover">mouseover</a></li><li><a href="tr.IElementControl.html#event:mouseup">mouseup</a></li><li><a href="tr.IElementControl.html#event:mousewheel">mousewheel</a></li><li><a href="tr.IElementControl.html#event:reset">reset</a></li><li><a href="tr.IElementControl.html#event:scroll">scroll</a></li><li><a href="tr.IElementControl.html#event:select">select</a></li><li><a href="tr.IElementControl.html#event:submit">submit</a></li><li><a href="tr.ILayoutGrid.html#event:blur">blur</a></li><li><a href="tr.ILayoutGrid.html#event:change">change</a></li><li><a href="tr.ILayoutGrid.html#event:click">click</a></li><li><a href="tr.ILayoutGrid.html#event:contextmenu">contextmenu</a></li><li><a href="tr.ILayoutGrid.html#event:dblclick">dblclick</a></li><li><a href="tr.ILayoutGrid.html#event:drag">drag</a></li><li><a href="tr.ILayoutGrid.html#event:dragend">dragend</a></li><li><a href="tr.ILayoutGrid.html#event:dragenter">dragenter</a></li><li><a href="tr.ILayoutGrid.html#event:dragleave">dragleave</a></li><li><a href="tr.ILayoutGrid.html#event:dragover">dragover</a></li><li><a href="tr.ILayoutGrid.html#event:dragstart">dragstart</a></li><li><a href="tr.ILayoutGrid.html#event:drop">drop</a></li><li><a href="tr.ILayoutGrid.html#event:focus">focus</a></li><li><a href="tr.ILayoutGrid.html#event:formchange">formchange</a></li><li><a href="tr.ILayoutGrid.html#event:forminput">forminput</a></li><li><a href="tr.ILayoutGrid.html#event:input">input</a></li><li><a href="tr.ILayoutGrid.html#event:invalid">invalid</a></li><li><a href="tr.ILayoutGrid.html#event:keydown">keydown</a></li><li><a href="tr.ILayoutGrid.html#event:keypress">keypress</a></li><li><a href="tr.ILayoutGrid.html#event:keyup">keyup</a></li><li><a href="tr.ILayoutGrid.html#event:mousedown">mousedown</a></li><li><a href="tr.ILayoutGrid.html#event:mousemove">mousemove</a></li><li><a href="tr.ILayoutGrid.html#event:mouseout">mouseout</a></li><li><a href="tr.ILayoutGrid.html#event:mouseover">mouseover</a></li><li><a href="tr.ILayoutGrid.html#event:mouseup">mouseup</a></li><li><a href="tr.ILayoutGrid.html#event:mousewheel">mousewheel</a></li><li><a href="tr.ILayoutGrid.html#event:reset">reset</a></li><li><a href="tr.ILayoutGrid.html#event:scroll">scroll</a></li><li><a href="tr.ILayoutGrid.html#event:select">select</a></li><li><a href="tr.ILayoutGrid.html#event:submit">submit</a></li><li><a href="tr.LayoutGrid.html#event:rowCountChanged">rowCountChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHeightChanged">rowHeightChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Popup.html#event:hidden">hidden</a></li><li><a href="tr.Popup.html#event:shown">shown</a></li><li><a href="tr.PopupMenu.html#event:hidden">hidden</a></li><li><a href="tr.PopupMenu.html#event:shown">shown</a></li><li><a href="tr.PrintTrait.html#event:afterprint">afterprint</a></li><li><a href="tr.PrintTrait.html#event:beforeprint">beforeprint</a></li><li><a href="tr.PrintTrait.html#event:pageCounting">pageCounting</a></li></ul><h3>Global</h3><ul><li><a href="global.html#cellRef%255Bundefined%255D">cellRef[undefined]</a></li><li><a href="global.html#e%255Bundefined%255D">e[undefined]</a></li><li><a href="global.html#.textContent">.textContent</a></li><li><a href="global.html#get">get</a></li><li><a href="global.html#input%255Bundefined%255D">input[undefined]</a></li><li><a href="global.html#q%255Bundefined%255D">q[undefined]</a></li><li><a href="global.html#sortingDef%255B1%255D">sortingDef[1]</a></li></ul>
+</nav>
+
+
+<script src="scripts/linenumber.js"> </script>
+<script src="scripts/prettify.js"> </script>
+<script> prettyPrint(); </script>
+</body>
+</html>

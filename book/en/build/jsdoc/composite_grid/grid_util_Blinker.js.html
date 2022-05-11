@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: grid/util/Blinker.js</title>
+
+    <script src="scripts/prettify.js"> </script>
+    <script src="scripts/lang-css.js"> </script>
+    <!--[if lt IE 9]&gt;
+      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
+    &lt;![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/default.css">
+    <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
+</head>
+
+<body>
+
+<div id="main-template" class="elf-template">
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>goog.provide("tr.grid.Blinker");
+
+goog.require("tr.res");
+goog.require("tr.IElementControl");
+
+/** @constructor
+*/
+tr.grid.Blinker = function () {
+	if (!this._defaults) {
+		this._defaults = {};
+		this._defaults["up"] = ["#00FF00", "#00FF00", "blink-up"];
+		this._defaults["down"] = ["#FF0000", "#FF0000", "blink-down"];
+		this._defaults[tr.res.nochange] = ["#DDDDDD", "#CCCCCC", "blink-nochange"];
+		this._defaults[tr.res.none] = ["", "", ""];
+		this._defaults[tr.res.enabled] = [true, false, true];
+		tr.grid.Blinker.prototype._defaults = this._defaults;
+	}
+
+	this._styles = {};
+	for (var key in this._defaults) {
+		var defaultValues = this._defaults[key];
+		this._styles[key] = {};
+		this._styles[key][tr.res.text] = defaultValues[0];
+		this._styles[key]["bg"] = defaultValues[1];
+		this._styles[key]["css"] = defaultValues[2];
+	}
+
+	this._scopes = [];
+
+	this.setNumericParser(null);
+	this.setCondition(null);
+};
+
+//#region Public
+/** @public
+* @param {tr.IElementControl} ctrl
+* @param {*} newVal
+* @param {*=} opt_oldVal In case of previous value is not from the specified newVal
+*/
+tr.grid.Blinker.prototype.blink = function (ctrl, newVal, opt_oldVal) {
+	if (!this._enabled) { return; }
+	if (ctrl === null) { return; }
+
+	newVal = this._numericParser(newVal);
+
+	var scope = ctrl["blinkState"];
+	if (scope === undefined || scope === null) {
+		scope = {};
+		scope.blinker = this;
+		scope.id = this._runningId++;
+		scope.oldVal = newVal;
+		scope.oldSignal = tr.res.none;
+		scope.control = ctrl;
+		this._scopes[scope.id] = scope;
+		ctrl["blinkState"] = scope;
+
+		if (opt_oldVal === undefined) { return; }
+	}
+	if (opt_oldVal !== undefined) {
+		opt_oldVal = this._numericParser(opt_oldVal);
+	} else {
+		opt_oldVal = scope.oldVal;
+	}
+
+	var userSignal = this._condition(opt_oldVal, newVal);
+	// Convert external signal to internal signal index (// up down nochanged
+	if(userSignal !== userSignal) {
+		scope.signal = tr.res.none;
+	} else if(userSignal &gt; 0) {
+		scope.signal = "up";	
+	} else if(userSignal &lt; 0) {
+		scope.signal = "down";
+	} else {
+		scope.signal = (this._useTwoColorMode) ? tr.res.none : tr.res.nochange;
+	}
+
+	if (!this._retainChange &amp;&amp; scope.signal === tr.res.nochange) {
+		if (scope.oldSignal !== tr.res.none) {
+			scope.signal = scope.oldSignal;
+			return;
+		}
+	}
+
+	this._applyColors(scope.control, scope.signal);
+
+	if (scope.timerId &gt;= 0) {
+		clearInterval(scope.timerId);
+		scope.timerId = -1;
+	}
+	if (scope.control.getElement() &amp;&amp; !this._retainChange) {
+		scope.count = 1;
+		scope.timerId = setInterval(tr.grid.Blinker._onBlink.bind(null, scope), this._flashDuration);
+	}
+
+	scope.oldVal = newVal;
+	scope.oldSignal = scope.signal;
+};
+/** Blinks without data actually changing
+* @public
+* @param {tr.IElementControl} ctrl
+* @param {*} cf_tick
+*/
+tr.grid.Blinker.prototype.flash = function (ctrl, cf_tick) {
+	if (!cf_tick) {
+		this.blink(ctrl, 0, 0);
+	} else {
+		if (!tr.isNumber(cf_tick)) {
+			cf_tick = Number(cf_tick);
+		}
+		if (cf_tick === 1) {
+			this.blink(ctrl, 1, 0);
+		} else {
+			this.blink(ctrl, 0, 1);
+		}
+	}
+};
+
+/**
+ * @public
+ * @param {tr.IElementControl} ctrl
+ * @param {string} state
+ */
+tr.grid.Blinker.prototype.setTrend = function (ctrl, state) {
+	if(ctrl["trendState"] !== state){
+		ctrl["trendState"] = state;
+		this._applyColors(ctrl, tr.res.none);
+	}
+};
+
+/** @public
+*/
+tr.grid.Blinker.prototype.clearAllData = function () {
+	var count = 0;
+	for (var i in this._scopes) {
+		var scope = this._scopes[i];
+
+		if (scope.timerId &gt;= 0) {
+			this._applyColors(scope.control, tr.res.none);
+			clearInterval(scope.timerId);
+			scope.timerId = -1;
+		}
+		delete scope.control["blinkState"];
+		++count;
+	}
+	if(count &gt; 0) {
+		this._scopes = {};
+	}
+};
+
+/** @public
+* @return {boolean}
+*/
+tr.grid.Blinker.prototype.isEnabled = function () {
+	return this._enabled;
+};
+/** @public
+* @param {boolean=} opt_enabled
+*/
+tr.grid.Blinker.prototype.enable = function (opt_enabled) {
+	opt_enabled = (opt_enabled !== false);
+	if (this._enabled !== opt_enabled) {
+		this._enabled = opt_enabled;
+		if (!this._enabled) {
+			this.clearAllData();
+		}
+	}
+};
+/** @public
+* @param {boolean=} opt_disabled
+*/
+tr.grid.Blinker.prototype.disable = function (opt_disabled) {
+	this.enable(opt_disabled === false);
+};
+
+/** @public
+* @return {number}
+*/
+tr.grid.Blinker.prototype.getDuration = function () {
+	return this._duration;
+};
+/** @public
+* @param {number} millisecond
+* @param {number=} opt_count Flashing count during the specified period
+*/
+tr.grid.Blinker.prototype.setDuration = function (millisecond, opt_count) {
+	if (millisecond &lt; 0) { millisecond = 0; }
+	if (this._duration !== millisecond) {
+		this.clearAllData(); // For safety
+		this._duration = millisecond;
+	}
+	if(opt_count !== undefined &amp;&amp; opt_count !== null &amp;&amp; opt_count &gt; 1) {
+		this._flashTarget = opt_count * 2; // blink in and out
+		this._flashDuration = Math.floor(this._duration / opt_count);
+	} else {
+		this._flashTarget = 1; // only blink in
+		this._flashDuration = this._duration;
+	}
+};
+
+/** @public
+* @param {function(*):number | null} numericParser
+*/
+tr.grid.Blinker.prototype.setNumericParser = function (numericParser) {
+	if(numericParser !== undefined &amp;&amp; numericParser !== null) {
+		this._numericParser = numericParser;
+	} else {
+		this._numericParser = this._parseFloat;
+	}
+};
+/** @public
+* @param {function(number, number):number | null} condition
+*/
+tr.grid.Blinker.prototype.setCondition = function(condition) {
+	if(condition !== undefined &amp;&amp; condition !== null) {
+		this._condition = condition;
+	} else {
+		this._condition = this._defaultCondition;
+	}
+};
+
+/** @public
+* @param {string} up
+* @param {string} down
+* @param {string} nochange
+* @param {boolean=} opt_enabled If not specified, text color will be enabled automatically
+*/
+tr.grid.Blinker.prototype.setTextColors = function (up, down, nochange, opt_enabled) {
+	this._setStyles(tr.res.text, up, down, nochange, opt_enabled);
+};
+
+/** @public
+* @param {string} up
+* @param {string} down
+* @param {string} nochange
+* @param {boolean=} opt_enabled If not specified, bg color will be enabled automatically
+*/
+tr.grid.Blinker.prototype.setBgColors = function (up, down, nochange, opt_enabled) {
+	this._setStyles("bg", up, down, nochange, opt_enabled);
+};
+
+/** @public
+* @param {string} up
+* @param {string} down
+* @param {string} nochange
+* @param {boolean=} opt_enabled  If not specified, css class will be enabled automatically
+*/
+tr.grid.Blinker.prototype.setClassColors = function (up, down, nochange, opt_enabled) {
+	this._setStyles("css", up, down, nochange, opt_enabled);
+};
+/** @public
+* @param {boolean=} opt_text
+* @param {boolean=} opt_bg
+* @param {boolean=} opt_css
+*/
+tr.grid.Blinker.prototype.enableColors = function (opt_text, opt_bg, opt_css) {
+	this._styles[tr.res.enabled][tr.res.text] = (opt_text !== false);
+	this._styles[tr.res.enabled]["bg"] = (opt_bg !== false);
+	this._styles[tr.res.enabled]["css"] = (opt_css !== false);
+};
+
+/** @public
+* @param {string|null} textColor
+* @param {string|null=} bgColor
+* @param {string|null=} css
+*/
+tr.grid.Blinker.prototype.setUpColors = function (textColor, bgColor, css) {
+	this._styles["up"][tr.res.text] = textColor;
+	this._styles["up"]["bg"] = bgColor;
+	this._styles["up"]["css"] = css;
+};
+/** @public
+* @param {string|null} textColor
+* @param {string|null=} bgColor
+* @param {string|null=} css
+*/
+tr.grid.Blinker.prototype.setDownColors = function (textColor, bgColor, css) {
+	this._styles["down"][tr.res.text] = textColor;
+	this._styles["down"]["bg"] = bgColor;
+	this._styles["down"]["css"] = css;
+};
+/** @public
+* @param {string|null} textColor
+* @param {string|null=} bgColor
+* @param {string|null=} css
+*/
+tr.grid.Blinker.prototype.setNoChangeColors = function (textColor, bgColor, css) {
+	this._styles[tr.res.nochange][tr.res.text] = textColor;
+	this._styles[tr.res.nochange]["bg"] = bgColor;
+	this._styles[tr.res.nochange]["css"] = css;
+};
+
+/** @public
+* @return {boolean}
+*/
+tr.grid.Blinker.prototype.getRetainChange = function () {
+	return this._retainChange;
+};
+/** @public
+* @param {boolean} enabled
+*/
+tr.grid.Blinker.prototype.setRetainChange = function (enabled) {
+	this._retainChange = enabled;
+};
+/** @public
+* @param {boolean} enabled
+*/
+tr.grid.Blinker.prototype.setUseTwoColorMode = function (enabled) {
+	this._useTwoColorMode = enabled;
+};
+
+/** @public
+ * @param {string} up
+ * @param {string} down
+ * @param {string} nochange
+ */
+tr.grid.Blinker.prototype.setTextTrendColors = function (up, down, nochange) {
+	this._setStyles("textTrend", up, down, nochange, true);
+};
+//#endregion
+
+//#region Private
+/** @private
+* @param {string} type
+* @param {string} up
+* @param {string} down
+* @param {string} nochange
+* @param {boolean=} opt_enabled  If not specified, css class will be enabled automatically
+*/
+tr.grid.Blinker.prototype._setStyles = function (type, up, down, nochange, opt_enabled) {
+	this._styles["up"][type] = up;
+	this._styles["down"][type] = down;
+	this._styles[tr.res.nochange][type] = nochange;
+	this._styles[tr.res.enabled][type] = (opt_enabled !== false);
+};
+/** @private
+* @param {*} val
+* @return {number}
+*/
+tr.grid.Blinker.prototype._parseFloat = function (val) {
+	if(tr.isNumber(val)) {
+		return /** @type{number} */(val);
+	}
+	if(val === null || val === "") {
+		return NaN;
+	}
+	return Number(val);
+};
+/** @private
+* @param {number} oldVal
+* @param {number} newVal
+* @return {number}
+*/
+tr.grid.Blinker.prototype._defaultCondition = function (oldVal, newVal) {
+	return newVal - oldVal;
+};
+
+/** @private
+* @param {Object} scope
+*/
+tr.grid.Blinker._onBlink = function (scope) {
+	var blinker = /**@type {tr.grid.Blinker} */(scope.blinker);
+
+	if (blinker._flashTarget &lt;= 1 || scope.count &gt;= blinker._flashTarget) {
+		scope.oldSignal = tr.res.none;
+		scope.signal = tr.res.none;
+
+		blinker._applyColors(scope.control, tr.res.none);
+		clearInterval(scope.timerId);
+		scope.timerId = -1;
+		return;
+	}
+
+	if(scope.afterFlash) {
+		blinker._applyColors(scope.control, scope.signal);
+	} else {
+		blinker._applyColors(scope.control, tr.res.none);
+	}
+	scope.count++;
+
+	scope.afterFlash = !scope.afterFlash;
+};
+
+/** @private
+* @param {tr.IElementControl} ctrl
+* @param {string} signal
+*/
+tr.grid.Blinker.prototype._applyColors = function (ctrl, signal) {
+	if(!ctrl.getElement()) { // Element has been disposed
+		return;
+	}
+	
+	var style = this._styles[signal];
+	var color;
+
+	if (this._styles[tr.res.enabled][tr.res.text]) {
+		if( style[tr.res.text]){
+			ctrl.setStyle("color", style[tr.res.text]);
+		} else {
+			var trendStyle = this._styles[ctrl["trendState"]];
+			if(trendStyle){
+				ctrl.setStyle("color", trendStyle["textTrend"] || "");
+			} else {
+				ctrl.setStyle("color", "");
+			}
+		}
+	}
+
+	if (this._styles[tr.res.enabled]["bg"]) {
+		ctrl.setStyle("backgroundColor", style["bg"] || "");
+	}
+
+	if (this._styles[tr.res.enabled]["css"]) {
+		ctrl.removeClass(this._styles["up"]["css"]);
+		ctrl.removeClass(this._styles["down"]["css"]);
+		ctrl.removeClass(this._styles[tr.res.nochange]["css"]);
+		if(signal !== tr.res.none) {
+			ctrl.addClass(style["css"]);
+		}
+	}
+};
+
+/** @private
+* @type {Object}
+*/
+tr.grid.Blinker.prototype._scopes = null;
+/** @private
+* @type {number}
+*/
+tr.grid.Blinker.prototype._runningId = 0;
+
+/** @private
+* @type {boolean}
+*/
+tr.grid.Blinker.prototype._enabled = true;
+
+/** @private
+* @type {number}
+*/
+tr.grid.Blinker.prototype._duration = 150; // In milliseconds
+/** @private
+* @type {number}
+*/
+tr.grid.Blinker.prototype._flashDuration = 150; // In milliseconds
+/** @private
+* @type {number}
+*/
+tr.grid.Blinker.prototype._flashTarget= 1;
+/** @private
+* @type {boolean}
+*/
+tr.grid.Blinker.prototype._useTwoColorMode = false;
+/** @private
+* @type {boolean}
+*/
+tr.grid.Blinker.prototype._retainChange = false;
+
+/** @private
+* @type {!function(*):number}
+*/
+tr.grid.Blinker.prototype._numericParser;
+/** @private
+* @type {!function(number, number):number}
+*/
+tr.grid.Blinker.prototype._condition;
+
+/** @private
+* @type {Object.&lt;string, *&gt;}
+*/
+tr.grid.Blinker.prototype._styles;
+
+/** @private
+* @type {Object.&lt;string, Array&gt;}
+*/
+tr.grid.Blinker.prototype._defaults;
+//#endregion Private
+
+
+goog.exportSymbol("tr.grid.Blinker", tr.grid.Blinker);
+tr.grid.Blinker._proto = tr.grid.Blinker.prototype;
+goog.exportProperty(tr.grid.Blinker._proto, "blink", tr.grid.Blinker._proto.blink);
+goog.exportProperty(tr.grid.Blinker._proto, "flash", tr.grid.Blinker._proto.flash);
+goog.exportProperty(tr.grid.Blinker._proto, "clearAllData", tr.grid.Blinker._proto.clearAllData);
+goog.exportProperty(tr.grid.Blinker._proto, "isEnabled", tr.grid.Blinker._proto.isEnabled);
+goog.exportProperty(tr.grid.Blinker._proto, "enable", tr.grid.Blinker._proto.enable);
+goog.exportProperty(tr.grid.Blinker._proto, "disable", tr.grid.Blinker._proto.disable);
+goog.exportProperty(tr.grid.Blinker._proto, "getDuration", tr.grid.Blinker._proto.getDuration);
+goog.exportProperty(tr.grid.Blinker._proto, "setDuration", tr.grid.Blinker._proto.setDuration);
+
+goog.exportProperty(tr.grid.Blinker._proto, "setNumericParser", tr.grid.Blinker._proto.setNumericParser);
+goog.exportProperty(tr.grid.Blinker._proto, "setCondition", tr.grid.Blinker._proto.setCondition);
+
+
+goog.exportProperty(tr.grid.Blinker._proto, "setTextColors", tr.grid.Blinker._proto.setTextColors); 
+goog.exportProperty(tr.grid.Blinker._proto, "setBgColors", tr.grid.Blinker._proto.setBgColors);
+goog.exportProperty(tr.grid.Blinker._proto, "setClassColors", tr.grid.Blinker._proto.setClassColors);
+
+goog.exportProperty(tr.grid.Blinker._proto, "setUpColors", tr.grid.Blinker._proto.setUpColors);
+goog.exportProperty(tr.grid.Blinker._proto, "setDownColors", tr.grid.Blinker._proto.setDownColors);
+goog.exportProperty(tr.grid.Blinker._proto, "setNoChangeColors", tr.grid.Blinker._proto.setNoChangeColors);
+goog.exportProperty(tr.grid.Blinker._proto, "setClassColors", tr.grid.Blinker._proto.setClassColors);
+
+goog.exportProperty(tr.grid.Blinker._proto, "getRetainChange", tr.grid.Blinker._proto.getRetainChange);
+goog.exportProperty(tr.grid.Blinker._proto, "setRetainChange", tr.grid.Blinker._proto.setRetainChange);
+goog.exportProperty(tr.grid.Blinker._proto, "setUseTwoColorMode", tr.grid.Blinker._proto.setUseTwoColorMode);
+
+goog.exportProperty(tr.grid.Blinker._proto, "setTextTrendColors", tr.grid.Blinker._proto.setTextTrendColors);
+goog.exportProperty(tr.grid.Blinker._proto, "setTrend", tr.grid.Blinker._proto.setTrend);</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="AdFin.html">AdFin</a></li><li><a href="DateTime.html">DateTime</a></li><li><a href="Info.html">Info</a></li><li><a href="Logic.html">Logic</a></li><li><a href="Math.html">Math</a></li><li><a href="Realtime.html">Realtime</a></li><li><a href="Statistic.html">Statistic</a></li><li><a href="Text.html">Text</a></li><li><a href="tr.ElementFrameWork.html">ElementFrameWork</a></li><li><a href="tr.PipDefinition.html">PipDefinition</a></li></ul><h3>Classes</h3><ul><li><a href="tr.ADCSubscription.html">ADCSubscription</a></li><li><a href="tr.AdFinSubscription.html">AdFinSubscription</a></li><li><a href="tr.cgrid.editor.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.filter.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.formatter.AsyncFormatter.html">AsyncFormatter</a></li><li><a href="tr.cgrid.formatter.CheckBox.html">CheckBox</a></li><li><a href="tr.cgrid.formatter.UpDownColor.html">UpDownColor</a></li><li><a href="tr.ColumnStats.html">ColumnStats</a></li><li><a href="tr.CompositeGrid.html">CompositeGrid</a></li><li><a href="tr.DataCache.html">DataCache</a></li><li><a href="tr.DataTable.html">DataTable</a></li><li><a href="tr.DataView.html">DataView</a></li><li><a href="tr.DropDown.html">DropDown</a></li><li><a href="tr.ElementControl.html">ElementControl</a></li><li><a href="tr.ElementWrapper.html">ElementWrapper</a></li><li><a href="tr.Event.html">Event</a></li><li><a href="tr.EventDispatcher.html">EventDispatcher</a></li><li><a href="tr.EventDispatcher.extendClass-tempCtor.html">tempCtor</a></li><li><a href="tr.EventManager.html">EventManager</a></li><li><a href="tr.FieldFormatter.html">FieldFormatter</a></li><li><a href="tr.fn.Engine.html">Engine</a></li><li><a href="tr.fn.Formula.html">Formula</a></li><li><a href="tr.fn.VariableToken.html">VariableToken</a></li><li><a href="tr.Grid.html">Grid</a></li><li><a href="tr.grid.BidOfferSpan.html">BidOfferSpan</a></li><li><a href="tr.grid.Blinker.html">Blinker</a></li><li><a href="tr.grid.Cell.html">Cell</a></li><li><a href="tr.grid.CellBlinkingPlugin.html">CellBlinkingPlugin</a></li><li><a href="tr.grid.CellEditingPlugin.html">CellEditingPlugin</a></li><li><a href="tr.grid.CellFloatingPanel.html">CellFloatingPanel</a></li><li><a href="tr.grid.CellPainter.html">CellPainter</a></li><li><a href="tr.grid.CellSpan.html">CellSpan</a></li><li><a href="tr.grid.CellSpans.html">CellSpans</a></li><li><a href="tr.grid.CellWriter.html">CellWriter</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html">CheckboxColumnPlugin</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html">CollapsibleHeaderPlugin</a></li><li><a href="tr.grid.ColumnFilterPlugin.html">ColumnFilterPlugin</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html">ColumnGroupingPlugin</a></li><li><a href="tr.grid.ColumnSelectionPlugin.html">ColumnSelectionPlugin</a></li><li><a href="tr.grid.ColumnStackingPlugin.html">ColumnStackingPlugin</a></li><li><a href="tr.grid.ColumnWidthAdjustingPlugin.html">ColumnWidthAdjustingPlugin</a></li><li><a href="tr.grid.Conflator.html">Conflator</a></li><li><a href="tr.grid.DataSourceTreePlugin.html">DataSourceTreePlugin</a></li><li><a href="tr.grid.DirectContentBindingPlugin.html">DirectContentBindingPlugin</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html">DragAndDropTitlePlugin</a></li><li><a href="tr.grid.DraggableContentPlugin.html">DraggableContentPlugin</a></li><li><a href="tr.grid.FindBar.html">FindBar</a></li><li><a href="tr.grid.FindBarPlugin.html">FindBarPlugin</a></li><li><a href="tr.grid.GroupStatisticsPlugin.html">GroupStatisticsPlugin</a></li><li><a href="tr.grid.HeatMapRenderer.html">HeatMapRenderer</a></li><li><a href="tr.grid.HScrollbar.html">HScrollbar</a></li><li><a href="tr.grid.IndexMarker.html">IndexMarker</a></li><li><a href="tr.grid.MovableHeaderPlugin.html">MovableHeaderPlugin</a></li><li><a href="tr.grid.NumberFormatter.html">NumberFormatter</a></li><li><a href="tr.grid.PercentBar.html">PercentBar</a></li><li><a href="tr.grid.PercentBarRenderer.html">PercentBarRenderer</a></li><li><a href="tr.grid.Plugin.html">Plugin</a></li><li><a href="tr.grid.RangeBar.html">RangeBar</a></li><li><a href="tr.grid.ResizableTitlePlugin.html">ResizableTitlePlugin</a></li><li><a href="tr.grid.Reverter.html">Reverter</a></li><li><a href="tr.grid.RowHeightAdjustingPlugin.html">RowHeightAdjustingPlugin</a></li><li><a href="tr.grid.RowSelectionPlugin.html">RowSelectionPlugin</a></li><li><a href="tr.grid.Scrollbar.html">Scrollbar</a></li><li><a href="tr.grid.SectionSettings.html">SectionSettings</a></li><li><a href="tr.grid.SmartTooltipsPlugin.html">SmartTooltipsPlugin</a></li><li><a href="tr.grid.SortableTitlePlugin.html">SortableTitlePlugin</a></li><li><a href="tr.grid.TreeIndentingPlugin.html">TreeIndentingPlugin</a></li><li><a href="tr.grid.Virtualizer.html">Virtualizer</a></li><li><a href="tr.grid.VScrollbar.html">VScrollbar</a></li><li><a href="tr.grid.ZoomPlugin.html">ZoomPlugin</a></li><li><a href="tr.HttpRequest.html">HttpRequest</a></li><li><a href="tr.IntervalSubscription.html">IntervalSubscription</a></li><li><a href="tr.LayoutGrid.html">LayoutGrid</a></li><li><a href="tr.ListMenu.html">ListMenu</a></li><li><a href="tr.MenuItem.html">MenuItem</a></li><li><a href="tr.MockArchive.html">MockArchive</a></li><li><a href="tr.MockJET.html">MockJET</a></li><li><a href="tr.MockQuotes.html">MockQuotes</a></li><li><a href="tr.MockQuotes2.html">MockQuotes2</a></li><li><a href="tr.MockSubscription.html">MockSubscription</a></li><li><a href="tr.MockSubscriptions.html">MockSubscriptions</a></li><li><a href="tr.Popup.html">Popup</a></li><li><a href="tr.PopupMenu.html">PopupMenu</a></li><li><a href="tr.PrintTrait.html">PrintTrait</a></li><li><a href="tr.RequestQueue.html">RequestQueue</a></li><li><a href="tr.Segment.html">Segment</a></li><li><a href="tr.SegmentCollection.html">SegmentCollection</a></li><li><a href="tr.TSISubscription.html">TSISubscription</a></li></ul><h3>Interfaces</h3><ul><li><a href="tr.cgrid.ICompositeExtension.html">ICompositeExtension</a></li><li><a href="tr.grid.IPlugin.html">IPlugin</a></li><li><a href="tr.IElementControl.html">IElementControl</a></li><li><a href="tr.ILayoutGrid.html">ILayoutGrid</a></li></ul><h3>Events</h3><ul><li><a href="tr.CompositeGrid.html#event:cellClicked">cellClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellDblClicked">cellDblClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellMouseDown">cellMouseDown</a></li><li><a href="tr.CompositeGrid.html#event:cellRightClicked">cellRightClicked</a></li><li><a href="tr.CompositeGrid.html#event:columnSorted">columnSorted</a></li><li><a href="tr.CompositeGrid.html#event:editorAttached">editorAttached</a></li><li><a href="tr.CompositeGrid.html#event:editorDetached">editorDetached</a></li><li><a href="tr.CompositeGrid.html#event:filterAdded">filterAdded</a></li><li><a href="tr.CompositeGrid.html#event:filterCleared">filterCleared</a></li><li><a href="tr.CompositeGrid.html#event:filterModified">filterModified</a></li><li><a href="tr.CompositeGrid.html#event:filterRemoved">filterRemoved</a></li><li><a href="tr.CompositeGrid.html#event:mouseLeaveCell">mouseLeaveCell</a></li><li><a href="tr.CompositeGrid.html#event:mouseOverCell">mouseOverCell</a></li><li><a href="tr.CompositeGrid.html#event:pageChanged">pageChanged</a></li><li><a href="tr.CompositeGrid.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.DataCache.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataCache.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataTable.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataTable.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataView.html#event:beforeFiltering">beforeFiltering</a></li><li><a href="tr.DataView.html#event:beforeGroupAdded">beforeGroupAdded</a></li><li><a href="tr.DataView.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataView.html#event:groupAdded">groupAdded</a></li><li><a href="tr.DataView.html#event:groupCriteriaChanged">groupCriteriaChanged</a></li><li><a href="tr.DataView.html#event:pageCountChanged">pageCountChanged</a></li><li><a href="tr.DataView.html#event:pageIndexChanged">pageIndexChanged</a></li><li><a href="tr.DataView.html#event:preDisposed">preDisposed</a></li><li><a href="tr.Formula.html#event:dataCacheChanged">dataCacheChanged</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:cancelled">cancelled</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:change">change</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:closed">closed</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:editorOpened">editorOpened</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:preEditorOpening">preEditorOpening</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:click">click</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:columnCollapsed">columnCollapsed</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:groupChanged">groupChanged</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:render">render</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:columnMoved">columnMoved</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:drag">drag</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragEnd">dragEnd</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragStart">dragStart</a></li><li><a href="tr.grid.FindBarPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:groupMoved">groupMoved</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:sectionMoved">sectionMoved</a></li><li><a href="tr.grid.RowSelectionPlugin.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:columnSorted">columnSorted</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preClicked">preClicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preDataSorting">preDataSorting</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.Grid.html#event:columnAdded">columnAdded</a></li><li><a href="tr.Grid.html#event:columnAlignmentChanged">columnAlignmentChanged</a></li><li><a href="tr.Grid.html#event:columnRemoved">columnRemoved</a></li><li><a href="tr.Grid.html#event:columnVisibilityChanged">columnVisibilityChanged</a></li><li><a href="tr.Grid.html#event:dataSourceChanged">dataSourceChanged</a></li><li><a href="tr.Grid.html#event:postSectionDataBinding">postSectionDataBinding</a></li><li><a href="tr.Grid.html#event:rowExpansionBinding">rowExpansionBinding</a></li><li><a href="tr.Grid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Grid.html#event:sectionAdded">sectionAdded</a></li><li><a href="tr.Grid.html#event:widthChanged">widthChanged</a></li><li><a href="tr.HttpRequest.html#event:abort">abort</a></li><li><a href="tr.HttpRequest.html#event:error">error</a></li><li><a href="tr.HttpRequest.html#event:load">load</a></li><li><a href="tr.HttpRequest.html#event:loadend">loadend</a></li><li><a href="tr.HttpRequest.html#event:loadstart">loadstart</a></li><li><a href="tr.HttpRequest.html#event:timeout">timeout</a></li><li><a href="tr.IElementControl.html#event:blur">blur</a></li><li><a href="tr.IElementControl.html#event:change">change</a></li><li><a href="tr.IElementControl.html#event:click">click</a></li><li><a href="tr.IElementControl.html#event:contextmenu">contextmenu</a></li><li><a href="tr.IElementControl.html#event:dblclick">dblclick</a></li><li><a href="tr.IElementControl.html#event:drag">drag</a></li><li><a href="tr.IElementControl.html#event:dragend">dragend</a></li><li><a href="tr.IElementControl.html#event:dragenter">dragenter</a></li><li><a href="tr.IElementControl.html#event:dragleave">dragleave</a></li><li><a href="tr.IElementControl.html#event:dragover">dragover</a></li><li><a href="tr.IElementControl.html#event:dragstart">dragstart</a></li><li><a href="tr.IElementControl.html#event:drop">drop</a></li><li><a href="tr.IElementControl.html#event:focus">focus</a></li><li><a href="tr.IElementControl.html#event:formchange">formchange</a></li><li><a href="tr.IElementControl.html#event:forminput">forminput</a></li><li><a href="tr.IElementControl.html#event:input">input</a></li><li><a href="tr.IElementControl.html#event:invalid">invalid</a></li><li><a href="tr.IElementControl.html#event:keydown">keydown</a></li><li><a href="tr.IElementControl.html#event:keypress">keypress</a></li><li><a href="tr.IElementControl.html#event:keyup">keyup</a></li><li><a href="tr.IElementControl.html#event:mousedown">mousedown</a></li><li><a href="tr.IElementControl.html#event:mousemove">mousemove</a></li><li><a href="tr.IElementControl.html#event:mouseout">mouseout</a></li><li><a href="tr.IElementControl.html#event:mouseover">mouseover</a></li><li><a href="tr.IElementControl.html#event:mouseup">mouseup</a></li><li><a href="tr.IElementControl.html#event:mousewheel">mousewheel</a></li><li><a href="tr.IElementControl.html#event:reset">reset</a></li><li><a href="tr.IElementControl.html#event:scroll">scroll</a></li><li><a href="tr.IElementControl.html#event:select">select</a></li><li><a href="tr.IElementControl.html#event:submit">submit</a></li><li><a href="tr.ILayoutGrid.html#event:blur">blur</a></li><li><a href="tr.ILayoutGrid.html#event:change">change</a></li><li><a href="tr.ILayoutGrid.html#event:click">click</a></li><li><a href="tr.ILayoutGrid.html#event:contextmenu">contextmenu</a></li><li><a href="tr.ILayoutGrid.html#event:dblclick">dblclick</a></li><li><a href="tr.ILayoutGrid.html#event:drag">drag</a></li><li><a href="tr.ILayoutGrid.html#event:dragend">dragend</a></li><li><a href="tr.ILayoutGrid.html#event:dragenter">dragenter</a></li><li><a href="tr.ILayoutGrid.html#event:dragleave">dragleave</a></li><li><a href="tr.ILayoutGrid.html#event:dragover">dragover</a></li><li><a href="tr.ILayoutGrid.html#event:dragstart">dragstart</a></li><li><a href="tr.ILayoutGrid.html#event:drop">drop</a></li><li><a href="tr.ILayoutGrid.html#event:focus">focus</a></li><li><a href="tr.ILayoutGrid.html#event:formchange">formchange</a></li><li><a href="tr.ILayoutGrid.html#event:forminput">forminput</a></li><li><a href="tr.ILayoutGrid.html#event:input">input</a></li><li><a href="tr.ILayoutGrid.html#event:invalid">invalid</a></li><li><a href="tr.ILayoutGrid.html#event:keydown">keydown</a></li><li><a href="tr.ILayoutGrid.html#event:keypress">keypress</a></li><li><a href="tr.ILayoutGrid.html#event:keyup">keyup</a></li><li><a href="tr.ILayoutGrid.html#event:mousedown">mousedown</a></li><li><a href="tr.ILayoutGrid.html#event:mousemove">mousemove</a></li><li><a href="tr.ILayoutGrid.html#event:mouseout">mouseout</a></li><li><a href="tr.ILayoutGrid.html#event:mouseover">mouseover</a></li><li><a href="tr.ILayoutGrid.html#event:mouseup">mouseup</a></li><li><a href="tr.ILayoutGrid.html#event:mousewheel">mousewheel</a></li><li><a href="tr.ILayoutGrid.html#event:reset">reset</a></li><li><a href="tr.ILayoutGrid.html#event:scroll">scroll</a></li><li><a href="tr.ILayoutGrid.html#event:select">select</a></li><li><a href="tr.ILayoutGrid.html#event:submit">submit</a></li><li><a href="tr.LayoutGrid.html#event:rowCountChanged">rowCountChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHeightChanged">rowHeightChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Popup.html#event:hidden">hidden</a></li><li><a href="tr.Popup.html#event:shown">shown</a></li><li><a href="tr.PopupMenu.html#event:hidden">hidden</a></li><li><a href="tr.PopupMenu.html#event:shown">shown</a></li><li><a href="tr.PrintTrait.html#event:afterprint">afterprint</a></li><li><a href="tr.PrintTrait.html#event:beforeprint">beforeprint</a></li><li><a href="tr.PrintTrait.html#event:pageCounting">pageCounting</a></li></ul><h3>Global</h3><ul><li><a href="global.html#cellRef%255Bundefined%255D">cellRef[undefined]</a></li><li><a href="global.html#e%255Bundefined%255D">e[undefined]</a></li><li><a href="global.html#.textContent">.textContent</a></li><li><a href="global.html#get">get</a></li><li><a href="global.html#input%255Bundefined%255D">input[undefined]</a></li><li><a href="global.html#q%255Bundefined%255D">q[undefined]</a></li><li><a href="global.html#sortingDef%255B1%255D">sortingDef[1]</a></li></ul>
+</nav>
+
+
+<script src="scripts/linenumber.js"> </script>
+<script src="scripts/prettify.js"> </script>
+<script> prettyPrint(); </script>
+</body>
+</html>

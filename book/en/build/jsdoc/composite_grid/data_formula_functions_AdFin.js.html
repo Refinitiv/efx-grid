@@ -1,0 +1,1821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: data/formula/functions/AdFin.js</title>
+
+    <script src="scripts/prettify.js"> </script>
+    <script src="scripts/lang-css.js"> </script>
+    <!--[if lt IE 9]&gt;
+      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
+    &lt;![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/default.css">
+    <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
+</head>
+
+<body>
+
+<div id="main-template" class="elf-template">
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>goog.provide("tr.fn.AdFin");
+
+goog.require("tr.fn.Formula");
+goog.require("tr.fn.Realtime");
+goog.require("tr.fn.DateTime");
+
+/**
+ * @namespace AdFin
+ * @description
+ * {lang=en} AdFin data access function
+ * {lang=ja} AdFin data access function
+ * {lang=zh} AdFin 数据访问函数
+ * {lang=hant} AdFin 數據訪問函數
+ * {lang=ko} AdFin 데이터 액세스 함수
+ * {lang=ru} AdFin data access function
+ * {lang=de} AdFin-Daten Zugriffsfunktion
+ */
+tr.fn.AdFin = {};
+
+/**
+ * @ignore
+ * @private
+ * @param {number} seconds number of seconds since 01 Jan 1970 UTC (realtime date number) or days number since 1 Jan, 1900 UTC (AdFin date number)
+ * @return {boolean} true if parameter is number of seconds since 01 JAN 1970 UTC (realtime date number), false otherwise
+ */
+tr.fn.AdFin._dateIsSecondsSince1970 = function (seconds) {
+    var milliseconds = seconds * 1000;
+    if (('' + milliseconds).indexOf(".") !== -1) return false;
+    var jsDate = new Date(milliseconds);
+    if (isNaN(jsDate.getTime())) return false;
+    if (jsDate.getFullYear() === 1970) return false;
+    return true;
+};
+
+/**
+ * @ignore
+ * @private
+ * @param {number} value days number since 1 Jan, 1900 UTC (AdFin date number)
+ * @return {string|null} string date JJMMMYYYY
+ */
+tr.fn.AdFin._convertDaysSince1900UTCToJJMMMYYYY = function (value) {
+    try {
+        return (tr.fn.DateTime["TEXT"](value, "DDMMMYYYY").toUpperCase());
+    } catch (e) {
+        return null;
+    }
+};
+
+/**
+ * @ignore
+ * @private
+ * @param {number} value number of seconds since 01 JAN 1970 UTC (realtime date number)
+ * @return {number|null} days number since 1 Jan, 1900 UTC
+ */
+tr.fn.AdFin._convertSecondsSince1970ToDaysSince1900 = function (value) {
+    var jsDate = new Date(value * 1000);
+    if (isNaN(jsDate.getTime())) return null;     // invalid date
+    if (jsDate.getFullYear() === 1970) return null;
+    return (tr.fn.DateTime["DATE"](jsDate.getUTCFullYear(), jsDate.getUTCMonth() + 1, jsDate.getUTCDate()));     // days number since 1 Jan, 1900
+};
+
+/**
+ * @ignore
+ * @private
+ * @param {number} value number of seconds since 01 JAN 1970 UTC
+ * @return {string|null} string date JJMMMYYYY
+ */
+tr.fn.AdFin._convertSecondsSince1970UTCToJJMMMYYYY = function (value) {
+    var days = tr.fn.AdFin._convertSecondsSince1970ToDaysSince1900(value);
+    if (days === null) return null;
+    return tr.fn.AdFin._convertDaysSince1900UTCToJJMMMYYYY(days);
+};
+
+/** @type {Object.&lt;string,Array.&lt;{name:string, type:string}&gt;&gt;} */
+tr.fn.AdFin.Definitions = {
+    // StylesFunction
+    "StylesFunction.AdStyleAttribute": [
+        { "name": "StyleTable", "type": "string" },
+        { "name": "StyleCode", "type": "string" },
+        { "name": "StyleAttribute", "type": "string" }
+    ],
+    // BdFunction
+    "BdFunction.AdBondDeriv": [
+        { "name": "SettlementDate", "type": "JJMMMYYYY" },
+        { "name": "RateArray", "type": "number" },
+        { "name": "Maturity", "type": "JJMMMYYYY" },
+        { "name": "Coupon", "type": "number" },
+        { "name": "Spread", "type": "number" },
+        { "name": "BondStructure", "type": "string" },
+        { "name": "RateStructure", "type": "string" },
+        { "name": "CalcStructure", "type": "string" },
+        { "name": "AdMode", "type": "string" }
+    ],
+    "BdFunction.AdBondYield": [
+        { "name": "SettlementDate", "type": "JJMMMYYYY" },
+        { "name": "Price", "type": "number" },
+        { "name": "Maturity", "type": "JJMMMYYYY" },
+        { "name": "Coupon", "type": "number" },
+        { "name": "BondStructure", "type": "string" },
+        { "name": "RateStructure", "type": "string" },
+        { "name": "AdMode", "type": "string" }
+    ],
+    "BdFunction.BdSettle": [
+        { "name": "CalcDate", "type": "JJMMMYYYY" },
+        { "name": "BondStructure", "type": "string" },
+        { "name": "Maturity", "type": "JJMMMYYYY" }
+    ],
+    "BdFunction.Accrued": [
+        { "name": "CalcDate", "type": "JJMMMYYYY" },
+        { "name": "Maturity", "type": "JJMMMYYYY" },
+        { "name": "Coupon", "type": "number" },
+        { "name": "BondStructure", "type": "string" },
+        { "name": "AdMode", "type": "string" }
+    ],
+    // CfFunction
+    "CfFunction.CfYld": [
+        { "name": "CalcDate", "type": "JJMMMYYYY" },
+        { "name": "GrossPrice", "type": "number" },
+        { "name": "CfDates", "type": "daysFrom1900" },
+        { "name": "Cf", "type": "number" },
+        { "name": "CalcMethod", "type": "string" }
+    ],
+    // DfFunction
+    "DfFunction.DfFormatDate": [
+        { "name": "CalcDate", "type": "daysFrom1900" }
+    ],
+    "DfFunction.DfAddWD": [
+        { "name": "Calendars", "type": "string" },
+        { "name": "CalcDate", "type": "JJMMMYYYY" },
+        { "name": "NbDays", "type": "number" },
+        { "name": "DfMode", "type": "string" }
+    ],
+    "DfFunction.DfAddPeriod": [
+        { "name": "Calendars", "type": "string" },
+        { "name": "CalcDate", "type": "JJMMMYYYY" },
+        { "name": "Period", "type": "string" },
+        { "name": "DfMode", "type": "string" }
+    ],
+    "DfFunction.DfAddMonths": [
+        { "name": "Calendars", "type": "string" },
+        { "name": "CalcDate", "type": "JJMMMYYYY" },
+        { "name": "NbMonths", "type": "number" },
+        { "name": "DfMode", "type": "string" }
+    ],
+    "DfFunction.DfAddYears": [
+        { "name": "Calendars", "type": "string" },
+        { "name": "CalcDate", "type": "JJMMMYYYY" },
+        { "name": "NbYears", "type": "number" },
+        { "name": "DfMode", "type": "string" }
+    ],
+    "DfFunction.DfAdjustToWD": [
+        { "name": "Calendars", "type": "string" },
+        { "name": "CalcDate", "type": "JJMMMYYYY" },
+        { "name": "AdjMode", "type": "number" },
+        { "name": "DfMode", "type": "string" }
+    ],
+    "DfFunction.DfLastWD": [
+        { "name": "Calendars", "type": "string" },
+        { "name": "CalcDate", "type": "JJMMMYYYY" },
+        { "name": "DfMode", "type": "string" }
+    ],
+    "DfFunction.DfFindDateD": [
+        { "name": "Number", "type": "number" },
+        { "name": "Day", "type": "string" },
+        { "name": "Direction", "type": "string" },
+        { "name": "RefDate", "type": "JJMMMYYYY" }
+    ],
+    "DfFunction.DfCountDays": [
+        { "name": "StartDate", "type": "JJMMMYYYY" },
+        { "name": "EndDate", "type": "JJMMMYYYY" },
+        { "name": "DfMode", "type": "string" }
+    ],
+    "DfFunction.DfCountWD": [
+        { "name": "Calendars", "type": "string" },
+        { "name": "StartDate", "type": "JJMMMYYYY" },
+        { "name": "EndDate", "type": "JJMMMYYYY" },
+        { "name": "DfMode", "type": "string" }
+    ],
+    // FxFunction
+    "FxFunction.AdFxSwpToDep": [
+        { "name": "CalcDate", "type": "JJMMMYYYY" },
+        { "name": "PeriodArray", "type": "string" },
+        { "name": "Cur1Cur2", "type": "string" },
+        { "name": "Spot1BA", "type": "number" },
+        { "name": "Spot2BA", "type": "number" },
+        { "name": "Swp1Array", "type": "number" },
+        { "name": "Swp2Array", "type": "number" },
+        { "name": "DepArray", "type": "number" },
+        { "name": "CalcStructure", "type": "string" },
+        { "name": "AdMode", "type": "string" }
+    ],
+    "FxFunction.FxCalcPeriod": [
+        { "name": "CalcDate", "type": "JJMMMYYYY" },
+        { "name": "Cur1Cur2", "type": "string" },
+        { "name": "Period", "type": "string" },
+        { "name": "FxMode", "type": "string" }
+    ],
+    // OpFunction
+    "OpFunction.OpCalcDeriv": [
+        { "name": "CalcDate", "type": "daysFrom1900" },
+        { "name": "ExpiryDate", "type": "daysFrom1900" },
+        { "name": "SpotPrice", "type": "number" },
+        { "name": "StrikePrice", "type": "number" },
+        { "name": "Volatility", "type": "number" },
+        { "name": "RiskFreeRateArray", "type": "number" },
+        { "name": "ReturnArray", "type": "number" },
+        { "name": "OptionStructure", "type": "string" },
+        { "name": "RateStructure", "type": "string" },
+        { "name": "CalcStructure", "type": "string" },
+        { "name": "AdMode", "type": "string" }
+    ],
+    "OpFunction.OpImpliedVol": [
+        { "name": "CalcDate", "type": "daysFrom1900" },
+        { "name": "ExpiryDate", "type": "daysFrom1900" },
+        { "name": "SpotPrice", "type": "number" },
+        { "name": "StrikePrice", "type": "number" },
+        { "name": "Premium", "type": "number" },
+        { "name": "RiskFreeRateArray", "type": "number" },
+        { "name": "ReturnArray", "type": "number" },
+        { "name": "OptionStructure", "type": "string" },
+        { "name": "RateStructure", "type": "string" },
+        { "name": "CalcStructure", "type": "string" }
+    ],
+    // UtFunction
+    "UtFunction.AdFormat": [
+        { "name": "Data", "type": "number" },
+        { "name": "BidDecimals", "type": "number" },
+        { "name": "AskDigits", "type": "number" },
+        { "name": "FormatMode", "type": "string" }
+    ],
+    "UtFunction.AdHistoryValue": [
+        { "name": "IndexName", "type": "string" },
+        { "name": "StyleMode", "type": "string" }
+    ]
+};
+
+/** @private
+* @this {tr.fn.Formula} TR method is an extension to tr.fn.Formula object. this.addField is a method from tr.fn.Formula object.
+* @memberof AdFin
+*/
+tr.fn.AdFin._genericFunction = function (name, args) {
+
+    /** @type {Array.&lt;{name:string, type:string}&gt;} */ var definitions = tr.fn.AdFin.Definitions[name];
+    /** @type {Array.&lt;Array.&lt;string|number|null&gt;&gt;} */ var parameters = [];
+
+    for (var i = 0, length = args.length; i &lt; length; ++i) {
+        if (args[i] !== undefined) {
+            if ((definitions[i].type === "JJMMMYYYY") &amp;&amp; (typeof (args[i]) === "number")) {
+                if (tr.fn.AdFin._dateIsSecondsSince1970(args[i])) {
+                    parameters.push([definitions[i].name, tr.fn.AdFin._convertSecondsSince1970UTCToJJMMMYYYY(args[i])]);
+                } else {
+                    parameters.push([definitions[i].name, tr.fn.AdFin._convertDaysSince1900UTCToJJMMMYYYY(args[i])]);
+                }
+            } else if ((definitions[i].type === "daysFrom1900") &amp;&amp; (typeof (args[i]) === "number")) {
+                if (tr.fn.AdFin._dateIsSecondsSince1970(args[i])) {
+                    parameters.push([definitions[i].name, tr.fn.AdFin._convertSecondsSince1970ToDaysSince1900(args[i])]);
+                } else {            // JavaScript date = day number for 1900
+                    parameters.push([definitions[i].name, args[i]]);
+                }
+            } else {
+                parameters.push([definitions[i].name, args[i]]);
+            }
+        }
+    }
+
+    var adfinService = this.getIntervalService("AdFin");
+    if (!adfinService) {
+        adfinService = tr.fn.AdFinService.create();
+        if (!adfinService) {
+            this.setDataError("Pending data");
+            return;
+        }
+        this.setIntervalService("AdFin", adfinService);
+    }
+
+    var res = adfinService["call"](name, parameters);
+    if (res === "...") {
+        this.setDataError("Pending - no erase");      // Data update is pending - do not erase previous value
+    }
+    return res;
+};
+
+/**
+* @function ADSTYLEATTRIBUTE
+* @memberof AdFin
+* @description
+*    {lang=en} Returns the value of a style attribute.
+*    {lang=ja} Returns the value of a style attribute.
+*    {lang=zh} 返回样式属性的值。
+*    {lang=hant} 返回樣式屬性的值。
+*    {lang=ko} 스타일 특성값을 반환합니다.
+*    {lang=ru} Returns the value of a style attribute.
+*    {lang=de} Ergibt den Wert eines Stil Attributs.
+* @param {string=} styleTable
+*    {lang=en} It identifies a style table in the Adfin style database. For any existing style table, for example CLDR, the style database stores definitions of particular styles, for example a definition of a UK calendar or a definition of a US calendar.
+*    {lang=ja} It identifies a style table in the Adfin style database. For any existing style table, for example CLDR, the style database stores definitions of particular styles, for example a definition of a UK calendar or a definition of a US calendar.
+*    {lang=zh} 这识别 Adfin 样式数据库中的样式表格。对于任意既有样式表格，例如 CLDR，样式数据库存储特定样式的定义，例如英国日历的定义或美国日历的定义。
+*    {lang=hant} 這識別 Adfin 樣式數據庫中的樣式表格。對於任意既有樣式表格，例如 CLDR，樣式數據庫存儲特定樣式的定義，例如英國日曆的定義或美國日曆的定義。
+*    {lang=ko} Adfin 스타일 데이터베이스에서 스타일 테이블을 식별합니다. CLDR과 같은 기존 스타일 테이블의 경우, 스타일 데이터베이스는 영국 캘린더의 정의 또는 미국 캘린더의 정의와 같은 특정 스타일의 정의를 저장합니다.
+*    {lang=ru} It identifies a style table in the Adfin style database. For any existing style table, for example CLDR, the style database stores definitions of particular styles, for example a definition of a UK calendar or a definition of a US calendar.
+*    {lang=de} Es identifiziert eine Stiltabelle in der Adfin-Stildatenbank. Für jede vorhandene Stiltabelle, z. B. CLDR, speichert die Stildatenbank Definitionen bestimmter Stile, z. B. eine Definition eines britischen Kalenders oder eine Definition eines US-amerikanischen Kalenders.
+* @param {string=} styleCode
+*    {lang=en} String argument used to request information about a style.
+*    {lang=ja} String argument used to request information about a style.
+*    {lang=zh} 字符串参数，用于请求关于样式的信息。
+*    {lang=hant} 字符串參數，用於請求關於樣式的信息。
+*    {lang=ko} 스타일에 대한 정보를 요청하는 데 사용되는 문자열 인수입니다.
+*    {lang=ru} String argument used to request information about a style.
+*    {lang=de} Zeichenfolge-Argument wird zum Anfordern von Informationen über einen Stil verwendet.
+* @param {string=} styleAttribute
+*    {lang=en} Keyword, identifying the style attribute to return, for example “YB” to return the year basis for the index
+*    {lang=ja} Keyword, identifying the style attribute to return, for example “YB” to return the year basis for the index
+*    {lang=zh} 关键字，辨识要返回的样式属性，例如 “YB” 返回指数的年基准
+*    {lang=hant} 關鍵字，辨識要返回的樣式屬性，例如 “YB” 返回指數的年基準
+*    {lang=ko} 반환할 스타일 특성을 식별하는 키워드로 예를 들어 “YB”는 인덱스의 연도 기준을 반환
+*    {lang=ru} Keyword, identifying the style attribute to return, for example “YB” to return the year basis for the index
+*    {lang=de} Stichwort das das Stilattribut identifiziert, z.B. “YB”, um die Jahresbasis fürden Index anzugeben
+* @return {*}
+*    {lang=en} Returns the value of a style attribute
+*    {lang=ja} Returns the value of a style attribute
+*    {lang=zh} 返回样式属性的值
+*    {lang=hant} 返回樣式屬性的值
+*    {lang=ko} 스타일 특성값을 반환
+*    {lang=ru} Returns the value of a style attribute
+*    {lang=de} Ergibt den Wert eines Stil Attributs.
+* @example
+* This example shows how to use ADSTYLEATTRIBUTE to obtain the value of a style attribute.
+* The call to ADSTYLEATTRIBUTE looks like:
+* =ADSTYLEATTRIBUTE("CUR","EUR","QM")
+* Where
+* CUR: Style table
+* EUR: ISO code of the currency
+* QM: Style attribute which specifies the quotation mode in the EUR style
+*/
+tr.fn.AdFin["ADSTYLEATTRIBUTE"] = function (styleTable, styleCode, styleAttribute) {
+    return tr.fn.AdFin._genericFunction.call(this, "StylesFunction.AdStyleAttribute", arguments);
+};
+/**
+* @function ADBONDDERIV
+* @memberof AdFin
+* @description
+*    {lang=en} Calculates the sensitivity ratios of a bond using a bond structure.
+*    {lang=ja} Calculates the sensitivity ratios of a bond using a bond structure.
+*    {lang=zh} 使用债券结构计算债券的敏感度比率。
+*    {lang=hant} 使用債券結構計算債券的敏感度比率。
+*    {lang=ko} 채권 구조를 사용해 채권의 감도 비율을 계산합니다.
+*    {lang=ru} Calculates the sensitivity ratios of a bond using a bond structure.
+*    {lang=de} Kalkuliert die Sensitivitäts-Ratio einer Anleihe mit Hilfe der Bondstruktur
+* @param {(string|number)=} settlementDate
+*    {lang=en} Date on which cash is paid and the security is delivered
+*    {lang=ja} Date on which cash is paid and the security is delivered
+*    {lang=zh} 现金支付且证券交割的日期
+*    {lang=hant} 現金支付且證券交割的日期
+*    {lang=ko} 현금을 지불하고 증권을 인계한 날짜
+*    {lang=de} Datum, zu dem Zahlungen erfolgen und das Wertpapier geliefert wird*    {lang=en} Datum an dem Zahlungen erfolgen und das Wertpapier geliefert wird.
+* @param {number=} rateArray
+*    {lang=en} Term structure or data array related to the rate model used to price the instrument. The format of the data array depends on the rate model you specify in RateStructure
+*    {lang=ja} Term structure or data array related to the rate model used to price the instrument. The format of the data array depends on the rate model you specify in RateStructure
+*    {lang=zh} 与利率模型相关的期限结构或数据数组，用于对金融工具定价。数据数组的格式取决于您在 RateStructure 中指定的利率模型
+*    {lang=hant} 與利率模型相關的期限結構或數據數組，用於對金融工具定價。數據數組的格式取決於您在 RateStructure 中指定的利率模型
+*    {lang=ko} 상품 가격을 책정하기 위해 사용된 이자율 모델과 관련된 조건 구조 또는 데이터 배열. 데이터 배열 형식은 RateStructure에 지정한 이자율 모델에 따라 다름
+*    {lang=ru} Term structure or data array related to the rate model used to price the instrument. The format of the data array depends on the rate model you specify in RateStructure
+*    {lang=de} Laufzeitstuktur oder Daten-Array für das zur Preisstellung des Instruments verwendete Zinsmodell Das Format des Daten-Arrays hängt von dem Zinsmodell ab, das Sie in der Ratestructure definieren
+* @param {(string|number)=} maturity
+*    {lang=en} Maturity date of the bond or FRN (expressed as a date)
+*    {lang=ja} Maturity date of the bond or FRN (expressed as a date)
+*    {lang=zh} 债券或 FRN 的到期日 (表示为日期)
+*    {lang=hant} 債券或 FRN 的到期日 (表示為日期)
+*    {lang=ko} 채권 또는 FRN의 만기일(날짜로 표시)
+*    {lang=ru} Maturity date of the bond or FRN (expressed as a date)
+*    {lang=de} Fälligkeitsdatum der Anleihe oder FRN (als Datum ausgedrückt)
+* @param {number=} coupon
+*    {lang=en} Nominal coupon rate, expressed as a percentage (for example, 0.07 is 7%)
+*    {lang=ja} Nominal coupon rate, expressed as a percentage (for example, 0.07 is 7%)
+*    {lang=zh} 名义票息率，表示为百分比 (例如 0.07 是 7%)
+*    {lang=hant} 名義票息率，表示為百分比 (例如 0.07 是 7%)
+*    {lang=ko} 명목 이자율, 백분율로 표시(예: 0.07은 7%)
+*    {lang=ru} Nominal coupon rate, expressed as a percentage (for example, 0.07 is 7%)
+*    {lang=de} Nominaler Zinskupon, ausgewiesen in Prozent (z.B. 0,07 entspricht 7%)
+* @param {number=} spread
+*    {lang=en} Depending on the rate model, the spread will either be: added to a yield (RM:YTM), added to every zero-coupon rate in a yield curve (RM:YC, RM:VF), an option adjusted spread (RM:BDT)
+*    {lang=ja} Depending on the rate model, the spread will either be: added to a yield (RM:YTM), added to every zero-coupon rate in a yield curve (RM:YC, RM:VF), an option adjusted spread (RM:BDT)
+*    {lang=zh} 根据利率模型，价差可能添加到收益率 (RM:YTM)，添加到收益率曲线中的每个零息率 (RM:YC, RM:VF)，或者是期权调整价差 (RM:BDT)
+*    {lang=hant} 根據利率模型，價差可能添加到收益率 (RM:YTM)，添加到收益率曲線中的每個零息率 (RM:YC, RM:VF)，或者是期權調整價差 (RM:BDT)
+*    {lang=ko} 이자율 모델에 따라 스프레드는 다음 중 하나가 됩니다. 수익률에 추가(RM:YTM), 수익률 곡선의 모든 제로쿠폰 이자율에 추가(RM:YC, RM:VF), 옵션 조정 스프레드(RM:BDT)
+*    {lang=ru} Depending on the rate model, the spread will either be: added to a yield (RM:YTM), added to every zero-coupon rate in a yield curve (RM:YC, RM:VF), an option adjusted spread (RM:BDT)
+*    {lang=de} Abhängig vom Zinsmodell wird der Spread entweder: zu einer Rendite addiert (RM:YTM), zu jedem Nullkupon-Satz in einer Renditekurve addiert (RM:YC, RM:VF), ein optionsbereinigter Spread (RM:BDT)
+* @param {string=} bondStructure
+*    {lang=en} Is used as an argument in Adfin Bonds functions to define the structure of a bond. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_bondstructure.htm
+*    {lang=ja} Is used as an argument in Adfin Bonds functions to define the structure of a bond. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_bondstructure.htm
+*    {lang=zh} 作为 Adfin 债券函数中的参数，用于定义债券的结构。cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_bondstructure.htm
+*    {lang=hant} 作為 Adfin 債券函數中的參數，用於定義債券的結構。 cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_bondstructure.htm
+*    {lang=ko} Adfin Bonds 함수의 인수로 사용되어 채권의 구조를 정의합니다. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_bondstructure.htm
+*    {lang=ru} Is used as an argument in Adfin Bonds functions to define the structure of a bond. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_bondstructure.htm
+*    {lang=de} Wird als ein Argument in Adfin-Anleihen-Funktionen verwendet, um die Struktur einer Anleihe zu definieren. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_bondstructure.htm
+* @param {string=} rateStructure
+*    {lang=en} cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_ratestructure.htm
+*    {lang=ja} cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_ratestructure.htm
+*    {lang=zh} cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_ratestructure.htm
+*    {lang=hant} cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_ratestructure.htm
+*    {lang=ko} cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_ratestructure.htm
+*    {lang=ru} cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_ratestructure.htm
+*    {lang=de} cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_ratestructure.htm
+* @param {string=} calcStructure
+*    {lang=en} Is used as an argument in Adfin functions to define the calculation methods available for pricing instruments. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_calcstructure.htm
+*    {lang=ja} Is used as an argument in Adfin functions to define the calculation methods available for pricing instruments. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_calcstructure.htm
+*    {lang=zh} 作为 Adfin 函数中的参数，用于定义对金融工具定价的计算方法。cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_calcstructure.htm
+*    {lang=hant} 作為 Adfin 函數中的參數，用於定義對金融工具定價的計算方法。 cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_calcstructure.htm
+*    {lang=ko} Adfin 함수의 인수로 사용되어 상품 가격 책정에 사용 가능한 계산 방법을 정의합니다. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_calcstructure.htm
+*    {lang=ru} Is used as an argument in Adfin functions to define the calculation methods available for pricing instruments. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_calcstructure.htm
+*    {lang=de} Wird als Argument in Adfin-Funktionen verwendet, um die verfügbaren Berechnungsmethoden für die Preisstellung von Wertpapieren zu definieren. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_calcstructure.htm
+* @param {string=} adMode
+*    {lang=en} Is used to customize returned values. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_admode.htm
+*    {lang=ja} Is used to customize returned values. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_admode.htm
+*    {lang=zh} 用来自定义返回的值。cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_admode.htm
+*    {lang=hant} 用來自定義返回的值。 cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_admode.htm
+*    {lang=ko} 반환된 값을 사용자 지정하기 위해 사용합니다. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_admode.htm
+*    {lang=ru} Is used to customize returned values. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_admode.htm
+*    {lang=de} Wird zum Anpassen der ausgegebenen Werte verwendet. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_admode.htm
+* @return {*}
+*    {lang=en} The return value depends on the value of AdMode. The default value is a vertical eight-cell array containing: Price, Option Free Price, Volatility, PVBP, Duration, Average Life, Convexity, Yield to worst/Yield to best date,
+*    {lang=ja} The return value depends on the value of AdMode. The default value is a vertical eight-cell array containing: Price, Option Free Price, Volatility, PVBP, Duration, Average Life, Convexity, Yield to worst/Yield to best date,
+*    {lang=zh} 返回值取决于 AdMode 的值。默认值是一个垂直的8元素数据，包含: 价格、无权价格、波动率、PVBP、久期、平均期限、凸性、最差收益率/最优收益率日期,
+*    {lang=hant} 返回值取決於 AdMode 的值。默認值是一個垂直的8元素數據，包含: 價格、無權價格、波動率、PVBP、久期、平均期限、凸性、最差收益率/最優收益率日期,
+*    {lang=ko} 반환값은 AdMode 값에 따라 다릅니다. 기본값은 다음을 포함하는 수직 8셀 배열입니다. 가격, 무옵션 가격, 변동성, PVBP, 듀레이션, 평균 만기, 컨벡시티, 옵션행사 Worst수익률/옵션행사 Best수익률,
+*    {lang=ru} The return value depends on the value of AdMode. The default value is a vertical eight-cell array containing: Price, Option Free Price, Volatility, PVBP, Duration, Average Life, Convexity, Yield to worst/Yield to best date,
+*    {lang=de} Der ausgegebene Wert ist abhänig vom Wert AdModes Der Standardwert ist ein vertikales Array mit acht Zellen: Preis, Optionsfreier Preis, Volatilität, PVBP, Dauer, Durchschnittliche Laufzeit, Konvexität, Ertrag zum schlechtesten/Ertrag zum besten Datum,
+* @example
+* This example calculates the price and derivatives using a constant yield curve of 5.2%.
+* =ADBONDDERIV("11APR99",0.052,"06MAY05",0.08,0,"FRQ:1 ACC:AA PX:G","RM:YTM RATETYPE:CMP DCB:AA CLDRADJ:CLDR","CMT:FORM","LAY:V RET:B")
+*/
+tr.fn.AdFin["ADBONDDERIV"] = function (settlementDate, rateArray, maturity, coupon, spread, bondStructure, rateStructure, calcStructure, adMode) {
+    return tr.fn.AdFin._genericFunction.call(this, "BdFunction.AdBondDeriv", arguments);
+};
+/**
+* @function ADBONDYIELD
+* @memberof AdFin
+* @description
+*    {lang=en} This function calculates the yield to maturity of non-optionable bonds. For optionable bonds this function calculates the yields at call/put dates.
+*    {lang=ja} This function calculates the yield to maturity of non-optionable bonds. For optionable bonds this function calculates the yields at call/put dates.
+*    {lang=zh} 这个函数计算不可进行期权交易的债券的到期收益率。对于可以进行期权交易的债券，这个函数计算买权/卖权日期的收益率。
+*    {lang=hant} 這個函數計算不可進行期權交易的債券的到期收益率。對於可以進行期權交易的債券，這個函數計算買權/賣權日期的收益率。
+*    {lang=ko} 이 함수는 옵션 불가능 채권의 만기 수익률을 계산합니다. 옵션 가능 채권의 경우 이 함수는 콜/풋 행사일의 수익률을 계산합니다.
+*    {lang=ru} This function calculates the yield to maturity of non-optionable bonds. For optionable bonds this function calculates the yields at call/put dates.
+*    {lang=de} Diese Funktion berechnet den Ertrag bis zur Fälligkeit von nicht optionsfähigen Anleihen. Für optionsfähige Anleihen berechnet diese Funktion die Renditen zum Stichtag/Verkaufstermin.
+* @param {(string|number)=} settlementDate
+*    {lang=en} Date on which cash is paid and the security is delivered
+*    {lang=ja} Date on which cash is paid and the security is delivered
+*    {lang=zh} 现金支付且证券交割的日期
+*    {lang=hant} 現金支付且證券交割的日期
+*    {lang=ko} 현금을 지불하고 증권을 인계한 날짜
+*    {lang=ru} Date on which cash is paid and the security is delivered
+*    {lang=en} Date on which cash is paid and the security is delivered
+* @param {number=} price
+*    {lang=en} Market price of the bond, expressed as a percentage (for example, 0.07 is 7%)
+*    {lang=ja} Market price of the bond, expressed as a percentage (for example, 0.07 is 7%)
+*    {lang=zh} 债券的市场价格，表示为百分比 (例如 0.07 是 7%)
+*    {lang=hant} 債券的市場價格，表示為百分比 (例如 0.07 是 7%)
+*    {lang=ko} 채권의 시장 가격, 백분율로 표시(예: 0.07은 7%)
+*    {lang=ru} Market price of the bond, expressed as a percentage (for example, 0.07 is 7%)
+*    {lang=de} Marktpreis der Anleihe, in Prozent ausgewiesen (z. B. 0,07 entspricht 7 %)
+* @param {(string|number)=} maturity
+*    {lang=en} Maturity date of the bond or FRN (expressed as a date)
+*    {lang=ja} Maturity date of the bond or FRN (expressed as a date)
+*    {lang=zh} 债券或 FRN 的到期日 (表示为日期)
+*    {lang=hant} 債券或 FRN 的到期日 (表示為日期)
+*    {lang=ko} 채권 또는 FRN의 만기일(날짜로 표시)
+*    {lang=ru} Maturity date of the bond or FRN (expressed as a date)
+*    {lang=de} Fälligkeitsdatum der Anleihe oder FRN (als Datum ausgedrückt)
+* @param {number=} coupon
+*    {lang=en} Nominal coupon rate, expressed as a percentage (for example, 0.07 is 7%)
+*    {lang=ja} Nominal coupon rate, expressed as a percentage (for example, 0.07 is 7%)
+*    {lang=zh} 名义票息率，表示为百分比 (例如 0.07 是 7%)
+*    {lang=hant} 名目票息率，表示為百分比 (例如 0.07 是 7%)
+*    {lang=ko} 명목 이자율, 백분율로 표시(예: 0.07은 7%)
+*    {lang=ru} Nominal coupon rate, expressed as a percentage (for example, 0.07 is 7%)
+*    {lang=de} Nominaler Zinskupon, ausgewiesen in Prozent (z.B. 0,07 entspricht 7%)
+* @param {string=} bondStructure
+*    {lang=en} Is used as an argument in Adfin Bonds functions to define the structure of a bond. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_bondstructure.htm
+*    {lang=ja} Is used as an argument in Adfin Bonds functions to define the structure of a bond. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_bondstructure.htm
+*    {lang=zh} 作为 Adfin 债券函数中的参数，用于定义债券的结构。cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_bondstructure.htm
+*    {lang=zh-hant} 作為 Adfin 債券函數中的參數，用於定義債券的結構。 cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_bondstructure.htm
+*    {lang=ko} Adfin Bonds 함수의 인수로 사용되어 채권의 구조를 정의합니다. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_bondstructure.htm
+*    {lang=ru} Is used as an argument in Adfin Bonds functions to define the structure of a bond. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_bondstructure.htm
+*    {lang=de} Wird als ein Argument in Adfin-Anleihen-Funktionen verwendet, um die Struktur einer Anleihe zu definieren. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_bondstructure.htm
+* @param {string=} rateStructure
+*    {lang=en} cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_ratestructure.htm
+*    {lang=ja} cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_ratestructure.htm
+*    {lang=zh} cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_ratestructure.htm
+*    {lang=hant} cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_ratestructure.htm
+*    {lang=ko} cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_ratestructure.htm
+*    {lang=ru} cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_ratestructure.htm
+*    {lang=de} cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_ratestructure.htm
+* @param {string=} adMode
+*    {lang=en} Is used to customize returned values. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_admode.htm
+*    {lang=ja} Is used to customize returned values. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_admode.htm
+*    {lang=zh} 用于自定义返回的值。cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_admode.htm
+*    {lang=hant} 用於自定義返回的值。cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_admode.htm
+*    {lang=ko} 반환된 값을 사용자 지정하기 위해 사용합니다. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_admode.htm
+*    {lang=ru} Is used to customize returned values. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_admode.htm
+*    {lang=de} Wird zum Anpassen der ausgegebenen Werte verwendet. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_admode.htm
+* @return {*}
+*    {lang=en} The return value depends on the value of AdMode. For non-optionable bonds, the return value is the yield to maturity. For optionable bonds, the default value is a seven-by-n array, where n is the total number of call/put/sink options, plus two (one for the yield to maturity, and one for the selected yield which is repeated at the top according to the value of the RM keyword in the RateStructure argument). These values are returned for each redemption event: Yield, Option date, Strike price, Yield type, Non-adjusted strike, Accrued, Date type (for American exercise): exercise date or cash flow date. The selected yield is repeated as the top row of the yield schedule table. This is an array function. Scalar output is the yield selected by the RM keyword in the RateStructure argument.
+*    {lang=ja} The return value depends on the value of AdMode. For non-optionable bonds, the return value is the yield to maturity. For optionable bonds, the default value is a seven-by-n array, where n is the total number of call/put/sink options, plus two (one for the yield to maturity, and one for the selected yield which is repeated at the top according to the value of the RM keyword in the RateStructure argument). These values are returned for each redemption event: Yield, Option date, Strike price, Yield type, Non-adjusted strike, Accrued, Date type (for American exercise): exercise date or cash flow date. The selected yield is repeated as the top row of the yield schedule table. This is an array function. Scalar output is the yield selected by the RM keyword in the RateStructure argument.
+*    {lang=zh} 根据 AdMode 的值返回值。对于不可进行期权交易的债券，返回值是到期收益率。对于可进行期权交易的债券，默认值是7乘以n的数组，其中 n 是看涨期权/看跌期权/偿债期权的总数，再加2 (一个是到期收益率，一个所选收益率，在首行重复，根据 RateStructure 参数中 RM 关键字的值)。这些值为每个赎回事件返回: 收益率、期权日期、执行价、收益率类型、未调整执行价、应计、日期类型 (用于美式执行): 执行日期或现金流日期。所选收益率在收益率进度表的首行重复。这是数组函数。标量输出是 RateStructure 参数中的 RM 关键字选择的收益率。
+*    {lang=hant} 根據 AdMode 的值返回值。對於不可進行期權交易的債券，返回值是到期收益率。對於可進行期權交易的債券，默認值是7乘以n的數組，其中n 是看漲期權/看跌期權/償債期權的總數，再加2 (一個是到期收益率，一個所選收益率，在首行重複，根據RateStructure 參數中RM 關鍵字的值)。這些值為每個贖回事件返回: 收益率、期權日期、執行價、收益率類型、未調整執行價、應計、日期類型 (用於美式執行): 執行日期或現金流日期。所選收益率在收益率進度表的首行重複。這是數組函數。標量輸出是 RateStructure 參數中的 RM 關鍵字選擇的收益率。
+*    {lang=ko} 반환값은 AdMode 값에 따라 다릅니다. 옵션 불가능 채권의 경우 반환값은 만기수익률입니다. 옵션 가능 채권의 경우 기본값은 7 x n 배열입니다. 여기에서 n은 콜/풋/감채 옵션의 총 수에 2(1은 만기수익률, 1은 RateStructure 인수의 RM 키워드 값에 따라 맨 위에서 반복되는 선택한 수익률)를 더한 값입니다. 이 값은 다음 각 상환 이벤트에 대해 반환됩니다. 수익률, 옵션 날짜, 권리행사가격, 수익률 종류, 조정되지 않은 권리행사, 경과이자, 날짜 유형(미국식 행사의 경우): 행사일 또는 현금 흐름 날짜. 선택한 수익률은 수익률 스케줄 테이블의 맨 위 행으로 반복됩니다. 이것은 배열 함수입니다. 스칼라 출력은 RateStructure 인수에서 RM 키워드에 의해 선택된 수익률입니다.
+*    {lang=ru} The return value depends on the value of AdMode. For non-optionable bonds, the return value is the yield to maturity. For optionable bonds, the default value is a seven-by-n array, where n is the total number of call/put/sink options, plus two (one for the yield to maturity, and one for the selected yield which is repeated at the top according to the value of the RM keyword in the RateStructure argument). These values are returned for each redemption event: Yield, Option date, Strike price, Yield type, Non-adjusted strike, Accrued, Date type (for American exercise): exercise date or cash flow date. The selected yield is repeated as the top row of the yield schedule table. This is an array function. Scalar output is the yield selected by the RM keyword in the RateStructure argument.
+*    {lang=de} Der ausgegebene Wert ist abhänig vom Wert AdModes Bei nicht optionsfähigen Anleihen ist der Ertragswert die Rendite bis zur Fälligkeit. Für optionsfähige Anleihen ist der Standardwert ein sieben-mal-n-Array, wobei n die Gesamtzahl der Kauf-/Put-/Sink-Optionen plus zwei ist (eine für die Rendite bis zur Fälligkeit und eine für die ausgewählte Rendite, die entsprechend dem Wert des RM-Schlüsselworts im Argument RateStructure oben wiederholt wird). Diese Werte werden für jedes Rückzahlungsereignis ausgegeben Ertrag, Optionsdatum, Ausübungspreis, Ertragstyp, Nicht angepasster Ausübungspreis, Aufgelaufen, Datumsart (bei amerikanischer Ausübung): Ausübungsdatum oder Kapitalfluss-Datum. Der ausgewählte Ertrag wird als oberste Zeile der Tabelle zur Ertragsplanung wiederholt. Dies ist eine Array-Funktion. Skalare Ausgabe ist der Ertrag, der durch das RM-Schlüsselwort im Argument RateStructure ausgewählt wird.
+* @example
+* These examples show the use of ADBONDYIELD in different calculations.
+* To calculate a Japanese yield:
+* =ADBONDYIELD("09APR1993", 1, "20SEP2000", 0.05, "JGB", "EY:2 LLP:A5:2 RATETYPE:SIMPLEJAP RATEFRQ:ZERO DCB:JAP")
+* where JGB (Japanese Government Bonds) is the bond style defined in the style database and used to describe the BondStructure.
+* To calculate a Street Convention yield:
+* =ADBONDYIELD("05DEC1997", 0.99362180, "15AUG1999", 0.08, "UST", "RATETYPE:CMP RATEFRQ:FRQ DCB:AA EY:2 LLP:AA")
+* where UST (US Treasury) is the bond style defined in the style database and used to describe the BondStructure.
+*/
+tr.fn.AdFin["ADBONDYIELD"] = function (settlementDate, price, maturity, coupon, bondStructure, rateStructure, adMode) {
+    return tr.fn.AdFin._genericFunction.call(this, "BdFunction.AdBondYield", arguments);
+};
+/**
+* @function BDSETTLE
+* @memberof AdFin
+* @description
+*    {lang=en} Calculates the settlement date using a bond structure. The maturity argument is mandatory only if the LOCK keyword is used in BondStructure.
+*    {lang=ja} Calculates the settlement date using a bond structure. The maturity argument is mandatory only if the LOCK keyword is used in BondStructure.
+*    {lang=zh} 使用债券结构计算结算日期。只有 LOCK 关键字被使用在 BondStructure 中时，到期日参数为必需。
+*    {lang=hant} 使用債券結構計算結算日期。只有 LOCK 關鍵字被使用在 BondStructure 中時，到期日參數為必需。
+*    {lang=ko} 채권 구조를 사용해 결제일을 계산합니다. 만기 인수는 BondStructure에서 LOCK 키워드를 사용할 경우에만 필수입니다.
+*    {lang=ru} Calculates the settlement date using a bond structure. The maturity argument is mandatory only if the LOCK keyword is used in BondStructure.
+*    {lang=de} Berechnet das Abrechnungsdatum anhand einer Anleihenstruktur. Das Fälligkeitsargument ist nur dann obligatorisch, wenn das Schlüsselwort SPERREN in BondStructure verwendet wird.
+* @param {(string|number)=} calcDate
+*    {lang=en} Calculation date
+*    {lang=ja} Calculation date
+*    {lang=zh} 计算日
+*    {lang=hant} 計算日
+*    {lang=ko} 계산 날짜
+*    {lang=ru} Calculation date
+*    {lang=de} Berechnungsdatum
+* @param {string=} bondStructure
+*    {lang=en} Is used as an argument in Adfin Bonds functions to define the structure of a bond. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_bondstructure.htm
+*    {lang=ja} Is used as an argument in Adfin Bonds functions to define the structure of a bond. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_bondstructure.htm
+*    {lang=zh} 作为 Adfin 债券函数中的参数，用于定义债券的结构。cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_bondstructure.htm
+*    {lang=hant} 作為 Adfin 債券函數中的參數，用於定義債券的結構。 cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_bondstructure.htm
+*    {lang=ko} Adfin Bonds 함수의 인수로 사용되어 채권의 구조를 정의합니다. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_bondstructure.htm
+*    {lang=ru} Is used as an argument in Adfin Bonds functions to define the structure of a bond. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_bondstructure.htm
+*    {lang=de} Wird als ein Argument in Adfin-Anleihen-Funktionen verwendet, um die Struktur einer Anleihe zu definieren. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_bondstructure.htm
+* @param {(string|number)=} maturity
+*    {lang=en} Maturity date of the bond or FRN (expressed as a date)
+*    {lang=ja} Maturity date of the bond or FRN (expressed as a date)
+*    {lang=zh} 债券或 FRN 的到期日 (表示为日期)
+*    {lang=hant} 債券或 FRN 的到期日 (表示為日期)
+*    {lang=ko} 채권 또는 FRN의 만기일(날짜로 표시)
+*    {lang=ru} Maturity date of the bond or FRN (expressed as a date)
+*    {lang=de} Fälligkeitsdatum der Anleihe oder FRN (als Datum ausgedrückt)
+* @return {number}
+*    {lang=en} The bond settlement date
+*    {lang=ja} The bond settlement date
+*    {lang=zh} 债券结算日期
+*    {lang=hant} 債券結算日期
+*    {lang=ko} 채권 결제일
+*    {lang=ru} The bond settlement date
+*    {lang=de} Das Bond-Abrechnungsdatum
+* @example
+* This example shows how to use BDSETTLE to calculate the settlement date of a bond.
+* The call to BDSETTLE looks like:
+* =BDSETTLE("24MAY2005", "ACC:AA CFADJ:NO CLDR:EMU_FI DATED:12MAR1998 FRCD:15APR1999 FRQ:1 ISSUE:12MAR1998 NOTIONAL:1 PX:C PXRND:1E-5:DOWN REFDATE:MATURITY RP:1 SETTLE:3WD XD:NO")
+* Where:
+* ACC:AA specifies the Actual/Actual accrued interest calculation method
+* FRQ:2 specifies a semi-annual coupon frequency
+* ISSUE specifies the issue date
+* FRCD specifies the first regular coupon date
+* PX:C defines a clean price
+* REFDATE:MATURITY specifies that the reference date for the cash flow generation is the maturity date of the bond
+* Another example with the LOCK keyword:
+* =BDSETTLE("24MAY2005", "ACC:AA CFADJ:NO CLDR:EMU_FI DATED:12MAR1998 FRCD:15APR1999 FRQ:1 ISSUE:12MAR1998 NOTIONAL:1 PX:C PXRND:1E-5:DOWN REFDATE:MATURITY RP:1 SETTLE:3WD LOCK:3D XD:NO", "12MAR06")
+*/
+tr.fn.AdFin["BDSETTLE"] = function (calcDate, bondStructure, maturity) {
+    return tr.fn.AdFin._genericFunction.call(this, "BdFunction.BdSettle", arguments);
+};
+/**
+* @function ACCRUED
+* @memberof AdFin
+* @description
+*    {lang=en} Calculates the accrued using a bond structure.
+*    {lang=ja} Calculates the accrued using a bond structure.
+*    {lang=zh} 使用债券结构计算应计金额。
+*    {lang=hant} 使用債券結構計算應計金額。
+*    {lang=ko} 채권 구조를 사용해 경과이자를 계산합니다.
+*    {lang=ru} Calculates the accrued using a bond structure.
+*    {lang=de} Berechnet die aufgelaufenen Kosten unter Verwendung einer Anleihenstruktur.
+* @param {(string|number)=} calcDate
+*    {lang=en} Calculation date
+*    {lang=ja} 計算日
+*    {lang=zh} 计算日
+*    {lang=hant} 計算日
+*    {lang=ko} 계산 날짜
+*    {lang=ru} Calculation date
+*    {lang=de} Berechnungsdatum
+* @param {(string|number)=} maturity
+*    {lang=en} Maturity date of the bond or FRN (expressed as a date)
+*    {lang=ja} Maturity date of the bond or FRN (expressed as a date)
+*    {lang=zh} 债券或 FRN 的到期日 (表示为日期)
+*    {lang=hant} 債券或 FRN 的到期日 (表示為日期)
+*    {lang=ko} 채권 또는 FRN의 만기일(날짜로 표시)
+*    {lang=ru} Maturity date of the bond or FRN (expressed as a date)
+*    {lang=de} Fälligkeitsdatum der Anleihe oder FRN (als Datum ausgedrückt)
+* @param {number=} coupon
+*    {lang=en} Nominal coupon rate, expressed as a percentage (for example, 0.07 is 7%)
+*    {lang=ja} Nominal coupon rate, expressed as a percentage (for example, 0.07 is 7%)
+*    {lang=zh} 名义票息率，表示为百分比 (例如 0.07 是 7%)
+*    {lang=hant} 名目票息率，表示為百分比 (例如 0.07 是 7%)
+*    {lang=ko} 명목 이자율, 백분율로 표시(예: 0.07은 7%)
+*    {lang=ru} Nominal coupon rate, expressed as a percentage (for example, 0.07 is 7%)
+*    {lang=de} Nominaler Zinskupon, ausgewiesen in Prozent (z.B. 0,07 entspricht 7%)
+* @param {string=} bondStructure
+*    {lang=en} Is used as an argument in Adfin Bonds functions to define the structure of a bond. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_bondstructure.htm
+*    {lang=ja} Is used as an argument in Adfin Bonds functions to define the structure of a bond. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_bondstructure.htm
+*    {lang=zh} 作为 Adfin 债券函数中的参数，用于定义债券的结构。cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_bondstructure.htm
+*    {lang=hant} 作為 Adfin 債券函數中的參數，用於定義債券的結構。 cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_bondstructure.htm
+*    {lang=ko} Adfin Bonds 함수의 인수로 사용되어 채권의 구조를 정의합니다. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_bondstructure.htm
+*    {lang=ru} Is used as an argument in Adfin Bonds functions to define the structure of a bond. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_bondstructure.htm
+*    {lang=de} Wird als ein Argument in Adfin-Anleihen-Funktionen verwendet, um die Struktur einer Anleihe zu definieren. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_bondstructure.htm
+* @param {string=} adMode
+*    {lang=en} These arguments are either specific to this function, or they are common arguments that are used in a specific way. Use these values with the RES keyword: - RES:INTACC to display the accrued interest, - RES:CAPACC to display the capitalized accrued (for capitalized bonds), - RES:ACC to display the total accrued (accrued interest and capitalized accrued). The default value is RES:ACC. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_admode.htm
+*    {lang=ja} These arguments are either specific to this function, or they are common arguments that are used in a specific way. Use these values with the RES keyword: - RES:INTACC to display the accrued interest, - RES:CAPACC to display the capitalized accrued (for capitalized bonds), - RES:ACC to display the total accrued (accrued interest and capitalized accrued). The default value is RES:ACC. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_admode.htm
+*    {lang=zh} 这些参数或者特定于这个函数，或者以特定方式用作通用参数。与 RES 关键字一起使用这些值: - RES:INTACC 显示应计利息, - RES:CAPACC 显示资本化应计金额 (用于资本化债券), - RES:ACC 显示应计金额合计 (应计利息与资本化应计金额)。默认值是 RES:ACC。 cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_admode.htm
+*    {lang=hant} 這些參數或者特定於這個函數，或者以特定方式用作通用參數。與RES 關鍵字一起使用這些值: - RES:INTACC 顯示應計利息, - RES:CAPACC 顯示資本化應計金額(用於資本化債券), - RES:ACC 顯示應計金額合計(應計利息與資本化應計金額)。默認值是 RES:ACC。 cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_admode.htm
+*    {lang=ko} 이 인수는 이 함수에만 고유하거나 특정 방법으로 사용되는 공통 인수입니다. 이 값을 다음 RES 키워드와 함께 사용합니다. - RES:INTACC 경과이자 표시, - RES:CAPACC 자본화 경과이자 표시(자본화 채권에 대한), - RES:ACC 총 경과이자 표시(경과이자와 자본화 경과이자). 기본값은 RES:ACC입니다. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_admode.htm
+*    {lang=ru} These arguments are either specific to this function, or they are common arguments that are used in a specific way. Use these values with the RES keyword: - RES:INTACC to display the accrued interest, - RES:CAPACC to display the capitalized accrued (for capitalized bonds), - RES:ACC to display the total accrued (accrued interest and capitalized accrued). The default value is RES:ACC. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_admode.htm
+*    {lang=de} Diese Argumente sind entweder spezifisch für diese Funktion, oder sie sind gängige Argumente, die auf eine bestimmte Art und Weise verwendet werden. Verwenden Sie diese Werte mit dem RES-Schlüsselwort: - RES:INTACC zur Anzeige der aufgelaufenen Zinsen, - RES:CAPACC zur Anzeige der kapitalisierten aufgelaufenen Zinsen (für kapitalisierte Anleihen), - RES:ACC zur Anzeige der gesamten aufgelaufenen Zinsen (aufgelaufene Zinsen und kapitalisierte aufgelaufene Zinsen). Der Standardwert ist RES:ACC. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_admode.htm
+* @return {*}
+*    {lang=en} The return value depends on the value of AdMode. It can represent: accrued interest, capitalized accrued, total accrued
+*    {lang=ja} The return value depends on the value of AdMode. It can represent: accrued interest, capitalized accrued, total accrued
+*    {lang=zh} 返回值取决于 AdMode 的值。这可以代表: 应计利息、资本化应计金额、应计金额合计
+*    {lang=hant} 返回值取決於 AdMode 的值。這可以代表: 應計利息、資本化應計金額、應計金額合計
+*    {lang=ko} 반환값은 AdMode 값에 따라 다릅니다. 경과이자, 자본화 경과이자, 총 경과이자를 나타낼 수 있습니다.
+*    {lang=ru} The return value depends on the value of AdMode. It can represent: accrued interest, capitalized accrued, total accrued
+*    {lang=de} Der ausgegebene Wert ist abhänig vom Wert AdModes Er kann Folgendes darstellen: aufgelaufene Zinsen, kapitalisierte aufgelaufene Zinsen, insgesamt aufgelaufene Zinsen
+* @example
+* This example shows how to use ACCRUED. It calculates the accrued interest of a fixed-rate bond underthe actual/actual day count convention. This bond has a long first coupon (the FRCD keyword defines its end date), and a coupon rate of 5%.
+* The call to ACCRUED looks like this:
+* =ACCRUED("27MAY2005", "15APR2008", 0.05, "ACC:AA CFADJ:NO CLDR:EMU_FI DATED:12MAR1998 FRCD:15APR1999 FRQ:1 ISSUE:12MAR1998 NOTIONAL:1 PX:C ARND:1E-5:DOWN REFDATE:MATURITY RP:1 SETTLE:3WD XD:NO")
+*/
+tr.fn.AdFin["ACCRUED"] = function (calcDate, maturity, coupon, bondStructure, adMode) {
+    return tr.fn.AdFin._genericFunction.call(this, "BdFunction.Accrued", arguments);
+};
+/**
+* @function CFYLD
+* @memberof AdFin
+* @description
+*    {lang=en} Calculates the yield from price using cash flows.
+*    {lang=ja} Calculates the yield from price using cash flows.
+*    {lang=zh} 使用现金流由价格计算收益率。
+*    {lang=hant} 使用现金流由价格计算收益率。
+*    {lang=ko} 현금 흐름을 사용해 가격에서 수익률을 계산합니다.
+*    {lang=ru} Calculates the yield from price using cash flows.
+*    {lang=de} Berechnet die Rendite aus dem Preis durch Cash-flows
+* @param {(string|number)=} calcDate
+*    {lang=en} Calculation date
+*    {lang=ja} Calculation date
+*    {lang=zh} 计算日
+*    {lang=hant} 計算日
+*    {lang=ko} 계산 날짜
+*    {lang=ru} Calculation date
+*    {lang=de} Berechnungsdatum
+* @param {number=} grossPrice
+*    {lang=en} Clean price plus accrued interest expressed in the same unit as cash flows
+*    {lang=ja} Clean price plus accrued interest expressed in the same unit as cash flows
+*    {lang=zh} 净价加应计利息，以现金流相同单位表示
+*    {lang=hant} 淨價加應計利息，以現金流相同單位表示
+*    {lang=ko} 경과이자 제외 가격과 경과이자를 더해 현금 흐름과 동일한 단위로 표시
+*    {lang=ru} Clean price plus accrued interest expressed in the same unit as cash flows
+*    {lang=de} Bereinigter Preis plus aufgelaufene Zinsen, ausgedrückt in der gleichen Einheit wie Kapitalflüsse
+* @param {number=} cfDates
+*    {lang=en} Array of cash flow dates corresponding to the bond principal reimbursement
+*    {lang=ja} Array of cash flow dates corresponding to the bond principal reimbursement
+*    {lang=zh} 对应债券本金偿还的现金流日期数组
+*    {lang=hant} 對應債券本金償還的現金流日期數組
+*    {lang=ko} 채권 원금 상환에 해당하는 현금 흐름 날짜 배열
+*    {lang=ru} Array of cash flow dates corresponding to the bond principal reimbursement
+*    {lang=de} Anordnung der Kapitalflussdaten entsprechend der Rückzahlung des Anleihekapitals
+* @param {number=} cf
+*    {lang=en} Array of cash flow values corresponding to the bond principal reimbursement
+*    {lang=ja} Array of cash flow values corresponding to the bond principal reimbursement
+*    {lang=zh} 对应债券本金偿还的现金流值的数组
+*    {lang=hant} 對應債券本金償還的現金流值的數組
+*    {lang=ko} 채권 원금 상환에 해당하는 현금 흐름 값 배열
+*    {lang=ru} Array of cash flow values corresponding to the bond principal reimbursement
+*    {lang=de} Anordnung der Kapitalflusswerte entsprechend der Rückzahlung des Anleihekapitals
+* @param {number=} calcMethod
+*    {lang=en} You can use CalcMethod as an argument in Adfin functions to define the calculation method. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_calcmethod.htm
+*    {lang=ja} You can use CalcMethod as an argument in Adfin functions to define the calculation method. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_calcmethod.htm
+*    {lang=zh} 您可以将 CalcMethod 作为 Adfin 函数中的一个参数使用，来定义计算方法。cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_calcmethod.htm
+*    {lang=ko} CalcMethod를 Adfin 함수의 인수로 사용하여 계산 방법을 정의할 수 있습니다. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_calcstructure.htm
+*    {lang=ru} You can use CalcMethod as an argument in Adfin functions to define the calculation method. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_calcmethod.htm
+* @return {number}
+*    {lang=en} The yield to maturity of the bond. See FRN Yield to Maturity. The function only takes the cash flows into account that still have to occur.
+*    {lang=ja} The yield to maturity of the bond. See FRN Yield to Maturity. The function only takes the cash flows into account that still have to occur.
+*    {lang=zh} 债券的到期收益率。请参看 FRN 到期收益率。该函数仅考虑仍然必须发生的现金流。
+*    {lang=hant} 債券的到期收益率。請參看 FRN 到期收益率。該函數僅考慮仍然必鬚髮生的現金流。
+*    {lang=ko} 채권의 만기수익률. FRN 만기수익률을 참조하십시오. 이 함수는 계속해서 발생해야 하는 현금 흐름만 고려합니다.
+*    {lang=ru} The yield to maturity of the bond. See FRN Yield to Maturity. The function only takes the cash flows into account that still have to occur.
+*    {lang=de} Die Rendite bis zur Fälligkeit der Anleihe Siehe FRN Ertrag bis zur Fälligkeit. Die Funktion berücksichtigt nur die noch ausstehenden Zahlungsströme.
+* @example
+* This example shows how to use CfYld to calculate the yield.
+* These are examples of dates to use for the CfDates argument.
+* Note: Column headings are for descriptive purposes and should not be used as input.
+* CfDates 21-Jan-08, 21-Jan-09, 21-Jan-10, 21-Jan-11, 23-Jan-12
+* These are examples of dates to use for the Cf argument.
+* Note: Column headings are for descriptive purposes and should not be used as input.
+* Cf 0.0675, 0.0675, 0.0675, 0.0675, 1.0675
+* The call to CfYld looks like:
+* =CFYLD("24MAY2005",1.1071, 40931, 1.0675, "CLDR:EMU CM:AA")
+*/
+tr.fn.AdFin["CFYLD"] = function (calcDate, grossPrice, cfDates, cf, calcMethod) {
+    return tr.fn.AdFin._genericFunction.call(this, "CfFunction.CfYld", arguments);
+};
+/**
+* @function DFFORMATDATE
+* @memberof AdFin
+* @description
+*    {lang=en} Converts a date specified as a serial number to the string format DDMMMYY
+*    {lang=ja} Converts a date specified as a serial number to the string format DDMMMYY
+*    {lang=zh} 将指定为序列号的日期转换为字符串格式 DDMMMYY
+*    {lang=hant} 將指定為序列號的日期轉換為字符串格式 DDMMMYY
+*    {lang=ko} 일련 번호로 지정된 날짜를 문자열 형식 DDMMMYY로 변환
+*    {lang=ru} Converts a date specified as a serial number to the string format DDMMMYY
+*    {lang=de} Konvertiert ein als Seriennummer angegebenes Datum in das Zeichenkettenformat DDMMMYY um
+* @param {number=} calcDate
+*    {lang=en} Calculation date
+*    {lang=ja} Calculation date
+*    {lang=zh} 计算日
+*    {lang=hant} 計算日
+*    {lang=ko} 계산 날짜
+*    {lang=ru} Calculation date
+*    {lang=de} Berechnungsdatum
+* @return {string}
+*    {lang=en} The corresponding string.
+*    {lang=ja} The corresponding string.
+*    {lang=zh} 相应的字符串。
+*    {lang=hant} 相應的字符串。
+*    {lang=ko} 해당 문자열.
+*    {lang=ru} The corresponding string.
+*    {lang=de} Die entsprechende Zeichenfolge.
+* @example
+* This example shows how to use DfFormatDate to convert a date specified as a serial number to the string format.
+* The call to DfFormatDate looks like:
+* =DFFORMATDATE(42921)
+* Returns the value "05JUL17" (1 stands for January 1st 1900).
+*/
+tr.fn.AdFin["DFFORMATDATE"] = function (calcDate) {
+    return tr.fn.AdFin._genericFunction.call(this, "DfFunction.DfFormatDate", arguments);
+};
+/**
+* @function DFADDWD
+* @memberof AdFin
+* @description
+*    {lang=en} Adds the number of working days to a date.
+*    {lang=ja} Adds the number of working days to a date.
+*    {lang=zh} 添加工作日天数到某个日期。
+*    {lang=hant} 添加工作日天數到某個日期。
+*    {lang=ko} 날짜에 영업일수를 더합니다.
+*    {lang=ru} Adds the number of working days to a date.
+*    {lang=de} Fügt die Anzahl der Arbeitstage zu einem Datum hinzu.
+* @param {string=} calendars
+*    {lang=en} A list of one or more calendar codes (for example, FRA or UKG).
+*    {lang=ja} A list of one or more calendar codes (for example, FRA or UKG).
+*    {lang=zh} 一个或多个日历代码的列表 (例如 FRA 或 UKG)。
+*    {lang=hant} 一個或多個日曆代碼的列表 (例如 FRA 或 UKG)。
+*    {lang=ko} 하나 이상의 캘린더 코드 목록(예: FRA 또는 UKG).
+*    {lang=ru} A list of one or more calendar codes (for example, FRA or UKG).
+*    {lang=de} Eine Liste mit einem oder mehreren Kalendercodes (z. B. FRA oder UKG).
+* @param {(string|number)=} calcDate
+*    {lang=en} Calculation date
+*    {lang=ja} Calculation date
+*    {lang=zh} 计算日
+*    {lang=hant} 計算日
+*    {lang=ko} 계산 날짜
+*    {lang=ru} Calculation date
+*    {lang=de} Berechnungsdatum
+* @param {number=} nbDays
+*    {lang=en} Number of working days (from: 0 to 366)
+*    {lang=ja} Number of working days (from: 0 to 366)
+*    {lang=zh} 工作日天数 (从: 0 到 366)
+*    {lang=hant} 工作日天數 (從: 0 到 366)
+*    {lang=ko} 영업일수(0부터 366까지)
+*    {lang=ru} Number of working days (from: 0 to 366)
+*    {lang=de} Anzahl der Arbeitstage (von: 0 bis 366)
+* @param {string=} dfMode
+*    {lang=en} # not currently used - leave blank #
+*    {lang=ja} # not currently used - leave blank #
+*    {lang=zh} # 当前未使用的数目 - 留空白 #
+*    {lang=hant} # 當前未使用的數目 - 留空白 #
+*    {lang=ko} # 현재 사용되지 않음 - 공백으로 둠 #
+*    {lang=ru} # not currently used - leave blank #
+*    {lang=de} # derzeit nicht verwendet - leer lassen #
+* @return {number}
+*    {lang=en} The NbDays-th working day following CalcDate is first calculated independently for all listed calendars. The greatest of the calculated dates is returned if it is working day for all calendars. Otherwise, the next working day common to all listed calendars is returned.
+*    {lang=ja} The NbDays-th working day following CalcDate is first calculated independently for all listed calendars. The greatest of the calculated dates is returned if it is working day for all calendars. Otherwise, the next working day common to all listed calendars is returned.
+*    {lang=zh} CalcDate 之后的 NbDays-th 工作日首先计算，独立于全部列出的日历。如果对全部日历都是工作日，则返回计算出的日期中最大的。否则，则返回通用于全部列出的日历的下一工作日。
+*    {lang=hant} CalcDate 之後的 NbDays-th 工作日首先計算，獨立於全部列出的日曆。如果對全部日曆都是工作日，則返回計算出的日期中最大的。否則，則返回通用於全部列出的日曆的下一工作日。
+*    {lang=ko} CalcDate 이후의 NbDays-th 영업일은 먼저 나열된 모든 캘린더에 대해 독립적으로 계산됩니다. 계산한 날짜 중 가장 큰 날짜가 모든 캘린더의 영업일인 경우 반환합니다. 그렇지 않으면 나열된 모든 캘린더에 공통된 다음 영업일을 반환합니다.
+*    {lang=ru} The NbDays-th working day following CalcDate is first calculated independently for all listed calendars. The greatest of the calculated dates is returned if it is working day for all calendars. Otherwise, the next working day common to all listed calendars is returned.
+*    {lang=de} Der auf CalcDate folgende NbDays-te Arbeitstag wird zunächst unabhängig für alle aufgelisteten Kalender berechnet. Das größte der berechneten Daten wird ausgegeben, wenn es für alle Kalender ein Werktag ist. Andernfalls wird der nächste Arbeitstag, der allen aufgelisteten Kalendern gemeinsam ist, ausgegeben.
+* @example
+* This example shows how to use DFADDWD to add the number of working days to a date.
+* The call to DFADDWD looks like:
+* =DFADDWD("USA","30JUN2017",2,"")
+* This function equals July 5th 2017 (July 4th 2017 is the American Independence Day so the date is moved to the next working day).
+*/
+tr.fn.AdFin["DFADDWD"] = function (calendars, calcDate, nbDays, dfMode) {
+    return tr.fn.AdFin._genericFunction.call(this, "DfFunction.DfAddWD", arguments);
+};
+/**
+* @function DFADDPERIOD
+* @memberof AdFin
+* @description
+*    {lang=en} Adds a period (number of calendar days, working days,weeks, months or years) to a date.
+*    {lang=ja} Adds a period (number of calendar days, working days,weeks, months or years) to a date.
+*    {lang=zh} 添加一个期间 (日历日天数、工作日数、星期数、月份数或年数) 到某个日期。
+*    {lang=hant} 添加一個期間 (日曆日天數、工作日數、星期數、月份數或年數) 到某個日期。
+*    {lang=ko} 날짜에 기간(역일 수, 영업일, 주, 월 또는 연도)을 추가합니다.
+*    {lang=ru} Adds a period (number of calendar days, working days,weeks, months or years) to a date.
+*    {lang=de} Fügt einem Datum einen Zeitraum (Anzahl der Kalendertage, Arbeitstage, Wochen, Monate oder Jahre) hinzu.
+* @param {string=} calendars
+*    {lang=en} A list of one or more calendar codes (for example, FRA or UKG).
+*    {lang=ja} A list of one or more calendar codes (for example, FRA or UKG).
+*    {lang=zh} 一个或多个日历代码的列表 (例如 FRA 或 UKG)。
+*    {lang=hant} 一個或多個日曆代碼的列表 (例如 FRA 或 UKG)。
+*    {lang=ko} 하나 이상의 캘린더 코드 목록(예: FRA 또는 UKG).
+*    {lang=ru} A list of one or more calendar codes (for example, FRA or UKG).
+*    {lang=de} Eine Liste mit einem oder mehreren Kalendercodes (z. B. FRA oder UKG).
+* @param {(string|number)=} calcDate
+*    {lang=en} Calculation date
+*    {lang=ja} Calculation date
+*    {lang=zh} 计算日
+*    {lang=hant} 計算日
+*    {lang=ko} 계산 날짜
+*    {lang=ru} Calculation date
+*    {lang=de} Berechnungsdatum
+* @param {string=} period
+*    {lang=en} Period code {iD, iM, iW, iWD, iY} with i as integer: iDi calendar days, iMi months, iWi weeks, iWDi working days (from -366 to 366), iYi years
+*    {lang=ja} Period code {iD, iM, iW, iWD, iY} with i as integer: iDi calendar days, iMi months, iWi weeks, iWDi working days (from -366 to 366), iYi years
+*    {lang=zh} 期间代码 {iD, iM, iW, iWD, iY} 其中 i 是整数: iDi 日历日, iMi 月, iWi 星期, iWDi 工作日 (从 -366 到 366), iYi 年
+*    {lang=hant} 期間代碼 {iD, iM, iW, iWD, iY} 其中 i 是整數: iDi 日曆日, iMi 月, iWi 星期, iWDi 工作日 (從 -366 到 366), iYi 年
+*    {lang=ko} 기간 코드 {iD, iM, iW, iWD, iY}, i는 정수: iDi 역일, iMi 월, iWi 주, iWDi 영업일(-366에서 366), iYi 연도
+*    {lang=ru} Period code {iD, iM, iW, iWD, iY} with i as integer: iDi calendar days, iMi months, iWi weeks, iWDi working days (from -366 to 366), iYi years
+*    {lang=de} Zeitraumcode {iD, iM, iW, iWD, iY} mit i als Ganzzahl: iDi Kalendertage, iMi Monate, iWi Wochen, IwDi Werktage (von -366 bis 366), iYi Jahre
+* @param {string=} dfMode
+*    {lang=en} Is used as an argument in functions of the Adfin Common module to customize returned values. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_dfmode.htm
+*    {lang=ja} Is used as an argument in functions of the Adfin Common module to customize returned values. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_dfmode.htm
+*    {lang=zh} 作为 Adfin 通用模块中的函数的参数，用来自定义返回的值。cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_dfmode.htm
+*    {lang=hant} 作為 Adfin 通用模塊中的函數的參數，用來自定義返回的值。 cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_dfmode.htm
+*    {lang=ko} Adfin Common 모듈의 함수에서 인수로 사용되어 반환한 값을 사용자 지정합니다. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_dfmode.htm
+*    {lang=ru} Is used as an argument in functions of the Adfin Common module to customize returned values. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_dfmode.htm
+*    {lang=de} Wird als Argument in Funktionen des Adfin Common-Moduls verwendet, um ausgegebene Werte anzupassen. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_admode.htm
+* @return {number}
+*    {lang=en} Date calculated by adding Period to CalcDate. If the calculated date falls on a non-working day, the Date Moving Convention specified in DfMode with the DMC keyword (or the default value if not specified) applies. If CalcDate falls on the last working day of the month, the return date may also vary depending on the End-of-Month Convention defined as default or specified in DfMode with the EMC keyword.
+*    {lang=ja} Date calculated by adding Period to CalcDate. If the calculated date falls on a non-working day, the Date Moving Convention specified in DfMode with the DMC keyword (or the default value if not specified) applies. If CalcDate falls on the last working day of the month, the return date may also vary depending on the End-of-Month Convention defined as default or specified in DfMode with the EMC keyword.
+*    {lang=zh} 通过添加期间到D CalcDate 计算的日期。如果计算日落在非工作日，则用 DMC 关键字在 DfMode 中指定的日期移动惯例 (如果未指定，则为默认值) 适用。 如果 CalcDate 落在该月的最后一个工作日，则返回日期也可不同，取决于默认的，或用 EMC 关键字在 DfMode 中指定的月末惯例。
+*    {lang=hant} 通過添加期間到D CalcDate 計算的日期。如果計算日落在非工作日，則用 DMC 關鍵字在 DfMode 中指定的日期移動慣例 (如果未指定，則為默認值) 適用。如果 CalcDate 落在該月的最後一個工作日，則返回日期也可不同，取決於默認的，或用 EMC 關鍵字在 DfMode 中指定的月末慣例。
+*    {lang=ko} Period를 CalcDate에 추가하여 계산한 날짜. 계산한 날짜가 비영업일인 경우 DMC 키워드(또는 지정되지 않은 경우 기본값)를 사용하여 DfMode에 지정된 날짜 이동 규약이 적용됩니다. CalcDate가 해당 월의 마지막 영업일인 경우 반환 날짜는 기본값으로 정의되거나 DfMode에 EMC 키워드로 지정된 월말 규약에 따라 달라질 수 있습니다.
+*    {lang=ru} Date calculated by adding Period to CalcDate. If the calculated date falls on a non-working day, the Date Moving Convention specified in DfMode with the DMC keyword (or the default value if not specified) applies. If CalcDate falls on the last working day of the month, the return date may also vary depending on the End-of-Month Convention defined as default or specified in DfMode with the EMC keyword.
+*    {lang=de} Datum wird berechnet, indem Zeitraum zum CalcDate hinzugefügt wird. Wenn das berechnete Datum auf einen arbeitsfreien Tag fällt, gilt die im DfMode mit dem DMC-Schlüsselwort angegebene Date Moving Convention (oder der Standardwert, wenn nicht angegeben). Wenn CalcDate auf den letzten Arbeitstag des Monats fällt, kann das Rückgabedatum auch abhängig von der als Standard definierten oder im DfMode mit dem EMC-Schlüsselwort angegebenen Monatsende-Konvention variieren.
+* @example
+* This example shows how to use DFADDPERIOD to add a period to a date.
+* The call to DFADDPERIOD looks like:
+* =DFADDPERIOD("FRA","30JUL04","1M","EMC:S")
+* This function returns August 30th 2004 (August 31st 2004 is the last working day of the month but the same day end-of-month convention applies).
+*/
+tr.fn.AdFin["DFADDPERIOD"] = function (calendars, calcDate, period, dfMode) {
+    return tr.fn.AdFin._genericFunction.call(this, "DfFunction.DfAddPeriod", arguments);
+};
+/**
+* @function DFADDMONTHS
+* @memberof AdFin
+* @description
+*    {lang=en} Adds the number of months to a date.
+*    {lang=ja} Adds the number of months to a date.
+*    {lang=zh} 添加月份数到某个日期。
+*    {lang=hant} 添加月份數到某個日期。
+*    {lang=ko} 날짜에 월 수를 더합니다.
+*    {lang=ru} Adds the number of months to a date.
+*    {lang=de} Fügt die Anzahl der Monate zu einem Datum hinzu.
+* @param {string=} calendars
+*    {lang=en} A list of one or more calendar codes (for example, FRA or UKG).
+*    {lang=ja} A list of one or more calendar codes (for example, FRA or UKG).
+*    {lang=zh} 一个或多个日历代码的列表 (例如 FRA 或 UKG)。
+*    {lang=hant} 一個或多個日曆代碼的列表 (例如 FRA 或 UKG)。
+*    {lang=ko} 하나 이상의 캘린더 코드 목록(예: FRA 또는 UKG).
+*    {lang=ru} A list of one or more calendar codes (for example, FRA or UKG).
+*    {lang=de} Eine Liste mit einem oder mehreren Kalendercodes (z. B. FRA oder UKG).
+* @param {(string|number)=} calcDate
+*    {lang=en} Calculation date
+*    {lang=ja} Calculation date
+*    {lang=zh} 计算日
+*    {lang=hant} 計算日
+*    {lang=ko} 계산 날짜
+*    {lang=ru} Calculation date
+*    {lang=de} Berechnungsdatum
+* @param {number=} nbMonths
+*    {lang=en} Number of months
+*    {lang=ja} Number of months
+*    {lang=zh} 月份数
+*    {lang=hant} 月份數
+*    {lang=ko} 월의 수
+*    {lang=ru} Number of months
+*    {lang=de} Anzahl der Monate
+* @param {string=} dfMode
+*    {lang=en} Is used as an argument in functions of the Adfin Common module to customize returned values. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_dfmode.htm
+*    {lang=ja} Is used as an argument in functions of the Adfin Common module to customize returned values. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_dfmode.htm
+*    {lang=zh} 作为 Adfin 通用模块的函数中的参数，用来自定义返回的值。cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_dfmode.htm
+*    {lang=hant} 作為 Adfin 通用模塊的函數中的參數，用來自定義返回的值。 cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_dfmode.htm
+*    {lang=ko} Adfin Common 모듈의 함수에서 인수로 사용되어 반환한 값을 사용자 지정합니다. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_dfmode.htm
+*    {lang=ru} Is used as an argument in functions of the Adfin Common module to customize returned values. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_dfmode.htm
+*    {lang=de} Wird als Argument in Funktionen des Adfin Common-Moduls verwendet, um ausgegebene Werte anzupassen. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_admode.htm
+* @return {number}
+*    {lang=en} The date calculated by adding NbMonths to CalcDate. If the calculated date falls on a non-working day, the Date Moving Convention specified in DfMode with the DMC keyword (or the default value if not specified) applies. If CalcDate falls on the last working day of the month, the return date may also vary depending on the End-of-Month Convention defined as default or specified in DfMode with the EMC keyword.
+*    {lang=ja} The date calculated by adding NbMonths to CalcDate. If the calculated date falls on a non-working day, the Date Moving Convention specified in DfMode with the DMC keyword (or the default value if not specified) applies. If CalcDate falls on the last working day of the month, the return date may also vary depending on the End-of-Month Convention defined as default or specified in DfMode with the EMC keyword.
+*    {lang=zh} 通过添加 NbMonths 到 CalcDate 计算出的日期。如果计算出的日期落在非工作日，则用 DMC 关键字在 DfMode 中指定的日期移动惯例 (如果未指定，则为默认值) 适用。如果 CalcDate 落在该月的最后一个工作日，则返回日期也可改变，取决于默认的或者用 EMC 关键字在 DfMode 中指定的月末惯例。
+*    {lang=hant} 通過添加 NbMonths 到 CalcDate 計算出的日期。如果計算出的日期落在非工作日，則用 DMC 關鍵字在 DfMode 中指定的日期移動慣例 (如果未指定，則為默認值) 適用。如果 CalcDate 落在該月的最後一個工作日，則返回日期也可改變，取決於默認的或者用 EMC 關鍵字在 DfMode 中指定的月末慣例。
+*    {lang=ko} NbMonth를 CalcDate에 추가하여 계산한 날짜. 계산한 날짜가 비영업일인 경우 DMC 키워드(또는 지정되지 않은 경우 기본값)를 사용하여 DfMode에 지정된 날짜 이동 규약이 적용됩니다. CalcDate가 해당 월의 마지막 영업일인 경우 반환 날짜는 기본값으로 정의되거나 DfMode에 EMC 키워드로 지정된 월말 규약에 따라 달라질 수 있습니다.
+*    {lang=ru} The date calculated by adding NbMonths to CalcDate. If the calculated date falls on a non-working day, the Date Moving Convention specified in DfMode with the DMC keyword (or the default value if not specified) applies. If CalcDate falls on the last working day of the month, the return date may also vary depending on the End-of-Month Convention defined as default or specified in DfMode with the EMC keyword.
+*    {lang=de} Das Datum, das berechnet wird, indem NbMonths zu CalcDate hinzugefügt wird. Wenn das berechnete Datum auf einen arbeitsfreien Tag fällt, gilt die im DfMode mit dem DMC-Schlüsselwort angegebene Datumsverschiebungskonvention (oder der Standardwert, wenn nicht angegeben). Wenn CalcDate auf den letzten Arbeitstag des Monats fällt, kann das Rückgabedatum auch abhängig von der als Standard definierten oder im DfMode mit dem EMC-Schlüsselwort angegebenen Monatsende-Konvention variieren.
+* @example
+* This example shows how to use DFADDMONTHS to add the number of months to a date.
+* The call to DFADDMONTHS looks like:
+* =DFADDMONTHS("GER","25NOV2004",1,"DMC:P")
+* This function returns December 24th 2004 (December 25th 2004 is Christmas holiday so the date is set to the first working day preceding this date).
+*/
+tr.fn.AdFin["DFADDMONTHS"] = function (calendars, calcDate, nbMonths, dfMode) {
+    return tr.fn.AdFin._genericFunction.call(this, "DfFunction.DfAddMonths", arguments);
+};
+/**
+* @function DFADDYEARS
+* @memberof AdFin
+* @description
+*    {lang=en} Adds a number of years to a date.
+*    {lang=ja} Adds a number of years to a date.
+*    {lang=zh} 添加年数到某个日期。
+*    {lang=hant} 添加年數到某個日期。
+*    {lang=ko} 날짜에 연도 수를 더합니다.
+*    {lang=ru} Adds a number of years to a date.
+*    {lang=de} Fügt einem Datum eine Anzahl von Jahren hinzu.
+* @param {string=} calendars
+*    {lang=en} A list of one or more calendar codes (for example, FRA or UKG).
+*    {lang=ja} A list of one or more calendar codes (for example, FRA or UKG).
+*    {lang=zh} 一个或多个日历代码的列表 (例如 FRA 或 UKG)。
+*    {lang=hant} 一個或多個日曆代碼的列表 (例如 FRA 或 UKG)。
+*    {lang=ko} 하나 이상의 캘린더 코드 목록(예: FRA 또는 UKG).
+*    {lang=ru} A list of one or more calendar codes (for example, FRA or UKG).
+*    {lang=de} Eine Liste mit einem oder mehreren Kalendercodes (z. B. FRA oder UKG).
+* @param {(string|number)=} calcDate
+*    {lang=en} Calculation date
+*    {lang=ja} Calculation date
+*    {lang=zh} 计算日
+*    {lang=hant} 計算日
+*    {lang=ko} 계산 날짜
+*    {lang=ru} Calculation date
+*    {lang=de} Berechnungsdatum
+* @param {number=} nbYears
+*    {lang=en} Number of years
+*    {lang=ja} Number of years
+*    {lang=zh} 年数
+*    {lang=hant} 年數
+*    {lang=ko} 연도의 수
+*    {lang=ru} Number of years
+*    {lang=de} Anzahl der Jahre
+* @param {string=} dfMode
+*    {lang=en} Is used as an argument in functions of the Adfin Common module to customize returned values. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_dfmode.htm
+*    {lang=ja} Is used as an argument in functions of the Adfin Common module to customize returned values. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_dfmode.htm
+*    {lang=zh} 作为 Adfin 通用模块的函数中的参数，用来自定义返回的值。cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_dfmode.htm
+*    {lang=hant} 作為 Adfin 通用模塊的函數中的參數，用來自定義返回的值。 cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_dfmode.htm
+*    {lang=ko} Adfin Common 모듈의 함수에서 인수로 사용되어 반환한 값을 사용자 지정합니다. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_dfmode.htm
+*    {lang=ru} Is used as an argument in functions of the Adfin Common module to customize returned values. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_dfmode.htm
+*    {lang=de} Wird als Argument in Funktionen des Adfin Common-Moduls verwendet, um ausgegebene Werte anzupassen. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_admode.htm
+* @return {number}
+*    {lang=en} The date calculated by adding NbYears to CalcDate. If the calculated date falls on a non-working day, the Date Moving Convention specified in DfMode with the DMC keyword (or the default value if not specified) applies. If CalcDate falls on the last working day of the month, the return date may also vary depending on the End-of-Month Convention defined as default or specified in DfMode with the EMC keyword.
+*    {lang=ja} The date calculated by adding NbYears to CalcDate. If the calculated date falls on a non-working day, the Date Moving Convention specified in DfMode with the DMC keyword (or the default value if not specified) applies. If CalcDate falls on the last working day of the month, the return date may also vary depending on the End-of-Month Convention defined as default or specified in DfMode with the EMC keyword.
+*    {lang=zh} 通过添加 NbYears 到 CalcDate 计算出的日期。如果计算出的日期落在非工作日，则用 DMC 关键字在 DfMode 中指定的日期移动惯例 (如果未指定，则为默认值) 适用。如果 CalcDate 落在该月的最后一个工作日，则返回日期也可改变，取决于默认的或者用 EMC 关键字在 DfMode 中指定的月末惯例。
+*    {lang=hant} 通過添加 NbYears 到 CalcDate 計算出的日期。如果計算出的日期落在非工作日，則用 DMC 關鍵字在 DfMode 中指定的日期移動慣例 (如果未指定，則為默認值) 適用。如果 CalcDate 落在該月的最後一個工作日，則返回日期也可改變，取決於默認的或者用 EMC 關鍵字在 DfMode 中指定的月末慣例。
+*    {lang=ko} NbYears를 CalcDate에 추가하여 계산한 날짜. 계산한 날짜가 비영업일인 경우 DMC 키워드(또는 지정되지 않은 경우 기본값)를 사용하여 DfMode에 지정된 날짜 이동 규약이 적용됩니다. CalcDate가 해당 월의 마지막 영업일인 경우 반환 날짜는 기본값으로 정의되거나 DfMode에 EMC 키워드로 지정된 월말 규약에 따라 달라질 수 있습니다.
+*    {lang=ru} The date calculated by adding NbYears to CalcDate. If the calculated date falls on a non-working day, the Date Moving Convention specified in DfMode with the DMC keyword (or the default value if not specified) applies. If CalcDate falls on the last working day of the month, the return date may also vary depending on the End-of-Month Convention defined as default or specified in DfMode with the EMC keyword.
+*    {lang=de} Wird als Argument in Funktionen des Adfin Common-Moduls verwendet, um ausgegebene Werte anzupassen. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_admode.htm
+* @example
+* This example shows how to use DFADDYEARS to add a number of years to a date.
+* The call to DFADDYEARS looks like:
+* =DFADDYEARS("UKG","30AUG04",4,"DMC:F EMC:S")
+* This function equals September 1st 2008 (August 31st 2008 is a Sunday so the date moving convention overwrites the same day end-of-month convention).
+*/
+tr.fn.AdFin["DFADDYEARS"] = function (calendars, calcDate, nbYears, dfMode) {
+    return tr.fn.AdFin._genericFunction.call(this, "DfFunction.DfAddYears", arguments);
+};
+/**
+* @function DFADJUSTTOWD
+* @memberof AdFin
+* @description
+*    {lang=en} Adjusts a holiday date to the previous or next working day.
+*    {lang=ja} Adjusts a holiday date to the previous or next working day.
+*    {lang=zh} 调整节假日日期到前一或下一工作日。
+*    {lang=hant} 調整節假日日期到前一或下一工作日。
+*    {lang=ko} 휴일 날짜를 이전 영업일 또는 다음 영업일로 조정합니다.
+*    {lang=ru} Adjusts a holiday date to the previous or next working day.
+*    {lang=de} Stellt ein Feiertagsdatum auf den vorherigen oder nächsten Werktag um.
+* @param {string=} calendars
+*    {lang=en} A list of one or more calendar codes (for example, FRA or UKG).
+*    {lang=ja} A list of one or more calendar codes (for example, FRA or UKG).
+*    {lang=zh} 一个或多个日历代码的列表 (例如 FRA 或 UKG)。
+*    {lang=hant} 一個或多個日曆代碼的列表 (例如 FRA 或 UKG)。
+*    {lang=ko} 하나 이상의 캘린더 코드 목록(예: FRA 또는 UKG).
+*    {lang=ru} A list of one or more calendar codes (for example, FRA or UKG).
+*    {lang=de} Eine Liste mit einem oder mehreren Kalendercodes (z. B. FRA oder UKG).
+* @param {(string|number)=} calcDate
+*    {lang=en} Calculation date
+*    {lang=ja} Calculation date
+*    {lang=zh} 计算日
+*    {lang=hant} 計算日
+*    {lang=ko} 계산 날짜
+*    {lang=ru} Calculation date
+*    {lang=de} Berechnungsdatum
+* @param {number=} adjMode
+*    {lang=en} These arguments are either specific to this function, or they are common arguments that are used in a specific way. Adjustment mode {0, 1, -1}: 0 to adjust the date according to the date moving convention specified in DfMode with the DMC keyword, 1 to adjust the date to the next day, -1 to adjust the date to the previous day
+*    {lang=ja} These arguments are either specific to this function, or they are common arguments that are used in a specific way. Adjustment mode {0, 1, -1}: 0 to adjust the date according to the date moving convention specified in DfMode with the DMC keyword, 1 to adjust the date to the next day, -1 to adjust the date to the previous day
+*    {lang=zh} 这些参数或者特定于这个函数，或者以特定方式用作通用参数。调整模式 {0, 1, -1}: 0 根据用 DMC 关键字在 DfMode 中指定的日期移动惯例调整日期，1 调整日期到下一日，-1 调整日期到前一日
+*    {lang=hant} 這些參數或者特定於這個函數，或者以特定方式用作通用參數。調整模式 {0, 1, -1}: 0 根據用 DMC 關鍵字在 DfMode 中指定的日期移動慣例調整日期，1 調整日期到下一日，-1 調整日期到前一日
+*    {lang=ko} 이 인수는 이 함수에만 고유하거나 특정 방법으로 사용되는 공통 인수입니다. 조정 모드 {0, 1, -1}: 0은 DMC 키워드로 DfMode에 지정된 날짜 이동 규칙에 따라 날짜를 조정, 1은 날짜를 다음 날로 조정, -1은 날짜를 전날로 조정
+*    {lang=ru} These arguments are either specific to this function, or they are common arguments that are used in a specific way. Adjustment mode {0, 1, -1}: 0 to adjust the date according to the date moving convention specified in DfMode with the DMC keyword, 1 to adjust the date to the next day, -1 to adjust the date to the previous day
+*    {lang=de} Diese Argumente sind entweder spezifisch für diese Funktion, oder sie sind gängige Argumente, die auf eine bestimmte Art und Weise verwendet werden. Anpassungsmodus {0, 1, -1}: 0 zum Anpassen des Datums entsprechend der im DfMode mit dem DMC-Schlüsselwort angegebenen Datumsverschiebungskonvention, 1 zum Anpassen des Datums an den nächsten Tag, -1 zum Anpassen des Datums an den Vortag um das Datum am vorherigen Tag anzupassen
+* @param {string=} dfMode
+*    {lang=en} Is used as an argument in functions of the Adfin Common module to customize returned values. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_dfmode.htm
+*    {lang=ja} Is used as an argument in functions of the Adfin Common module to customize returned values. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_dfmode.htm
+*    {lang=zh} 作为 Adfin 通用模块的函数中的参数，用来自定义返回的值。cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_dfmode.htm
+*    {lang=hant} 作为 Adfin 通用模块的函数中的参数，用来自定义返回的值。 cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_dfmode.htm
+*    {lang=ko} Adfin Common 모듈의 함수에서 인수로 사용되어 반환한 값을 사용자 지정합니다. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_dfmode.htm
+*    {lang=ru} Is used as an argument in functions of the Adfin Common module to customize returned values. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_dfmode.htm
+*    {lang=de} Wird als Argument in Funktionen des Adfin Common-Moduls verwendet, um ausgegebene Werte anzupassen. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_admode.htm
+* @return {number}
+*    {lang=en} The same date if it is a working day, otherwise the previous (DMC:P) or the next (DMC:F) working day common to all listed calendars.
+*    {lang=ja} The same date if it is a working day, otherwise the previous (DMC:P) or the next (DMC:F) working day common to all listed calendars.
+*    {lang=zh} 如果是工作日，则是相同日期，否则为通用于全部列出的日历的前一 (DMC:P) 或下一 (DMC:F) 工作日。
+*    {lang=hant} 如果是工作日，則是相同日期，否則為通用於全部列出的日曆的前一 (DMC:P) 或下一 (DMC:F) 工作日。
+*    {lang=ko} 영업일인 경우 같은 날짜로, 비영업일인 경우 나열된 모든 캘린더에 공통된 근무일의 전날(DMC : P) 또는 다음날(DMC : F).
+*    {lang=ru} The same date if it is a working day, otherwise the previous (DMC:P) or the next (DMC:F) working day common to all listed calendars.
+*    {lang=de} Dasselbe Datum, wenn es sich um einen Werktag handelt, andernfalls der vorherige (DMC:P) oder der nächste (DMC:F) Werktag, der allen aufgelisteten Kalendern gemeinsam ist.
+* @example
+* This example shows how to use DFADJUSTTOWD to adjusts a holiday date to the previous or next working day.
+* The call to DFADJUSTTOWD looks like:
+* =DFADJUSTTOWD("FRA","01MAY2017",0,"DMC:F")
+* This function equals May 2nd 2017 (May 1st 2017 is a French National holiday so the date is moved to the following working day as specified with DMC keyword).
+*/
+tr.fn.AdFin["DFADJUSTTOWD"] = function (calendars, calcDate, adjMode, dfMode) {
+    return tr.fn.AdFin._genericFunction.call(this, "DfFunction.DfAdjustToWD", arguments);
+};
+/**
+* @function DFLASTWD
+* @memberof AdFin
+* @description
+*    {lang=en} Calculates the last working day of a month.
+*    {lang=ja} Calculates the last working day of a month.
+*    {lang=zh} 计算某月的最后工作日。
+*    {lang=hant} 計算某月的最後工作日。
+*    {lang=ko} 한 달의 마지막 영업일을 계산합니다.
+*    {lang=ru} Calculates the last working day of a month.
+*    {lang=de} Berechnet den letzten Arbeitstag eines Monats.
+* @param {string=} calendars
+*    {lang=en} A list of one or more calendar codes (for example, FRA or UKG).
+*    {lang=ja} A list of one or more calendar codes (for example, FRA or UKG).
+*    {lang=zh} 一个或多个日历代码的列表 (例如 FRA 或 UKG)。
+*    {lang=hant} 一個或多個日曆代碼的列表 (例如 FRA 或 UKG)。
+*    {lang=ko} 하나 이상의 캘린더 코드 목록(예: FRA 또는 UKG).
+*    {lang=ru} A list of one or more calendar codes (for example, FRA or UKG).
+*    {lang=de} Eine Liste mit einem oder mehreren Kalendercodes (z. B. FRA oder UKG).
+* @param {(string|number)=} calcDate
+*    {lang=en} Calculation date
+*    {lang=ja} Calculation date
+*    {lang=zh} 计算日
+*    {lang=hant} 計算日
+*    {lang=ko} 계산 날짜
+*    {lang=ru} Calculation date
+*    {lang=de} Berechnungsdatum
+* @param {string=} dfMode
+*    {lang=en} # not currently used - leave blank #
+*    {lang=ja} # not currently used - leave blank #
+*    {lang=zh} # 当前未使用数目 - 留空白 #
+*    {lang=hant} # 當前未使用數目 - 留空白 #
+*    {lang=ko} # 현재 사용되지 않음 - 공백으로 둠 #
+*    {lang=ru} # not currently used - leave blank #
+*    {lang=de} # derzeit nicht verwendet - leer lassen #
+* @return {number}
+*    {lang=en} The last working day in the month of CalcDate common to all listed calendars.
+*    {lang=ja} The last working day in the month of CalcDate common to all listed calendars.
+*    {lang=zh} CalcDate 的月份中通用于全部列出的日历的最后工作日。
+*    {lang=hant} CalcDate 的月份中通用於全部列出的日曆的最後工作日。
+*    {lang=ko} 나열된 모든 캘린더에 공통된 CalcDate 월의 마지막 영업일.
+*    {lang=ru} The last working day in the month of CalcDate common to all listed calendars.
+*    {lang=de} Der letzte Arbeitstag im Monat von CalcDate, der allen aufgelisteten Kalendern gemeinsam ist.
+* @example
+* =DFLASTWD("FRA USA","18DEC2017","")
+* This function equals December 29th 2017 (December 31st 2017 is the New Years's Eve holiday in US so the date is moved to the last common working day).
+*/
+tr.fn.AdFin["DFLASTWD"] = function (calendars, calcDate, dfMode) {
+    return tr.fn.AdFin._genericFunction.call(this, "DfFunction.DfLastWD", arguments);
+};
+/**
+* @function DFFINDDATED
+* @memberof AdFin
+* @description
+*    {lang=en} Finds a date from a rule based on a reference date.
+*    {lang=ja} Finds a date from a rule based on a reference date.
+*    {lang=zh} 基于参考日期用某规则查找某日期。
+*    {lang=hant} 基於參考日期用某規則查找某日期。
+*    {lang=ko} 참조일을 기준으로 규칙에서 날짜를 찾습니다.
+*    {lang=ru} Finds a date from a rule based on a reference date.
+*    {lang=de} Findet ein Datum aus einer Regel basierend auf einem Referenzdatum.
+* @param {number=} number
+*    {lang=en} Integer representing either the number of days or a particular day of the week.
+*    {lang=ja} Integer representing either the number of days or a particular day of the week.
+*    {lang=zh} 整数，代表该星期中特定一天或天数。
+*    {lang=hant} 整數，代表該星期中特定一天或天數。
+*    {lang=ko} 일수 또는 특정 요일을 나타내는 정수입니다.
+*    {lang=ru} Integer representing either the number of days or a particular day of the week.
+*    {lang=de} Ganzzahl, die entweder die Anzahl der Tage oder einen bestimmten Wochentag darstellt.
+* @param {number=} day
+*    {lang=en} String representing the day. {Day, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday}
+*    {lang=ja} String representing the day. {Day, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday}
+*    {lang=zh} 代表该日的字符串。{Day, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday}
+*    {lang=hant} 代表該日的字符串。 {Day, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday}
+*    {lang=ko} 요일을 나타내는 문자열. {Day, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday}
+*    {lang=ru} String representing the day. {Day, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday}
+*    {lang=de} Zeichenfolge, die den Tag repräsentiert.  {Day, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday}
+* @param {number=} direction
+*    {lang=en} String representing the direction. {Of, Before, After}
+*    {lang=ja} String representing the direction. {Of, Before, After}
+*    {lang=zh} 代表该方向的字符串。{Of, Before, After}
+*    {lang=hant} 代表該方向的字符串。 {Of, Before, After}
+*    {lang=ko} 방향을 나타내는 문자열. {의, 전, 후}
+*    {lang=ru} String representing the direction. {Of, Before, After}
+*    {lang=de} Zeichenfolge, die die Richtung repräsentiert. {Of, Before, After}
+* @param {number=} refDate
+*    {lang=en} Reference date
+*    {lang=ja} Reference date
+*    {lang=zh} 参考日期
+*    {lang=hant} 參考日期
+*    {lang=ko} 참조 데이터
+*    {lang=ru} Reference date
+*    {lang=de} Referenzdatum
+* @return {number}
+*    {lang=en} The calculated date.
+*    {lang=ja} The calculated date.
+*    {lang=zh} 计算出的日期。
+*    {lang=hant} 計算出的日期。
+*    {lang=ko} 계산한 날짜.
+*    {lang=ru} The calculated date.
+*    {lang=de} Das berechnete Datum.
+* @example
+* This example shows how to use DFFINDDATED to find a date from a rule based on a reference date.
+* The call to DFFINDDATED looks like:
+* =DFFINDDATED(1,"mon","aft","30JAN95")
+* This function equals Mon, February 6th 1995 (first Monday after January 30th 1995).
+*/
+tr.fn.AdFin["DFFINDDATED"] = function (number, day, direction, refDate) {
+    return tr.fn.AdFin._genericFunction.call(this, "DfFunction.DfFindDateD", arguments);
+};
+/**
+* @function DFCOUNTDAYS
+* @memberof AdFin
+* @description
+*    {lang=en} Calculates the number of days between two dates according to the day count basis specified in DfMode with the DCB keyword.
+*    {lang=ja} Calculates the number of days between two dates according to the day count basis specified in DfMode with the DCB keyword.
+*    {lang=zh} 根据用 DCB 关键字在 DfMode 中指定的日计数基准计算两个日期间的天数。
+*    {lang=hant} 根據用 DCB 關鍵字在 DfMode 中指定的日計數基準計算兩個日期間的天數。
+*    {lang=ko} DCB 키워드로 DfMode에 지정된 일수 기준에 따라 두 날짜 사이의 일수를 계산합니다.
+*    {lang=ru} Calculates the number of days between two dates according to the day count basis specified in DfMode with the DCB keyword.
+* @param {(string|number)=} startDate
+*    {lang=en} Period start date.
+*    {lang=ja} Period start date.
+*    {lang=zh} 期间开始日期。
+*    {lang=hant} 期間開始日期。
+*    {lang=ko} 기간 개시일.
+*    {lang=ru} Period start date.
+*    {lang=de} Anfangsdatum des Zeitraums
+* @param {(string|number)=} endDate
+*    {lang=en} Period end date.
+*    {lang=ja} Period end date.
+*    {lang=zh} 期间结束日期。
+*    {lang=hant} 期間結束日期。
+*    {lang=ko} 기간 종료일.
+*    {lang=ru} Period end date.
+*    {lang=de} Enddatum des Zeitraums
+* @param {string=} dfMode
+*    {lang=en} Is used as an argument in functions of the Adfin Common module to customize returned values. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_dfmode.htm
+*    {lang=ja} Is used as an argument in functions of the Adfin Common module to customize returned values. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_dfmode.htm
+*    {lang=zh} 作为 Adfin 通用模块的函数中的参数，用来自定义返回的值。cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_dfmode.htm
+*    {lang=hant} 作為 Adfin 通用模塊的函數中的參數，用來自定義返回的值。 cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_dfmode.htm
+*    {lang=ko} Adfin Common 모듈의 함수에서 인수로 사용되어 반환한 값을 사용자 지정합니다. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_dfmode.htm
+*    {lang=ru} Is used as an argument in functions of the Adfin Common module to customize returned values. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_dfmode.htm
+*    {lang=de} Wird als Argument in Funktionen des Adfin Common-Moduls verwendet, um ausgegebene Werte anzupassen. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_admode.htm
+* @return {number}
+*    {lang=en} The number of days calculated according to the chosen basis.
+*    {lang=ja} The number of days calculated according to the chosen basis.
+*    {lang=zh} 根据所选基准计算出的天数。
+*    {lang=hant} 根據所選基準計算出的天數。
+*    {lang=ko} 선택한 기준에 따라 계산한 일수입니다.
+*    {lang=ru} The number of days calculated according to the chosen basis.
+*    {lang=de} Die Anzahl der Tage, die nach der gewählten Basis berechnet wurden.
+* @example
+* This example shows how to use DFCOUNTDAYS to calculate the number of days between two dates according to the day count basis specified.
+* The call to DFCOUNTDAYS looks like:
+* =DFCOUNTDAYS("30JAN04","30JAN05","DCB:00")
+* This function equals 360 (basis 30/360).
+*/
+tr.fn.AdFin["DFCOUNTDAYS"] = function (startDate, endDate, dfMode) {
+    return tr.fn.AdFin._genericFunction.call(this, "DfFunction.DfCountDays", arguments);
+};
+/**
+* @function DFCOUNTWD
+* @memberof AdFin
+* @description
+*    {lang=en} Calculates the number of working days between two dates.
+*    {lang=ja} Calculates the number of working days between two dates.
+*    {lang=zh} 计算两个日期间工作日的天数。
+*    {lang=hant} 計算兩個日期間工作日的天數。
+*    {lang=ko} 두 날짜 간 영업일수를 계산합니다.
+*    {lang=ru} Calculates the number of working days between two dates.
+*    {lang=de} Berechnet die Anzahl der Arbeitstage zwischen zwei Tagen.
+* @param {string=} calendars
+*    {lang=en} A list of one or more calendar codes (for example, FRA or UKG).
+*    {lang=ja} A list of one or more calendar codes (for example, FRA or UKG).
+*    {lang=zh} 一个或多个日历代码的列表 (例如 FRA 或 UKG)。
+*    {lang=hant} 一個或多個日曆代碼的列表 (例如 FRA 或 UKG)。
+*    {lang=ko} 하나 이상의 캘린더 코드 목록(예: FRA 또는 UKG).
+*    {lang=ru} A list of one or more calendar codes (for example, FRA or UKG).
+*    {lang=de} Eine Liste mit einem oder mehreren Kalendercodes (z. B. FRA oder UKG).
+* @param {(string|number)=} startDate
+*    {lang=en} Period start date.
+*    {lang=ja} Period start date.
+*    {lang=zh} 期间开始日期。
+*    {lang=hant} 期間開始日期。
+*    {lang=ko} 기간 개시일.
+*    {lang=ru} Period start date.
+*    {lang=de} Anfangsdatum des Zeitraums.
+* @param {(string|number)=} endDate
+*    {lang=en} Period end date.
+*    {lang=ja} Period end date.
+*    {lang=zh} 期间结束日期。
+*    {lang=hant} 期間結束日期。
+*    {lang=ko} 기간 종료일.
+*    {lang=ru} Period end date.
+*    {lang=de} Enddatum des Zeitraums
+* @param {string=} dfMode
+*    {lang=en} # not currently used - leave blank #
+*    {lang=ja} # not currently used - leave blank #
+*    {lang=zh} # 当前未使用 - 留空白 #
+*    {lang=hant} # 當前未使用 - 留空白 #
+*    {lang=ko} # 현재 사용되지 않음 - 공백으로 둠 #
+*    {lang=ru} # not currently used - leave blank #
+*    {lang=de} # derzeit nicht verwendet - leer lassen #
+* @return {number}
+*    {lang=en} The number of working days common to all listed calendars between StartDate and EndDate. The market convention used counts Saturdays as working days. You can specify whether the start date is included or excluded by means of the WDC keyword. By default, only the start date is counted if it is a working day. The end date is not taken into account.
+*    {lang=ja} The number of working days common to all listed calendars between StartDate and EndDate. The market convention used counts Saturdays as working days. You can specify whether the start date is included or excluded by means of the WDC keyword. By default, only the start date is counted if it is a working day. The end date is not taken into account.
+*    {lang=zh} 在 StartDate 与 EndDate 之间通用于全部列出的日历的工作日天数。使用的市场惯例将星期六计委工作日。您可以通过 WDC 关键字指定是否包括开始日期。默认仅开始日期为工作日时，计入开始日期。结束日期不包括。
+*    {lang=hant} 在 StartDate 與 EndDate 之間通用於全部列出的日曆的工作日天數。使用的市場慣例將星期六計委工作日。您可以通過 WDC 關鍵字指定是否包括開始日期。默認僅開始日期為工作日時，計入開始日期。結束日期不包括。
+*    {lang=ko} StartDate와 EndDate 사이의 모든 나열된 캘린더에 공통된 영업일수. 토요일을 영업일로 계산하는 데 사용된 시장 규약. WDC 키워드를 사용하여 개시일의 포함 또는 제외 여부를 지정할 수 있습니다. 기본적으로 개시일은 영업일인 경우에만 계산됩니다. 종료일은 고려하지 않습니다.
+*    {lang=ru} The number of working days common to all listed calendars between StartDate and EndDate. The market convention used counts Saturdays as working days. You can specify whether the start date is included or excluded by means of the WDC keyword. By default, only the start date is counted if it is a working day. The end date is not taken into account.
+*    {lang=de} Die Anzahl der Arbeitstage, die allen aufgelisteten Kalendern zwischen StartDate und EndDate gemeinsam sind. Die verwendete Marktkonvention zählt Samstage als Arbeitstage. Mit dem Schlüsselwort WDC können Sie festlegen, ob das Anfangsdatum eingeschlossen oder ausgeschlossen wird. Standardmäig wird nur das Anfangsdatum gezählt, wenn es sich um einen Arbeitstag handelt. Das Enddatum wird nicht berücksichtigt.
+* @example
+* =DFCOUNTWD("USA", "30JAN2004","30JAN2005","")
+* This function equals 361
+*/
+tr.fn.AdFin["DFCOUNTWD"] = function (calendars, startDate, endDate, dfMode) {
+    return tr.fn.AdFin._genericFunction.call(this, "DfFunction.DfCountWD", arguments);
+};
+/**
+* @function ADFXSWPTODEP
+* @memberof AdFin
+* @description
+*    {lang=en} Calculates the deposit rates of a currency, given the deposit rates of another currency, the cross spot rate and the swap points of the cross currency. The function also calculates the FX spot and FX swap points of the two currencies.
+*    {lang=ja} Calculates the deposit rates of a currency, given the deposit rates of another currency, the cross spot rate and the swap points of the cross currency. The function also calculates the FX spot and FX swap points of the two currencies.
+*    {lang=zh} 计算货币的存款利率，给定另一货币的存款利率，交叉货币的交叉即期汇率与掉期点。函数也计算两个货币的外汇即期与外汇掉期点。
+*    {lang=hant} 計算貨幣的存款利率，給定另一貨幣的存款利率，交叉貨幣的交叉即期匯率與掉期點。函數也計算兩個貨幣的外匯即期與外匯掉期點。
+*    {lang=ko} 다른 통화의 예금이율, 교차 직물환율 및 교차 통화 스왑포인트를 고려할 때 통화의 예금이율을 계산합니다. 이 함수는 두 통화의 FX spot 및 FX 스왑포인트도 계산합니다.
+*    {lang=ru} Calculates the deposit rates of a currency, given the deposit rates of another currency, the cross spot rate and the swap points of the cross currency. The function also calculates the FX spot and FX swap points of the two currencies.
+*    {lang=de} Berechnet den Einlagenzinssatz einer Währung unter Berücksichtigung der Depositenkurse einer anderen Währung, des Cross-Spot-Kurses und der Swap-Punkte der Cross-Währung. Die Funktion berechnet auch die FX-Spot- und FX-Swap-Punkte der zwei Währungen.
+* @param {(string|number)=} calcDate
+*    {lang=en} Calculation date (contract or trading date). This argument can include the time of day.
+*    {lang=ja} Calculation date (contract or trading date). This argument can include the time of day.
+*    {lang=zh} 计算日 (合约或交易日期)。这个参数可以包括该日的时间。
+*    {lang=hant} 計算日 (合約或交易日期)。這個參數可以包括該日的時間。
+*    {lang=ko} 계산일(계약 또는 거래일) 이 인수는 시간을 포함할 수 있습니다.
+*    {lang=ru} Calculation date (contract or trading date). This argument can include the time of day.
+*    {lang=de} Berechnungsdatum (Vertrag oder Handelstag). Dieses Argument kann die Tageszeit beinhalten.
+* @param {string=} periodArray
+*    {lang=en} A single column array of periods (or dates) for which you want to calculate deposit rates.
+*    {lang=ja} A single column array of periods (or dates) for which you want to calculate deposit rates.
+*    {lang=zh} 您想要计算存款利率的期间数组的单一列 (或日期)。
+*    {lang=hant} 您想要計算存款利率的期間數組的單一列 (或日期)。
+*    {lang=ko} 예금이율을 계산하고 싶은 기간(또는 날짜)의 단일 열 배열입니다.
+*    {lang=ru} A single column array of periods (or dates) for which you want to calculate deposit rates.
+*    {lang=de} Ein einspaltiges Array von Zeiträumen (oder Datumsangaben), für die Sie Einlagenzinsen berechnen möchten.
+* @param {string=} cur1Cur2
+*    {lang=en} Cross currency code (for example EURGBP), optionally followed by a space and a CrossStructure argument. If either of the two currencies is the USD, you can use the other currency code directly in the Cur1Cur2 argument (for example EUR). Similarly, if the base currency is not the USD, you can use a nine-character code that includes the base currency in the middle (for example EURJPYGBP).
+*    {lang=ja} Cross currency code (for example EURGBP), optionally followed by a space and a CrossStructure argument. If either of the two currencies is the USD, you can use the other currency code directly in the Cur1Cur2 argument (for example EUR). Similarly, if the base currency is not the USD, you can use a nine-character code that includes the base currency in the middle (for example EURJPYGBP).
+*    {lang=zh} 交叉货币代码 (例如 EURGBP)，选用后接空格与 CrossStructure 参数。如果两种货币中任一种为 USD，您可以在 Cur1Cur2 参数中直接使用另一货币代码 (例如 EUR)。相似地，如果基准货币不是 USD，您可以使用中间包括基准货币的9位字符代码 (例如 EURJPYGBP)。
+*    {lang=hant} 交叉貨幣代碼 (例如 EURGBP)，選用後接空格與 CrossStructure 參數。如果兩種貨幣中任一種為 USD，您可以在 Cur1Cur2 參數中直接使用另一貨幣代碼 (例如 EUR)。相似地，如果基準貨幣不是 USD，您可以使用中間包括基準貨幣的9位字符代碼 (例如 EURJPYGBP)。
+*    {lang=ko} 교차 통화 코드(예 : EURGBP), 뒤에 공백과 CrossStructure 인수를 붙일 수 있습니다. 두 통화 중 하나가 USD인 경우 Cur1Cur2 인수에 다른 통화 코드를 직접 사용할 수 있습니다(예 : EUR). 마찬가지로 기본 통화가 USD가 아닌 경우 기본 통화가 가운데에 포함된 9자로 된 코드를 사용할 수 있습니다(예 : EURJPYGBP).
+*    {lang=ru} Cross currency code (for example EURGBP), optionally followed by a space and a CrossStructure argument. If either of the two currencies is the USD, you can use the other currency code directly in the Cur1Cur2 argument (for example EUR). Similarly, if the base currency is not the USD, you can use a nine-character code that includes the base currency in the middle (for example EURJPYGBP).
+*    {lang=de} Währungsübergreifender Code (z. B. EURGBP), optional gefolgt von einem Leerzeichen und einem CrossStructure-Argument. Wenn eine der beiden Währungen der USD ist, können Sie den anderen Währungscode direkt im Argument Cur1Cur2 verwenden (z. B. EUR). Wenn die Basiswährung nicht der USD ist, können Sie auch einen neunstelligen Code verwenden, der die Basiswährung in der Mitte beinhaltet (z.B. EURJPYGBP).
+* @param {number=} spot1BA
+*    {lang=en} Cur1 spot rates (array Bid/Ask)
+*    {lang=ja} Cur1 spot rates (array Bid/Ask)
+*    {lang=zh} Cur1 即期汇率 (数组买价/卖价)
+*    {lang=hant} Cur1 即期匯率 (數組買價/賣價)
+*    {lang=ko} Cur1 직물환율(배열 매수/매도)
+*    {lang=ru} Cur1 spot rates (array Bid/Ask)
+*    {lang=de} Cur1-Spotpreise (Array-Geld/Brief)
+* @param {number=} spot2BA
+*    {lang=en} In the case of a mono-currency, for example EUR, the Spot2BA argument is optional. See Forex &amp; MM Functions: Common Arguments for more information.
+*    {lang=ja} In the case of a mono-currency, for example EUR, the Spot2BA argument is optional. See Forex &amp; MM Functions: Common Arguments for more information.
+*    {lang=zh} 在单货币情况下，例如 EUR，Spot2BA 参数为可选。请参看外汇与货币市场函数: 通用参数了解更多信息。
+*    {lang=hant} 在單貨幣情況下，例如 EUR，Spot2BA 參數為可選。請參看外匯與貨幣市場函數: 通用參數了解更多信息。
+*    {lang=ko} 단일 통화(예 : EUR)의 경우 Spot2BA 인수는 선택 사항입니다. 자세한 내용은 Forex &amp; MM 함수: 공통 인수를 참조하십시오.
+*    {lang=ru} In the case of a mono-currency, for example EUR, the Spot2BA argument is optional. See Forex &amp; MM Functions: Common Arguments for more information.
+*    {lang=de} Im Falle einer Monowährung, zum Beispiel EUR, ist das Spot2BA-Argument optional. Siehe Forex- und MM-Funktionen: Allgemeine Argumente für weitere Informationen.
+* @param {number=} swp1Array
+*    {lang=en} Cur1 array of periods (or dates) and Bid/Ask swap points. Note: Must be sorted by date order.
+*    {lang=ja} Cur1 array of periods (or dates) and Bid/Ask swap points. Note: Must be sorted by date order.
+*    {lang=zh} Cur1 的期间 (或日期) 的与买价/卖价掉期点数组。注意：必须按日期顺序排序。
+*    {lang=hant} Cur1 的期間 (或日期) 的與買價/賣價掉期點數組。注意：必須按日期順序排序。
+*    {lang=ko} Cur1 기간(또는 날짜) 배열과 매수/매도 스왑포인트. 주의: 날짜순으로 정렬해야 합니다.
+*    {lang=ru} Cur1 array of periods (or dates) and Bid/Ask swap points. Note: Must be sorted by date order.
+*    {lang=de} Cur1-Array von Zeiträumen (oder Daten) und Geld/Brief-Swap-Punkten. Hinweis: Muss nach Datumsreihenfolge sortiert werden.
+* @param {number=} swp2Array
+*    {lang=en} Cur2 array of periods (or dates) and Bid/Ask swap points. Must be sorted by date order. In the case of a mono-currency, for example EUR, the Swp2Array argument is optional.
+*    {lang=ja} Cur2 array of periods (or dates) and Bid/Ask swap points. Must be sorted by date order. In the case of a mono-currency, for example EUR, the Swp2Array argument is optional.
+*    {lang=zh} Cur2 的期间 (或日期) 的与买价/卖价掉期点数组。必须按日期顺序排序。在单货币情况下，例如 EUR，Swp2Array 参数为可选。
+*    {lang=hant} Cur2 的期間 (或日期) 的與買價/賣價掉期點數組。必須按日期順序排序。在單貨幣情況下，例如 EUR，Swp2Array 參數為可選。
+*    {lang=ko} Cur2 기간(또는 날짜) 배열과 매수/매도 스왑포인트. 날짜순으로 정렬해야 합니다. 단일 통화(예 : EUR)의 경우 Swp2Array 인수는 선택 사항입니다.
+*    {lang=ru} Cur2 array of periods (or dates) and Bid/Ask swap points. Must be sorted by date order. In the case of a mono-currency, for example EUR, the Swp2Array argument is optional.
+*    {lang=de} Cur2-Array von Zeiträumen (oder Daten) und Geld/Brief-Swap-Punkten. Muss nach Datumsreihenfolge sortiert werden. Im Falle einer Monowährung, zum Beispiel EUR, ist das Swp2Array-Argument optional.
+* @param {string=} depArray
+*    {lang=en} Array of periods (or dates) and deposit rates (Bid/Ask) for the known currency. Note: Must be sorted by date order. See Forex &amp; MM Functions: Common Arguments for more information.
+*    {lang=ja} Array of periods (or dates) and deposit rates (Bid/Ask) for the known currency. Note: Must be sorted by date order. See Forex &amp; MM Functions: Common Arguments for more information.
+*    {lang=zh} 已知货币的期间 (或日期) 与存款利率 (买价/卖价) 的数组。注意：必须按日期顺序排序。请参看外汇与货币市场函数: 通用参数了解更多信息。
+*    {lang=hant} 已知貨幣的期間 (或日期) 與存款利率 (買價/賣價) 的數組。注意：必須按日期順序排序。請參看外匯與貨幣市場函數: 通用參數了解更多信息。
+*    {lang=ko} 알려진 통화에 대한 기간(또는 날짜) 배열과 예금이율(매수/매도). 주의: 날짜순으로 정렬해야 합니다. 자세한 내용은 Forex &amp; MM 함수: 공통 인수를 참조하십시오.
+*    {lang=ru} Array of periods (or dates) and deposit rates (Bid/Ask) for the known currency. Note: Must be sorted by date order. See Forex &amp; MM Functions: Common Arguments for more information.
+*    {lang=de} Anzahl der Zeiträume (oder Daten) und Einlagensätze (Geld/Brief) für die bekannte Währung. Hinweis: Muss nach Datumsreihenfolge sortiert werden. Siehe Forex- und MM-Funktionen: Allgemeine Argumente für weitere Informationen.
+* @param {string=} calcStructure
+*    {lang=en} Is used as an argument in Adfin functions to define the calculation methods available for pricing instruments. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_calcstructure.htm
+*    {lang=ja} Is used as an argument in Adfin functions to define the calculation methods available for pricing instruments. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_calcstructure.htm
+*    {lang=zh} 作为 Adfin 函数的参数使用，用于定义对金融工具定价的计算方法。cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_calcstructure.htm
+*    {lang=hant} 作為 Adfin 函數的參數使用，用於定義對金融工具定價的計算方法。 cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_calcstructure.htm
+*    {lang=ko} Adfin 함수의 인수로 사용되어 상품 가격 책정에 사용 가능한 계산 방법을 정의합니다. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_calcstructure.htm
+*    {lang=ru} Is used as an argument in Adfin functions to define the calculation methods available for pricing instruments. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_calcstructure.htm
+*    {lang=de} Wird als Argument in Adfin-Funktionen verwendet, um die verfügbaren Berechnungsmethoden für die Preisstellung von Wertpapieren zu definieren. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_calcstructure.htm
+* @param {string=} adMode
+*    {lang=en} You must specify the RES keyword. See AdMode for more information. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_admode.htm
+*    {lang=ja} You must specify the RES keyword. See AdMode for more information. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_admode.htm
+*    {lang=zh} 您必须指定 RES 关键字。请参看 AdMode 了解更多信息。cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_admode.htm
+*    {lang=hant} 您必須指定 RES 關鍵字。請參看 AdMode 了解更多信息。 cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_admode.htm
+*    {lang=ko} RES 키워드를 지정해야 합니다. 자세한 내용은 AdMode를 참조하십시오. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_admode.htm
+*    {lang=ru} You must specify the RES keyword. See AdMode for more information. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_admode.htm
+*    {lang=de} Sie müssen das RES-Schlüsselwort angeben. Weitere Informationen finden Sie unter AdMode. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_admode.htm
+* @return {*}
+*    {lang=en} The return value is an array with one row for each period or date from the PeriodArray argument. Each row contains six cells. DepBid: Bid side of the deposit, DepAsk: Ask side of the deposit, StartDate: Start date of the period, EndDate: End date of the period, DepInputBid: Bid deposit of the input currency in the period, DepInputAsk: Ask deposit fo the input currency in the period
+*    {lang=ja} The return value is an array with one row for each period or date from the PeriodArray argument. Each row contains six cells. DepBid: Bid side of the deposit, DepAsk: Ask side of the deposit, StartDate: Start date of the period, EndDate: End date of the period, DepInputBid: Bid deposit of the input currency in the period, DepInputAsk: Ask deposit fo the input currency in the period
+*    {lang=zh} 返回值是 PeriodArray 参数的每个期间或日期一行的数组。每行包含六个元素。DepBid: 存款的买面, DepAsk: 存款的卖面, StartDate: 期间的开始日期, EndDate: 期间的结束日期, DepInputBid: 期间中输入货币的存款买价存款, DepInputAsk: 期间中输入货币的卖价存款
+*    {lang=hant} 返回值是 PeriodArray 參數的每個期間或日期一行的數組。每行包含六個元素。 DepBid: 存款的買麵, DepAsk: 存款的賣麵, StartDate: 期間的開始日期, EndDate: 期間的結束日期, DepInputBid: 期間中輸入貨幣的存款買價存款, DepInputAsk: 期間中輸入貨幣的賣價存款
+*    {lang=ko} 반환값은 PeriodArray 인수의 각 기간 또는 날짜에 대해 하나의 행을 갖는 배열입니다. 각 행은 여섯 개의 셀을 포함합니다. DepBid: 예금의 매수측, DepAsk: 예금의 매도측, StartDate: 해당 기간의 개시일, EndDate: 해당 기간의 종료일, DepInputBid: 기간 중 입력 통화의 매수 예금, DepInputAsk: 기간 중 입력 통화의 매도 예금
+*    {lang=ru} The return value is an array with one row for each period or date from the PeriodArray argument. Each row contains six cells. DepBid: Bid side of the deposit, DepAsk: Ask side of the deposit, StartDate: Start date of the period, EndDate: End date of the period, DepInputBid: Bid deposit of the input currency in the period, DepInputAsk: Ask deposit fo the input currency in the period
+*    {lang=de} Der ausgegebene Wert ist ein Array mit einer Zeile für jeden Zeitraum oder Datum aus dem PeriodArray-Argument. Jede Zeile enthält sechs Zellen. DepBid: Geld-Seite der Einlage, DepAsk: Brief-Seite der Einlage, StartDate Anfangsdatum des Zeitraums, EndDate: Enddatum des Zeitraums, DepInputBid: Geld-Anzahlung der Eingangswährung im Zeitraum, DepInputAsk Brief-Anzahlung der Eingangswährung im Zeitraum
+* @example
+* cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#adfxswptodep.htm
+* =ADFXSWPTODEP("04FEB2005", "1M", "GBPEUR", 1.8841, 1.297, -31.8, 4.5, "1M", "", "RES:DEP2")
+*/
+tr.fn.AdFin["ADFXSWPTODEP"] = function (calcDate, periodArray, cur1Cur2, spot1BA, spot2BA, swp1Array, swp2Array, depArray, calcStructure, adMode) {
+    return tr.fn.AdFin._genericFunction.call(this, "FxFunction.AdFxSwpToDep", arguments);
+};
+/**
+* @function FXCALCPERIOD
+* @memberof AdFin
+* @description
+*    {lang=en} Calculates the start date and the end date of a period. By default, the CalcDate argument stands for the trading date. To calculate the period end date directly from the spot date (for example when applying an offset to the spot date), or to choose between the Forex and the Money markets, use the FROM keyword in FxMode.
+*    {lang=ja} Calculates the start date and the end date of a period. By default, the CalcDate argument stands for the trading date. To calculate the period end date directly from the spot date (for example when applying an offset to the spot date), or to choose between the Forex and the Money markets, use the FROM keyword in FxMode.
+*    {lang=zh} 计算期间的开始日期和结束日期。默认 CalcDate 参数代表交易日期。要从即期日期直接计算期间结束日 (例如对即期日应用调整时), 或要在外汇与货币市场之间选择，请使用 FxMode 中的 FROM 关键字。
+*    {lang=hant} 計算期間的開始日期和結束日期。默認 CalcDate 參數代表交易日期。要從即期日期直接計算期間結束日 (例如對即期日應用調整時), 或要在外匯與貨幣市場之間選擇，請使用 FxMode 中的 FROM 關鍵字。
+*    {lang=ko} 기간의 개시일과 종료일을 계산합니다. 기본적으로 CalcDate 인수는 거래일을 나타냅니다. 스폿 날짜에서 직접 기간 종료일을 계산하거나(예 : 스폿 날짜에 오프셋을 적용하는 경우) Forex와 단기 금융 시장 중에서 선택하려면 FxMode에서 FROM 키워드를 사용합니다.
+*    {lang=ru} Calculates the start date and the end date of a period. By default, the CalcDate argument stands for the trading date. To calculate the period end date directly from the spot date (for example when applying an offset to the spot date), or to choose between the Forex and the Money markets, use the FROM keyword in FxMode.
+*    {lang=de} Berechnet das Anfangs- und Enddatum eines Zeitraums Standardmäßig steht das CalcDate-Argument für das Handelsdatum. Um das Enddatum direkt aus dem Kassadatum zu berechnen ( z.B. bei Anwendung eines Offsets auf das Kassadatum) oder um zwischen dem Devisen- und Geldmarkt zu wählen, verwenden Sie das FROM-Stichwort im FxMode.
+* @param {(string|number)=} calcDate
+*    {lang=en} Calculation date (contract or trading date). This argument can include the time of day.
+*    {lang=ja} Calculation date (contract or trading date). This argument can include the time of day.
+*    {lang=zh} 计算日 (合约或交易日期)。这个参数可以包括该日的时间。
+*    {lang=hant} 計算日 (合約或交易日期)。這個參數可以包括該日的時間。
+*    {lang=ko} 계산일(계약 또는 거래일) 이 인수는 시간을 포함할 수 있습니다.
+*    {lang=ru} Calculation date (contract or trading date). This argument can include the time of day.
+*    {lang=de} Berechnungsdatum (Vertrag oder Handelstag). Dieses Argument kann die Tageszeit beinhalten.
+* @param {string=} cur1Cur2
+*    {lang=en} Cross currency code (for example EURGBP), optionally followed by a space and a CrossStructure argument. If either of the two currencies is the USD, you can use the other currency code directly in the Cur1Cur2 argument (for example EUR). Similarly, if the base currency is not the USD, you can use a nine-character code that includes the base currency in the middle (for example EURJPYGBP).
+*    {lang=ja} Cross currency code (for example EURGBP), optionally followed by a space and a CrossStructure argument. If either of the two currencies is the USD, you can use the other currency code directly in the Cur1Cur2 argument (for example EUR). Similarly, if the base currency is not the USD, you can use a nine-character code that includes the base currency in the middle (for example EURJPYGBP).
+*    {lang=zh} 交叉货币代码 (例如 EURGBP)，选用后接空格与 CrossStructure 参数。如果两种货币中任一种为 USD，您可以在 Cur1Cur2 参数中直接使用另一货币代码 (例如 EUR)。相似地，如果基准货币不是 USD，您可以使用中间包括基准货币的9位字符代码 (例如 EURJPYGBP)。
+*    {lang=hant} 交叉貨幣代碼 (例如 EURGBP)，選用後接空格與 CrossStructure 參數。如果兩種貨幣中任一種為 USD，您可以在 Cur1Cur2 參數中直接使用另一貨幣代碼 (例如 EUR)。相似地，如果基準貨幣不是 USD，您可以使用中間包括基準貨幣的9位字符代碼 (例如 EURJPYGBP)。
+*    {lang=ko} 교차 통화 코드(예 : EURGBP), 뒤에 공백과 CrossStructure 인수를 붙일 수 있습니다. 두 통화 중 하나가 USD인 경우 Cur1Cur2 인수에 다른 통화 코드를 직접 사용할 수 있습니다(예 : EUR). 마찬가지로 기본 통화가 USD가 아닌 경우 기본 통화가 가운데에 포함된 9자로 된 코드를 사용할 수 있습니다(예 : EURJPYGBP).
+*    {lang=ru} Cross currency code (for example EURGBP), optionally followed by a space and a CrossStructure argument. If either of the two currencies is the USD, you can use the other currency code directly in the Cur1Cur2 argument (for example EUR). Similarly, if the base currency is not the USD, you can use a nine-character code that includes the base currency in the middle (for example EURJPYGBP).
+*    {lang=de} Währungsübergreifender Code (z. B. EURGBP), optional gefolgt von einem Leerzeichen und einem CrossStructure-Argument. Wenn eine der beiden Währungen der USD ist, können Sie den anderen Währungscode direkt im Argument Cur1Cur2 verwenden (z. B. EUR). Wenn die Basiswährung nicht der USD ist, können Sie auch einen neunstelligen Code verwenden, der die Basiswährung in der Mitte beinhaltet (z.B. EURJPYGBP).
+* @param {string=} period
+*    {lang=en} Period code (for example 1M)
+*    {lang=ja} Period code (for example 1M)
+*    {lang=zh} 期间代码 (例如 1M)
+*    {lang=hant} 期間代碼 (例如 1M)
+*    {lang=ko} 기간 코드(예: 1M)
+*    {lang=ru} Period code (for example 1M)
+*    {lang=de} Zeitraumcode (z. B. 1M)
+* @param {string=} fxMode
+*    {lang=en} FxMode is used as an argument &amp;fmv1; Forex &amp; MM functions to define input parameters and customize returned values. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_fxmode.htm
+*    {lang=ja} FxMode is used as an argument &amp;fmv1; Forex &amp; MM functions to define input parameters and customize returned values. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_fxmode.htm
+*    {lang=zh} FxMode 作为参数 &amp;fmv1 使用; 外汇与货币市场函数定义输入参数并自定义返回的值。cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_fxmode.htm
+*    {lang=hant} FxMode 作為參數 &amp;fmv1 使用; 外匯與貨幣市場函數定義輸入參數並自定義返回的值。 cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_fxmode.htm
+*    {lang=ko} FxMode는 &amp; fmv1 인수로 사용됩니다. Forex &amp; MM 함수는 입력 매개변수를 정의하고 반환된 값을 사용자 지정합니다. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_fxmode.htm
+*    {lang=ru} FxMode is used as an argument &amp;fmv1; Forex &amp; MM functions to define input parameters and customize returned values. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_fxmode.htm
+*    {lang=de} FxMode wird als ein Argument &amp;fmv1; Forex &amp; MM-Funktionen verwendet, um Eingabeparameter zu definieren und Rückgabewerte anzupassen. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_fxmode.htm
+* @return {number}
+*    {lang=en} The return value depends on the value of FxMode. The default value is a four-cell array containing: StartDate: Period start date, EndDate: Period end date, Adjustement: String indicated why StartDate and EndDate were adjusted if applicable, Non-Adjusted: Non adjusted period EndDate. When you use this array function within the spreadsheet as a standard function, Adfin returns just the first element. To get the second element, for example, use RET:2 in FxMode.
+*    {lang=ja} The return value depends on the value of FxMode. The default value is a four-cell array containing: StartDate: Period start date, EndDate: Period end date, Adjustement: String indicated why StartDate and EndDate were adjusted if applicable, Non-Adjusted: Non adjusted period EndDate. When you use this array function within the spreadsheet as a standard function, Adfin returns just the first element. To get the second element, for example, use RET:2 in FxMode.
+*    {lang=zh} 返回值取决于 FxMode 的值。默认值是四个元素的数组，包含: StartDate: 期间开始日期, EndDate: 期间结束日期, Adjustement: 若适用则表示为什么调整 StartDate 和 EndDate 的字符串, Non-Adjusted: 未经调整的期间 EndDate。当您在 spreadsheet 内使用这个数组函数作为标准函数时，Adfin 仅返回第一个元素。要获得第二个元素，请使用 FxMode 中的 RET:2。
+*    {lang=hant} 返回值取決於 FxMode 的值。默認值是四個元素的數組，包含: StartDate: 期間開始日期, EndDate: 期間結束日期, Adjustement: 若適用則表示為什麼調整 StartDate 和 EndDate 的字符串, Non-Adjusted: 未經調整的期間 EndDate。當您在 spreadsheet 內使用這個數組函數作為標準函數時，Adfin 僅返回第一個元素。要獲得第二個元素，請使用 FxMode 中的 RET:2。
+*    {lang=ko} 반환값은 FxMode 값에 따라 다릅니다. 기본값은 다음을 포함하는 4셀 배열입니다. StartDate: 기간 개시일, EndDate: 기간 종료일, Adjustement: 해당되는 경우 StartDate 및 EndDate가 조정된 이유를 나타내는 문자열, Non-Adjusted: 조정되지 않은 기간 EndDate. 스프레드시트에서 이 배열 함수를 표준 함수로 사용하면 Adfin은 첫 번째 요소만 반환합니다. 두 번째 요소를 가져오려면 예를 들어 FxMode에서 RET:2를 사용합니다.
+*    {lang=ru} The return value depends on the value of FxMode. The default value is a four-cell array containing: StartDate: Period start date, EndDate: Period end date, Adjustement: String indicated why StartDate and EndDate were adjusted if applicable, Non-Adjusted: Non adjusted period EndDate. When you use this array function within the spreadsheet as a standard function, Adfin returns just the first element. To get the second element, for example, use RET:2 in FxMode.
+*    {lang=de} Der ausgegebene Wert hängt vom Wert von FxMode ab. Der Standardwert ist ein vierzelliges Array mit: StartDate: Anfangsdatum des Zeitraums, EndDate: Enddatum des Zeitraums, Anpassung: Zeichenfolge angegeben, warum StartDate und EndDate ggf. angepasst wurden, nicht bereinigt: Nicht angepasstes Enddatum des Zeitraums Wenn Sie diese Array-Funktion innerhalb der Tabelle als Standardfunktion verwenden, gibt Adfin nur das erste Element an. Um das zweite Element zu erhalten, z. B. RET:2 im FxMode verwenden.
+* @example
+* This example shows how to use FxCalcPeriod to calculate the start date and the end date of a period.
+* The call to FxCalcPeriod looks like:
+* =FXCALCPERIOD("24MAY2005", "EUR", "6M", "")
+*/
+tr.fn.AdFin["FXCALCPERIOD"] = function (calcDate, cur1Cur2, period, fxMode) {
+    return tr.fn.AdFin._genericFunction.call(this, "FxFunction.FxCalcPeriod", arguments);
+};
+/**
+* @function OPCALCDERIV
+* @memberof AdFin
+* @description
+*    {lang=en} Returns the derivatives (delta, gamma, rho, theta, and vega) of an option on a security (index, stock), a future, a commodity, or a currency. The derivatives are organized in a vertical array. In some cases additional results are available. For example, this function also calculates the break-even time and gearing for warrants, and foreign derivatives for currencies. See Derivatives, Gearing, and Break-Even Time.
+*    {lang=ja} Returns the derivatives (delta, gamma, rho, theta, and vega) of an option on a security (index, stock), a future, a commodity, or a currency. The derivatives are organized in a vertical array. In some cases additional results are available. For example, this function also calculates the break-even time and gearing for warrants, and foreign derivatives for currencies. See Derivatives, Gearing, and Break-Even Time.
+*    {lang=zh} 返回基于某证券 (指数、股票)、期货、商品或货币的期权的衍生品 (delta, gamma, rho, theta 和 vega)。衍生品组织成垂直数组。在一些情况下，额外结果可用。例如，这个函数也计算权证的盈亏平衡时间与杠杆率，以及货币的外国衍生品。请参看衍生品、杠杆率与盈亏平衡时间。
+*    {lang=hant} 返回基於某證券 (指數、股票)、期貨、商品或貨幣的期權的衍生品 (delta, gamma, rho, theta 和 vega)。衍生品組織成垂直數組。在一些情況下，額外結果可用。例如，這個函數也計算權證的盈虧平衡時間與槓桿率，以及貨幣的外國衍生品。請參看衍生品、槓桿率與盈虧平衡時間。
+*    {lang=ko} 증권(인덱스, 주식), 선물, 원자재 상품 또는 통화에 대한 옵션의 파생상품(델타, 감마, 로, 세타 및 베가)을 반환합니다. 파생상품은 수직 배열로 구성됩니다. 경우에 따라 추가 결과를 사용할 수 있습니다. 예를 들어, 이 함수는 손익분기 시점과 신주인수권 및 환율에 대한 해외 파생상품 기어링도 계산합니다. 파생상품과 기어링, 손익분기 시점을 참조하십시오.
+*    {lang=ru} Returns the derivatives (delta, gamma, rho, theta, and vega) of an option on a security (index, stock), a future, a commodity, or a currency. The derivatives are organized in a vertical array. In some cases additional results are available. For example, this function also calculates the break-even time and gearing for warrants, and foreign derivatives for currencies. See Derivatives, Gearing, and Break-Even Time.
+*    {lang=de} Gibt die Derivate (Delta, Gamma, Rho, Theta und Vega) einer Option auf ein Wertpapier (Index, Aktie), einen Future, eine Commodity oder eine Währung aus. Die Derivate sind in einem vertikalen Array angeordnet. In einigen Fällen sind zusätzliche Ergebnisse verfügbar. Diese Funktion berechnet beispielsweise die Gewinnschwellen-Zeit und die Verschuldung für Optionsscheine und Fremdderivate für Währungen. Siehe Derivate, Verschuldung und Gewinnschwellen-Zeit.
+* @param {number=} calcDate
+*    {lang=en} Calculation date
+*    {lang=ja} Calculation date
+*    {lang=zh} 计算日
+*    {lang=hant} 計算日
+*    {lang=ko} 계산 날짜
+*    {lang=ru} Calculation date
+*    {lang=de} Berechnungsdatum
+* @param {number=} expiryDate
+*    {lang=en} Expiry date of the option
+*    {lang=ja} Expiry date of the option
+*    {lang=zh} 期权的到期日
+*    {lang=hant} 期權的到期日
+*    {lang=ko} 옵션 만기일
+*    {lang=ru} Expiry date of the option
+*    {lang=de} Ablaufdatum der Option
+* @param {number=} spotPrice
+*    {lang=en} Market or spot price of the underlying instrument. In the case of a credit default swap option it is the spot spread of the underlying forward-starting credit default swap. If it is not defined, the function calculates it from the credit model.
+*    {lang=ja} Market or spot price of the underlying instrument. In the case of a credit default swap option it is the spot spread of the underlying forward-starting credit default swap. If it is not defined, the function calculates it from the credit model.
+*    {lang=zh} 标的金融工具的市场或即期价格。在信用违约掉期期权的情况下，这是标的远期开始信用违约掉期的即期价差。如果未定义，则函数用信用模型计算。
+*    {lang=hant} 標的金融工具的市場或即期價格。在信用違約掉期期權的情況下，這是標的遠期開始信用違約掉期的即期價差。如果未定義，則函數用信用模型計算。
+*    {lang=ko} 기초 자산의 시장 또는 현물 가격. 크레딧디폴트스왑 옵션의 경우 기초 forward-starting 크레딧디폴트스왑의 스팟 스프레드입니다. 이를 정의하지 않으면 함수는 크레딧 모델에서 계산합니다.
+*    {lang=ru} Market or spot price of the underlying instrument. In the case of a credit default swap option it is the spot spread of the underlying forward-starting credit default swap. If it is not defined, the function calculates it from the credit model.
+*    {lang=de} Markt- oder Spotpreis des zugrunde liegenden Wertpapiers. Im Falle einer Credit Default Swap-Option handelt es sich um den Kassaspread des Basiswerts des Forward Starting Credit Default Swaps. Wenn dieser nicht definiert ist, berechnet die Funktion sie vom Kreditmodell.
+* @param {number=} strikePrice
+*    {lang=en} Strike price of the option.
+*    {lang=ja} Strike price of the option.
+*    {lang=zh} 期权的执行价。
+*    {lang=hant} 期權的執行價。
+*    {lang=ko} 옵션의 권리행사가격.
+*    {lang=ru} Strike price of the option.
+*    {lang=de} Ausübungspreis der Option.
+* @param {string=} volatility
+*    {lang=en} Volatility of the underlying instrument
+*    {lang=ja} Volatility of the underlying instrument
+*    {lang=zh} 标的金融工具的波动率
+*    {lang=hant} 標的金融工具的波動率
+*    {lang=ko} 기초 자산의 변동성
+*    {lang=ru} Volatility of the underlying instrument
+*    {lang=de} Volatilität des zugrundeliegenden Wertpapiers
+* @param {number=} riskFreeRateArray
+*    {lang=en} The form of the array depends on the rate model you specify. Use the keyword RM (rate model) in the RateStructure argument to specify the model. The most commonly used models are: RM:YTM uses a constant yield to maturity, and requires a single value, RM:YC uses a yield curve, and requires a two-column array with: dates, zero coupon rates or discount factors
+*    {lang=ja} The form of the array depends on the rate model you specify. Use the keyword RM (rate model) in the RateStructure argument to specify the model. The most commonly used models are: RM:YTM uses a constant yield to maturity, and requires a single value, RM:YC uses a yield curve, and requires a two-column array with: dates, zero coupon rates or discount factors
+*    {lang=zh} 数组的形式取决于您指定的利率模型。使用 RateStructure 参数中的关键字 RM (利率模型) 来指定该模型。最常使用的模型是: RM:YTM 使用常数到期收益率，并且要求单一值，RM:YC 使用收益率曲线，并且要求两列数组: 日期、零票息或贴现因子
+*    {lang=ko} 배열 형식은 지정한 이자율 모델에 따라 다릅니다. RateStructure 인수에 키워드 RM(이자율 모델)을 사용해 모델을 지정합니다. 가장 흔하게 사용되는 모델: RM:YTM은 일정한 만기수익률을 사용하며 단일 값이 필요, RM:YC는 수익률 곡선을 사용하며 날짜, 제로쿠폰율 또는 할인 계수가 포함된 2열 배열이 필요
+*    {lang=ru} The form of the array depends on the rate model you specify. Use the keyword RM (rate model) in the RateStructure argument to specify the model. The most commonly used models are: RM:YTM uses a constant yield to maturity, and requires a single value, RM:YC uses a yield curve, and requires a two-column array with: dates, zero coupon rates or discount factors
+* @param {string=} returnArray
+*    {lang=en} Additional annualized rate (single value) or two-column dividend array (dates in the first column and values in the second column). The ReturnArray represents: the carrying costs, in the case of an option on a commodity, the risk-free rate of the foreign currency, in the case of an option on a currency, 0 in the case of an option on a future, the annual security yield, in the case of an option on a stock
+*    {lang=ja} Additional annualized rate (single value) or two-column dividend array (dates in the first column and values in the second column). The ReturnArray represents: the carrying costs, in the case of an option on a commodity, the risk-free rate of the foreign currency, in the case of an option on a currency, 0 in the case of an option on a future, the annual security yield, in the case of an option on a stock
+*    {lang=zh} 更多年化利率 (单一值) 或两列股息数组 (第一列是日期，第二列是值)。 ReturnArray 代表: 在基于商品的期权的情况下，是持有成本，在基于货币的期权的情况下，是外汇的无风险利率，对于基于期货的期权，是 0，在基于股票的期权的情况下，是年证券收益率
+*    {lang=hant} 更多年化利率 (單一值) 或兩列股息數組 (第一列是日期，第二列是值)。 ReturnArray 代表: 在基於商品的期權的情況下，是持有成本，在基於貨幣的期權的情況下，是外彙的無風險利率，對於基於期貨的期權，是0，在基於股票的期權的情況下，是年證券收益率
+*    {lang=ko} 추가 연율(단일값) 또는 2열 배당 배열(첫 번째 열의 날짜 및 두 번째 열의 값). ReturnArray는 상품 옵션인 경우 보유비용, 통화 옵션인 경우 외화의 무위험 이자율, 선물 옵션인 경우 0, 주식 옵션인 경우 연간 증권 수익률을 나타냄
+*    {lang=ru} Additional annualized rate (single value) or two-column dividend array (dates in the first column and values in the second column). The ReturnArray represents: the carrying costs, in the case of an option on a commodity, the risk-free rate of the foreign currency, in the case of an option on a currency, 0 in the case of an option on a future, the annual security yield, in the case of an option on a stock
+*    {lang=de} Die Form des Arrays hängt von dem Zinsmodell ab, das Sie definieren Verwenden Sie das Schlüsselwort RM (Zinsmodell) im RateStructure-Argument, um das Modell festzulegen. Die am häufigsten verwendeten Modelle sind: RM:YTM verwendet einen konstanten Ertrag bis zum Fälligkeitsdatum und erfordert einen einzelnen Wert, RM:YC verwendet eine Renditekurve und erfordert ein Zweispalten-Array mit: Daten, Null-Zinssätzen oder Rabattfaktoren
+* @param {string=} optionStructure
+*    {lang=en} You must include at least the option type in this argument, using the CALL or PUT keyword. See OptionStructure for more information.
+*    {lang=ja} You must include at least the option type in this argument, using the CALL or PUT keyword. See OptionStructure for more information.
+*    {lang=zh} 您必须在这个参数中至少包括期权类型，使用 CALL 或 PUT 关键字。请参看 OptionStructure 了解更多信息。
+*    {lang=hant} 您必須在這個參數中至少包括期權類型，使用 CALL 或 PUT 關鍵字。請參看 OptionStructure 了解更多信息。
+*    {lang=ko} 이 인수에 CALL 또는 PUT 키워드로 최소한 옵션 종류를 포함해야 합니다. 자세한 내용은 OptionStructure를 참조하십시오.
+*    {lang=ru} You must include at least the option type in this argument, using the CALL or PUT keyword. See OptionStructure for more information.
+*    {lang=de} Sie müssen mindestens den Optionstyp in dieses Argument aufnehmen, indem Sie das Schlüsselwort CALL oder PUT verwenden. Weitere Informationen finden Sie unter Optionstruktur.
+* @param {string=} rateStructure
+*    {lang=en} Use one of the models: RM:YTM, RM:YC See RateStructure for more information.
+*    {lang=ja} Use one of the models: RM:YTM, RM:YC See RateStructure for more information.
+*    {lang=zh} 使用模型中的一个: RM:YTM, RM:YC 请参看 RateStructure 了解更多信息。
+*    {lang=hant} 使用模型中的一個: RM:YTM, RM:YC 請參看 RateStructure 了解更多信息。
+*    {lang=ko} 다음 모델 중 하나 사용: RM:YTM, RM:YC 자세한 내용은 RateStructure를 참조하십시오.
+*    {lang=ru} Use one of the models: RM:YTM, RM:YC See RateStructure for more information.
+*    {lang=de} Verwenden Sie eines der Modelle: RM:YTM, RM:YC Siehe RateStruktur für weitere Informationen.
+* @param {string=} calcStructure
+*    {lang=en} To get the foreign derivatives you must set FT:BS in this argument. See CalcStructure for more information.
+*    {lang=ja} To get the foreign derivatives you must set FT:BS in this argument. See CalcStructure for more information.
+*    {lang=zh} 要获得外国衍生品，您必须在这个参数内设置 FT:BS。请参看 CalcStructure 了解更多信息。
+*    {lang=hant} 要獲得外國衍生品，您必須在這個參數內設置 FT:BS。請參看 CalcStructure 了解更多信息。
+*    {lang=ko} 해외 파생상품을 가져오려면 이 인수에 FT:BS를 설정해야 합니다. 자세한 내용은 CalcStructure를 참조하십시오.
+*    {lang=ru} To get the foreign derivatives you must set FT:BS in this argument. See CalcStructure for more information.
+*    {lang=de} Um die ausländischen Derivate zu erhalten, müssen Sie FT:BS in diesem Argument festlegen. Siehe bitte CalcStructure für weitere Informationen
+* @param {string=} adMode
+*    {lang=en} To calculate only one derivative, specify the derivative to calculate using the RES keyword in AdMode, for example RES:GAMMA. See AdMode for more information.
+*    {lang=ja} To calculate only one derivative, specify the derivative to calculate using the RES keyword in AdMode, for example RES:GAMMA. See AdMode for more information.
+*    {lang=zh} 若仅计算一个衍生品，请指定使用 AdMode 中的 RES 关键字要计算的衍生品，例如 RES:GAMMA。请参看 AdMode 了解更多信息。
+*    {lang=hant} 若僅計算一個衍生品，請指定使用 AdMode 中的 RES 關鍵字要計算的衍生品，例如 RES:GAMMA。請參看 AdMode 了解更多信息。
+*    {lang=ko} 파생상품을 하나만 계산하려면 AdMode에서 RES 키워드(예 : RES:GAMMA)를 사용하여 계산할 파생상품을 지정합니다. 자세한 내용은 AdMode를 참조하십시오.
+*    {lang=ru} To calculate only one derivative, specify the derivative to calculate using the RES keyword in AdMode, for example RES:GAMMA. See AdMode for more information.
+*    {lang=de} Um nur ein Derivat zu berechnen, geben Sie das zu berechnende Derivat unter Verwendung des RES-Stichwortes im AdMode an, z. B. RES:GAMMA. Siehe AdMode für weitere Informationen.
+* @return {*}
+*    {lang=en} The return value depends on the value of AdMode. The default value is a vertical five-cell array containing: Delta Delta ratio, Gamma Gamma ratio, Rho Rho ratio, Theta Theta ratio, Vega Vega ratio. For warrants, Adfin returns these additional derivatives: Gearing Gearing, BreakEvenTime Break even time. For currency options, Adfin returns these additional values: ForeignDelta Delta ratio in the foreign currency, ForeignRho Rho ratio in the foreign currency, ForeignTheta Theta ratio in the foreign currency, ForeignVega Vega ratio in the foreign currency, ForeignGamma Gamma ratio in the foreign currency, GammaHedge Gamma hedge ratio, ForeignGammaHedge Gamma hedge ratio in the foreign currency
+*    {lang=ja} The return value depends on the value of AdMode. The default value is a vertical five-cell array containing: Delta Delta ratio, Gamma Gamma ratio, Rho Rho ratio, Theta Theta ratio, Vega Vega ratio. For warrants, Adfin returns these additional derivatives: Gearing Gearing, BreakEvenTime Break even time. For currency options, Adfin returns these additional values: ForeignDelta Delta ratio in the foreign currency, ForeignRho Rho ratio in the foreign currency, ForeignTheta Theta ratio in the foreign currency, ForeignVega Vega ratio in the foreign currency, ForeignGamma Gamma ratio in the foreign currency, GammaHedge Gamma hedge ratio, ForeignGammaHedge Gamma hedge ratio in the foreign currency
+*    {lang=zh} 返回值取决于 AdMode 的值。默认值是垂直的五个元素的数组，包含: Delta Delta ratio, Gamma Gamma ratio, Rho Rho ratio, Theta Theta ratio, Vega Vega ratio。对于权证，Adfin 返回这些额外的衍生品: Gearing 杠杆率, BreakEvenTime 盈亏平衡时间。对于货币期权，Adfin 返回这些额外值: 外货货币中的 ForeignDelta Delta 比率，外货货币中的 ForeignRho Rho 比率，外国货币中的 ForeignTheta Theta 比率，外国货币中的 ForeignVega Vega 比率，外国货币中的 ForeignGamma Gamma 比率，外国货币中的 GammaHedge Gamma 对冲比率，外国货币中的 ForeignGammaHedge Gamma 对冲比率
+*    {lang=hant} 返回值取決於 AdMode 的值。默認值是垂直的五個元素的數組，包含: Delta Delta ratio, Gamma Gamma ratio, Rho Rho ratio, Theta Theta ratio, Vega Vega ratio。對於權證，Adfin 返回這些額外的衍生品: Gearing 槓桿率, BreakEvenTime 盈虧平衡時間。對於貨幣期權，Adfin 返回這些額外值: 外貨貨幣中的ForeignDelta Delta 比率，外貨貨幣中的ForeignRho Rho 比率，外國貨幣中的ForeignTheta Theta 比率，外國貨幣中的ForeignVega Vega 比率，外國貨幣中的ForeignGamma Gamma比率，外國貨幣中的GammaHedge Gamma 對沖比率，外國貨幣中的ForeignGammaHedge Gamma 對沖比率
+*    {lang=ko} 반환값은 AdMode 값에 따라 다릅니다. 기본값은 다음을 포함하는 수직 5셀 배열입니다. Delta 델타 비율, Gamma 감마 비율, Rho 로 비율, Theta 세타 비율, Vega 베가 비율. 신주인수권의 경우 Adfin은 다음 추가 파생상품을 반환합니다. Gearing 기어링, BreakEvenTime 손익분기 시점. 통화 옵션의 경우 Adfin은 다음 추가 값을 반환합니다. ForeignDelta 외화 델타비, ForeignRho 외화 로비, ForeignTheta 외화 세타비, ForeignVega 외화 베가비, ForeignGamma 외화 감마비, GammaHedge 감마 헤지 비율, ForeignGammaHedge 외화 감마 헤지 비율
+*    {lang=ru} The return value depends on the value of AdMode. The default value is a vertical five-cell array containing: Delta Delta ratio, Gamma Gamma ratio, Rho Rho ratio, Theta Theta ratio, Vega Vega ratio. For warrants, Adfin returns these additional derivatives: Gearing Gearing, BreakEvenTime Break even time. For currency options, Adfin returns these additional values: ForeignDelta Delta ratio in the foreign currency, ForeignRho Rho ratio in the foreign currency, ForeignTheta Theta ratio in the foreign currency, ForeignVega Vega ratio in the foreign currency, ForeignGamma Gamma ratio in the foreign currency, GammaHedge Gamma hedge ratio, ForeignGammaHedge Gamma hedge ratio in the foreign currency
+*    {lang=de} Der ausgegebene Wert ist abhänig vom Wert AdModes Der Standardwert ist ein vertikales Array mit fünf Zellen: Delta-Delta-Verhältnis, Gamma-Gamma-Verhältnis, Rho-Rho-Verhältnis, Theta-Theta-Verhältnis, Vega-Vega-Verhältnis. Für Optionsscheine gibt Adfin diese zusätzlichen Derivate aus: Gearing Gearing, BreakEvenTime BreakEvenTime. Für Währungsoptionen gibt Adfin diese zusätzlichen Werte aus: ForeignDelta-Delta-Verhältnis in der Fremdwährung, ForeignRho-Rho-Verhältnis in der Fremdwährung, ForeignTheta-Theta-Verhältnis in der Fremdwährung, ForeignVega-Vega-Verhältnis in der Fremdwährung, ForeignGamma-Gamma-Verhältnis in der Fremdwährung, GammaHedge-Gamma-Hedge-Verhältnis, ForeignGammaHedge-Gamma-Hedge-Verhältnis in der Fremdwährung
+* @example
+* The function calculates the derivatives of an American call option on a security, using the Cox, Ross &amp; Rubinstein model.
+* The call to OPCALCDERIV looks like:
+* =OPCALCDERIV(41754,42060, 1690, 1550, 0.197620, 0.018, 0.0207, "CALL EXM:AMER UI:SEC","","CMT:TREE TITER:31","LAY:V RET:B5")
+* The function returns the array:
+* Delta 0.708
+* Gamma 0.001
+* Rho 648.870
+* Theta -0.156
+* Vega 548.848
+*/
+tr.fn.AdFin["OPCALCDERIV"] = function (calcDate, expiryDate, spotPrice, strikePrice, volatility, riskFreeRateArray, returnArray, optionStructure, rateStructure, calcStructure, adMode) {
+    return tr.fn.AdFin._genericFunction.call(this, "OpFunction.OpCalcDeriv", arguments);
+};
+/**
+* @function OPIMPLIEDVOL
+* @memberof AdFin
+* @description
+*    {lang=en} Calculates the implied volatility of an option on a security (index, stock), a future, a commodity, or a currency, from the option premium.
+*    {lang=ja} Calculates the implied volatility of an option on a security (index, stock), a future, a commodity, or a currency, from the option premium.
+*    {lang=zh} 从期权费计算基于某证券 (指数、股票)、期货、商品或货币的期权的隐含波动率。
+*    {lang=hant} 從期權費計算基於某證券 (指數、股票)、期貨、商品或貨幣的期權的隱含波動率。
+*    {lang=ko} 옵션 프리미엄에서 증권(인덱스, 주식), 선물, 원자재 상품 또는 통화에 대한 옵션의 내재변동성을 계산합니다.
+*    {lang=ru} Calculates the implied volatility of an option on a security (index, stock), a future, a commodity, or a currency, from the option premium.
+*    {lang=de} Berechnet die implizite Volatilität einer Option auf ein Wertpapier (Index, Aktie), einen Future, ein Commodity oder eine Währung aus der Optionsprämie.
+* @param {number=} calcDate
+*    {lang=en} Calculation date
+*    {lang=ja} Calculation date
+*    {lang=zh} 计算日
+*    {lang=hant} 計算日
+*    {lang=ko} 계산 날짜
+*    {lang=ru} Calculation date
+*    {lang=de} Berechnungsdatum
+* @param {number=} expiryDate
+*    {lang=en} Expiry date of the option
+*    {lang=ja} Expiry date of the option
+*    {lang=zh} 期权的到期日
+*    {lang=hant} 期權的到期日
+*    {lang=ko} 옵션 만기일
+*    {lang=ru} Expiry date of the option
+*    {lang=de} Ablaufdatum der Option
+* @param {number=} spotPrice
+*    {lang=en} Market or spot price of the underlying instrument. In the case of a credit default swap option it is the spot spread of the underlying forward-starting credit default swap. If it is not defined, the function calculates it from the credit model.
+*    {lang=ja} Market or spot price of the underlying instrument. In the case of a credit default swap option it is the spot spread of the underlying forward-starting credit default swap. If it is not defined, the function calculates it from the credit model.
+*    {lang=zh} 标的金融工具的市场或即期价格。在信用违约掉期期权的情况下，这是标的远期开始信用违约掉期的即期价差。如果未定义，则函数用信用模型计算。
+*    {lang=hant} 標的金融工具的市場或即期價格。在信用違約掉期期權的情況下，這是標的遠期開始信用違約掉期的即期價差。如果未定義，則函數用信用模型計算。
+*    {lang=ko} 기초 자산의 시장 또는 현물 가격. 크레딧디폴트스왑 옵션의 경우 기초 forward-starting 크레딧디폴트스왑의 스팟 스프레드입니다. 이를 정의하지 않으면 함수는 크레딧 모델에서 계산합니다.
+*    {lang=ru} Market or spot price of the underlying instrument. In the case of a credit default swap option it is the spot spread of the underlying forward-starting credit default swap. If it is not defined, the function calculates it from the credit model.
+*    {lang=de} Markt- oder Spotpreis des zugrunde liegenden Wertpapiers. Im Falle einer Credit Default Swap-Option handelt es sich um den Kassaspread des Basiswerts des Forward Starting Credit Default Swaps. Wenn dieser nicht definiert ist, berechnet die Funktion sie vom Kreditmodell.
+* @param {number=} strikePrice
+*    {lang=en} Strike price of the option.
+*    {lang=ja} Strike price of the option.
+*    {lang=zh} 期权的执行价。
+*    {lang=hant} 期權的執行價。
+*    {lang=ko} 옵션의 권리행사가격.
+*    {lang=ru} Strike price of the option.
+*    {lang=de} Ausübungspreis der Option.
+* @param {number=} premium
+*    {lang=en} Premium of the option
+*    {lang=ja} Premium of the option
+*    {lang=zh} 期权费
+*    {lang=hant} 期權費
+*    {lang=ko} 옵션의 프리미엄
+*    {lang=ru} Premium of the option
+*    {lang=de} Aufschlag der Option
+* @param {number=} riskFreeRateArray
+*    {lang=en} The form of the array depends on the rate model you specify. Use the keyword RM (rate model) in the RateStructure argument to specify the model. The most commonly used models are: RM:YTM uses a yield, and requires a single value array, RM:YC uses a yield curve and requires a two-column array containing: the dates, the values for the zero coupon rates or discount factors
+*    {lang=ja} The form of the array depends on the rate model you specify. Use the keyword RM (rate model) in the RateStructure argument to specify the model. The most commonly used models are: RM:YTM uses a yield, and requires a single value array, RM:YC uses a yield curve and requires a two-column array containing: the dates, the values for the zero coupon rates or discount factors
+*    {lang=zh} 数组的形式取决于您指定的利率模型。使用 RateStructure 参数中的关键字 RM (利率模型) 来指定该模型。最常使用的模型是: RM:YTM 使用收益率，并且要求单一值数组，RM:YC 使用收益率曲线，并且要求两列数组，包含: 日期、零票息率或贴现因子的值
+*    {lang=hant} 數組的形式取決於您指定的利率模型。使用 RateStructure 參數中的關鍵字 RM (利率模型) 來指定該模型。最常使用的模型是: RM:YTM 使用收益率，並且要求單一值數組，RM:YC 使用收益率曲線，並且要求兩列數組，包含: 日期、零票息率或貼現因子的值
+*    {lang=ko} 배열 형식은 지정한 이자율 모델에 따라 다릅니다. RateStructure 인수에 키워드 RM(이자율 모델)을 사용해 모델을 지정합니다. 가장 흔하게 사용되는 모델: RM:YTM 수익률을 사용하며 단일 값 배열이 필요, RM:YC 수익률 곡선을 사용하며 날짜, 제로쿠폰율 값 또는 할인 계수가 포함된 2열 배열이 필요
+*    {lang=ru} The form of the array depends on the rate model you specify. Use the keyword RM (rate model) in the RateStructure argument to specify the model. The most commonly used models are: RM:YTM uses a yield, and requires a single value array, RM:YC uses a yield curve and requires a two-column array containing: the dates, the values for the zero coupon rates or discount factors
+*    {lang=de} Die Form des Arrays hängt von dem definierten Zinsmodell ab Verwenden Sie das Schlüsselwort RM (Zinsmodell) im RateStructure-Argument, um das Modell festzulegen. Die am häufigsten verwendeten Modelle sind: RM:YTM verwendet eine Rendite und erfordert ein Array mit einem Einzelwert, RM:YC verwendet eine Renditekurve und erfordert ein zweispaltiges Array, das Folgendes enthält:  die Daten, die Werte für die Zero-Kupon Zinssätze oder Diskontfaktoren
+* @param {string=} returnArray
+*    {lang=en} Additional annualized rate (single value) or two-column dividend array (dates in the first column and values in the second column). The ReturnArray represents: the carrying costs, in the case of an option on a commodity, the risk-free rate of the foreign currency, in the case of an option on a currency, 0 in the case of an option on a future, the annual security yield, in the case of an option on a stock. See ReturnArray for more information. You must include at least the option type in this argument, using the CALL or PUT keyword. See OptionStructure for more information.
+*    {lang=ja} Additional annualized rate (single value) or two-column dividend array (dates in the first column and values in the second column). The ReturnArray represents: the carrying costs, in the case of an option on a commodity, the risk-free rate of the foreign currency, in the case of an option on a currency, 0 in the case of an option on a future, the annual security yield, in the case of an option on a stock. See ReturnArray for more information. You must include at least the option type in this argument, using the CALL or PUT keyword. See OptionStructure for more information.
+*    {lang=zh} 更多年化利率 (单一值) 或两列股息数组 (第一列是日期，第二列是值)。 ReturnArray 代表: 在基于商品的期权的情况下，是持有成本，在基于货币的期权的情况下，是外汇的无风险利率，对于基于期货的期权，是 0，在基于股票的期权的情况下，是年证券收益率。请参看 ReturnArray 了解更多信息。您必须在这个参数中至少包括期权类型，使用 CALL 或 PUT 关键字。请参看 OptionStructure 了解更多信息。
+*    {lang=hant} 更多年化利率 (單一值) 或兩列股息數組 (第一列是日期，第二列是值)。 ReturnArray 代表: 在基於商品的期權的情況下，是持有成本，在基於貨幣的期權的情況下，是外彙的無風險利率，對於基於期貨的期權，是0，在基於股票的期權的情況下，是年證券收益率。請參看 ReturnArray 了解更多信息。您必須在這個參數中至少包括期權類型，使用 CALL 或 PUT 關鍵字。請參看 OptionStructure 了解更多信息。
+*    {lang=ko} 추가 연율(단일값) 또는 2열 배당 배열(첫 번째 열의 날짜 및 두 번째 열의 값). ReturnArray는 상품 옵션인 경우 보유비용, 통화 옵션인 경우 외화의 무위험 이자율, 선물 옵션인 경우 0, 주식 옵션인 경우 연간 증권 수익률을 나타냄 자세한 내용은 ReturnArray를 참조하십시오. 이 인수에 CALL 또는 PUT 키워드로 최소한 옵션 종류를 포함해야 합니다. 자세한 내용은 OptionStructure를 참조하십시오.
+*    {lang=ru} Additional annualized rate (single value) or two-column dividend array (dates in the first column and values in the second column). The ReturnArray represents: the carrying costs, in the case of an option on a commodity, the risk-free rate of the foreign currency, in the case of an option on a currency, 0 in the case of an option on a future, the annual security yield, in the case of an option on a stock. See ReturnArray for more information. You must include at least the option type in this argument, using the CALL or PUT keyword. See OptionStructure for more information.
+*    {lang=de} Zusätzlicher annualisierter Satz (Einzelwert) oder zweispaltiges Dividenden-Array (Daten in der ersten Spalte und Werte in der zweiten Spalte). Das ReturnArray repräsentiert: die Refinanzierungskosten, im Falle einer Option auf ein Commodity, den risikofreien Kurs der Fremdwährung, im Falle einer Option auf eine Währung, 0 im Falle einer Option auf einen Future, den jährlichen Wertpapierertrag im Falle einer Option auf eine Aktie. Weitere Informationen finden Sie unter ReturnArray. Sie müssen mindestens den Optionstyp in dieses Argument aufnehmen, indem Sie das Schlüsselwort CALL oder PUT verwenden. Weitere Informationen finden Sie unter Optionstruktur.
+* @param {string=} optionStructure
+*    {lang=en} You must include at least the option type in this argument, using the CALL or PUT keyword. See OptionStructure for more information.
+*    {lang=ja} You must include at least the option type in this argument, using the CALL or PUT keyword. See OptionStructure for more information.
+*    {lang=zh} 您必须在这个参数中至少包括期权类型，使用 CALL 或 PUT 关键字。请参看 OptionStructure 了解更多信息。
+*    {lang=hant} 您必須在這個參數中至少包括期權類型，使用 CALL 或 PUT 關鍵字。請參看 OptionStructure 了解更多信息。
+*    {lang=ko} 이 인수에 CALL 또는 PUT 키워드로 최소한 옵션 종류를 포함해야 합니다. 자세한 내용은 OptionStructure를 참조하십시오.
+*    {lang=ru} You must include at least the option type in this argument, using the CALL or PUT keyword. See OptionStructure for more information.
+*    {lang=de} Sie müssen mindestens den Optionstyp in dieses Argument aufnehmen, indem Sie das Schlüsselwort CALL oder PUT verwenden. Weitere Informationen finden Sie unter Optionstruktur.
+* @param {string=} rateStructure
+*    {lang=en} Use one of the models: RM:YTM, RM:YC See RateStructure for more information.
+*    {lang=ja} Use one of the models: RM:YTM, RM:YC See RateStructure for more information.
+*    {lang=zh} 使用模型中的一个: RM:YTM, RM:YC 请参看 RateStructure 了解更多信息。
+*    {lang=hant} 使用模型中的一個: RM:YTM, RM:YC 請參看 RateStructure 了解更多信息。
+*    {lang=ko} 다음 모델 중 하나 사용: RM:YTM, RM:YC 자세한 내용은 RateStructure를 참조하십시오.
+*    {lang=ru} Use one of the models: RM:YTM, RM:YC See RateStructure for more information.
+*    {lang=de} Verwenden Sie eines der Modelle: RM:YTM, RM:YC Siehe RateStruktur für weitere Informationen.
+* @param {string=} calcStructure
+*    {lang=en} To get the foreign derivatives you must set FT:BS in this argument. See CalcStructure for more information.
+*    {lang=ja} To get the foreign derivatives you must set FT:BS in this argument. See CalcStructure for more information.
+*    {lang=zh} 要获得外国衍生品，您必须在这个参数内设置 FT:BS。请参看 CalcStructure 了解更多信息。
+*    {lang=hant} 要獲得外國衍生品，您必須在這個參數內設置 FT:BS。請參看 CalcStructure 了解更多信息。
+*    {lang=ko} 해외 파생상품을 가져오려면 이 인수에 FT:BS를 설정해야 합니다. 자세한 내용은 CalcStructure를 참조하십시오.
+*    {lang=ru} To get the foreign derivatives you must set FT:BS in this argument. See CalcStructure for more information.
+*    {lang=de} Um die ausländischen Derivate zu erhalten, müssen Sie FT:BS in diesem Argument festlegen. Siehe bitte CalcStructure für weitere Informationen
+* @return {number}
+*    {lang=en} The implied volatility of the option.
+*    {lang=ja} The implied volatility of the option.
+*    {lang=zh} 期权的隐含波动率。
+*    {lang=hant} 期權的隱含波動率。
+*    {lang=ko} 옵션의 내재변동성.
+*    {lang=ru} The implied volatility of the option.
+*    {lang=de} Die implizierte Volatilität der Option.
+* @example
+* This example shows how to use OPIMPLIEDVOL to calculate the implied volatility of an option on a security (index, stock), from the option premium.
+* The call to OPIMPLIEDVOL looks like:
+* =OPIMPLIEDVOL(38505, 38793, 22.61, 20, 10, 0.0218, 0.0357, "CALL EXM:EUR UI:SEC", "RATETYPE:CONT", "CMT:FORM FT:BS")
+* Where
+* EXM:EUR European exercise mode
+* UI:SEC Underlying asset which is a security
+* RATETYPE:CONT Continuous yield/rate
+* CMT:FORM FT:BS The model type which is a Black and Scholes formula
+*/
+tr.fn.AdFin["OPIMPLIEDVOL"] = function (calcDate, expiryDate, spotPrice, strikePrice, premium, riskFreeRateArray, returnArray, optionStructure, rateStructure, calcStructure) {
+    return tr.fn.AdFin._genericFunction.call(this, "OpFunction.OpImpliedVol", arguments);
+};
+/**
+* @function ADFORMAT
+* @memberof AdFin
+* @description
+*    {lang=en} Converts a decimal number to a fraction or displays a bid/ask array as a string using the bid/ask format.
+*    {lang=ja} Converts a decimal number to a fraction or displays a bid/ask array as a string using the bid/ask format.
+*    {lang=zh} 将小数转换成分数或将买价/卖价数组显示为字符串，使用买价/卖价格式。
+*    {lang=zh=Hant} 將小數轉換成分數或將買價/賣價數組顯示為字符串，使用買價/賣價格式。
+*    {lang=ko} 십진수를 분수로 변환하거나 매수/매도 형식을 사용하여 매수/매도 배열을 문자열로 표시합니다.
+*    {lang=ru} Converts a decimal number to a fraction or displays a bid/ask array as a string using the bid/ask format.
+*    {lang=de} Konvertiert eine Dezimalzahl in einen Bruchteil oder zeigt ein GeldIBrief-Array als Zeichenfolge unter Verwendung des Geld/Brief-Formats an.
+* @param {number=} data
+*    {lang=en} Decimal number or array of bid and ask values to format
+*    {lang=ja} Decimal number or array of bid and ask values to format
+*    {lang=zh} 要设置格式的买价与卖价值的小数或数组
+*    {lang=hant} 要設置格式的買價與賣價值的小數或數組
+*    {lang=ko} 형식을 만들 십진수 또는 매수/매도 값 배열
+*    {lang=ru} Decimal number or array of bid and ask values to format
+*    {lang=de} Zu formatierende Dezimalzahl oder Array von Geld- und Briefwerten
+* @param {number=} bidDecimals
+*    {lang=en} Number of decimals of the fractional component (for fraction formatting) or of the bid side (for bid/ask formatting)
+*    {lang=ja} Number of decimals of the fractional component (for fraction formatting) or of the bid side (for bid/ask formatting)
+*    {lang=zh} 分数部分 (用于分数格式设置) 或买面 (用于买价/卖价格式设置) 的小数位数
+*    {lang=hant} 分數部分 (用於分數格式設置) 或買麵 (用於買價/賣價格式設置) 的小數位數
+*    {lang=ko} 분수 구성 요소(분수 형식 설정의 경우) 또는 매수측(매수/매도 형식 설정의 경우)의 십진수
+*    {lang=ru} Number of decimals of the fractional component (for fraction formatting) or of the bid side (for bid/ask formatting)
+*    {lang=de} Anzahl der Dezimalstellen der Bruchteilkomponente (bei Bruchteilformatierung) oder der Geld-Seite (bei Geld/Brief-Formatierung)
+* @param {number=} askDigits
+*    {lang=en} Number of last digits of the ask side (applicable for bid/ask formatting only)
+*    {lang=ja} Number of last digits of the ask side (applicable for bid/ask formatting only)
+*    {lang=zh} 卖面的最后位数 (仅适用于买价/卖价格式设置)
+*    {lang=de} Anzahl der letzten Stellen der Brief-Seite (gilt nur für die Geld./Brief-Formatierung)
+*    {lang=ko} 매도측의 마지막 자릿수(매수/매도 형식 설정의 경우에만 해당)
+*    {lang=ru} Number of last digits of the ask side (applicable for bid/ask formatting only)
+*    {lang=hant} 賣麵的最後位數 (僅適用於買價/賣價格式設置)
+* @param {number=} formatMode
+*    {lang=en} FormatMode is used as an argument in Adfin Common functions to define the formatting mode. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_formatmode.htm
+*    {lang=ja} FormatMode is used as an argument in Adfin Common functions to define the formatting mode. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_formatmode.htm
+*    {lang=zh} FormatMode 作为 Adfin 通用函数中的参数使用，用于定义格式模式。cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_formatmode.htm
+*    {lang=hant} FormatMode 作為 Adfin 通用函數中的參數使用，用於定義格式模式。 cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_formatmode.htm
+*    {lang=ko} FormatMode는 Adfin Common 함수의 인수로 사용되어 형식 설정 모드를 정의합니다. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_formatmode.htm
+*    {lang=ru} FormatMode is used as an argument in Adfin Common functions to define the formatting mode. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_formatmode.htm
+*    {lang=de} FormatMode wird als Argument in Adfin Common-Funktionen verwendet, um den Formatierungsmodus zu definieren. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_admode.htm
+* @return {string}
+*    {lang=en} The formatted string.
+*    {lang=ja} The formatted string.
+*    {lang=zh} 已设置格式的字符串。
+*    {lang=hant} 已設置格式的字符串。
+*    {lang=ko} 형식 설정 문자열.
+*    {lang=ru} The formatted string.
+*    {lang=de} Die formatierte Zeichenfolge.
+* @example
+* This function returns the string "7 * 16".
+* =ADFORMAT(7.5,0,0,"FD:32")
+* This function returns the string "7 - 16/32".
+* =ADFORMAT(7.5,0,0,"FD:32 FSEP:^-^ FSHOW")
+* This function returns the string "1.235-64".
+* =ADFORMAT({1.235,1.264},3,2,"BASEP:-")
+*/
+tr.fn.AdFin["ADFORMAT"] = function (data, bidDecimals, askDigits, formatMode) {
+    return tr.fn.AdFin._genericFunction.call(this, "UtFunction.AdFormat", arguments);
+};
+/**
+* @function ADHISTORYVALUE
+* @memberof AdFin
+* @description
+*    {lang=en} Retrieves the latest historical value available in the database for an index history style.
+*    {lang=ja} Retrieves the latest historical value available in the database for an index history style.
+*    {lang=zh} 获取某指数历史风格在数据库中可用的最新历史值。
+*    {lang=hant} 獲取某指數歷史風格在數據庫中可用的最新歷史值。
+*    {lang=ko} 인덱스 히스토리 스타일에 대해 데이터베이스에서 사용 가능한 최신 히스토리 값을 검색합니다.
+*    {lang=ru} Retrieves the latest historical value available in the database for an index history style.
+*    {lang=de} Ruft den neuesten in der Datenbank verfügbaren historischen Wert für einen Index-Historienstil ab.
+* @param {string=} indexName
+*    {lang=en} Index history style name.
+*    {lang=ja} Index history style name.
+*    {lang=zh} 指数历史风格名称。
+*    {lang=hant} 指數歷史風格名稱。
+*    {lang=ko} 인덱스 히스토리 스타일 이름.
+*    {lang=ru} Index history style name.
+*    {lang=de} Name des Indexverlaufsstils.
+* @param {string=} styleMode
+*    {lang=en} You can use StyleMode as an argument in functions of the Common module to define the creation and modification of a new style. You can also use it to retrieve the latest value of an index history style. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_stylemode.htm
+*    {lang=ja} You can use StyleMode as an argument in functions of the Common module to define the creation and modification of a new style. You can also use it to retrieve the latest value of an index history style. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_stylemode.htm
+*    {lang=zh} 您可以使用 StyleMode 作为通用模块的函数中的参数，来定义新风格的创建与修改。您也可以使用它来获取某指数历史风格的最新值。cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_stylemode.htm
+*    {lang=hant} 您可以使用 StyleMode 作為通用模塊的函數中的參數，來定義新風格的創建與修改。您也可以使用它來獲取某指數歷史風格的最新值。 cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_stylemode.htm
+*    {lang=ko} StyleMode를 Common 모듈 함수의 인수로 사용하여 새 스타일의 생성 및 수정을 정의할 수 있습니다. 인덱스 히스토리 스타일의 최신 값을 검색하는 데 사용할 수도 있습니다. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_stylemode.htm
+*    {lang=ru} You can use StyleMode as an argument in functions of the Common module to define the creation and modification of a new style. You can also use it to retrieve the latest value of an index history style. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_stylemode.htm
+*    {lang=de} Sie können StyleMode als Argument in Funktionen des gemeinsamen Moduls verwenden, um die Erstellung und Änderung eines neuen Stils zu definieren. Sie können auch den neuesten Wert eines Index-Verlaufsstils abrufen. cpurl://apps.cp./Apps/AdfinLibrary/1.4.5/Default.htm#ex_arg_stylemode.htm
+* @return {*}
+*    {lang=en} The return value depends on the value of StyleMode. The default value is a two-cell array containing: LatestDate Date corresponding to the latest historical value available, LatestValue Value of the index for that date
+*    {lang=ja} The return value depends on the value of StyleMode. The default value is a two-cell array containing: LatestDate Date corresponding to the latest historical value available, LatestValue Value of the index for that date
+*    {lang=zh} 返回值取决于 StyleMode 的值。默认值是两个元素的数组，包含: LatestDate 对应最新可用历史值的日期，LatestValue 该日期指数的值
+*    {lang=hant} 返回值取決於 StyleMode 的值。默認值是兩個元素的數組，包含: LatestDate 對應最新可用歷史值的日期，LatestValue 該日期指數的值
+*    {lang=ko} 반환값은 StyleMode 값에 따라 다릅니다. 기본값은 다음을 포함하는 2셀 배열입니다. LatestDate 사용 가능한 최신 히스토리 값에 해당되는 날짜, LatestValue 해당 날짜의 인덱스 값
+*    {lang=ru} The return value depends on the value of StyleMode. The default value is a two-cell array containing: LatestDate Date corresponding to the latest historical value available, LatestValue Value of the index for that date
+*    {lang=de} Der ausgegebene Wert hängt vom Wert von StyleMode ab. Der Standardwert ist ein zweizelliges Array mit: LatestDate-Date, das dem letzten verfügbaren historischen Wert entspricht, LatestValue Wert des Index für dieses Datum
+* @example
+* A call to ADHISTORYVALUE looks like:
+* =ADHISTORYVALUE("AUSCPI","RET:B")
+* The return array is:
+* 30APR2017
+*/
+tr.fn.AdFin["ADHISTORYVALUE"] = function (indexName, styleMode) {
+    return tr.fn.AdFin._genericFunction.call(this, "UtFunction.AdHistoryValue", arguments);
+};
+goog.exportSymbol("tr.fn.AdFin", tr.fn.AdFin);
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="AdFin.html">AdFin</a></li><li><a href="DateTime.html">DateTime</a></li><li><a href="Info.html">Info</a></li><li><a href="Logic.html">Logic</a></li><li><a href="Math.html">Math</a></li><li><a href="Realtime.html">Realtime</a></li><li><a href="Statistic.html">Statistic</a></li><li><a href="Text.html">Text</a></li><li><a href="tr.ElementFrameWork.html">ElementFrameWork</a></li><li><a href="tr.PipDefinition.html">PipDefinition</a></li></ul><h3>Classes</h3><ul><li><a href="tr.ADCSubscription.html">ADCSubscription</a></li><li><a href="tr.AdFinSubscription.html">AdFinSubscription</a></li><li><a href="tr.cgrid.editor.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.filter.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.formatter.AsyncFormatter.html">AsyncFormatter</a></li><li><a href="tr.cgrid.formatter.CheckBox.html">CheckBox</a></li><li><a href="tr.cgrid.formatter.UpDownColor.html">UpDownColor</a></li><li><a href="tr.ColumnStats.html">ColumnStats</a></li><li><a href="tr.CompositeGrid.html">CompositeGrid</a></li><li><a href="tr.DataCache.html">DataCache</a></li><li><a href="tr.DataTable.html">DataTable</a></li><li><a href="tr.DataView.html">DataView</a></li><li><a href="tr.DropDown.html">DropDown</a></li><li><a href="tr.ElementControl.html">ElementControl</a></li><li><a href="tr.ElementWrapper.html">ElementWrapper</a></li><li><a href="tr.Event.html">Event</a></li><li><a href="tr.EventDispatcher.html">EventDispatcher</a></li><li><a href="tr.EventDispatcher.extendClass-tempCtor.html">tempCtor</a></li><li><a href="tr.EventManager.html">EventManager</a></li><li><a href="tr.FieldFormatter.html">FieldFormatter</a></li><li><a href="tr.fn.Engine.html">Engine</a></li><li><a href="tr.fn.Formula.html">Formula</a></li><li><a href="tr.fn.VariableToken.html">VariableToken</a></li><li><a href="tr.Grid.html">Grid</a></li><li><a href="tr.grid.BidOfferSpan.html">BidOfferSpan</a></li><li><a href="tr.grid.Blinker.html">Blinker</a></li><li><a href="tr.grid.Cell.html">Cell</a></li><li><a href="tr.grid.CellBlinkingPlugin.html">CellBlinkingPlugin</a></li><li><a href="tr.grid.CellEditingPlugin.html">CellEditingPlugin</a></li><li><a href="tr.grid.CellFloatingPanel.html">CellFloatingPanel</a></li><li><a href="tr.grid.CellPainter.html">CellPainter</a></li><li><a href="tr.grid.CellSpan.html">CellSpan</a></li><li><a href="tr.grid.CellSpans.html">CellSpans</a></li><li><a href="tr.grid.CellWriter.html">CellWriter</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html">CheckboxColumnPlugin</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html">CollapsibleHeaderPlugin</a></li><li><a href="tr.grid.ColumnFilterPlugin.html">ColumnFilterPlugin</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html">ColumnGroupingPlugin</a></li><li><a href="tr.grid.ColumnSelectionPlugin.html">ColumnSelectionPlugin</a></li><li><a href="tr.grid.ColumnStackingPlugin.html">ColumnStackingPlugin</a></li><li><a href="tr.grid.ColumnWidthAdjustingPlugin.html">ColumnWidthAdjustingPlugin</a></li><li><a href="tr.grid.Conflator.html">Conflator</a></li><li><a href="tr.grid.DataSourceTreePlugin.html">DataSourceTreePlugin</a></li><li><a href="tr.grid.DirectContentBindingPlugin.html">DirectContentBindingPlugin</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html">DragAndDropTitlePlugin</a></li><li><a href="tr.grid.DraggableContentPlugin.html">DraggableContentPlugin</a></li><li><a href="tr.grid.FindBar.html">FindBar</a></li><li><a href="tr.grid.FindBarPlugin.html">FindBarPlugin</a></li><li><a href="tr.grid.GroupStatisticsPlugin.html">GroupStatisticsPlugin</a></li><li><a href="tr.grid.HeatMapRenderer.html">HeatMapRenderer</a></li><li><a href="tr.grid.HScrollbar.html">HScrollbar</a></li><li><a href="tr.grid.IndexMarker.html">IndexMarker</a></li><li><a href="tr.grid.MovableHeaderPlugin.html">MovableHeaderPlugin</a></li><li><a href="tr.grid.NumberFormatter.html">NumberFormatter</a></li><li><a href="tr.grid.PercentBar.html">PercentBar</a></li><li><a href="tr.grid.PercentBarRenderer.html">PercentBarRenderer</a></li><li><a href="tr.grid.Plugin.html">Plugin</a></li><li><a href="tr.grid.RangeBar.html">RangeBar</a></li><li><a href="tr.grid.ResizableTitlePlugin.html">ResizableTitlePlugin</a></li><li><a href="tr.grid.Reverter.html">Reverter</a></li><li><a href="tr.grid.RowHeightAdjustingPlugin.html">RowHeightAdjustingPlugin</a></li><li><a href="tr.grid.RowSelectionPlugin.html">RowSelectionPlugin</a></li><li><a href="tr.grid.Scrollbar.html">Scrollbar</a></li><li><a href="tr.grid.SectionSettings.html">SectionSettings</a></li><li><a href="tr.grid.SmartTooltipsPlugin.html">SmartTooltipsPlugin</a></li><li><a href="tr.grid.SortableTitlePlugin.html">SortableTitlePlugin</a></li><li><a href="tr.grid.TreeIndentingPlugin.html">TreeIndentingPlugin</a></li><li><a href="tr.grid.Virtualizer.html">Virtualizer</a></li><li><a href="tr.grid.VScrollbar.html">VScrollbar</a></li><li><a href="tr.grid.ZoomPlugin.html">ZoomPlugin</a></li><li><a href="tr.HttpRequest.html">HttpRequest</a></li><li><a href="tr.IntervalSubscription.html">IntervalSubscription</a></li><li><a href="tr.LayoutGrid.html">LayoutGrid</a></li><li><a href="tr.ListMenu.html">ListMenu</a></li><li><a href="tr.MenuItem.html">MenuItem</a></li><li><a href="tr.MockArchive.html">MockArchive</a></li><li><a href="tr.MockJET.html">MockJET</a></li><li><a href="tr.MockQuotes.html">MockQuotes</a></li><li><a href="tr.MockQuotes2.html">MockQuotes2</a></li><li><a href="tr.MockSubscription.html">MockSubscription</a></li><li><a href="tr.MockSubscriptions.html">MockSubscriptions</a></li><li><a href="tr.Popup.html">Popup</a></li><li><a href="tr.PopupMenu.html">PopupMenu</a></li><li><a href="tr.PrintTrait.html">PrintTrait</a></li><li><a href="tr.RequestQueue.html">RequestQueue</a></li><li><a href="tr.Segment.html">Segment</a></li><li><a href="tr.SegmentCollection.html">SegmentCollection</a></li><li><a href="tr.TSISubscription.html">TSISubscription</a></li></ul><h3>Interfaces</h3><ul><li><a href="tr.cgrid.ICompositeExtension.html">ICompositeExtension</a></li><li><a href="tr.grid.IPlugin.html">IPlugin</a></li><li><a href="tr.IElementControl.html">IElementControl</a></li><li><a href="tr.ILayoutGrid.html">ILayoutGrid</a></li></ul><h3>Events</h3><ul><li><a href="tr.CompositeGrid.html#event:cellClicked">cellClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellDblClicked">cellDblClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellMouseDown">cellMouseDown</a></li><li><a href="tr.CompositeGrid.html#event:cellRightClicked">cellRightClicked</a></li><li><a href="tr.CompositeGrid.html#event:columnSorted">columnSorted</a></li><li><a href="tr.CompositeGrid.html#event:editorAttached">editorAttached</a></li><li><a href="tr.CompositeGrid.html#event:editorDetached">editorDetached</a></li><li><a href="tr.CompositeGrid.html#event:filterAdded">filterAdded</a></li><li><a href="tr.CompositeGrid.html#event:filterCleared">filterCleared</a></li><li><a href="tr.CompositeGrid.html#event:filterModified">filterModified</a></li><li><a href="tr.CompositeGrid.html#event:filterRemoved">filterRemoved</a></li><li><a href="tr.CompositeGrid.html#event:mouseLeaveCell">mouseLeaveCell</a></li><li><a href="tr.CompositeGrid.html#event:mouseOverCell">mouseOverCell</a></li><li><a href="tr.CompositeGrid.html#event:pageChanged">pageChanged</a></li><li><a href="tr.CompositeGrid.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.DataCache.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataCache.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataTable.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataTable.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataView.html#event:beforeFiltering">beforeFiltering</a></li><li><a href="tr.DataView.html#event:beforeGroupAdded">beforeGroupAdded</a></li><li><a href="tr.DataView.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataView.html#event:groupAdded">groupAdded</a></li><li><a href="tr.DataView.html#event:groupCriteriaChanged">groupCriteriaChanged</a></li><li><a href="tr.DataView.html#event:pageCountChanged">pageCountChanged</a></li><li><a href="tr.DataView.html#event:pageIndexChanged">pageIndexChanged</a></li><li><a href="tr.DataView.html#event:preDisposed">preDisposed</a></li><li><a href="tr.Formula.html#event:dataCacheChanged">dataCacheChanged</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:cancelled">cancelled</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:change">change</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:closed">closed</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:editorOpened">editorOpened</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:preEditorOpening">preEditorOpening</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:click">click</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:columnCollapsed">columnCollapsed</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:groupChanged">groupChanged</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:render">render</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:columnMoved">columnMoved</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:drag">drag</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragEnd">dragEnd</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragStart">dragStart</a></li><li><a href="tr.grid.FindBarPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:groupMoved">groupMoved</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:sectionMoved">sectionMoved</a></li><li><a href="tr.grid.RowSelectionPlugin.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:columnSorted">columnSorted</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preClicked">preClicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preDataSorting">preDataSorting</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.Grid.html#event:columnAdded">columnAdded</a></li><li><a href="tr.Grid.html#event:columnAlignmentChanged">columnAlignmentChanged</a></li><li><a href="tr.Grid.html#event:columnRemoved">columnRemoved</a></li><li><a href="tr.Grid.html#event:columnVisibilityChanged">columnVisibilityChanged</a></li><li><a href="tr.Grid.html#event:dataSourceChanged">dataSourceChanged</a></li><li><a href="tr.Grid.html#event:postSectionDataBinding">postSectionDataBinding</a></li><li><a href="tr.Grid.html#event:rowExpansionBinding">rowExpansionBinding</a></li><li><a href="tr.Grid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Grid.html#event:sectionAdded">sectionAdded</a></li><li><a href="tr.Grid.html#event:widthChanged">widthChanged</a></li><li><a href="tr.HttpRequest.html#event:abort">abort</a></li><li><a href="tr.HttpRequest.html#event:error">error</a></li><li><a href="tr.HttpRequest.html#event:load">load</a></li><li><a href="tr.HttpRequest.html#event:loadend">loadend</a></li><li><a href="tr.HttpRequest.html#event:loadstart">loadstart</a></li><li><a href="tr.HttpRequest.html#event:timeout">timeout</a></li><li><a href="tr.IElementControl.html#event:blur">blur</a></li><li><a href="tr.IElementControl.html#event:change">change</a></li><li><a href="tr.IElementControl.html#event:click">click</a></li><li><a href="tr.IElementControl.html#event:contextmenu">contextmenu</a></li><li><a href="tr.IElementControl.html#event:dblclick">dblclick</a></li><li><a href="tr.IElementControl.html#event:drag">drag</a></li><li><a href="tr.IElementControl.html#event:dragend">dragend</a></li><li><a href="tr.IElementControl.html#event:dragenter">dragenter</a></li><li><a href="tr.IElementControl.html#event:dragleave">dragleave</a></li><li><a href="tr.IElementControl.html#event:dragover">dragover</a></li><li><a href="tr.IElementControl.html#event:dragstart">dragstart</a></li><li><a href="tr.IElementControl.html#event:drop">drop</a></li><li><a href="tr.IElementControl.html#event:focus">focus</a></li><li><a href="tr.IElementControl.html#event:formchange">formchange</a></li><li><a href="tr.IElementControl.html#event:forminput">forminput</a></li><li><a href="tr.IElementControl.html#event:input">input</a></li><li><a href="tr.IElementControl.html#event:invalid">invalid</a></li><li><a href="tr.IElementControl.html#event:keydown">keydown</a></li><li><a href="tr.IElementControl.html#event:keypress">keypress</a></li><li><a href="tr.IElementControl.html#event:keyup">keyup</a></li><li><a href="tr.IElementControl.html#event:mousedown">mousedown</a></li><li><a href="tr.IElementControl.html#event:mousemove">mousemove</a></li><li><a href="tr.IElementControl.html#event:mouseout">mouseout</a></li><li><a href="tr.IElementControl.html#event:mouseover">mouseover</a></li><li><a href="tr.IElementControl.html#event:mouseup">mouseup</a></li><li><a href="tr.IElementControl.html#event:mousewheel">mousewheel</a></li><li><a href="tr.IElementControl.html#event:reset">reset</a></li><li><a href="tr.IElementControl.html#event:scroll">scroll</a></li><li><a href="tr.IElementControl.html#event:select">select</a></li><li><a href="tr.IElementControl.html#event:submit">submit</a></li><li><a href="tr.ILayoutGrid.html#event:blur">blur</a></li><li><a href="tr.ILayoutGrid.html#event:change">change</a></li><li><a href="tr.ILayoutGrid.html#event:click">click</a></li><li><a href="tr.ILayoutGrid.html#event:contextmenu">contextmenu</a></li><li><a href="tr.ILayoutGrid.html#event:dblclick">dblclick</a></li><li><a href="tr.ILayoutGrid.html#event:drag">drag</a></li><li><a href="tr.ILayoutGrid.html#event:dragend">dragend</a></li><li><a href="tr.ILayoutGrid.html#event:dragenter">dragenter</a></li><li><a href="tr.ILayoutGrid.html#event:dragleave">dragleave</a></li><li><a href="tr.ILayoutGrid.html#event:dragover">dragover</a></li><li><a href="tr.ILayoutGrid.html#event:dragstart">dragstart</a></li><li><a href="tr.ILayoutGrid.html#event:drop">drop</a></li><li><a href="tr.ILayoutGrid.html#event:focus">focus</a></li><li><a href="tr.ILayoutGrid.html#event:formchange">formchange</a></li><li><a href="tr.ILayoutGrid.html#event:forminput">forminput</a></li><li><a href="tr.ILayoutGrid.html#event:input">input</a></li><li><a href="tr.ILayoutGrid.html#event:invalid">invalid</a></li><li><a href="tr.ILayoutGrid.html#event:keydown">keydown</a></li><li><a href="tr.ILayoutGrid.html#event:keypress">keypress</a></li><li><a href="tr.ILayoutGrid.html#event:keyup">keyup</a></li><li><a href="tr.ILayoutGrid.html#event:mousedown">mousedown</a></li><li><a href="tr.ILayoutGrid.html#event:mousemove">mousemove</a></li><li><a href="tr.ILayoutGrid.html#event:mouseout">mouseout</a></li><li><a href="tr.ILayoutGrid.html#event:mouseover">mouseover</a></li><li><a href="tr.ILayoutGrid.html#event:mouseup">mouseup</a></li><li><a href="tr.ILayoutGrid.html#event:mousewheel">mousewheel</a></li><li><a href="tr.ILayoutGrid.html#event:reset">reset</a></li><li><a href="tr.ILayoutGrid.html#event:scroll">scroll</a></li><li><a href="tr.ILayoutGrid.html#event:select">select</a></li><li><a href="tr.ILayoutGrid.html#event:submit">submit</a></li><li><a href="tr.LayoutGrid.html#event:rowCountChanged">rowCountChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHeightChanged">rowHeightChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Popup.html#event:hidden">hidden</a></li><li><a href="tr.Popup.html#event:shown">shown</a></li><li><a href="tr.PopupMenu.html#event:hidden">hidden</a></li><li><a href="tr.PopupMenu.html#event:shown">shown</a></li><li><a href="tr.PrintTrait.html#event:afterprint">afterprint</a></li><li><a href="tr.PrintTrait.html#event:beforeprint">beforeprint</a></li><li><a href="tr.PrintTrait.html#event:pageCounting">pageCounting</a></li></ul><h3>Global</h3><ul><li><a href="global.html#cellRef%255Bundefined%255D">cellRef[undefined]</a></li><li><a href="global.html#e%255Bundefined%255D">e[undefined]</a></li><li><a href="global.html#.textContent">.textContent</a></li><li><a href="global.html#get">get</a></li><li><a href="global.html#input%255Bundefined%255D">input[undefined]</a></li><li><a href="global.html#q%255Bundefined%255D">q[undefined]</a></li><li><a href="global.html#sortingDef%255B1%255D">sortingDef[1]</a></li></ul>
+</nav>
+
+
+<script src="scripts/linenumber.js"> </script>
+<script src="scripts/prettify.js"> </script>
+<script> prettyPrint(); </script>
+</body>
+</html>

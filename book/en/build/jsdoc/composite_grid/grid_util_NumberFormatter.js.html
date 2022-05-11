@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: grid/util/NumberFormatter.js</title>
+
+    <script src="scripts/prettify.js"> </script>
+    <script src="scripts/lang-css.js"> </script>
+    <!--[if lt IE 9]&gt;
+      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
+    &lt;![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/default.css">
+    <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
+</head>
+
+<body>
+
+<div id="main-template" class="elf-template">
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>goog.provide("tr.grid.NumberFormatter");
+
+/** @constructor
+* @param {Object=} options
+*/
+tr.grid.NumberFormatter = function (options) {
+	this["format"] = this.format = this.format.bind(this);
+	
+	this.init(options);
+};
+
+/** @type {Array.&lt;number&gt;}
+* @private
+*/
+tr.grid.NumberFormatter._denominator = [1, 10, 100, 1000, 10000, 100000, 1e6, 1e7, 1e8, 1e9];
+/** @type {Array.&lt;string&gt;}
+* @private
+*/
+tr.grid.NumberFormatter._zeroes = ["", "0", "00", "000", "0000", "00000", "000000", "0000000", "00000000", "000000000", "0000000000"];
+
+/** @type {number}
+* @private
+*/
+tr.grid.NumberFormatter.prototype._precision = 2;
+/** @type {string}
+* @private
+*/
+tr.grid.NumberFormatter.prototype._sepChar = ",";
+/** @type {string}
+* @private
+*/
+tr.grid.NumberFormatter.prototype._percentChar = " %";
+
+/** @type {boolean}
+* @private
+*/
+tr.grid.NumberFormatter.prototype._precisionEnabled = false;
+/** @type {boolean}
+* @private
+*/
+tr.grid.NumberFormatter.prototype._separatorEnabled = false;
+/** @type {boolean}
+* @private
+*/
+tr.grid.NumberFormatter.prototype._percentSignEnabled = false;
+/** @type {boolean}
+* @private
+*/
+tr.grid.NumberFormatter.prototype._percentFormatEnabled = false;
+/** @type {boolean}
+* @private
+*/
+tr.grid.NumberFormatter.prototype._plusSignEnabled = false;
+/** @type {boolean}
+* @private
+*/
+tr.grid.NumberFormatter.prototype._multiplyBy100Enabled = false;
+/** @type {string}
+* @private
+*/
+tr.grid.NumberFormatter.prototype._scaler = "";
+
+
+/** @public
+* @param {Object=} options
+*/
+tr.grid.NumberFormatter.prototype.init = function(options) { // deserialize
+	if(!options) {
+		return;
+	}
+	
+	var formatType = /** @type{string} */(options["formatType"]);
+	
+	// Note that precision will not be used in scaledValue mode
+	var val = options["precisionEnabled"];
+	if(val != null &amp;&amp; val !== "") {
+		this._precisionEnabled = val ? true : false;
+	} else {
+		this._precisionEnabled = true; // If it is initialized this way, precision is enabled by default to increase the ease of use
+	}
+	
+	val = options["decimalPlaces"];
+	if(val != null &amp;&amp; val !== "") {
+		this._precision = (typeof val == "number") ? val : 2;
+	}
+	
+	val = options["plusSign"];
+	if(val != null &amp;&amp; val !== "") {
+		this._plusSignEnabled = val ? true : false;
+	}
+	
+	val = options["separator"];
+	if(val != null &amp;&amp; val !== "") {
+		this._separatorEnabled = val ? true : false;
+	}
+	
+	this.enableMillionScaling(false);
+	// Only enable scaling mode when format type is scaled
+	if(formatType === "scaled" || formatType === "scaledvalue") { // WARNING: Beware of case sensitivity
+		val = options["scalingUnit"];
+		if(val != null &amp;&amp; val !== "") {
+			if(val &amp;&amp; typeof val == "string") {
+				val = val.charAt(0).toLowerCase();
+				if(val == "b") {
+					this.enableBillionScaling();
+				} else {
+					this.enableMillionScaling();
+				}
+			}
+		} else {
+			this.enableMillionScaling();
+		}
+	}
+	
+	if(formatType === "percent") {
+		val = options["percentSign"];
+		if(val != null &amp;&amp; val !== "") {
+			this._percentSignEnabled = val ? true : false;
+		} else {
+			this._percentSignEnabled = true;
+		}
+		
+		val = options["mutiplyBy100"];
+		if(val != null &amp;&amp; val !== "") {
+			this._multiplyBy100Enabled = val ? true : false;
+		}
+	} else {
+		this._percentSignEnabled = this._multiplyBy100Enabled = false;
+	}
+};
+/** @public
+* @param {Object=} options
+* @return {!Object}
+*/
+tr.grid.NumberFormatter.prototype.getOptions = function(options) { // serialize
+	if(!options) { options = {}; }
+	
+	options["precisionEnabled"] = this._precisionEnabled;
+	options["decimalPlaces"] = this._precision;
+	options["plusSign"] = this._plusSignEnabled;
+	options["separator"] = this._separatorEnabled;
+	options["percentSign"] = this._percentSignEnabled;
+	var su = "";
+	if(this._scaler == "b") {
+		su = "billion";
+	} else if(this._scaler == "m") {
+		su = "million";
+	}
+	options["scalingUnit"] = su;
+	options["mutiplyBy100"] = this._multiplyBy100Enabled;
+	return options;
+};
+
+/** @public
+* @param {number} origVal
+* @return {string}
+*/
+tr.grid.NumberFormatter.prototype.format = function(origVal) {
+	if(!origVal) {
+		if(origVal !== 0) {
+			return ""; // Invalid value will be formatted as empty
+		} // Zero value doesn't require handling
+	}
+	if(typeof origVal !== "number") {
+		origVal = Number(origVal);
+		if(origVal !== origVal) {
+			return "";
+		}
+	}
+
+	var val, sign;
+	if(origVal &gt;= 0) {
+		val = origVal;
+		sign = this._plusSignEnabled ? "+" : "";
+	} else {
+		val = -origVal;
+		sign = "-";
+	}
+	if(this._multiplyBy100Enabled) {
+		val = val * 100;
+	}
+	var absVal = val;
+	var mode = this._scaler;
+	if (this._percentFormatEnabled) {
+		mode = false;
+	}
+	if (mode) {
+		if (mode === "b" &amp;&amp; val &lt; 1000000000) {
+			mode = "m";
+		}
+		if (mode === "m") {
+			if (val &gt;= 1000000) {
+				val = val / 1000000;
+			} else if (val &gt;= 1000) {
+				val = val / 1000;
+			}
+		} else if (mode === "b") {
+			val = val / 1000000000;
+		}
+
+		if (!this._precisionEnabled) {
+			val = Math.round(val * 100) / 100;
+		}
+	}
+	if (this._precisionEnabled) {
+		if (this._precision &gt; 0) {
+			var deno = tr.grid.NumberFormatter._denominator[this._precision];
+			val = Math.round(val * deno) / deno;
+		} else {
+			val = Math.round(val);
+		}
+	}
+
+	var str;
+	if(val &gt; 0) {
+		if(val &gt;= 0.000001) { // Handle 7th precision (1e-7)
+			str = sign + val;
+		} else {
+			str = sign + "0.000000" + (val * 10000000);
+		}
+	} else {
+		str = "0";
+	}
+
+	if(this._separatorEnabled &amp;&amp; val &gt;= 1000) {
+		var strs = str.split(".");
+		str = strs[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+		if(strs.length &gt; 1) {
+			str += "." + strs[1];
+		}
+	}
+
+	var padDecimalPartWithZeroes = function (str, precision) {
+		var dp = str.lastIndexOf(".");
+		if (dp &gt;= 0) {
+			var decimalPlace = str.length - dp - 1;
+			if (decimalPlace &lt; precision) {
+				str += tr.grid.NumberFormatter._zeroes[precision - decimalPlace];
+			}
+		} else {
+			str += "." + tr.grid.NumberFormatter._zeroes[precision];
+		}
+		return str;
+	};
+
+	if (mode) {
+		var precision = 2;
+		if (this._precision || this._precision === 0) {
+			precision = this._precision;
+		}
+		if (precision &gt; 0) {
+			str = padDecimalPartWithZeroes(str, precision);
+		}
+		if (mode === "m") {
+			if (absVal &gt;= 1000000) {
+				str += "M";
+			} else if (absVal &gt;= 1000) {
+				str += "K";
+			}
+		} else if (this._scaler === "b") {
+			str += "B";
+		}
+	} else if (this._precisionEnabled &amp;&amp; this._precision &gt; 0) { // Filling trialling zeros
+		str = padDecimalPartWithZeroes(str, this._precision);
+	}
+
+	if(this._percentSignEnabled || this._percentFormatEnabled) {
+		str += this._percentChar;
+	}
+	return str;
+};
+
+/** @public
+*/
+tr.grid.NumberFormatter.prototype.enableDefaultFormat = function() {
+	this._precisionEnabled = false;
+	this._separatorEnabled = false;
+	this._percentSignEnabled = false;
+	this._percentFormatEnabled = false;
+	this._plusSignEnabled = false;
+	this._multiplyBy100Enabled = false;
+	this._scaler = "";
+};
+/** @public
+* @param {boolean=} bool
+*/
+tr.grid.NumberFormatter.prototype.enablePrecision = function(bool) {
+	this._precisionEnabled = (bool !== false);
+};
+/** @public
+* @param {boolean=} bool
+*/
+tr.grid.NumberFormatter.prototype.enableSeparator = function(bool) {
+	this._separatorEnabled = (bool !== false);
+};
+/** @public
+* @param {boolean=} bool
+*/
+tr.grid.NumberFormatter.prototype.enablePercentSign = function(bool) {
+	this._percentSignEnabled = (bool !== false);
+};
+/** Enforce percent format even if scaling mode is active
+* @public
+* @param {boolean=} bool
+*/
+tr.grid.NumberFormatter.prototype.enablePercentFormat = function(bool) {
+	this._percentFormatEnabled = (bool !== false);
+};
+/** @public
+* @param {boolean=} bool
+*/
+tr.grid.NumberFormatter.prototype.enablePlusSign = function(bool) {
+	this._plusSignEnabled = (bool !== false);
+};
+/** @public
+* @param {boolean=} bool
+*/
+tr.grid.NumberFormatter.prototype.enableMultiplyBy100 = function(bool) {
+	this._multiplyBy100Enabled = (bool !== false);
+};
+/** @public
+* @param {boolean=} bool
+*/
+tr.grid.NumberFormatter.prototype.enableMillionScaling = function(bool) {
+	this._scaler = (bool !== false) ? "m" : "";
+};
+/** @public
+* @param {boolean=} bool
+*/
+tr.grid.NumberFormatter.prototype.enableBillionScaling = function(bool) {
+	this._scaler = (bool !== false) ? "b" : "";
+};
+
+/** @public
+* @return {boolean}
+*/
+tr.grid.NumberFormatter.prototype.isDefaultFormatEnabled = function() {
+	return !(this._precisionEnabled || this._separatorEnabled || this._percentSignEnabled || this._scaler || this._percentFormatEnabled);
+};
+/** @public
+* @return {boolean}
+*/
+tr.grid.NumberFormatter.prototype.isPrecisionEnabled = function() {
+	return this._precisionEnabled;
+};
+/** @public
+* @return {boolean}
+*/
+tr.grid.NumberFormatter.prototype.isSeparatorEnabled = function() {
+	return this._separatorEnabled;
+};
+/** @public
+* @return {boolean}
+*/
+tr.grid.NumberFormatter.prototype.isPercentSignEnabled = function() {
+	return this._percentSignEnabled;
+};
+/** @public
+* @return {boolean}
+*/
+tr.grid.NumberFormatter.prototype.isPercentFormatEnabled = function() {
+	return this._percentFormatEnabled;
+};
+/** @public
+* @return {boolean}
+*/
+tr.grid.NumberFormatter.prototype.isPlusSignEnabled = function() {
+	return this._plusSignEnabled;
+};
+/** @public
+* @return {boolean}
+*/
+tr.grid.NumberFormatter.prototype.isMultiplyBy100Enabled = function() {
+	return this._multiplyBy100Enabled;
+};
+/** @public
+* @return {boolean}
+*/
+tr.grid.NumberFormatter.prototype.isMillionScalingEnabled = function() {
+	return this._scaler === "m";
+};
+/** @public
+* @return {boolean}
+*/
+tr.grid.NumberFormatter.prototype.isBillionScalingEnabled = function() {
+	return this._scaler === "b";
+};
+
+/** @public
+* @return {number}
+*/
+tr.grid.NumberFormatter.prototype.getPrecision = function() {
+	return this._precision;
+};
+/** @public
+* @param {number} num Maximum is 9 digits
+*/
+tr.grid.NumberFormatter.prototype.setPrecision = function(num) {
+	this._precision = (num &lt; tr.grid.NumberFormatter._denominator.length) ? num : tr.grid.NumberFormatter._denominator.length - 1;
+};
+/** @public
+* @param {string} cha
+*/
+tr.grid.NumberFormatter.prototype.setSeparatorCharacter = function(cha) {
+	this._sepChar = cha;
+};
+/** @public
+* @param {string} cha
+*/
+tr.grid.NumberFormatter.prototype.setPercentSignCharacter = function(cha) {
+	this._percentChar = cha;
+};
+
+
+goog.exportSymbol("tr.grid.NumberFormatter", tr.grid.NumberFormatter);
+tr.grid.NumberFormatter._proto = tr.grid.NumberFormatter.prototype;
+
+goog.exportProperty(tr.grid.NumberFormatter._proto, "init", tr.grid.NumberFormatter._proto.init);
+goog.exportProperty(tr.grid.NumberFormatter._proto, "getOptions", tr.grid.NumberFormatter._proto.getOptions);
+
+goog.exportProperty(tr.grid.NumberFormatter._proto, "format", tr.grid.NumberFormatter._proto.format);
+
+goog.exportProperty(tr.grid.NumberFormatter._proto, "enableDefaultFormat", tr.grid.NumberFormatter._proto.enableDefaultFormat);
+goog.exportProperty(tr.grid.NumberFormatter._proto, "enablePrecision", tr.grid.NumberFormatter._proto.enablePrecision);
+goog.exportProperty(tr.grid.NumberFormatter._proto, "enableSeparator", tr.grid.NumberFormatter._proto.enableSeparator);
+goog.exportProperty(tr.grid.NumberFormatter._proto, "enablePercentSign", tr.grid.NumberFormatter._proto.enablePercentSign);
+goog.exportProperty(tr.grid.NumberFormatter._proto, "enablePercentFormat", tr.grid.NumberFormatter._proto.enablePercentFormat);
+goog.exportProperty(tr.grid.NumberFormatter._proto, "enablePlusSign", tr.grid.NumberFormatter._proto.enablePlusSign);
+goog.exportProperty(tr.grid.NumberFormatter._proto, "enableMultiplyBy100", tr.grid.NumberFormatter._proto.enableMultiplyBy100);
+goog.exportProperty(tr.grid.NumberFormatter._proto, "enableMillionScaling", tr.grid.NumberFormatter._proto.enableMillionScaling);
+goog.exportProperty(tr.grid.NumberFormatter._proto, "enableBillionScaling", tr.grid.NumberFormatter._proto.enableBillionScaling);
+
+goog.exportProperty(tr.grid.NumberFormatter._proto, "isDefaultFormatEnabled", tr.grid.NumberFormatter._proto.isDefaultFormatEnabled);
+goog.exportProperty(tr.grid.NumberFormatter._proto, "isPrecisionEnabled", tr.grid.NumberFormatter._proto.isPrecisionEnabled);
+goog.exportProperty(tr.grid.NumberFormatter._proto, "isSeparatorEnabled", tr.grid.NumberFormatter._proto.isSeparatorEnabled);
+goog.exportProperty(tr.grid.NumberFormatter._proto, "isPercentSignEnabled", tr.grid.NumberFormatter._proto.isPercentSignEnabled);
+goog.exportProperty(tr.grid.NumberFormatter._proto, "isPercentFormatEnabled", tr.grid.NumberFormatter._proto.isPercentFormatEnabled);
+goog.exportProperty(tr.grid.NumberFormatter._proto, "isPlusSignEnabled", tr.grid.NumberFormatter._proto.isPlusSignEnabled);
+goog.exportProperty(tr.grid.NumberFormatter._proto, "isMultiplyBy100Enabled", tr.grid.NumberFormatter._proto.isMultiplyBy100Enabled);
+goog.exportProperty(tr.grid.NumberFormatter._proto, "isMillionScalingEnabled", tr.grid.NumberFormatter._proto.isMillionScalingEnabled);
+goog.exportProperty(tr.grid.NumberFormatter._proto, "isBillionScalingEnabled", tr.grid.NumberFormatter._proto.isBillionScalingEnabled);
+
+goog.exportProperty(tr.grid.NumberFormatter._proto, "getPrecision", tr.grid.NumberFormatter._proto.getPrecision);
+goog.exportProperty(tr.grid.NumberFormatter._proto, "setPrecision", tr.grid.NumberFormatter._proto.setPrecision);
+goog.exportProperty(tr.grid.NumberFormatter._proto, "setSeparatorCharacter", tr.grid.NumberFormatter._proto.setSeparatorCharacter);
+goog.exportProperty(tr.grid.NumberFormatter._proto, "setPercentSignCharacter", tr.grid.NumberFormatter._proto.setPercentSignCharacter);
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="AdFin.html">AdFin</a></li><li><a href="DateTime.html">DateTime</a></li><li><a href="Info.html">Info</a></li><li><a href="Logic.html">Logic</a></li><li><a href="Math.html">Math</a></li><li><a href="Realtime.html">Realtime</a></li><li><a href="Statistic.html">Statistic</a></li><li><a href="Text.html">Text</a></li><li><a href="tr.ElementFrameWork.html">ElementFrameWork</a></li><li><a href="tr.PipDefinition.html">PipDefinition</a></li></ul><h3>Classes</h3><ul><li><a href="tr.ADCSubscription.html">ADCSubscription</a></li><li><a href="tr.AdFinSubscription.html">AdFinSubscription</a></li><li><a href="tr.cgrid.editor.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.filter.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.formatter.AsyncFormatter.html">AsyncFormatter</a></li><li><a href="tr.cgrid.formatter.CheckBox.html">CheckBox</a></li><li><a href="tr.cgrid.formatter.UpDownColor.html">UpDownColor</a></li><li><a href="tr.ColumnStats.html">ColumnStats</a></li><li><a href="tr.CompositeGrid.html">CompositeGrid</a></li><li><a href="tr.DataCache.html">DataCache</a></li><li><a href="tr.DataTable.html">DataTable</a></li><li><a href="tr.DataView.html">DataView</a></li><li><a href="tr.DropDown.html">DropDown</a></li><li><a href="tr.ElementControl.html">ElementControl</a></li><li><a href="tr.ElementWrapper.html">ElementWrapper</a></li><li><a href="tr.Event.html">Event</a></li><li><a href="tr.EventDispatcher.html">EventDispatcher</a></li><li><a href="tr.EventDispatcher.extendClass-tempCtor.html">tempCtor</a></li><li><a href="tr.EventManager.html">EventManager</a></li><li><a href="tr.FieldFormatter.html">FieldFormatter</a></li><li><a href="tr.fn.Engine.html">Engine</a></li><li><a href="tr.fn.Formula.html">Formula</a></li><li><a href="tr.fn.VariableToken.html">VariableToken</a></li><li><a href="tr.Grid.html">Grid</a></li><li><a href="tr.grid.BidOfferSpan.html">BidOfferSpan</a></li><li><a href="tr.grid.Blinker.html">Blinker</a></li><li><a href="tr.grid.Cell.html">Cell</a></li><li><a href="tr.grid.CellBlinkingPlugin.html">CellBlinkingPlugin</a></li><li><a href="tr.grid.CellEditingPlugin.html">CellEditingPlugin</a></li><li><a href="tr.grid.CellFloatingPanel.html">CellFloatingPanel</a></li><li><a href="tr.grid.CellPainter.html">CellPainter</a></li><li><a href="tr.grid.CellSpan.html">CellSpan</a></li><li><a href="tr.grid.CellSpans.html">CellSpans</a></li><li><a href="tr.grid.CellWriter.html">CellWriter</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html">CheckboxColumnPlugin</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html">CollapsibleHeaderPlugin</a></li><li><a href="tr.grid.ColumnFilterPlugin.html">ColumnFilterPlugin</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html">ColumnGroupingPlugin</a></li><li><a href="tr.grid.ColumnSelectionPlugin.html">ColumnSelectionPlugin</a></li><li><a href="tr.grid.ColumnStackingPlugin.html">ColumnStackingPlugin</a></li><li><a href="tr.grid.ColumnWidthAdjustingPlugin.html">ColumnWidthAdjustingPlugin</a></li><li><a href="tr.grid.Conflator.html">Conflator</a></li><li><a href="tr.grid.DataSourceTreePlugin.html">DataSourceTreePlugin</a></li><li><a href="tr.grid.DirectContentBindingPlugin.html">DirectContentBindingPlugin</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html">DragAndDropTitlePlugin</a></li><li><a href="tr.grid.DraggableContentPlugin.html">DraggableContentPlugin</a></li><li><a href="tr.grid.FindBar.html">FindBar</a></li><li><a href="tr.grid.FindBarPlugin.html">FindBarPlugin</a></li><li><a href="tr.grid.GroupStatisticsPlugin.html">GroupStatisticsPlugin</a></li><li><a href="tr.grid.HeatMapRenderer.html">HeatMapRenderer</a></li><li><a href="tr.grid.HScrollbar.html">HScrollbar</a></li><li><a href="tr.grid.IndexMarker.html">IndexMarker</a></li><li><a href="tr.grid.MovableHeaderPlugin.html">MovableHeaderPlugin</a></li><li><a href="tr.grid.NumberFormatter.html">NumberFormatter</a></li><li><a href="tr.grid.PercentBar.html">PercentBar</a></li><li><a href="tr.grid.PercentBarRenderer.html">PercentBarRenderer</a></li><li><a href="tr.grid.Plugin.html">Plugin</a></li><li><a href="tr.grid.RangeBar.html">RangeBar</a></li><li><a href="tr.grid.ResizableTitlePlugin.html">ResizableTitlePlugin</a></li><li><a href="tr.grid.Reverter.html">Reverter</a></li><li><a href="tr.grid.RowHeightAdjustingPlugin.html">RowHeightAdjustingPlugin</a></li><li><a href="tr.grid.RowSelectionPlugin.html">RowSelectionPlugin</a></li><li><a href="tr.grid.Scrollbar.html">Scrollbar</a></li><li><a href="tr.grid.SectionSettings.html">SectionSettings</a></li><li><a href="tr.grid.SmartTooltipsPlugin.html">SmartTooltipsPlugin</a></li><li><a href="tr.grid.SortableTitlePlugin.html">SortableTitlePlugin</a></li><li><a href="tr.grid.TreeIndentingPlugin.html">TreeIndentingPlugin</a></li><li><a href="tr.grid.Virtualizer.html">Virtualizer</a></li><li><a href="tr.grid.VScrollbar.html">VScrollbar</a></li><li><a href="tr.grid.ZoomPlugin.html">ZoomPlugin</a></li><li><a href="tr.HttpRequest.html">HttpRequest</a></li><li><a href="tr.IntervalSubscription.html">IntervalSubscription</a></li><li><a href="tr.LayoutGrid.html">LayoutGrid</a></li><li><a href="tr.ListMenu.html">ListMenu</a></li><li><a href="tr.MenuItem.html">MenuItem</a></li><li><a href="tr.MockArchive.html">MockArchive</a></li><li><a href="tr.MockJET.html">MockJET</a></li><li><a href="tr.MockQuotes.html">MockQuotes</a></li><li><a href="tr.MockQuotes2.html">MockQuotes2</a></li><li><a href="tr.MockSubscription.html">MockSubscription</a></li><li><a href="tr.MockSubscriptions.html">MockSubscriptions</a></li><li><a href="tr.Popup.html">Popup</a></li><li><a href="tr.PopupMenu.html">PopupMenu</a></li><li><a href="tr.PrintTrait.html">PrintTrait</a></li><li><a href="tr.RequestQueue.html">RequestQueue</a></li><li><a href="tr.Segment.html">Segment</a></li><li><a href="tr.SegmentCollection.html">SegmentCollection</a></li><li><a href="tr.TSISubscription.html">TSISubscription</a></li></ul><h3>Interfaces</h3><ul><li><a href="tr.cgrid.ICompositeExtension.html">ICompositeExtension</a></li><li><a href="tr.grid.IPlugin.html">IPlugin</a></li><li><a href="tr.IElementControl.html">IElementControl</a></li><li><a href="tr.ILayoutGrid.html">ILayoutGrid</a></li></ul><h3>Events</h3><ul><li><a href="tr.CompositeGrid.html#event:cellClicked">cellClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellDblClicked">cellDblClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellMouseDown">cellMouseDown</a></li><li><a href="tr.CompositeGrid.html#event:cellRightClicked">cellRightClicked</a></li><li><a href="tr.CompositeGrid.html#event:columnSorted">columnSorted</a></li><li><a href="tr.CompositeGrid.html#event:editorAttached">editorAttached</a></li><li><a href="tr.CompositeGrid.html#event:editorDetached">editorDetached</a></li><li><a href="tr.CompositeGrid.html#event:filterAdded">filterAdded</a></li><li><a href="tr.CompositeGrid.html#event:filterCleared">filterCleared</a></li><li><a href="tr.CompositeGrid.html#event:filterModified">filterModified</a></li><li><a href="tr.CompositeGrid.html#event:filterRemoved">filterRemoved</a></li><li><a href="tr.CompositeGrid.html#event:mouseLeaveCell">mouseLeaveCell</a></li><li><a href="tr.CompositeGrid.html#event:mouseOverCell">mouseOverCell</a></li><li><a href="tr.CompositeGrid.html#event:pageChanged">pageChanged</a></li><li><a href="tr.CompositeGrid.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.DataCache.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataCache.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataTable.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataTable.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataView.html#event:beforeFiltering">beforeFiltering</a></li><li><a href="tr.DataView.html#event:beforeGroupAdded">beforeGroupAdded</a></li><li><a href="tr.DataView.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataView.html#event:groupAdded">groupAdded</a></li><li><a href="tr.DataView.html#event:groupCriteriaChanged">groupCriteriaChanged</a></li><li><a href="tr.DataView.html#event:pageCountChanged">pageCountChanged</a></li><li><a href="tr.DataView.html#event:pageIndexChanged">pageIndexChanged</a></li><li><a href="tr.DataView.html#event:preDisposed">preDisposed</a></li><li><a href="tr.Formula.html#event:dataCacheChanged">dataCacheChanged</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:cancelled">cancelled</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:change">change</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:closed">closed</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:editorOpened">editorOpened</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:preEditorOpening">preEditorOpening</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:click">click</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:columnCollapsed">columnCollapsed</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:groupChanged">groupChanged</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:render">render</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:columnMoved">columnMoved</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:drag">drag</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragEnd">dragEnd</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragStart">dragStart</a></li><li><a href="tr.grid.FindBarPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:groupMoved">groupMoved</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:sectionMoved">sectionMoved</a></li><li><a href="tr.grid.RowSelectionPlugin.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:columnSorted">columnSorted</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preClicked">preClicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preDataSorting">preDataSorting</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.Grid.html#event:columnAdded">columnAdded</a></li><li><a href="tr.Grid.html#event:columnAlignmentChanged">columnAlignmentChanged</a></li><li><a href="tr.Grid.html#event:columnRemoved">columnRemoved</a></li><li><a href="tr.Grid.html#event:columnVisibilityChanged">columnVisibilityChanged</a></li><li><a href="tr.Grid.html#event:dataSourceChanged">dataSourceChanged</a></li><li><a href="tr.Grid.html#event:postSectionDataBinding">postSectionDataBinding</a></li><li><a href="tr.Grid.html#event:rowExpansionBinding">rowExpansionBinding</a></li><li><a href="tr.Grid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Grid.html#event:sectionAdded">sectionAdded</a></li><li><a href="tr.Grid.html#event:widthChanged">widthChanged</a></li><li><a href="tr.HttpRequest.html#event:abort">abort</a></li><li><a href="tr.HttpRequest.html#event:error">error</a></li><li><a href="tr.HttpRequest.html#event:load">load</a></li><li><a href="tr.HttpRequest.html#event:loadend">loadend</a></li><li><a href="tr.HttpRequest.html#event:loadstart">loadstart</a></li><li><a href="tr.HttpRequest.html#event:timeout">timeout</a></li><li><a href="tr.IElementControl.html#event:blur">blur</a></li><li><a href="tr.IElementControl.html#event:change">change</a></li><li><a href="tr.IElementControl.html#event:click">click</a></li><li><a href="tr.IElementControl.html#event:contextmenu">contextmenu</a></li><li><a href="tr.IElementControl.html#event:dblclick">dblclick</a></li><li><a href="tr.IElementControl.html#event:drag">drag</a></li><li><a href="tr.IElementControl.html#event:dragend">dragend</a></li><li><a href="tr.IElementControl.html#event:dragenter">dragenter</a></li><li><a href="tr.IElementControl.html#event:dragleave">dragleave</a></li><li><a href="tr.IElementControl.html#event:dragover">dragover</a></li><li><a href="tr.IElementControl.html#event:dragstart">dragstart</a></li><li><a href="tr.IElementControl.html#event:drop">drop</a></li><li><a href="tr.IElementControl.html#event:focus">focus</a></li><li><a href="tr.IElementControl.html#event:formchange">formchange</a></li><li><a href="tr.IElementControl.html#event:forminput">forminput</a></li><li><a href="tr.IElementControl.html#event:input">input</a></li><li><a href="tr.IElementControl.html#event:invalid">invalid</a></li><li><a href="tr.IElementControl.html#event:keydown">keydown</a></li><li><a href="tr.IElementControl.html#event:keypress">keypress</a></li><li><a href="tr.IElementControl.html#event:keyup">keyup</a></li><li><a href="tr.IElementControl.html#event:mousedown">mousedown</a></li><li><a href="tr.IElementControl.html#event:mousemove">mousemove</a></li><li><a href="tr.IElementControl.html#event:mouseout">mouseout</a></li><li><a href="tr.IElementControl.html#event:mouseover">mouseover</a></li><li><a href="tr.IElementControl.html#event:mouseup">mouseup</a></li><li><a href="tr.IElementControl.html#event:mousewheel">mousewheel</a></li><li><a href="tr.IElementControl.html#event:reset">reset</a></li><li><a href="tr.IElementControl.html#event:scroll">scroll</a></li><li><a href="tr.IElementControl.html#event:select">select</a></li><li><a href="tr.IElementControl.html#event:submit">submit</a></li><li><a href="tr.ILayoutGrid.html#event:blur">blur</a></li><li><a href="tr.ILayoutGrid.html#event:change">change</a></li><li><a href="tr.ILayoutGrid.html#event:click">click</a></li><li><a href="tr.ILayoutGrid.html#event:contextmenu">contextmenu</a></li><li><a href="tr.ILayoutGrid.html#event:dblclick">dblclick</a></li><li><a href="tr.ILayoutGrid.html#event:drag">drag</a></li><li><a href="tr.ILayoutGrid.html#event:dragend">dragend</a></li><li><a href="tr.ILayoutGrid.html#event:dragenter">dragenter</a></li><li><a href="tr.ILayoutGrid.html#event:dragleave">dragleave</a></li><li><a href="tr.ILayoutGrid.html#event:dragover">dragover</a></li><li><a href="tr.ILayoutGrid.html#event:dragstart">dragstart</a></li><li><a href="tr.ILayoutGrid.html#event:drop">drop</a></li><li><a href="tr.ILayoutGrid.html#event:focus">focus</a></li><li><a href="tr.ILayoutGrid.html#event:formchange">formchange</a></li><li><a href="tr.ILayoutGrid.html#event:forminput">forminput</a></li><li><a href="tr.ILayoutGrid.html#event:input">input</a></li><li><a href="tr.ILayoutGrid.html#event:invalid">invalid</a></li><li><a href="tr.ILayoutGrid.html#event:keydown">keydown</a></li><li><a href="tr.ILayoutGrid.html#event:keypress">keypress</a></li><li><a href="tr.ILayoutGrid.html#event:keyup">keyup</a></li><li><a href="tr.ILayoutGrid.html#event:mousedown">mousedown</a></li><li><a href="tr.ILayoutGrid.html#event:mousemove">mousemove</a></li><li><a href="tr.ILayoutGrid.html#event:mouseout">mouseout</a></li><li><a href="tr.ILayoutGrid.html#event:mouseover">mouseover</a></li><li><a href="tr.ILayoutGrid.html#event:mouseup">mouseup</a></li><li><a href="tr.ILayoutGrid.html#event:mousewheel">mousewheel</a></li><li><a href="tr.ILayoutGrid.html#event:reset">reset</a></li><li><a href="tr.ILayoutGrid.html#event:scroll">scroll</a></li><li><a href="tr.ILayoutGrid.html#event:select">select</a></li><li><a href="tr.ILayoutGrid.html#event:submit">submit</a></li><li><a href="tr.LayoutGrid.html#event:rowCountChanged">rowCountChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHeightChanged">rowHeightChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Popup.html#event:hidden">hidden</a></li><li><a href="tr.Popup.html#event:shown">shown</a></li><li><a href="tr.PopupMenu.html#event:hidden">hidden</a></li><li><a href="tr.PopupMenu.html#event:shown">shown</a></li><li><a href="tr.PrintTrait.html#event:afterprint">afterprint</a></li><li><a href="tr.PrintTrait.html#event:beforeprint">beforeprint</a></li><li><a href="tr.PrintTrait.html#event:pageCounting">pageCounting</a></li></ul><h3>Global</h3><ul><li><a href="global.html#cellRef%255Bundefined%255D">cellRef[undefined]</a></li><li><a href="global.html#e%255Bundefined%255D">e[undefined]</a></li><li><a href="global.html#.textContent">.textContent</a></li><li><a href="global.html#get">get</a></li><li><a href="global.html#input%255Bundefined%255D">input[undefined]</a></li><li><a href="global.html#q%255Bundefined%255D">q[undefined]</a></li><li><a href="global.html#sortingDef%255B1%255D">sortingDef[1]</a></li></ul>
+</nav>
+
+
+<script src="scripts/linenumber.js"> </script>
+<script src="scripts/prettify.js"> </script>
+<script> prettyPrint(); </script>
+</body>
+</html>

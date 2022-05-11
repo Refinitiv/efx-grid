@@ -1,0 +1,1786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: grid/plugins/SortableTitlePlugin.js</title>
+
+    <script src="scripts/prettify.js"> </script>
+    <script src="scripts/lang-css.js"> </script>
+    <!--[if lt IE 9]&gt;
+      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
+    &lt;![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/default.css">
+    <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
+</head>
+
+<body>
+
+<div id="main-template" class="elf-template">
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>goog.provide("tr.grid.SortableTitlePlugin");
+
+goog.require("tr.res");
+goog.require("tr.Grid");
+goog.require("tr.DataTable");
+goog.require("tr.IElementControl");
+goog.require("tr.ILayoutGrid");
+
+goog.require("tr.grid.IPlugin");
+goog.require("tr.grid.Plugin");
+
+
+/** Fired when user click and before the sorting operation.
+* @event tr.grid.SortableTitlePlugin#preClicked
+* @property {number} colIndex
+* @property {Element} target Element being clicked
+* @example
+* function onPreClicked(e) {
+*   e.cancel = true; // Cancel sorting operation
+* }
+*/
+
+/** Fired when user click and after the sorting operation
+* @event tr.grid.SortableTitlePlugin#clicked
+* @property {number} colIndex
+* @property {string} sortOrder "a" for "ascending, "d" for descending, and "n" for none
+* @property {string} dataColumnName Field that is used for sorting
+*/
+
+/** Fired just before sorting data. This allows additional modification before the actual sorting
+* @event tr.grid.SortableTitlePlugin#preDataSorting
+* @property {boolean=} isUserAction This has true value, if event initiate from clicking title/header section
+*/
+
+/** Fired once column is sorted and before {@link tr.grid.SortableTitlePlugin#clicked}
+* @event tr.grid.SortableTitlePlugin#columnSorted
+* @property {number} colIndex
+* @property {string} sortOrder "a" for "ascending, "d" for descending, and "n" for none
+* @property {string} sortedField Field that is used for sorting
+* @property {Array.&lt;number&gt;} colIndices An array of colIndex
+* @property {Array.&lt;string&gt;} sortOrders An array of sortOrder
+* @property {Array.&lt;string&gt;} sortedFields An array of sortedField
+*/
+
+/** @constructor
+* @extends {tr.grid.Plugin}
+* @implements {tr.grid.IPlugin}
+* @param {tr.grid.SortableTitlePlugin.Options=} options
+*/
+tr.grid.SortableTitlePlugin = function (options) { // TODO: Extract SortableTitlePlugin to grid extension.
+	var _t = this;
+	_t._onSectionAdded = _t._onSectionAdded.bind(_t);
+	_t._onMouseDown = _t._onMouseDown.bind(_t);
+
+	_t._onUIUpdated = _t._onUIUpdated.bind(_t);
+
+	_t._onColumnAdded = _t._onColumnAdded.bind(_t);
+	_t._onColumnRemoved = _t._onColumnRemoved.bind(_t);
+	_t._onItemSortingClicked = _t._onItemSortingClicked.bind(_t);
+	_t.refresh = _t.refresh.bind(_t);
+
+	_t._hosts = [];
+	_t._sortLogic = {};
+
+	_t._addEvents(
+		"preClicked"
+		, tr.res.clicked
+		, "preDataSorting"
+		, tr.res.columnSorted
+	);
+
+	_t._sortStates = [];
+	_t._sortingSequence = ["a", "d"];
+
+	if(options) {
+		_t.config({ "sorting": options });
+	}
+};
+goog.inherits(tr.grid.SortableTitlePlugin, tr.grid.Plugin);
+
+/**
+ * @typedef {"a" | "ascending" | "d" | "descending" | "n" | null} tr.grid.SortableTitlePlugin~SortOrder
+ */
+
+/** The sorting object which will be used for initialSort config.
+ * @typedef {Object} tr.grid.SortableTitlePlugin~InitialSort
+ * @property {number} colIndex Index of the column
+ * @property {tr.grid.SortableTitlePlugin~SortOrder=} sortOrder=null Set to "d" for descending order and "a" for ascending order
+ * @property {tr.grid.SortableTitlePlugin~SortOrder=} order Alias of sortOrder
+ */
+tr.grid.SortableTitlePlugin.InitialSort;
+
+/** The sorting properties for column option.
+ * @typedef {Object} tr.grid.SortableTitlePlugin~ColumnOptions
+ * @property {boolean=} sortable=false If enable, the column can be sorted by user click
+ * @property {string=} sortBy Field to be used for sorting. If defined, user can click at the header section to sort the column
+ * @property {tr.DataTable.SortLogic=} sortLogic=null Custom compare function for sorting
+ * @property {tr.DataTable.SortLogic=} sortingLogic Alias to `sortLogic`
+ * @property {tr.DataTable.SortLogic=} sorter Alias to `sortLogic`
+ * @property {Array.&lt;tr.grid.SortableTitlePlugin~SortOrder&gt;=} sortingSequence Collection of sorting direction for the particular field.
+ */
+tr.grid.SortableTitlePlugin.ColumnOptions;
+
+/** The configuration object for sorting options. This can be defined by `sorting` property in CompositeGrid configuration object.
+ * @typedef {Object} tr.grid.SortableTitlePlugin~Options
+ * @property {(tr.grid.SortableTitlePlugin~InitialSort|Array.&lt;tr.grid.SortableTitlePlugin.InitialSort&gt;)=} initialSort=null Set this config to initiate sorting after grid is created.
+ * @property {(boolean|number)=} multicolumn=false Allow multiple columns to be sorted at the same time. If number is defined, it is treated as maximum number of column to be sorted.
+ * @property {(boolean|number)=} multiColumn=false Alias to `multicolumn`
+ * @property {boolean=} threeStatesSorting=false If enabled, sorting will cycle through ascending, descending and original order states. This option is deprecated in favor of sortingSequence option
+ * @property {Object.&lt;string, tr.DataTable.SortLogic&gt;=} sortLogic=null Custom logic for sorting based on the specified field. The key is field name and the value pair is a function.
+ * @property {boolean=} disableDoubleClickToSort=false If enabled, double click on column title to sort
+ * @property {boolean=} sortableColumns=false If enabled, all columns will be sortable by field automatically
+ * @property {boolean=} sortableIndicator=false If enabled, sort indicator (diamond) icon will always show regardless of sorting states. In Halo theme, this option will be enabled by default.
+ * @property {boolean=} indicatorOnly=false If enabled, data will not be sorted, but the UI is rendered normally. This is useful for server side sorting.
+ * @property {string=} mode Set to "manual" to disable data sorting. Deprecated in favor of `indicatorOnly`
+ * @property {boolean=} disabled=false If enabled, header section cannot be clicked and no sort UI is rendered. Sorting can still be triggered only through `sortColumn` method.
+ * @property {Function=} columnSorted A shortcut to define the columnSorted event handler
+ * @property {Function=} preClicked A shortcut to define the preClicked event handler
+ * @property {Function=} clicked A shortcut to define the clicked event handler
+ * @property {Function=} preDataSorting A shortcut to define the preDataSorting event handler
+ * @property {Array.&lt;tr.grid.SortableTitlePlugin~SortOrder&gt;=} sortingSequence=["a", "d"] Sequence in which sort order will be changed. The default value is ["a", "d"]. This option override threeStatesSorting
+ */
+tr.grid.SortableTitlePlugin.Options;
+
+/** Order of item indicates sort priorities used in DataView. &lt;br&gt;
+* Each state contains column name{string}, sort order {string}, and rendering cell {tr.IElementControl}
+* @private
+* @type {!Array.&lt;Object&gt;}
+*/
+tr.grid.SortableTitlePlugin.prototype._sortStates;
+/** Maximum possible number of sorting columns at any time. how a column is sorted.
+* @private
+* @type {number}
+*/
+tr.grid.SortableTitlePlugin.prototype._maxCount = 1;
+
+/** @private
+* @type {boolean}
+*/
+tr.grid.SortableTitlePlugin.prototype._dataSorting = true;
+/** @private
+* @type {boolean}
+*/
+tr.grid.SortableTitlePlugin.prototype._isDisableDoubleClickToSort = true;
+
+/** @private
+* @type {number}
+*/
+tr.grid.SortableTitlePlugin.prototype._clickTimer = 0;
+/** @private
+* @type {number}
+*/
+tr.grid.SortableTitlePlugin.prototype._delayInterval = 0;
+/** @private
+* @type {number}
+*/
+tr.grid.SortableTitlePlugin.prototype._lastMouseDown = 0;
+/** @private
+* @type {tr.grid.SortableTitlePlugin.InitialSort}
+*/
+tr.grid.SortableTitlePlugin.prototype._initialSort = null;
+/** @private
+* @type {string}
+*/
+tr.grid.SortableTitlePlugin.prototype._mode = "";
+/** @private
+* @type {boolean}
+*/
+tr.grid.SortableTitlePlugin.prototype._sortableColumns = true;
+/** @private
+* @type {boolean}
+*/
+tr.grid.SortableTitlePlugin.prototype._sortableIndicator = false;
+/** Logic map based on field name
+* @private
+* @type {Object.&lt;string, Function&gt;}
+*/
+tr.grid.SortableTitlePlugin.prototype._sortLogic;
+/** To allow users/clients to store and provide all sorting logics by themselve
+* @private
+* @type {boolean}
+*/
+tr.grid.SortableTitlePlugin.prototype._userManagedLogic = false;
+/** @private
+* @type {boolean}
+*/
+tr.grid.SortableTitlePlugin.prototype._disabled = false;
+/** Since DataView in real-time grid has only one ROW_DEF column, we need to re-map sorting field to sort correctly.
+* @private
+* @type {boolean}
+*/
+tr.grid.SortableTitlePlugin.prototype._rowDefMode = false;
+
+/** @private
+* @type {!Object.&lt;string, string&gt;}
+*/
+tr.grid.SortableTitlePlugin._icons = {};
+
+/** @private
+* @type {!Array.&lt;string&gt;}
+*/
+tr.grid.SortableTitlePlugin.prototype._sortingSequence;
+/** @private
+* @type {Object.&lt;string, Array&gt;}
+*/
+tr.grid.SortableTitlePlugin.prototype._sortingSequenceMap = null;
+
+
+/** @type {string}
+* @private
+* @const
+*/
+var CODE_UP = "\u25B2";
+/** @type {string}
+* @private
+* @const
+*/
+var CODE_DOWN = "\u25BC";
+/** @type {string}
+* @private
+* @const
+*/
+var CODE_DIAMOND = "\u25CA";
+
+/** @override */
+tr.grid.SortableTitlePlugin.prototype.getName = function () {
+	return "SortableTitlePlugin"; // Read Only
+};
+
+/**
+* @override
+* @description Suppress google compiler for argument options because Internal Plugin doesn't support.
+* @suppress {checkTypes}
+*/
+tr.grid.SortableTitlePlugin.prototype.initialize = function (host, options) {
+	if (this._hosts.indexOf(host) &gt;= 0) { return; }
+	this._hosts.push(host);
+
+	if (this._hosts.length === 1) {
+		host.listen(tr.res.columnAdded, this._onColumnAdded);
+		host.listen(tr.res.columnRemoved, this._onColumnRemoved);
+	}
+	host.listen(tr.res.sectionAdded, this._onSectionAdded);
+	host.listen("postSectionRender", this._onUIUpdated);
+	host.listen("dataSourceChanged", this.refresh);
+
+	this.config(options);
+};
+
+/** @override */
+tr.grid.SortableTitlePlugin.prototype.unload = function (host) {
+	var at = this._hosts.indexOf(host);
+	if (at &lt; 0) { return; }
+
+	this._hosts.splice(at, 1);
+	host.unlisten(tr.res.sectionAdded, this._onSectionAdded);
+	host.unlisten("postSectionRender", this._onUIUpdated);
+	host.unlisten("dataSourceChanged", this.refresh);
+
+	host.unlisten(tr.res.columnAdded, this._onColumnAdded);
+	host.unlisten(tr.res.columnRemoved, this._onColumnRemoved);
+
+	if (this._hosts.length &lt;= 0) {
+		if (this._clickTimer) {
+			clearTimeout(this._clickTimer);
+			this._clickTimer = 0;
+		}
+	}
+};
+
+/** @public
+*/
+tr.grid.SortableTitlePlugin.prototype.afterInit = function () {
+	var t = this;
+
+	// Data source not available during initialization
+	t.setSortLogics(t._sortLogic);
+
+	// Sort columns if initialSort are specified initially
+	if (t._initialSort != null) {
+		var initialSort = t._initialSort;
+		if (!Array.isArray(initialSort)) {
+			initialSort = [initialSort];
+		}
+		if (t._maxCount === 1) {
+			initialSort = initialSort.slice(0, 1); // Ensure only 1 item is sorted in non-multiColumn mode
+		}
+
+		t.sortColumns(initialSort);
+	}
+};
+
+/** @public
+* @param {Object=} options Grid model object
+*/
+tr.grid.SortableTitlePlugin.prototype.config = function (options) {
+	if (!options) { return; }
+
+	var t = this;
+
+	var icons = options["icons"];
+	if (icons != null) {
+		if (icons["sorting"]) {
+			tr.grid.SortableTitlePlugin._icons = icons["sorting"];
+		}
+	}
+	var themeName = options["themeName"];
+	if (themeName &amp;&amp; themeName.indexOf("halo") &gt;= 0) { // only for halo theme
+		t._sortableIndicator = true;
+	}
+
+	t._initialSort = t._initialSortByColumnField(options);
+
+	var extOptions = options["sorting"];
+	if (!extOptions) {
+		return;
+	}
+
+	if(extOptions["ROW_DEF"]) {
+		this._rowDefMode = true;
+	}
+	if(extOptions["userManagedLogic"]) {
+		t._userManagedLogic = true;
+	}
+
+	var val = extOptions["multiColumn"] || extOptions["multicolumn"];
+	if (val != null) {
+		if (val === true) val = -1;
+		if (val === false) val = 1;
+		t.setSortableColumnCount((typeof val == "number" &amp;&amp; val &gt; 0) ? val : -1);
+	}
+
+	val = extOptions["sortableIndicator"];
+	if (val != null) {
+		t._sortableIndicator = val; // This can override default halo theme
+	}
+
+	val = extOptions["disabled"];
+	if (val != null) {
+		t._disabled = val ? true : false;
+	}
+
+	val = extOptions["threeStatesSorting"];
+	if (val != null) {
+		t.disableTwoStateSorting(val);
+	}
+
+	val = extOptions["sortingSequence"];
+	if (val != null) {
+		if(Array.isArray(val)) {
+			t._sortingSequence = val;
+		}
+	}
+
+	val = extOptions["mode"];
+	if (val != null) {
+		t._mode = val;
+		if (val === "manual") {
+			t.disableDataSorting();
+		}
+	}
+
+	val = extOptions["indicatorOnly"];
+	if (val != null) {
+		t.disableDataSorting(val);
+	}
+
+	val = extOptions["disableDoubleClickToSort"];
+	if (val != null) {
+		t.disableDoubleClickToSort(val);
+	}
+
+	val = extOptions["columnSorted"];
+	if (typeof val === "function") {
+		t.listen("columnSorted", val);
+	}
+	val = extOptions["preClicked"];
+	if (typeof val === "function") {
+		t.listen("preClicked", val);
+	}
+	val = extOptions["clicked"];
+	if (typeof val === "function") {
+		t.listen("clicked", val);
+	}
+	val = extOptions["preDataSorting"];
+	if (typeof val === "function") {
+		t.listen("preDataSorting", val);
+	}
+
+	val = extOptions["sortableColumns"];
+	if (val != null) {
+		t._sortableColumns = val;
+	}
+
+	// Override _initialSortByColumnField
+	val = extOptions["initialSort"];
+	if (typeof val === "object") {
+		t._initialSort = val;
+	}
+
+	val = extOptions["sortLogic"];
+	if (typeof val === "object") {
+		for (var field in val) {
+			if (typeof val[field] === "function") {
+				t._sortLogic[field] = val[field];
+			}
+		}
+	}
+};
+
+/** @public
+* @param {Object=} gridOptions
+* @return {!Object}
+*/
+tr.grid.SortableTitlePlugin.prototype.getConfigObject = function (gridOptions) {
+	var obj = gridOptions || {};
+
+	var columns = obj["columns"];
+	if (!columns) {
+		columns = obj["columns"] = [];
+	}
+
+	var host = this._hosts[0];
+
+	if (!host) return obj;
+
+	var len = host.getColumnCount();
+	var col, opt, field;
+	for(var i = 0; i &lt; len; ++i) {
+		col = columns[i];
+		if (!col) {
+			col = columns[i] = {};
+		}
+
+		opt = this._getSortOptions(i);
+
+		if (!opt) { continue; }
+
+		if(this._sortableColumns) {
+			if (opt["disabled"]) {
+				col["sortable"] = false;
+			}
+		} else if(!opt["disabled"]) {
+			col["sortable"] = true;
+		}
+		field = opt["field"];
+		if (field) {
+			col["sortBy"] = field;
+			if (this._sortingSequenceMap &amp;&amp; this._sortingSequenceMap[field]) {
+				col["sortingSequence"] = this._sortingSequenceMap[field];
+			}
+		}
+	}
+
+	var extOptions = obj["sorting"];
+	if(!extOptions) {
+		extOptions = obj["sorting"] = {};
+	}
+
+	extOptions["initialSort"] = this.getSortedColumns();
+	extOptions["sortableIndicator"] = this._sortableIndicator;
+	if(this._maxCount !== 1) {
+		extOptions["multiColumn"] = this._maxCount === -1 ? true : this._maxCount;
+	}
+	extOptions["disableDoubleClickToSort"] = this._isDisableDoubleClickToSort;
+	extOptions["sortableColumns"] = this._sortableColumns;
+	extOptions["indicatorOnly"] = !this._dataSorting;
+	// extOptions["mode"] = this._mode;
+	if(this._disabled) {
+		extOptions["disabled"] = true;
+	}
+
+	var sortingSeq = this._sortingSequence;
+	var notDefaultSeq = true;
+	if (sortingSeq.length === 2) {
+		if (sortingSeq[0] === "a" &amp;&amp; sortingSeq[1] === "d") { // Sorting Sequence is not the default one
+			notDefaultSeq = false;
+		}
+	}
+	if(notDefaultSeq) {
+		extOptions["sortingSequence"] = sortingSeq.slice();
+	}
+
+	return obj;
+};
+
+/** @public
+* @description Function for ColumnMenuExtension to collect config of column menu
+* @param {number} colIndex Column index
+* @param {Object} config Column Menu configuration
+* @return {!Object}
+*/
+tr.grid.SortableTitlePlugin.prototype.getColumnMenu = function (colIndex, config) {
+	if (!config) {
+		config = {};
+	}
+
+	var menus = config["menus"];
+	if (!menus) {
+		menus = config["menus"] = [];
+	}
+
+	var menu = menus[0];
+	if (!menu) {
+		menu = menus[0] = {
+			"menuItems": []
+		};
+	}
+
+	var order = this.getSortOrder(colIndex);
+
+	// Menu items for this extension
+	var extMenuItem = {
+		"indexScore": 100,
+		"label": "Sort Column",
+		"icon": "sort-a-to-z",
+		"group": "FREQUENTLY_USED",
+		"subMenu": {
+			"menuItems":[{
+				"indexScore": 3,
+				"label": "Ascending",
+				"radioMode": true,
+				"value": {
+					"colIndex": colIndex,
+					"order": "a"
+				},
+				"selected": order === "a",
+				"click": this._onItemSortingClicked
+			}, {
+				"indexScore": 2,
+				"label": "Descending",
+				"radioMode": true,
+				"value": {
+					"colIndex": colIndex,
+					"order": "d"
+				},
+				"selected": order === "d",
+				"click": this._onItemSortingClicked
+			}, {
+				"indexScore": 1,
+				"label": "Un-Sort",
+				"radioMode": true,
+				"value": {
+					"colIndex": colIndex,
+					"order": "n"
+				},
+				"selected": order === "n",
+				"click": this._onItemSortingClicked
+			}]
+		}
+	};
+
+	// Push menu items to config
+	menu["menuItems"].push(extMenuItem);
+
+	return config;
+};
+
+/** @private
+* @param {Object} e
+*/
+tr.grid.SortableTitlePlugin.prototype._onItemSortingClicked = function (e) {
+	var host = this._hosts[0];
+	var columnMenuExt = host["getPlugin"]("ColumnMenuPlugin");
+	columnMenuExt["hide"]();
+
+	var value = e["currentTarget"]["value"];
+	var colIndex = value["colIndex"];
+	var order = value["sortOrder"];
+	this.sortColumn(colIndex, order);
+};
+
+/** @public
+* @return {Object.&lt;string, string&gt;} "a" for ascending, "d" for descending, and "n" for no sorting
+*/
+tr.grid.SortableTitlePlugin.prototype.getIcons = function () {
+	return tr.grid.SortableTitlePlugin._icons;
+};
+
+/** @public
+* @param {Object.&lt;string, Function&gt;} sortLogic
+*/
+tr.grid.SortableTitlePlugin.prototype.setSortLogics = function (sortLogic) { // TODO: This should be deprecated
+	if (sortLogic != null) {
+		var host = this._hosts[0];
+		if (host) {
+			var ds = host.getDataSource();
+			for (var field in sortLogic) {
+				this._setSortLogic(ds, field, sortLogic[field]);
+			}
+		}
+	}
+};
+
+/** @public
+* @param {string} field
+* @param {Function} func
+*/
+tr.grid.SortableTitlePlugin.prototype.setSortLogic = function (field, func) { // TODO: This should be deprecated
+	if (typeof field === "string") {
+		var host = this._hosts[0];
+		if (host) {
+			var ds = host.getDataSource();
+			this._setSortLogic(ds, field, func);
+		}
+	}
+};
+
+/** @private
+* @param {Object} ds
+* @param {string} field
+* @param {Function} func
+*/
+tr.grid.SortableTitlePlugin.prototype._setSortLogic = function (ds, field, func) { // TODO: This is deprecated
+	if (ds &amp;&amp; typeof field === "string") {
+		if (field === "*") {
+			ds.setSortingLogic(func);
+		} else {
+			ds.setColumnSortingLogic(field, func);
+		}
+	}
+};
+
+/** @public
+* @param {number=} colIndex If colIndex is undefined or null the first sorted column is used instead
+* @return {string} "a" for ascending, "d" for descending, and "n" for no sorting
+*/
+tr.grid.SortableTitlePlugin.prototype.getSortOrder = function (colIndex) {
+	var priority = (colIndex != null) ? this.getSortPriority(colIndex) : 0;
+	var state = this._sortStates[priority];
+	var sortOrder = state ? state["sortOrder"] : "";
+	return sortOrder || "n";
+};
+/** Return the first (highest priority) sorted column's index
+* @public
+* @param {number=} priority
+* @return {number} Return negative value if there is no sorted column
+*/
+tr.grid.SortableTitlePlugin.prototype.getSortedColumnIndex = function (priority) {
+	var state = this._sortStates[priority || 0];
+	if (state) {
+		var host = this._hosts[0];
+		var colCount = host ? host.getColumnCount() : 0;
+		for (var c = 0; c &lt; colCount; ++c) {
+			var sortOptions = this._getSortOptions(c);
+			if (sortOptions === state) {
+				return c;
+			}
+		}
+	}
+	return -1;
+};
+/** @public
+* @param {number} colIndex
+* @return {number} Start with 0 (first column to be sorted) and end in the highest number. Negative means the specified column is not sorted
+*/
+tr.grid.SortableTitlePlugin.prototype.getSortPriority = function (colIndex) {
+	var sortOptions = this._getSortOptions(colIndex);
+	if (sortOptions &amp;&amp; sortOptions["sortOrder"]) {
+		var len = this._sortStates.length;
+		for (var i = 0; i &lt; len; ++i) {
+			if (this._sortStates[i] === sortOptions) {
+				return i;
+			}
+		}
+	}
+	return -1;
+};
+/** @public
+* @return {boolean}
+*/
+tr.grid.SortableTitlePlugin.prototype.isColumnSorted = function (colIndex) {
+	return this.getSortPriority(colIndex) &gt;= 0;
+};
+/** @public
+* @return {Array.&lt;Object&gt; | null} Array of object with "colIndex" and "sortOrder"
+*/
+tr.grid.SortableTitlePlugin.prototype.getSortedColumns = function () {
+	var len = this._sortStates.length;
+	if (len &lt;= 0) { return null; }
+
+	var arr = new Array(len);
+	for (var i = 0; i &lt; len; ++i) {
+		var colIndex = this.getSortedColumnIndex(i);
+		arr[i] = {
+			"colIndex": colIndex,
+			"sortOrder": this._sortStates[i]["sortOrder"] || "n"
+		};
+	}
+	return arr;
+};
+
+/** @public
+* @param {number} colIndex
+* @param {string=} sortOrder "a" for ascending, "d" for descending, and "n" for no sorting
+* @param {Object=} opt_arg Event argument to be sent with preDataSorting event
+* @fires tr.grid.SortableTitlePlugin#preDataSorting
+* @fires tr.grid.SortableTitlePlugin#columnSorted
+*/
+tr.grid.SortableTitlePlugin.prototype.sortColumn = function (colIndex, sortOrder, opt_arg) {
+	if (colIndex &gt;= 0) { // ColIndex can be greater than the host column count, to allow default sorting
+
+		var state = this._preSortColumn(colIndex, sortOrder);
+		if (state) {
+			this._sortColumn([state], opt_arg);
+		}
+	}
+};
+
+/** Sort multiple columns at once
+* @public
+* @param {Array.&lt;tr.grid.SortableTitlePlugin.InitialSort&gt;} sortOptions Input an array to specify the multiple column sort order
+* @param {Object=} opt_arg Event argument to be sent with preDataSorting event
+* @fires tr.grid.SortableTitlePlugin#preDataSorting
+* @fires tr.grid.SortableTitlePlugin#columnSorted
+*/
+tr.grid.SortableTitlePlugin.prototype.sortColumns = function (sortOptions, opt_arg) {
+	if (Array.isArray(sortOptions)) {
+		var states = [];
+		for (var i = 0; i &lt; sortOptions.length; i++) {
+			var opt = sortOptions[i];
+			var state = this._preSortColumn(opt["colIndex"], opt["sortOrder"] || opt["order"]);
+			if (state) {
+				states[i] = state;
+			}
+		}
+		this._sortColumn(states, opt_arg);
+	}
+};
+
+/** @description Clear all sorting states
+* @public
+* @param {Object=} opt_arg Event argument to be sent with preDataSorting event
+*/
+tr.grid.SortableTitlePlugin.prototype.clearSortState = function (opt_arg) {
+	this._popSortState(0, opt_arg);
+	this.updateSortSymbols();
+};
+/** @description Perform sorting with the same parameter.
+* @public
+* @fires tr.grid.SortableTitlePlugin#preDataSorting
+*/
+tr.grid.SortableTitlePlugin.prototype.refresh = function () {
+	if (this._sortStates.length) {
+		this._sortDataView();
+		this.updateSortSymbols();
+	}
+};
+
+/** @description Perform sorting with the same parameter. Alias to {@link tr.grid.SortableTitlePlugin#refresh}
+* @public
+* @override
+* @function
+*/
+tr.grid.SortableTitlePlugin.prototype.restoreUserActions = tr.grid.SortableTitlePlugin.prototype.refresh;
+
+/** @public
+* @param {number} count
+*/
+tr.grid.SortableTitlePlugin.prototype.setSortableColumnCount = function (count) {
+	this._maxCount = count ? count : 1;
+	this._popSortState(this._maxCount);
+};
+
+/** Deprecated. Use getSortedColumns instead of this
+* @public
+* @return {Array.&lt;Object&gt;} Array of sorted column states ordered by priority
+* @see {@link tr.grid.SortableTitlePlugin#getSortedColumns}
+*/
+tr.grid.SortableTitlePlugin.prototype.getSortingStates = function () {
+	return this._sortStates; // WARNING: Exposing internal variable
+};
+
+/** @public
+*/
+tr.grid.SortableTitlePlugin.prototype.updateSortSymbols = function () {
+	if(!this._disabled) {
+		for (var i = this._hosts.length; --i &gt;= 0;) {
+			this._updateSortableIndicator(i);
+		}
+	}
+};
+
+/** Get Array of fields used for sorting
+* @public
+* @return {!Array.&lt;string&gt;}
+*/
+tr.grid.SortableTitlePlugin.prototype.getDataColumnMap = function () {
+	var host = this._hosts[0];
+	var dataMap = [];
+	if (host) {
+		var colCount = host.getColumnCount();
+		for (var i = 0; i &lt; colCount; ++i) {
+			dataMap[i] = this.getColumnSortingField(i);
+		}
+	}
+	return dataMap;
+};
+tr.grid.SortableTitlePlugin.prototype.getDataColumnNames = tr.grid.SortableTitlePlugin.prototype.getDataColumnMap;
+
+/** Set sorting field for multiple columns at once
+* @public
+* @param {Array.&lt;string|null&gt;} dataMap
+*/
+tr.grid.SortableTitlePlugin.prototype.setDataColumnMap = function (dataMap) { // TODO: This should be deprecated
+	// This should work just like "sortBy"
+	if (Array.isArray(dataMap)) {
+		for (var i = dataMap.length; --i &gt;= 0;) {
+			this.setColumnSortingField(i, dataMap[i]);
+		}
+	}
+};
+tr.grid.SortableTitlePlugin.prototype.setDataColumnNames = tr.grid.SortableTitlePlugin.prototype.setDataColumnMap;
+
+/** @public
+* @param {number} colIndex
+* @return {string} field A field used for sorting
+*/
+tr.grid.SortableTitlePlugin.prototype.getColumnSortingField = function (colIndex) {
+	var options = this._getSortOptions(colIndex);
+	// options["field"] is already consolidated from field, sortBy, and sortable properties.
+	var field = (options) ? options["field"] : null;
+
+	if (field == null &amp;&amp; !this._rowDefMode) { // Old CompositeGrid may stored sorting field in DataColumnName
+		var host = this._hosts[0];
+		if (host) {
+			field = host.getDataColumnName(colIndex);
+		}
+	}
+
+	return field || "";
+};
+/** @public
+* @param {number} colIndex
+* @param {string|null} field A field used for sorting
+* @param {Function=} sortLogic
+*/
+tr.grid.SortableTitlePlugin.prototype.setColumnSortingField = function (colIndex, field, sortLogic) {
+	if (typeof colIndex == "number" &amp;&amp; field !== undefined) {
+		var options = this._newSortOptions(colIndex);
+		if (!field) {
+			field = "";
+		}
+		if (options["field"] !== field) {
+			options["field"] = field;
+		}
+		if(sortLogic !== undefined &amp;&amp; !this._userManagedLogic) {
+			if (options["sortLogic"] !== sortLogic) {
+				options["sortLogic"] = sortLogic || null;
+			}
+		}
+	}
+};
+/** @public
+* @return {!Array.&lt;string&gt;} fields of each sorting states
+*/
+tr.grid.SortableTitlePlugin.prototype.getColumnSortingFields = function () {
+	var ary = [];
+	var host = this._hosts[0];
+	var colCount = host ? host.getColumnCount() : 0;
+	for (var c = 0; c &lt; colCount; ++c) {
+		var sortOptions = this._getSortOptions(c);
+		if (sortOptions &amp;&amp; sortOptions["sortOrder"]) {
+			var priority = this._sortStates.indexOf(sortOptions);
+			if (priority &gt;= 0) {
+				ary[priority] = this.getColumnSortingField(c);
+			}
+		}
+	}
+	return ary;
+};
+
+/** This is deprecated in favor of setSortingSequence method. Move existing sort order to the front of sorting sequence. New sort order will be added, if the specified sort order does not exist in current sorting sequence. 
+* @public
+* @param {string|number|Array.&lt;string|number&gt;} colIdentifier string is data column name, while number is display column index. If null value is given, first sort order is set to grid level configuration
+* @param {string=} sortOrder="a" "ascending", "descending", "none"
+* @see {@link tr.grid.SortableTitlePlugin#setSortingSequence}
+*/
+tr.grid.SortableTitlePlugin.prototype.setFirstSortOrder = function (colIdentifier, sortOrder) {
+	if (sortOrder) {
+		sortOrder = tr.grid.SortableTitlePlugin._toSortOrder(sortOrder);
+	} else {
+		sortOrder = "a";
+	}
+	
+	var fields = null;
+	if (Array.isArray(colIdentifier)) {
+		fields = colIdentifier;
+	} else {
+		fields = [/** @type{string|number} */(colIdentifier)];
+	}
+
+	var len = fields.length;
+	for (var i = 0; i &lt; len; ++i) {
+		var field = fields[i];
+		var sortingSeq = this.getSortingSequence(field).slice();
+		var index = sortingSeq.indexOf(sortOrder);
+		if (index &gt;= 0) {
+			sortingSeq.splice(index, 1);
+		}
+		sortingSeq.unshift(sortOrder);
+		this.setSortingSequence(sortingSeq, field);
+	}
+};
+
+/** This is deprecated in favor of setSortingSequence method. If two-state sorting is disabled, "n" (original order) will be added to current sorting sequence. If two-state sorting is enabled, "n" will be removed from current sorting sequence.
+* @public
+* @param {boolean=} disabled
+* @see {@link tr.grid.SortableTitlePlugin#setSortingSequence}
+*/
+tr.grid.SortableTitlePlugin.prototype.disableTwoStateSorting = function (disabled) {
+	var at = this._sortingSequence.indexOf("n");
+	if(disabled === false) { // two-state sorting
+		if(at &gt;= 0) {
+			this._sortingSequence.splice(at, 1);
+		}
+	} else { // three-state sorting
+		if(at &lt; 0) {
+			this._sortingSequence.push("n");
+		}
+	}
+};
+/** @public
+* @param {boolean=} disabled
+*/
+tr.grid.SortableTitlePlugin.prototype.disableSortSymbols = function (disabled) {
+	// this._sortSymbols = disabled === false;
+	// TODO: Clear existing UIs at run-time
+};
+/** @public
+* @param {boolean=} disabled
+*/
+tr.grid.SortableTitlePlugin.prototype.disableDataSorting = function (disabled) {
+	this._dataSorting = disabled === false;
+};
+/** @public
+* @description To allow double click action to sort. Default value is false.
+* @param {boolean=} disabled
+*/
+tr.grid.SortableTitlePlugin.prototype.disableDoubleClickToSort = function (disabled) {
+	this._isDisableDoubleClickToSort = !!disabled;
+};
+/** This api is deprecated. Use {@link tr.grid.SortableTitlePlugin.prototype.disableColumnSorting} instead
+ * @public
+* @param {tr.IElementControl} cell
+* @param {boolean=} disabled
+*/
+tr.grid.SortableTitlePlugin.prototype.disableCellClick = function (cell, disabled) {
+	if (cell) {
+		cell.enableClass("no-sort", disabled !== false);
+	}
+};
+/** @public
+* @param {number|Array.&lt;number&gt;} columns
+* @param {boolean=} disabled
+*/
+tr.grid.SortableTitlePlugin.prototype.disableColumnSorting = function (columns, disabled) {
+	disabled = disabled !== false;
+	if (typeof columns === "number") {
+		this._disableColumnSorting(columns, disabled);
+	} else if (Array.isArray(columns)) {
+		var len = columns.length;
+		for (var i = 0; i &lt; len; ++i) {
+			this._disableColumnSorting(columns[i] || 0, disabled);
+		}
+	}
+};
+/** @private
+* @param {number} colIndex
+* @param {boolean} disabled
+*/
+tr.grid.SortableTitlePlugin.prototype._disableColumnSorting = function (colIndex, disabled) {
+	var sortOptions = this._newSortOptions(colIndex);
+	if (sortOptions["disabled"] !== disabled) {
+		sortOptions["disabled"] = disabled;
+		// TODO: Remove existing sort
+	}
+};
+
+/** @public
+* @param {number=} opt_ms Delay before actual sorting in milliseconds. Setting undefined value will be 500ms. Setting 0 to instantly perform sorting
+*/
+tr.grid.SortableTitlePlugin.prototype.setClickDelayInterval = function (opt_ms) {
+	this._delayInterval = (opt_ms != null) ? opt_ms : 500;
+};
+
+/** @private
+* @param {string=} order "ascending", "descending", "none"
+* @return {string}
+*/ 
+tr.grid.SortableTitlePlugin._toSortOrder = function(order) {
+	if (order &amp;&amp; typeof order === "string") {
+		order = order.charAt(0).toLowerCase();
+		if (order === "d" || order === "a") {
+			return order;
+		}
+	}
+	return "n";
+};
+
+/** Returns current sorting sequence for either a grid (all columns), or a single column.
+* @public
+* @param {(number|string)=} colRef Column index or column field. If no value is given or no field is found, grid level sorting sequence is returned
+* @return {!Array.&lt;string&gt;}
+*/
+tr.grid.SortableTitlePlugin.prototype.getSortingSequence = function (colRef) {
+	if (this._sortingSequenceMap &amp;&amp; (colRef || colRef === 0)) {
+		if(typeof colRef !== "string") {
+			colRef = this.getColumnSortingField(/** @type{number} */(colRef));
+		}
+		if(this._sortingSequenceMap[colRef]) {
+			return /** @type{!Array.&lt;string&gt;} */(this._sortingSequenceMap[colRef]);
+		}
+	}
+	return this._sortingSequence;
+};
+/** Specify sorting sequence for either a grid (all columns), or a single column.
+* @public
+* @param {Array.&lt;string&gt;} sequence Collection of sorting direction. If null value or empty Array is given, sorting sequence will be reverted to default.
+* @param {(number|string)=} colRef Column index or column field. If no value is given, sorting sequence will be set to grid level configuration.
+* @example
+* stPlugin.setSortingSequence(["d", "a", "n"]); // Set three-state sorting and start with "d"
+* stPlugin.setSortingSequence(["a"]); // Force to sort with ascending order only and cannot change to other order
+* stPlugin.setSortingSequence(["d", "a"], "field"); // The specified column will have different sorting sequence
+*/
+tr.grid.SortableTitlePlugin.prototype.setSortingSequence = function (sequence, colRef) {
+	if (Array.isArray(sequence)) {
+		if(!sequence.length) {
+			sequence = null; // Empty array is treated as null value
+		}
+	} else if(sequence) { // true, 1, "string", and other datatypes are not allowed
+		return; 
+	}
+	
+	var field;
+	if (colRef != null) {
+		if (typeof colRef === "string") {
+			field = colRef;
+		} else if (typeof colRef === "number") {
+			field = this.getColumnSortingField(colRef);
+		}
+	}
+	
+	if (sequence) {
+		// Ensure that user sequence has only valid sort order
+		var sortingSequence = sequence.map(tr.grid.SortableTitlePlugin._toSortOrder);
+		if (field) {
+			if (!this._sortingSequenceMap) {
+				this._sortingSequenceMap = {};
+			}
+
+			this._sortingSequenceMap[field] = sortingSequence;
+		} else {
+			this._sortingSequence = sortingSequence;
+		}
+	} else { // No sequence is specified, revert existing sequence to default 
+		if(field) {
+			if (this._sortingSequenceMap) {
+				delete this._sortingSequenceMap[field];
+			}
+		} else { // Reset current sorting sequence to default
+			this._sortingSequence = this._sortingSequence.length &gt; 2 ? ["a", "d", "n"] : ["a", "d"];
+		}
+	}
+};
+/** @public
+*/
+tr.grid.SortableTitlePlugin.prototype.clearAllColumnSortingSequences = function () {
+	this._sortingSequenceMap = null;
+};
+
+/** @private
+* @description Pre-process columns options to support both composite and rt-grid backward compatible
+* @param {number} colIndex
+* @param {Object} options
+* @returns {Object}
+*/
+tr.grid.SortableTitlePlugin.prototype._prepareColumnOptions = function (colIndex, options) {
+	var t = this;
+	var column = options || {};
+	var colOption = {
+		"colIndex": colIndex,
+		"field": column["field"],
+		"sortable": !!t._sortableColumns
+	};
+
+	if (column["sortBy"] != null) { // composite grid option
+		colOption["sortable"] = !!column["sortBy"];
+		colOption["sortBy"] = column["sortBy"];
+	}
+	if (column["sortable"] != null) { // rt grid option
+		colOption["sortable"] = !!column["sortable"];
+	}
+
+	colOption["sortLogic"] = column["sortLogic"] || column["sortingLogic"] || column["sorter"]; // Originally, rt grid support option for sortLogic by column
+	colOption["sort"] = column["defaultSort"] || column["sort"]; // composite and rt grid option for default sort order
+	return colOption;
+};
+
+/** @private
+* @description Get initial sort from column option `defaultSort` or `sort`
+* @param {Object} options Grid model object
+* @returns {Object}
+*/
+tr.grid.SortableTitlePlugin.prototype._initialSortByColumnField = function (options) {
+	var t = this;
+	var columns = options["columns"] || [];
+	var initialSort = null;
+	for (var i = 0; i &lt; columns.length; i++) {
+		var col = t._prepareColumnOptions(i, columns[i]);
+		var val = col["sort"];
+		if (val) {
+			initialSort = {
+				"colIndex": col["colIndex"],
+				"sortOrder": val
+			};
+		}
+	}
+	return initialSort;
+};
+
+/** @private
+* @param {Object} e
+*/
+tr.grid.SortableTitlePlugin.prototype._onSectionAdded = function (e) {
+	if (e[tr.res.sectionType] !== tr.res.title) { return; }
+
+	var section = /** @type{tr.ILayoutGrid} */(e[tr.res.section]);
+	if (section.getIndex() !== 0) return; // only topmost header can click
+	section.listen(tr.res.mousedown, this._onMouseDown);
+	section.listen(tr.res.click, this._onClickTitle.bind(this, e["sender"]), 0); // Sorting has higher priority
+};
+
+/** @private
+* @param {Object} e
+*/
+tr.grid.SortableTitlePlugin.prototype._onUIUpdated = function (e) {
+	if (e[tr.res.sectionType] === tr.res.title) {
+		this.updateSortSymbols();
+	}
+};
+
+/** @private
+* @param {Object} hitObj
+* @return {boolean}
+* @fires tr.grid.SortableTitlePlugin#preClicked
+*/
+tr.grid.SortableTitlePlugin.prototype._canClickToSort = function (hitObj) {
+	if(this._disabled) {
+		return false;
+	}
+
+	var grid = hitObj["grid"];
+	if (!grid || !grid.getElement()) { // The given grid has been disposed
+		return false;
+	}
+
+	var cep = this._getPlugin("CellEditingPlugin");
+	if (cep &amp;&amp; cep["isEditing"]()) { // Current cell is being edited, so skip the sort
+		return false;
+	}
+
+	this._dispatch("preClicked", hitObj);
+	if (hitObj["cancel"]) { // User want to cancel the operation
+		return false;
+	}
+
+	var colIndex = hitObj[tr.res.colIndex];
+	var section = hitObj[tr.res.section];
+	var rowIndex = hitObj[tr.res.rowIndex];
+
+	if (!this._isCellSortable(section, colIndex, rowIndex)) {
+		return false;
+	}
+
+	return true;
+};
+
+/** @private
+* @param {Object} hitObj
+* @fires tr.grid.SortableTitlePlugin#preDataSorting
+* @fires tr.grid.SortableTitlePlugin#columnSorted
+* @fires tr.grid.SortableTitlePlugin#clicked
+*/
+tr.grid.SortableTitlePlugin.prototype._proceedSorting = function (hitObj) {
+	this._clickTimer = 0;
+
+	if (this._canClickToSort(hitObj)) {
+		var colIndex = hitObj[tr.res.colIndex];
+		// _proceedSorting() method is always produced by user clicking at the header // Thus, this operation is guaranteed to be a user action
+		var state = this._preSortColumn(colIndex);
+		if (state) {
+			this._sortColumn([state], { "isUserAction": true });
+		}
+
+		if (this._hasListener(tr.res.clicked)) {
+			var ce = {};
+			ce[tr.res.colIndex] = colIndex;
+			ce["sortOrder"] = this.getSortOrder(colIndex);
+			ce[tr.res.dataColumnName] = this.getColumnSortingField(colIndex);
+			this._dispatch(tr.res.clicked, ce);
+		}
+	}
+};
+
+/** @private
+* @param {MouseEvent} e
+ */
+tr.grid.SortableTitlePlugin.prototype._onMouseDown = function (e) {
+	if (!e.button) { // left mouse only
+		this._lastMouseDown = e.timeStamp;
+	}
+};
+/** @private
+* @param {tr.Grid} grid
+* @param {MouseEvent} e
+ */
+tr.grid.SortableTitlePlugin.prototype._onClickTitle = function (grid, e) {
+	if(this._disabled) {
+		return;
+	}
+	if (e.detail === 2 &amp;&amp; this._isDisableDoubleClickToSort) { // dblclick
+		if (this._clickTimer) {
+			clearTimeout(this._clickTimer);
+			this._clickTimer = 0;
+		}
+		return; // This is registered as double click in modern browser so we ignored the click
+	} else if (e.shiftKey || e.ctrlKey || e.altKey || e.metaKey) { // If any modifier key is pressed, ignored the click
+		return;
+	}
+
+	// Avoid click by dragging
+	if (!(e.timeStamp - this._lastMouseDown &lt; 500)) {
+		return;
+	}
+
+	var hitObj = grid.getRelativePosition(e);
+	if (!hitObj["hit"]) { // Click across multiple elements (dragging)
+		return;
+	}
+
+	var csp = this._getPlugin("ColumnSelectionPlugin");
+	if (csp &amp;&amp; csp["isEnabled"]()) {
+		var colIndex = hitObj[tr.res.colIndex];
+		if (!csp["isSelectedColumn"](colIndex)) { // Sort only if the column is selected
+			return;
+		}
+	}
+	hitObj["target"] = e["target"];
+
+	if (this._delayInterval &gt; 0) {
+		if (!this._clickTimer) {
+			this._clickTimer = setTimeout(
+				this._proceedSorting.bind(this, hitObj),
+				this._delayInterval
+			);
+		}
+	} else {
+		this._proceedSorting(hitObj);
+	}
+};
+
+/** @private
+* @param {number} toIndex INCLUSIVE
+* @param {Object=} opt_arg Event argument to be sent with preDataSorting event
+* @return {boolean}
+* @fires tr.grid.SortableTitlePlugin#preDataSorting
+*/
+tr.grid.SortableTitlePlugin.prototype._popSortState = function (toIndex, opt_arg) {
+	if (toIndex &lt; 0 || this._sortStates.length &lt;= toIndex) { return false; }
+
+	var dirty = false;
+	for (var i = this._sortStates.length; --i &gt;= toIndex;) {
+		this._clearSortSymbols(this._sortStates[i]);
+		dirty = true;
+	}
+	this._sortStates.length = toIndex;
+	this._sortDataView(opt_arg);
+	return dirty;
+};
+
+/** @private
+* @param {number} colIndex
+* @param {string=} sortOrder "a" for ascending, "d" for descending, and "n" for no sorting
+* @returns {Object} state Returns null, if nothing is changed
+*/
+tr.grid.SortableTitlePlugin.prototype._preSortColumn = function (colIndex, sortOrder) {
+	if (!this._maxCount) { return null; }
+
+	var priority = this.getSortPriority(colIndex);
+	var curState = (priority &gt;= 0) ? this._sortStates[priority] : null;
+	var curOrder = curState ? curState["sortOrder"] : "n";
+	
+	// Getting next sort order
+	var nextOrder = "n";
+	var sortingField = this.getColumnSortingField(colIndex);
+	if (sortOrder == null) { // Auto order switch
+		var sortingSequence = this.getSortingSequence(sortingField);
+
+		var sequenceIndex = sortingSequence.indexOf(curOrder);
+		if (sequenceIndex &lt; 0) {
+			sequenceIndex = 0;
+		} else {
+			sequenceIndex = (sequenceIndex + 1) % sortingSequence.length;	
+		}
+		nextOrder = sortingSequence[sequenceIndex];
+	} else {
+		nextOrder = tr.grid.SortableTitlePlugin._toSortOrder(sortOrder);
+	}
+
+	if (curState) { // Remove existing state to rearrange priority later
+		if (curOrder === nextOrder) {
+			this.updateSortSymbols(); // Update Display
+			return null; // Nothing has changed
+		}
+
+		this._sortStates.splice(priority, 1); // Remove sort states
+		this._clearSortSymbols(curState); // Clear any previous symbols
+		// TODO: Other states in curState should be cleared as it is actually a sortOptions object
+	}
+
+	if (nextOrder === "a" || nextOrder === "d") { // Reorder sort states
+		if (!curState) {
+			// TODO: Sort state object should not be sortOptions
+			curState = this._newSortOptions(colIndex); // This may come with sortLogic
+		}
+		
+		this._sortStates.push(curState); // Latest sorting have lowest priority (multiColumn sorting)
+	}
+	
+	if (curState) { // Update current state
+		if(curOrder !== "n") {
+			curState["prevOrder"] = curOrder; // For backward compatibility
+		} else {
+			delete curState["prevOrder"];
+		}
+		curState["order"] = nextOrder; // For backward compatibility
+		curState["sortOrder"] = nextOrder;
+	}
+
+	var clearedSortColIndexes = [];
+	if (this._maxCount &gt; 0) {
+		while (this._sortStates.length &gt; this._maxCount) { // Shift excess
+			var index = this._clearSortSymbols(this._sortStates.shift());
+			if (index !== null) {
+				clearedSortColIndexes.push(index);
+			}
+		}
+	}
+
+	return { // TODO: Refactor this code as it is only used by "columnSorted" event (unnecessarily complex).
+		"colIndex": colIndex,
+		"sortedField": sortingField,
+		"sortOrder": nextOrder || "n",
+		"prevOrder": curOrder,
+		"clearedSortColIndexes": clearedSortColIndexes
+	};
+};
+
+/** @private
+* @param {Array.&lt;Object&gt;} states States from _preSortColumn for dispatching columnSorted event.
+* @param {Object=} opt_arg Event argument to be sent with preDataSorting event
+* @fires tr.grid.SortableTitlePlugin#preDataSorting
+* @fires tr.grid.SortableTitlePlugin#columnSorted
+*/
+tr.grid.SortableTitlePlugin.prototype._sortColumn = function (states, opt_arg) {
+	this._sortDataView(opt_arg); // Update Data
+	this.updateSortSymbols(); // Update Display
+
+	var res = states[0] || {};
+	var len = states.length;
+	if (len &gt; 1) {
+		res["colIndices"] = new Array(len);
+		res["sortedFields"] = new Array(len);
+		res["sortOrders"] = new Array(len);
+		res["prevOrders"] = new Array(len);
+		for (var i = 0; i &lt; len; i++) {
+			var obj = states[i];
+			res["colIndices"][i] = obj["colIndex"];
+			res["sortedFields"][i] = obj["sortedField"];
+			res["sortOrders"][i] = obj["sortOrder"];
+			res["prevOrders"][i] = obj["prevOrder"];
+		}
+	}
+	this._dispatch(tr.res.columnSorted, res);
+};
+
+/** @override
+* @ignore
+*/
+tr.grid.SortableTitlePlugin.prototype._onColumnAdded = function (e) {
+	var t = this;
+	var colIndex = e["colIndex"];
+	var context = e["context"];
+	var col = t._prepareColumnOptions(colIndex, context);
+	var field = col["sortBy"] || col["field"];
+	var logic = col["sortLogic"] || t._sortLogic[field];
+
+
+	var sortingSequence = context ? context["sortingSequence"] : null;
+	if (sortingSequence != null &amp;&amp; field) { // Make sure that column config does not affect grid level config
+		t.setSortingSequence(sortingSequence, field);
+	}
+
+	if (col["sortable"]) {
+		t.setColumnSortingField(colIndex, field, typeof logic === "function" ? logic : null);
+	} else {
+		t.disableColumnSorting(colIndex, true);
+	}
+};
+
+/** @override
+* @ignore
+* @fires tr.grid.SortableTitlePlugin#preDataSorting
+* @fires tr.grid.SortableTitlePlugin#columnSorted
+*/
+tr.grid.SortableTitlePlugin.prototype._onColumnRemoved = function (e) {
+	if (!e["atTheMiddle"]) { return; }
+
+	var sortCount = this._sortStates.length;
+	if (!sortCount) {
+		return;
+	}
+	var colData = e["columnData"];
+	var sortOptions = colData ? colData["sortableTitle"] : null;
+	var sortOrder = sortOptions ? sortOptions["sortOrder"] : "";
+
+	// TODO: columnRemoved event could be fired repeatedly and triggers multiple sorts
+	if (sortOrder) {
+		var priority = this._sortStates.indexOf(sortOptions);
+		if (priority &gt;= 0) {
+			this._sortStates.splice(priority, 1);
+		}
+		this._clearSortSymbols(sortOptions);
+		this._sortDataView();
+	}
+};
+
+/** @private
+* @param {Object=} sortState
+* @return {string}
+*/
+tr.grid.SortableTitlePlugin._toRowDefField = function(sortState) {
+	return "ROW_DEF";
+};
+/** @private
+* @param {Object=} opt_action Action that raised the sort. This is optional
+* @fires tr.grid.SortableTitlePlugin#preDataSorting
+*/
+tr.grid.SortableTitlePlugin.prototype._sortDataView = function (opt_action) {
+	opt_action = opt_action || {};
+	this._dispatch("preDataSorting", opt_action);
+
+	if (!this._dataSorting) { return; }
+
+	var sortCount = this._sortStates.length;
+	var orders = null;
+	var sortLogics = null;
+	var c_ref = null;
+	if (sortCount) {
+		orders = new Array(sortCount);
+		sortLogics = new Array(sortCount);
+		for (var i = 0; i &lt; sortCount; ++i) {
+			orders[i] = this._sortStates[i]["sortOrder"];
+			sortLogics[i] = this._sortStates[i]["sortLogic"];
+		}
+		if(this._rowDefMode) { // DataView in real-time grid has only ROW_DEF column
+			c_ref = this._sortStates.map(tr.grid.SortableTitlePlugin._toRowDefField);
+		} else {
+			c_ref = this.getColumnSortingFields();
+		}
+	}
+
+	// Perform sorting even if there is no sort state
+	for (var j = this._hosts.length; --j &gt;= 0;) {
+		var host = this._hosts[j];
+		// TODO: In wrap mode all hosts does not need to be sorted
+		var dataSource = host.getDataSource();
+		if (dataSource) {
+			var noOptimization = opt_action["isUserAction"] == true;
+			dataSource.sort(c_ref, orders, sortLogics, noOptimization); // If length === 0 data is not sorted
+		}
+	}
+};
+/**`section` and `cell` variable in this scope can either be instance of LayoutGrid or SectionWriter (from tr-grid-printer).
+ * Need to force calling public methods (section["isColumnActive"] and section["getCell"]) so it works while being minified.
+ * @private
+* @param {Object} state
+* @return {number|null} The column index of cleared sort
+*/
+tr.grid.SortableTitlePlugin.prototype._clearSortSymbols = function (state) {
+	var cells = state["targetCells"];
+	if (!cells) {
+		return null;
+	}
+	var colIndex = null;
+	for (var j = cells.length; --j &gt;= 0;) {	// One single cell per host
+		var cell = cells[j];
+		cell["removeClass"]("sorting");
+		cell["removeClass"]("sortable");
+		cell["removeFloatingIcon"]("sort-symbol");
+		cell["removeFloatingIcon"]("priority-symbol");
+		var section;
+		if(colIndex === null &amp;&amp; (section = cell["getSection"]())) {
+			colIndex = section["getColumnIndex"](cell["getParent"]());
+		}
+	}
+	cells.length = 0;
+	return colIndex;
+};
+/**`section` and `cell` variable in this scope can either be instance of LayoutGrid or SectionWriter (from tr-grid-printer).
+ * Need to force calling public methods (section["getColumnCount"] and section["getCell"]) so it works while being minified.
+ * @private
+* @param {number} hostIndex
+*/
+tr.grid.SortableTitlePlugin.prototype._updateSortableIndicator = function (hostIndex) {
+	var t = this;
+	var host = t._hosts[hostIndex];
+	if (!host) { return; }
+
+	var section = host.getSection(tr.res.title);
+	if (section === null) { return; }
+
+	for (var col = section["getColumnCount"](); --col &gt;= 0;) {
+
+		var rowCount = section["getRowCount"]();
+		for (var r = 0; r &lt; rowCount; r++) {
+
+			var cell = section["getCell"](col, r, true);
+			if (!cell) { continue; }
+
+			// Clear all sorting icons
+			cell["removeClass"]("sorting");
+			cell["removeClass"]("sortable");
+			cell["removeFloatingIcon"]("sort-symbol");
+			cell["removeFloatingIcon"]("priority-symbol");
+			cell["removeFloatingIcon"]("sortable-indicator");
+
+			if (r !== rowCount -1) { continue; } // Sort icon should only appear in last row of section otherwise skip
+			if (!t._isCellSortable(section, col, r)) { continue; }
+
+			cell["addClass"]("sortable");
+
+			var priority = t._getColumnSortingStatePriority(col);
+			var state = t._sortStates[priority];
+
+			var isSorting = state &amp;&amp; state["sortOrder"] !== "n";
+			var textContent, icon, symbol;
+
+			if (isSorting) {
+				if (!state["targetCells"]) {
+					state["targetCells"] = [];
+				}
+
+				state["targetCells"][hostIndex] = cell; // NOTE: This can be improved.
+
+				if (state["sortOrder"] === "a") {
+					textContent = CODE_UP;
+					icon = tr.grid.SortableTitlePlugin._icons["ascending"];
+				} else {
+					textContent = CODE_DOWN;
+					icon = tr.grid.SortableTitlePlugin._icons["descending"];
+				}
+
+				symbol = t._createIconElem(icon, textContent);
+				symbol.className = "sort-symbol";
+
+				cell["addClass"]("sorting");
+				cell["insertFloatingIcon"](symbol, 0);
+
+				if (t._sortStates.length &gt; 1) {
+					symbol = document.createElement("span");
+					symbol.className = "priority-symbol";
+					symbol.textContent = priority + 1;
+					cell["insertFloatingIcon"](symbol, 1);
+				}
+			} else if (t._sortableIndicator) { // Can sort but currently not sorting
+				icon = tr.grid.SortableTitlePlugin._icons["sortable"];
+				symbol = t._createIconElem(icon, CODE_DIAMOND);
+				symbol.className = "sortable-indicator";
+				cell["insertFloatingIcon"](symbol, 0);
+			}
+		}
+	}
+};
+
+/** @private
+* @param {string} icon - valid elf icon name
+* @param {string} fallback - a fallback in case icon in not defined
+* @return {Element}
+*/
+tr.grid.SortableTitlePlugin.prototype._createIconElem = function (icon, fallback) {
+	var elem;
+	if (!icon || typeof icon !== "string") {
+		elem = document.createElement("span");
+		elem.textContent = fallback;
+	} else {
+		elem = document.createElement("ef-icon");
+		elem.setAttribute("icon", icon);
+	}
+	return elem;
+};
+
+/** @private
+ * @param {number} colIndex
+* @return {number} -1 means not found
+*/
+tr.grid.SortableTitlePlugin.prototype._getColumnSortingStatePriority = function (colIndex) {
+	var t = this;
+	for (var i = t._sortStates.length; --i &gt;= 0;) {
+		var col = t.getSortedColumnIndex(i);
+		if (col === colIndex) return i;
+	}
+	return -1;
+};
+
+/** @private
+* @param {number} colIndex
+* @return {Object}
+*/
+tr.grid.SortableTitlePlugin.prototype._getSortOptions = function (colIndex) {
+	var host = this._hosts[0];
+	if (host) {
+		var colData = host.getColumnData(colIndex);
+		if (colData) {
+			return colData["sortableTitle"];
+		}
+	}
+	return null;
+};
+/** @private
+* @param {number} colIndex
+* @return {!Object}
+*/
+tr.grid.SortableTitlePlugin.prototype._newSortOptions = function (colIndex) {
+	var host = this._hosts[0];
+	var sortOptions = null;
+	if (host &amp;&amp; colIndex &gt;= 0) {
+		var colData = host.getColumnData(colIndex);
+		if (!colData) {
+			colData = host.setColumnData(colIndex, {});
+		}
+		sortOptions = colData["sortableTitle"];
+		if (!sortOptions) {
+			sortOptions = colData["sortableTitle"] = {};
+		}
+	}
+	return sortOptions || {};
+};
+/** @private
+* @param {tr.ILayoutGrid} section
+* @param {number} colIndex
+* @param {number} rowIndex
+* @return {boolean}
+*/
+tr.grid.SortableTitlePlugin.prototype._isCellSortable = function (section, colIndex, rowIndex) {
+	var options = this._getSortOptions(colIndex);
+	if (options) {
+		if (options["disabled"]) {
+			return false;
+		}
+
+		var field = options["field"];
+		if (field !== undefined) {
+			if (!field) {
+				return false;
+			}
+		}
+	}
+
+	var targetCell = section["getCell"](colIndex, rowIndex, true);
+	if (targetCell.hasClass("no-sort")) {
+		return false; // The cell is not allowed for sorting
+	}
+	var bottomCell = section["getCell"](colIndex, section["getRowCount"]() - 1, true);
+	if (targetCell !== bottomCell) {
+		return false;
+	}
+
+	return true; // By default all cells are sortable
+};
+
+
+goog.exportSymbol("tr.grid.SortableTitlePlugin", tr.grid.SortableTitlePlugin);
+(function () {
+	var pt = tr.grid.SortableTitlePlugin.prototype;
+	var methodMap = {
+		"getName": pt.getName,
+		"initialize": pt.initialize,
+		"afterInit": pt.afterInit,
+		"unload": pt.unload,
+		"getConfigObject": pt.getConfigObject,
+		"getColumnMenu": pt.getColumnMenu,
+
+		"restoreUserActions": pt.restoreUserActions,
+
+		"setSortableColumnCount": pt.setSortableColumnCount,
+
+		"setSortLogic": pt.setSortLogic,
+		"setSortLogics": pt.setSortLogics,
+		"getDataColumnNames": pt.getDataColumnMap,
+		"setDataColumnNames": pt.setDataColumnMap,
+		"getDataColumnMap": pt.getDataColumnMap,
+		"setDataColumnMap": pt.setDataColumnMap,
+		"getColumnSortingField": pt.getColumnSortingField,
+		"setColumnSortingField": pt.setColumnSortingField,
+		"getColumnSortingFields": pt.getColumnSortingFields,
+
+		"getIcons": pt.getIcons,
+		"getSortOrder": pt.getSortOrder,
+		"getSortedColumnIndex": pt.getSortedColumnIndex,
+		"isColumnSorted": pt.isColumnSorted,
+		"getSortPriority": pt.getSortPriority,
+		"getSortedColumns": pt.getSortedColumns,
+		"getSortingStates": pt.getSortingStates,
+		"updateSortSymbols": pt.updateSortSymbols,
+
+		"sortColumn": pt.sortColumn,
+		"sortColumns": pt.sortColumns,
+		"clearSortState": pt.clearSortState,
+		"refresh": pt.refresh,
+
+		"setFirstSortOrder": pt.setFirstSortOrder,
+
+		"disableTwoStateSorting": pt.disableTwoStateSorting,
+		"disableSortSymbols": pt.disableSortSymbols,
+		"disableDataSorting": pt.disableDataSorting,
+		"disableCellClick": pt.disableCellClick,
+		"disableColumnSorting": pt.disableColumnSorting,
+		"disableDoubleClickToSort": pt.disableDoubleClickToSort,
+
+		"setClickDelayInterval": pt.setClickDelayInterval,
+		
+		"getSortingSequence": pt.getSortingSequence,
+		"setSortingSequence": pt.setSortingSequence,
+		"clearAllColumnSortingSequences": pt.clearAllColumnSortingSequences
+	};
+	// Export methods for Closure's advanced compilation
+	for (var methodName in methodMap) {
+		goog.exportProperty(pt, methodName, methodMap[methodName]);
+	}
+})();
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="AdFin.html">AdFin</a></li><li><a href="DateTime.html">DateTime</a></li><li><a href="Info.html">Info</a></li><li><a href="Logic.html">Logic</a></li><li><a href="Math.html">Math</a></li><li><a href="Realtime.html">Realtime</a></li><li><a href="Statistic.html">Statistic</a></li><li><a href="Text.html">Text</a></li><li><a href="tr.ElementFrameWork.html">ElementFrameWork</a></li><li><a href="tr.PipDefinition.html">PipDefinition</a></li></ul><h3>Classes</h3><ul><li><a href="tr.ADCSubscription.html">ADCSubscription</a></li><li><a href="tr.AdFinSubscription.html">AdFinSubscription</a></li><li><a href="tr.cgrid.editor.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.filter.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.formatter.AsyncFormatter.html">AsyncFormatter</a></li><li><a href="tr.cgrid.formatter.CheckBox.html">CheckBox</a></li><li><a href="tr.cgrid.formatter.UpDownColor.html">UpDownColor</a></li><li><a href="tr.ColumnStats.html">ColumnStats</a></li><li><a href="tr.CompositeGrid.html">CompositeGrid</a></li><li><a href="tr.DataCache.html">DataCache</a></li><li><a href="tr.DataTable.html">DataTable</a></li><li><a href="tr.DataView.html">DataView</a></li><li><a href="tr.DropDown.html">DropDown</a></li><li><a href="tr.ElementControl.html">ElementControl</a></li><li><a href="tr.ElementWrapper.html">ElementWrapper</a></li><li><a href="tr.Event.html">Event</a></li><li><a href="tr.EventDispatcher.html">EventDispatcher</a></li><li><a href="tr.EventDispatcher.extendClass-tempCtor.html">tempCtor</a></li><li><a href="tr.EventManager.html">EventManager</a></li><li><a href="tr.FieldFormatter.html">FieldFormatter</a></li><li><a href="tr.fn.Engine.html">Engine</a></li><li><a href="tr.fn.Formula.html">Formula</a></li><li><a href="tr.fn.VariableToken.html">VariableToken</a></li><li><a href="tr.Grid.html">Grid</a></li><li><a href="tr.grid.BidOfferSpan.html">BidOfferSpan</a></li><li><a href="tr.grid.Blinker.html">Blinker</a></li><li><a href="tr.grid.Cell.html">Cell</a></li><li><a href="tr.grid.CellBlinkingPlugin.html">CellBlinkingPlugin</a></li><li><a href="tr.grid.CellEditingPlugin.html">CellEditingPlugin</a></li><li><a href="tr.grid.CellFloatingPanel.html">CellFloatingPanel</a></li><li><a href="tr.grid.CellPainter.html">CellPainter</a></li><li><a href="tr.grid.CellSpan.html">CellSpan</a></li><li><a href="tr.grid.CellSpans.html">CellSpans</a></li><li><a href="tr.grid.CellWriter.html">CellWriter</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html">CheckboxColumnPlugin</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html">CollapsibleHeaderPlugin</a></li><li><a href="tr.grid.ColumnFilterPlugin.html">ColumnFilterPlugin</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html">ColumnGroupingPlugin</a></li><li><a href="tr.grid.ColumnSelectionPlugin.html">ColumnSelectionPlugin</a></li><li><a href="tr.grid.ColumnStackingPlugin.html">ColumnStackingPlugin</a></li><li><a href="tr.grid.ColumnWidthAdjustingPlugin.html">ColumnWidthAdjustingPlugin</a></li><li><a href="tr.grid.Conflator.html">Conflator</a></li><li><a href="tr.grid.DataSourceTreePlugin.html">DataSourceTreePlugin</a></li><li><a href="tr.grid.DirectContentBindingPlugin.html">DirectContentBindingPlugin</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html">DragAndDropTitlePlugin</a></li><li><a href="tr.grid.DraggableContentPlugin.html">DraggableContentPlugin</a></li><li><a href="tr.grid.FindBar.html">FindBar</a></li><li><a href="tr.grid.FindBarPlugin.html">FindBarPlugin</a></li><li><a href="tr.grid.GroupStatisticsPlugin.html">GroupStatisticsPlugin</a></li><li><a href="tr.grid.HeatMapRenderer.html">HeatMapRenderer</a></li><li><a href="tr.grid.HScrollbar.html">HScrollbar</a></li><li><a href="tr.grid.IndexMarker.html">IndexMarker</a></li><li><a href="tr.grid.MovableHeaderPlugin.html">MovableHeaderPlugin</a></li><li><a href="tr.grid.NumberFormatter.html">NumberFormatter</a></li><li><a href="tr.grid.PercentBar.html">PercentBar</a></li><li><a href="tr.grid.PercentBarRenderer.html">PercentBarRenderer</a></li><li><a href="tr.grid.Plugin.html">Plugin</a></li><li><a href="tr.grid.RangeBar.html">RangeBar</a></li><li><a href="tr.grid.ResizableTitlePlugin.html">ResizableTitlePlugin</a></li><li><a href="tr.grid.Reverter.html">Reverter</a></li><li><a href="tr.grid.RowHeightAdjustingPlugin.html">RowHeightAdjustingPlugin</a></li><li><a href="tr.grid.RowSelectionPlugin.html">RowSelectionPlugin</a></li><li><a href="tr.grid.Scrollbar.html">Scrollbar</a></li><li><a href="tr.grid.SectionSettings.html">SectionSettings</a></li><li><a href="tr.grid.SmartTooltipsPlugin.html">SmartTooltipsPlugin</a></li><li><a href="tr.grid.SortableTitlePlugin.html">SortableTitlePlugin</a></li><li><a href="tr.grid.TreeIndentingPlugin.html">TreeIndentingPlugin</a></li><li><a href="tr.grid.Virtualizer.html">Virtualizer</a></li><li><a href="tr.grid.VScrollbar.html">VScrollbar</a></li><li><a href="tr.grid.ZoomPlugin.html">ZoomPlugin</a></li><li><a href="tr.HttpRequest.html">HttpRequest</a></li><li><a href="tr.IntervalSubscription.html">IntervalSubscription</a></li><li><a href="tr.LayoutGrid.html">LayoutGrid</a></li><li><a href="tr.ListMenu.html">ListMenu</a></li><li><a href="tr.MenuItem.html">MenuItem</a></li><li><a href="tr.MockArchive.html">MockArchive</a></li><li><a href="tr.MockJET.html">MockJET</a></li><li><a href="tr.MockQuotes.html">MockQuotes</a></li><li><a href="tr.MockQuotes2.html">MockQuotes2</a></li><li><a href="tr.MockSubscription.html">MockSubscription</a></li><li><a href="tr.MockSubscriptions.html">MockSubscriptions</a></li><li><a href="tr.Popup.html">Popup</a></li><li><a href="tr.PopupMenu.html">PopupMenu</a></li><li><a href="tr.PrintTrait.html">PrintTrait</a></li><li><a href="tr.RequestQueue.html">RequestQueue</a></li><li><a href="tr.Segment.html">Segment</a></li><li><a href="tr.SegmentCollection.html">SegmentCollection</a></li><li><a href="tr.TSISubscription.html">TSISubscription</a></li></ul><h3>Interfaces</h3><ul><li><a href="tr.cgrid.ICompositeExtension.html">ICompositeExtension</a></li><li><a href="tr.grid.IPlugin.html">IPlugin</a></li><li><a href="tr.IElementControl.html">IElementControl</a></li><li><a href="tr.ILayoutGrid.html">ILayoutGrid</a></li></ul><h3>Events</h3><ul><li><a href="tr.CompositeGrid.html#event:cellClicked">cellClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellDblClicked">cellDblClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellMouseDown">cellMouseDown</a></li><li><a href="tr.CompositeGrid.html#event:cellRightClicked">cellRightClicked</a></li><li><a href="tr.CompositeGrid.html#event:columnSorted">columnSorted</a></li><li><a href="tr.CompositeGrid.html#event:editorAttached">editorAttached</a></li><li><a href="tr.CompositeGrid.html#event:editorDetached">editorDetached</a></li><li><a href="tr.CompositeGrid.html#event:filterAdded">filterAdded</a></li><li><a href="tr.CompositeGrid.html#event:filterCleared">filterCleared</a></li><li><a href="tr.CompositeGrid.html#event:filterModified">filterModified</a></li><li><a href="tr.CompositeGrid.html#event:filterRemoved">filterRemoved</a></li><li><a href="tr.CompositeGrid.html#event:mouseLeaveCell">mouseLeaveCell</a></li><li><a href="tr.CompositeGrid.html#event:mouseOverCell">mouseOverCell</a></li><li><a href="tr.CompositeGrid.html#event:pageChanged">pageChanged</a></li><li><a href="tr.CompositeGrid.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.DataCache.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataCache.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataTable.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataTable.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataView.html#event:beforeFiltering">beforeFiltering</a></li><li><a href="tr.DataView.html#event:beforeGroupAdded">beforeGroupAdded</a></li><li><a href="tr.DataView.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataView.html#event:groupAdded">groupAdded</a></li><li><a href="tr.DataView.html#event:groupCriteriaChanged">groupCriteriaChanged</a></li><li><a href="tr.DataView.html#event:pageCountChanged">pageCountChanged</a></li><li><a href="tr.DataView.html#event:pageIndexChanged">pageIndexChanged</a></li><li><a href="tr.DataView.html#event:preDisposed">preDisposed</a></li><li><a href="tr.Formula.html#event:dataCacheChanged">dataCacheChanged</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:cancelled">cancelled</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:change">change</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:closed">closed</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:editorOpened">editorOpened</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:preEditorOpening">preEditorOpening</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:click">click</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:columnCollapsed">columnCollapsed</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:groupChanged">groupChanged</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:render">render</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:columnMoved">columnMoved</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:drag">drag</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragEnd">dragEnd</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragStart">dragStart</a></li><li><a href="tr.grid.FindBarPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:groupMoved">groupMoved</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:sectionMoved">sectionMoved</a></li><li><a href="tr.grid.RowSelectionPlugin.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:columnSorted">columnSorted</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preClicked">preClicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preDataSorting">preDataSorting</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.Grid.html#event:columnAdded">columnAdded</a></li><li><a href="tr.Grid.html#event:columnAlignmentChanged">columnAlignmentChanged</a></li><li><a href="tr.Grid.html#event:columnRemoved">columnRemoved</a></li><li><a href="tr.Grid.html#event:columnVisibilityChanged">columnVisibilityChanged</a></li><li><a href="tr.Grid.html#event:dataSourceChanged">dataSourceChanged</a></li><li><a href="tr.Grid.html#event:postSectionDataBinding">postSectionDataBinding</a></li><li><a href="tr.Grid.html#event:rowExpansionBinding">rowExpansionBinding</a></li><li><a href="tr.Grid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Grid.html#event:sectionAdded">sectionAdded</a></li><li><a href="tr.Grid.html#event:widthChanged">widthChanged</a></li><li><a href="tr.HttpRequest.html#event:abort">abort</a></li><li><a href="tr.HttpRequest.html#event:error">error</a></li><li><a href="tr.HttpRequest.html#event:load">load</a></li><li><a href="tr.HttpRequest.html#event:loadend">loadend</a></li><li><a href="tr.HttpRequest.html#event:loadstart">loadstart</a></li><li><a href="tr.HttpRequest.html#event:timeout">timeout</a></li><li><a href="tr.IElementControl.html#event:blur">blur</a></li><li><a href="tr.IElementControl.html#event:change">change</a></li><li><a href="tr.IElementControl.html#event:click">click</a></li><li><a href="tr.IElementControl.html#event:contextmenu">contextmenu</a></li><li><a href="tr.IElementControl.html#event:dblclick">dblclick</a></li><li><a href="tr.IElementControl.html#event:drag">drag</a></li><li><a href="tr.IElementControl.html#event:dragend">dragend</a></li><li><a href="tr.IElementControl.html#event:dragenter">dragenter</a></li><li><a href="tr.IElementControl.html#event:dragleave">dragleave</a></li><li><a href="tr.IElementControl.html#event:dragover">dragover</a></li><li><a href="tr.IElementControl.html#event:dragstart">dragstart</a></li><li><a href="tr.IElementControl.html#event:drop">drop</a></li><li><a href="tr.IElementControl.html#event:focus">focus</a></li><li><a href="tr.IElementControl.html#event:formchange">formchange</a></li><li><a href="tr.IElementControl.html#event:forminput">forminput</a></li><li><a href="tr.IElementControl.html#event:input">input</a></li><li><a href="tr.IElementControl.html#event:invalid">invalid</a></li><li><a href="tr.IElementControl.html#event:keydown">keydown</a></li><li><a href="tr.IElementControl.html#event:keypress">keypress</a></li><li><a href="tr.IElementControl.html#event:keyup">keyup</a></li><li><a href="tr.IElementControl.html#event:mousedown">mousedown</a></li><li><a href="tr.IElementControl.html#event:mousemove">mousemove</a></li><li><a href="tr.IElementControl.html#event:mouseout">mouseout</a></li><li><a href="tr.IElementControl.html#event:mouseover">mouseover</a></li><li><a href="tr.IElementControl.html#event:mouseup">mouseup</a></li><li><a href="tr.IElementControl.html#event:mousewheel">mousewheel</a></li><li><a href="tr.IElementControl.html#event:reset">reset</a></li><li><a href="tr.IElementControl.html#event:scroll">scroll</a></li><li><a href="tr.IElementControl.html#event:select">select</a></li><li><a href="tr.IElementControl.html#event:submit">submit</a></li><li><a href="tr.ILayoutGrid.html#event:blur">blur</a></li><li><a href="tr.ILayoutGrid.html#event:change">change</a></li><li><a href="tr.ILayoutGrid.html#event:click">click</a></li><li><a href="tr.ILayoutGrid.html#event:contextmenu">contextmenu</a></li><li><a href="tr.ILayoutGrid.html#event:dblclick">dblclick</a></li><li><a href="tr.ILayoutGrid.html#event:drag">drag</a></li><li><a href="tr.ILayoutGrid.html#event:dragend">dragend</a></li><li><a href="tr.ILayoutGrid.html#event:dragenter">dragenter</a></li><li><a href="tr.ILayoutGrid.html#event:dragleave">dragleave</a></li><li><a href="tr.ILayoutGrid.html#event:dragover">dragover</a></li><li><a href="tr.ILayoutGrid.html#event:dragstart">dragstart</a></li><li><a href="tr.ILayoutGrid.html#event:drop">drop</a></li><li><a href="tr.ILayoutGrid.html#event:focus">focus</a></li><li><a href="tr.ILayoutGrid.html#event:formchange">formchange</a></li><li><a href="tr.ILayoutGrid.html#event:forminput">forminput</a></li><li><a href="tr.ILayoutGrid.html#event:input">input</a></li><li><a href="tr.ILayoutGrid.html#event:invalid">invalid</a></li><li><a href="tr.ILayoutGrid.html#event:keydown">keydown</a></li><li><a href="tr.ILayoutGrid.html#event:keypress">keypress</a></li><li><a href="tr.ILayoutGrid.html#event:keyup">keyup</a></li><li><a href="tr.ILayoutGrid.html#event:mousedown">mousedown</a></li><li><a href="tr.ILayoutGrid.html#event:mousemove">mousemove</a></li><li><a href="tr.ILayoutGrid.html#event:mouseout">mouseout</a></li><li><a href="tr.ILayoutGrid.html#event:mouseover">mouseover</a></li><li><a href="tr.ILayoutGrid.html#event:mouseup">mouseup</a></li><li><a href="tr.ILayoutGrid.html#event:mousewheel">mousewheel</a></li><li><a href="tr.ILayoutGrid.html#event:reset">reset</a></li><li><a href="tr.ILayoutGrid.html#event:scroll">scroll</a></li><li><a href="tr.ILayoutGrid.html#event:select">select</a></li><li><a href="tr.ILayoutGrid.html#event:submit">submit</a></li><li><a href="tr.LayoutGrid.html#event:rowCountChanged">rowCountChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHeightChanged">rowHeightChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Popup.html#event:hidden">hidden</a></li><li><a href="tr.Popup.html#event:shown">shown</a></li><li><a href="tr.PopupMenu.html#event:hidden">hidden</a></li><li><a href="tr.PopupMenu.html#event:shown">shown</a></li><li><a href="tr.PrintTrait.html#event:afterprint">afterprint</a></li><li><a href="tr.PrintTrait.html#event:beforeprint">beforeprint</a></li><li><a href="tr.PrintTrait.html#event:pageCounting">pageCounting</a></li></ul><h3>Global</h3><ul><li><a href="global.html#cellRef%255Bundefined%255D">cellRef[undefined]</a></li><li><a href="global.html#e%255Bundefined%255D">e[undefined]</a></li><li><a href="global.html#.textContent">.textContent</a></li><li><a href="global.html#get">get</a></li><li><a href="global.html#input%255Bundefined%255D">input[undefined]</a></li><li><a href="global.html#q%255Bundefined%255D">q[undefined]</a></li><li><a href="global.html#sortingDef%255B1%255D">sortingDef[1]</a></li></ul>
+</nav>
+
+
+<script src="scripts/linenumber.js"> </script>
+<script src="scripts/prettify.js"> </script>
+<script> prettyPrint(); </script>
+</body>
+</html>

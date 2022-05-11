@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: grid/util/CellPainter.js</title>
+
+    <script src="scripts/prettify.js"> </script>
+    <script src="scripts/lang-css.js"> </script>
+    <!--[if lt IE 9]&gt;
+      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
+    &lt;![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/default.css">
+    <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
+</head>
+
+<body>
+
+<div id="main-template" class="elf-template">
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>goog.provide("tr.grid.CellPainter");
+
+goog.require("tr.IElementControl");
+
+/** @typedef {Object} CellPainter~EXPRESSION
+ * @property {string=} name
+ * @property {string} text Text describes condition e.g. [FIELD] &gt; 10
+ * @property {Array=} values
+ */
+tr.grid.EXPRESSION;
+
+/** @typedef {Object} CellPainter~CONDITION
+ * @property {string} field Field to be used in the condition
+ * @property {CellPainter~EXPRESSION|string} expression Text describes condition e.g. [FIELD] &gt; 10
+ * @property {string=} backgroundColor CSS color string
+ * @property {string=} color CSS color string
+ * @property {string=} fontSize
+ * @property {string=} fontWeight 
+ * @property {string=} fontStyle
+ * @property {string=} textAlign
+ * @property {string=} textDecoration 
+ */
+tr.grid.CONDITION;
+
+/** @typedef {Object} CellPainter~BASED_FIELD
+* @description Theme colors in hex format. All of the values are optional
+* @property {string=} field
+* @property {string=} src
+*/
+tr.grid.BASED_FIELD;
+
+/** @constructor
+ */
+tr.grid.CellPainter = function() {
+	this._conditions = [];
+	this._scopes = {};
+	
+	tr.grid.CellPainter._painters.push(this); // For later referencing
+};
+
+/**
+ * Enum for coloring types.
+ * @enum {number}
+ */
+tr.grid.CellPainter.ColoringTypes = {
+	TEXT: 1,
+	HEATMAP: 2,
+	CONDITIONAL: 3
+};
+
+/** @private
+ * @type {tr.grid.CellPainter.ColoringTypes}
+ */
+tr.grid.CellPainter.prototype._coloringType = tr.grid.CellPainter.ColoringTypes.TEXT; // CellPainter can only have one type of coloring
+/** @private
+ * @type {Array.&lt;Object&gt;}
+ */
+tr.grid.CellPainter.prototype._conditions = null;
+/** @private
+ * @type {Object}
+ */
+tr.grid.CellPainter.prototype._blinkCondition = null;
+/** @private
+ * @type {Object}
+ */
+tr.grid.CellPainter.prototype._scopes = null;
+/** @private
+ * @type {number}
+ */
+tr.grid.CellPainter.prototype._runningId = 0;
+
+
+/** @private
+ * @const
+ * @type {Array.&lt;tr.grid.CellPainter&gt;}
+ */
+tr.grid.CellPainter._painters = [];
+
+/** @public
+ * @const
+ * @description Colors for theme
+ * @type {Object}
+ */
+tr.grid.CellPainter.colors = { // Default theme of Charcoal + American
+	"up": "#39C46E",
+	"down": "#F5475B",
+	"level": "#C2C2C2",
+	"tickUp": "#39C46E",
+	"tickDown": "#F5475B",
+	"baseGrid": "#1A1A1C",
+	"baseText": "#C2C2C2"
+};
+
+/** @private
+ * @type {Object}
+ */
+tr.grid.CellPainter.highlightColors = {};
+
+/** @private
+* @const
+* @type {!Array}
+*/
+tr.grid.CellPainter._emptyAry = [];
+/** @private
+* @const
+* @type {!Object}
+*/
+tr.grid.CellPainter._emptyObj = {};
+/** @private
+* @const
+* @type {!Object}
+*/
+tr.grid.CellPainter._bgObj = {"backgroundColor": "", "color": ""};
+/** @private
+* @const
+* @type {!Object}
+*/
+tr.grid.CellPainter._colorObj = {"color": ""};
+/** @private
+ * @const
+ * @type {!Array.&lt;string&gt;}
+ */
+tr.grid.CellPainter._bgStyles = ["backgroundColor", "color"];
+/** @private
+ * @const
+ * @type {!Array.&lt;string&gt;}
+ */
+tr.grid.CellPainter._nonBgStyles = ["fontSize", "fontWeight", "fontStyle", "textAlign", "textDecoration"];
+/** @private
+ * @const
+ * @type {!Array.&lt;string&gt;}
+ */
+tr.grid.CellPainter._supportedStyles = tr.grid.CellPainter._bgStyles.concat(tr.grid.CellPainter._nonBgStyles);
+
+
+//#region Public Methods
+/** @public
+ */
+tr.grid.CellPainter.prototype.dispose = function() {
+	var at = tr.grid.CellPainter._painters.indexOf(this);
+	if(at &gt;= 0) {
+		tr.grid.CellPainter._painters.splice(at, 1);
+	}
+	this.reset(); // Restore all styles and clear all blink timers
+	
+	this._conditions = null;
+	this._scopes = null;
+
+	this._blinkCondition = null;
+};
+/** @public
+ */
+tr.grid.CellPainter.prototype.reset = function() {
+	this._conditions.length = 0;
+	this._coloringType = /** @type{tr.grid.CellPainter.ColoringTypes} */(0);
+
+	if(this._scopes) {
+		for(var key in this._scopes) {
+			var scope = this._scopes[key];
+			if(tr.grid.CellPainter._clearBlinkTimer(scope)) {
+				this._blinkCondition._restorer(scope);
+			}
+			var cell = scope["cell"];
+			delete cell["blinking"]; // Delete cell blinking scope
+
+			scope["cell"] = null;
+			scope["styles"] = null;
+			delete this._scopes[key];
+		}
+	}
+
+	this._blinkCondition = null;
+};
+/** @public
+ */
+tr.grid.CellPainter.prototype.applyThemeColor = function() {
+	var colors = tr.grid.CellPainter.colors;
+	var cond = this._conditions[0]; // Heatmap, color text condition must be the first
+	if(cond) {
+		if(this._coloringType === tr.grid.CellPainter.ColoringTypes.HEATMAP) { // Heatmap uses grid color to blend the result color
+			if(cond["textMode"]) {
+				cond["baseColor"] = colors["baseText"];
+			} else {
+				cond["baseColor"] = colors["baseGrid"];
+			}
+		}
+		if(cond["useThemeColor"]) { // Only heatmap and colorText painters use theme color
+			if(this._coloringType === tr.grid.CellPainter.ColoringTypes.HEATMAP || this._coloringType === tr.grid.CellPainter.ColoringTypes.TEXT) {
+				var up, down;
+				if(this._coloringType === tr.grid.CellPainter.ColoringTypes.TEXT &amp;&amp; cond["field"] === "CF_TICK") {
+					up = colors["tickUp"];
+					down = colors["tickDown"];
+				} else {
+					up = colors["up"];
+					down = colors["down"];
+				}
+				var level = (colors["level"] === colors["baseText"]) ? "" : colors["level"];
+				tr.grid.CellPainter._setUpDownColors(cond, up, down, level);
+			}
+		}
+	}
+	
+	if(this._blinkCondition) {
+		tr.grid.CellPainter._setUpDownColors(this._blinkCondition, colors["up"], colors["down"], colors["level"]);
+	}
+};
+/** Used by monitor saving
+ * @public
+ * @return {Array.&lt;Object&gt;}
+ */
+tr.grid.CellPainter.prototype.getConditions = function() {
+	return this._conditions;
+};
+/** Used by monitor saving
+ * @public
+ * @description Returns the coloring type ("text", "heatmap", "conditional")
+ * @return {tr.grid.CellPainter.ColoringTypes}
+ */
+tr.grid.CellPainter.prototype.getColoringType = function() {
+	return this._coloringType;
+};
+/** @public
+ * @param {Array.&lt;tr.grid.CONDITION&gt;} conditions
+ */
+tr.grid.CellPainter.prototype.setConditions = function(conditions) {
+	this._conditions.length = 0;
+	var len = conditions.length;
+	for (var i = 0; i &lt; len; i++) {
+		this._addCondition(conditions[i]);
+	}
+	
+	this._coloringType = tr.grid.CellPainter.ColoringTypes.CONDITIONAL;
+};
+/** @public
+ * @param {tr.grid.CONDITION|Object} condition
+ */
+tr.grid.CellPainter.prototype._addCondition = function(condition) {
+	var exp = condition["expression"];
+	condition._fn = tr.parseRowCondition(exp["text"] || exp);
+	this._conditions.push(condition);
+	return condition;
+};
+/** @public
+ * @param {string} field
+ * @param {number} midPoint
+ * @param {string} upColor
+ * @param {string} downColor
+ * @param {string} baseColor
+ * @param {string|boolean=} opt_textMode
+ * @return {!Object}
+ */
+tr.grid.CellPainter.prototype.addHeatmap = function(field, midPoint, upColor, downColor, baseColor, opt_textMode) {
+	if(this._coloringType !== tr.grid.CellPainter.ColoringTypes.HEATMAP) { // We can only have one type of coloring
+		this._conditions.length = 0; // TODO: Restore cell styles before clearing condition
+		this._coloringType = tr.grid.CellPainter.ColoringTypes.HEATMAP;
+	}
+	
+	var condition = {};
+	condition["heatmap"] = true;
+	condition["field"] = field;
+	condition["expression"] = tr.grid.CellPainter._heatMapCondition.bind(condition);
+	condition["midPoint"] = midPoint;
+	tr.grid.CellPainter._setUpDownColors(condition, upColor, downColor);
+	
+	condition["baseColor"] = baseColor;
+	if(opt_textMode === true || opt_textMode === "text") {
+		condition["textMode"] = true;
+	}
+
+	this._addCondition(condition);
+	return condition;
+};
+/** @public
+ * @param {string} field
+ * @param {number} midPoint
+ * @param {string|boolean=} opt_textMode
+ * @return {!Object}
+ */
+tr.grid.CellPainter.prototype.addHeatmapWithTheme = function(field, midPoint, opt_textMode) {
+	var colors = tr.grid.CellPainter.colors;
+	var condition = this.addHeatmap(field, midPoint, colors["up"], colors["down"], colors["baseGrid"], opt_textMode);
+	
+	if(opt_textMode === true || opt_textMode === "text") {
+		condition["baseColor"] = colors["baseText"];
+	}
+	condition["useThemeColor"] = true;
+	return condition;
+};
+/** @public
+ * @param {string} field
+ * @param {string} upColor
+ * @param {string} downColor
+ * @param {string} levelColor
+ * @return {!Object}
+ */
+tr.grid.CellPainter.prototype.addColorText = function(field, upColor, downColor, levelColor) {
+	if(this._coloringType !== tr.grid.CellPainter.ColoringTypes.TEXT) { // We can only have one type of coloring
+		this._conditions.length = 0; // TODO: Restore cell styles before clearing condition
+		this._coloringType = tr.grid.CellPainter.ColoringTypes.TEXT;
+	}
+	
+	var condition = {};
+	condition["field"] = field;
+	condition["expression"] = tr.grid.CellPainter._colorTextCondition.bind(condition);
+	tr.grid.CellPainter._setUpDownColors(condition, upColor, downColor, levelColor);
+
+	this._addCondition(condition);
+	return condition;
+};
+/** @public
+ * @param {string} field
+ * @return {!Object}
+ */
+tr.grid.CellPainter.prototype.addColorTextWithTheme = function(field) {
+	var colors = tr.grid.CellPainter.colors;
+	var condition = this.addColorText(field, 
+		colors["up"], 
+		colors["down"], 
+		(colors["level"] === colors["baseText"]) ? "" : colors["level"]
+	);
+	
+	condition["useThemeColor"] = true;
+	return condition;
+};
+/** @public
+ * @param {string} upColor
+ * @param {string} downColor
+ * @param {string} levelColor
+ * @return {!Object}
+ */
+tr.grid.CellPainter.prototype.addTickColorText = function(upColor, downColor, levelColor) {
+	if(this._coloringType !== tr.grid.CellPainter.ColoringTypes.TEXT) { // We can only have one type of coloring
+		this._conditions.length = 0; // TODO: Restore cell styles before clearing condition
+		this._coloringType = tr.grid.CellPainter.ColoringTypes.TEXT;
+	}
+	var condition = {};
+	condition["field"] = "CF_TICK";
+	condition["expression"] = tr.grid.CellPainter._tickColorTextCondition.bind(condition);
+	tr.grid.CellPainter._setUpDownColors(condition, upColor, downColor, levelColor);
+
+	this._addCondition(condition);
+	return condition;
+};
+/** @public
+ * @return {!Object}
+ */
+tr.grid.CellPainter.prototype.addTickColorTextWithTheme = function() {
+	var colors = tr.grid.CellPainter.colors;
+	var condition = this.addTickColorText(colors["tickUp"], colors["tickDown"], colors["level"]);
+	condition["useThemeColor"] = true;
+	return condition;
+};
+/** @public
+ * @param {string} upColor
+ * @param {string} downColor
+ * @param {string} levelColor
+ * @param {string|boolean=} opt_border
+ * @return {!Object}
+ */
+tr.grid.CellPainter.prototype.addTickBlink = function(upColor, downColor, levelColor, opt_border) {
+	var condition = {};
+	condition["blink"] = true;
+	condition["field"] = "CF_TICK";
+	condition["expression"] = tr.grid.CellPainter._tickBlinkCondition.bind(condition);
+	tr.grid.CellPainter._setUpDownColors(condition, upColor, downColor, levelColor);
+	tr.grid.CellPainter._setBlinkRestorer(condition, opt_border);
+	
+	// condition.color = levelColor;
+	condition._fn = condition["expression"];
+
+	this._blinkCondition = condition;
+	return condition;
+};
+/** @public
+ * @param {string|boolean=} opt_border
+ * @return {!Object}
+ */
+tr.grid.CellPainter.prototype.addTickBlinkWithTheme = function(opt_border) {
+	var colors = tr.grid.CellPainter.colors;
+	var condition = this.addTickBlink(colors["tickUp"], colors["tickDown"], colors["level"], opt_border);
+	condition["useThemeColor"] = true;
+	return condition;
+};
+/** @public
+ * @param {string} field
+ * @param {string} upColor
+ * @param {string} downColor
+ * @param {string} levelColor
+ * @param {string|boolean=} opt_border
+ * @return {!Object}
+ */
+tr.grid.CellPainter.prototype.addBlink = function(field, upColor, downColor, levelColor, opt_border) {
+	var condition = {};
+	condition["blink"] = true;
+	condition["field"] = field;
+	condition["expression"] = tr.grid.CellPainter._fieldBlinkCondition.bind(condition);
+	tr.grid.CellPainter._setUpDownColors(condition, upColor, downColor, levelColor);
+	tr.grid.CellPainter._setBlinkRestorer(condition, opt_border);
+	// condition.color = levelColor;
+	condition._fn = condition["expression"];
+
+	this._blinkCondition = condition;
+	return condition;
+};
+/** @public
+ * @param {string} field
+ * @param {string|boolean=} opt_border
+ * @return {!Object}
+ */
+tr.grid.CellPainter.prototype.addBlinkWithTheme = function(field, opt_border) {
+	var colors = tr.grid.CellPainter.colors;
+	var condition = this.addBlink(field, colors["up"], colors["down"], colors["level"], opt_border);
+	condition["useThemeColor"] = true;
+	return condition;
+};
+/** WARNING: This method is called very often and the performance is very critical here
+ * @public
+ * @param {tr.IElementControl} cell
+ * @param {Object} rowData e.g. { PCTCHNG: 0.53, CF_NETCHNG: 0.75 }
+ * @param {number} min
+ * @param {number} max
+ * @param {Object=} opt_changedCols
+ * @param {number=} opt_rowColorType
+ * @param {Array=} opt_excludeColoringTypes
+ */
+tr.grid.CellPainter.prototype.render = function(cell, rowData, min, max, opt_changedCols, opt_rowColorType, opt_excludeColoringTypes) {
+	if(!cell) {
+		return;
+	}
+	var elem = cell.getElement();
+	if(!elem) {
+		return; // Cell has been disposed
+	}
+	var styles = this._getStyles(rowData, min, max, opt_excludeColoringTypes);
+	var highlight ={};
+	if (opt_rowColorType){
+		highlight = tr.grid.CellPainter.highlightColors[opt_rowColorType-1];
+		//styles["color"] = highlight["color"];
+		//styles["backgroundColor"] = highlight["backgroundColor"];
+	}
+	var bc = this._blinkCondition;
+	var bgBlinking = false;
+	if(bc) {
+		var scope = cell["blinking"];
+		if(!scope) {
+			scope = {};
+			scope["id"] = this._runningId++;
+			scope["cell"] = cell;
+			this._scopes[scope["id"]] = scope;
+			cell["blinking"] = scope;
+		}
+
+		var blinkSignal = bc._fn(rowData, opt_changedCols, scope);
+		if(blinkSignal || blinkSignal === 0) {
+			tr.grid.CellPainter._clearBlinkTimer(scope);
+
+			var blinkColor;
+			if(blinkSignal &gt; 0) {
+				blinkColor = bc["upColor"];
+			} else if(blinkSignal &lt; 0) {
+				blinkColor = bc["downColor"];
+			} else {
+				blinkColor = bc["levelColor"];
+			}
+
+			// WARNING: Colors are immediately applied to the element
+			if(bc["border"]) {
+				elem.style.border = "1px solid " + blinkColor;
+			} else {
+				var triplet = tr.grid.CellPainter.hex2Num(blinkColor);
+				elem.style.backgroundColor = blinkColor;
+				elem.style.color = tr.grid.CellPainter.blackAndWhite(triplet);
+			}
+
+			scope["blinkTimer"] = setTimeout(bc._restorer.bind(null, scope), 250);
+		}
+		
+		if(!bc["border"] &amp;&amp; scope["blinkTimer"]) { // Blinking is active
+			bgBlinking = true;
+			scope["color"] = highlight["color"] || styles["color"]; // For restoration of original color
+			scope["backgroundColor"] = highlight["backgroundColor"] || styles["backgroundColor"];
+		}
+	}
+
+	// Skip backgroundColor and color if bg blinking is active (it will override the styles)
+	var ss = null;
+	if(bgBlinking) { // Only conditional coloring needs to update during the blinking
+		if(this._coloringType === tr.grid.CellPainter.ColoringTypes.CONDITIONAL) {
+			ss = tr.grid.CellPainter._nonBgStyles;
+		}
+	} else {
+		if(this._coloringType !== tr.grid.CellPainter.ColoringTypes.CONDITIONAL) { // heatmap and text coloring type only need to update background and text colors
+			ss = tr.grid.CellPainter._bgStyles;
+		} else {  // Conditional coloring can modify several styles
+			ss = tr.grid.CellPainter._supportedStyles;
+		}
+	}
+	
+	if(ss) {
+		var elStyle = elem.style;
+
+		for(var i = ss.length; --i &gt;= 0;) {
+			var styleName = ss[i];
+
+			if (highlight &amp;&amp; highlight[styleName]) {
+				elStyle[styleName] = highlight[styleName];
+			} else if (styles &amp;&amp; styles[styleName]) {
+				elStyle[styleName] = styles[styleName];
+			} else {
+				elStyle[styleName] = '';
+			}
+		}
+	}
+};
+/** @public
+ * @param {Element} cell
+ * @param {Object} rowData e.g. { PCTCHNG: 0.53, CF_NETCHNG: 0.75 }
+ * @param {number} min
+ * @param {number} max
+ */
+tr.grid.CellPainter.prototype.renderForPrinting = function(cell, rowData, min, max) {
+	if(!cell) {
+		return;
+	}
+	var styles = this._getStyles(rowData, min, max);
+	var c = styles["backgroundColor"];
+	if(c) {
+		cell.style.backgroundColor = c;
+	}
+
+	c = styles["color"];
+	if(c) {
+		cell.style.color = c;
+	}
+};
+//#endregion Public Methods
+
+/** @private
+ * @this {Object}
+ * @param {Object} rowData
+ */
+tr.grid.CellPainter._colorTextCondition = function(rowData) {
+	var value = rowData[this["field"]];
+	if(value || value === 0) {
+		if(value &gt; 0) {
+			return 1;
+		} else if(value &lt; 0) {
+			return -1;
+		}
+	}
+	return "u"; // unchanged
+};
+/** @private
+ * @this {Object}
+ * @param {Object} rowData
+ */
+tr.grid.CellPainter._tickColorTextCondition = function(rowData) {
+	var value = rowData[this["field"]];
+	if (!value &amp;&amp; value !== 0) {
+		return;
+	}
+	if (value === "\u21e7"){
+		return 1;
+	}
+	if (value === "\u21e9"){
+		return -1;
+	}
+	if(typeof value !== "number") {
+		value = +value;
+	}
+	return (value === 1) ? 1 : -1;
+};
+/** @private
+ * @this {Object}
+ * @param {Object} rowData
+ * @param {number} min
+ * @param {number} max
+ */
+tr.grid.CellPainter._heatMapCondition = function(rowData, min, max) {
+
+	if (rowData["RIC"] &amp;&amp; (rowData["RIC"].indexOf("SUMMARY@") === 0)) {
+		return 0;
+	}
+
+	var value = rowData[this["field"]];
+	var diff = (value || value === 0) ? value - this["midPoint"] : NaN;
+	if (diff === 0 || diff !== diff) {
+		return 0;
+	}
+
+	var ratio;
+	var range = 1;
+	if(diff &gt; 0) {
+		range = max - this["midPoint"];
+		if(range &lt; 0) {
+			range = min - this["midPoint"];
+		}
+	} else {
+		range = min - this["midPoint"];
+		if(range &gt; 0) {
+			range = max - this["midPoint"];
+		}
+	}
+	if(range &lt; 0) {
+		range = -range;
+	}
+	ratio = diff/range;
+	return ratio;
+};
+/** @private
+ * @this {Object}
+ * @param {Object} rowData
+ * @param {Object} changeCols
+ */
+tr.grid.CellPainter._tickBlinkCondition = function(rowData, changeCols) {
+	if(!changeCols) {
+		return;
+	}
+
+	var isTicked = changeCols[this["field"]];
+	if(!isTicked) {
+		return;
+	}
+
+	var value = rowData[this["field"]];
+	if (!value &amp;&amp; value !== 0) {
+		return;
+	}
+	if(typeof value !== "number") {
+		value = Number(value);
+	}
+	return (value === 1) ? 1 : -1;
+};
+/** @private
+ * @this {Object}
+ * @param {Object} rowData
+ * @param {Object} changeCols
+ * @param {Object} scope
+ */
+tr.grid.CellPainter._fieldBlinkCondition = function(rowData, changeCols, scope) {
+	var value = (rowData) ? rowData[this["field"]] : NaN;
+	var oldValue = scope["oldValue"];
+
+	// Cache value
+	if (!value &amp;&amp; value !== 0) {
+		scope["oldValue"] = NaN;
+		return;
+	} else {
+		value = +value;
+		scope["oldValue"] = value;
+	}
+
+	if(!changeCols || !changeCols[this["field"]]) {
+		return;
+	}
+
+	if(value &gt; oldValue) {
+		return 1;
+	} else if(value &lt; oldValue) {
+		return -1;
+	} else {
+		return 0; // AlphaNumeric, unchanged value
+	}
+};
+/** @private
+ * @param {Object} scope
+ */
+tr.grid.CellPainter._borderRestorer = function(scope) {
+	var cell = scope["cell"];
+	var elem = cell.getElement();
+
+	if(elem) {
+		elem.style.border = "";
+	}
+	scope["blinkTimer"] = 0;
+};
+/** @private
+ * @param {Object} scope
+ */
+tr.grid.CellPainter._cellRestorer = function(scope) {
+	scope["blinkTimer"] = 0;
+	var cell = scope["cell"];
+	var elem = cell.getElement();
+
+	if(elem) {
+		elem.style.backgroundColor = scope["backgroundColor"] || "";
+		elem.style.color = scope["color"] || "";
+	}
+};
+
+/** WARNING: This method is called very often and the performance is very critical here
+ * @private
+ * @param {Object} rowData
+ * @param {number} min
+ * @param {number} max
+ * @param {Array=} opt_excludeColoringTypes
+ * @return {!Object}
+ */
+tr.grid.CellPainter.prototype._getStyles = function(rowData, min, max, opt_excludeColoringTypes) {
+	if (!rowData) {
+		return tr.grid.CellPainter._emptyObj;
+	}
+	var len = this._conditions.length;
+	for(var i = 0; i &lt; len; ++i) {
+		var curCond = this._conditions[i];
+		var fn = curCond._fn;
+		try { // WARNING: Try/Catch is very slow. TODO: The function should be checked for validity beforehand
+			var ret = fn &amp;&amp; fn(rowData, min, max);
+		} catch (err){
+			// console.error(err.message); // This will produce tons of errors in the console 
+		}
+		if (ret) { // Match condition with results 1, -1, true, or string
+			var excludeFromHeatmap = opt_excludeColoringTypes &amp;&amp; opt_excludeColoringTypes.indexOf(tr.grid.CellPainter.ColoringTypes.HEATMAP) !== -1;
+
+			if(this._coloringType === tr.grid.CellPainter.ColoringTypes.HEATMAP &amp;&amp; !excludeFromHeatmap) {
+				var blendedColor;
+				if(ret &gt; 0) {
+					blendedColor = tr.grid.CellPainter.blendColor(curCond["baseColor"], curCond["upColor"], ret);
+				} else {
+					blendedColor = tr.grid.CellPainter.blendColor(curCond["baseColor"], curCond["downColor"], -ret);
+				}
+
+				if(curCond["textMode"]) {
+					tr.grid.CellPainter._colorObj["color"] = tr.grid.CellPainter.num2Hex(blendedColor);
+					return tr.grid.CellPainter._colorObj;
+				} else {
+					tr.grid.CellPainter._bgObj["backgroundColor"] = tr.grid.CellPainter.num2Hex(blendedColor);
+					tr.grid.CellPainter._bgObj["color"] = tr.grid.CellPainter.blackAndWhite(blendedColor);
+					
+					return tr.grid.CellPainter._bgObj;
+				}
+			} else if(this._coloringType === tr.grid.CellPainter.ColoringTypes.TEXT) {
+				if(ret &gt; 0) {
+					tr.grid.CellPainter._colorObj["color"] = curCond["upColor"];
+				} else if(ret &lt; 0) {
+					tr.grid.CellPainter._colorObj["color"] = curCond["downColor"];
+				} else {
+					tr.grid.CellPainter._colorObj["color"] = curCond["levelColor"];
+				}
+				return tr.grid.CellPainter._colorObj;
+			} // else Conditional coloring
+			
+			// Expected return value is { 
+				// "backgroundColor": bgc,
+				// "color": color,
+				// "fontSize": fSize,
+				// "fontWeight": fWeight,
+				// "fontStyle": fStyle,
+				// "textAlign": tAlign,
+				// "textDecoration": tDecor
+			// };
+			return curCond;
+		}
+	}
+	return tr.grid.CellPainter._emptyObj;
+};
+
+/** @public
+* @param {string} baseColor
+* @param {string} maxColor
+* @param {number} ratio [0, 1]
+* @return {Array.&lt;number&gt;} resultColor
+*/
+tr.grid.CellPainter.blendColor = function (baseColor, maxColor, ratio) { // TODO: Optimize this
+	if (ratio &gt; 1) {
+		ratio = 1;
+	} else if(ratio &lt; 0) {
+		ratio = 0;
+	}
+
+	var baseColorTriplet = tr.grid.CellPainter.hex2Num(baseColor);
+	var maxColorTriplet = tr.grid.CellPainter.hex2Num(maxColor);
+	var blendResult = [];
+	for (var i = 0; i &lt; 3; ++i) {
+		var gap = (maxColorTriplet[i] - baseColorTriplet[i]) * ratio;
+		blendResult.push(baseColorTriplet[i] + gap);
+	}
+
+	return blendResult;
+};
+
+/** @private
+* @param {Array.&lt;number&gt;} triplet
+* @return {string} resultColor
+*/
+tr.grid.CellPainter.blackAndWhite = function (triplet) {
+	var brightness = Math.sqrt(triplet[0] * triplet[0] * 0.241 + triplet[1] * triplet[1] * 0.691 + triplet[2] * triplet[2] * 0.068);
+
+	if (brightness &gt;= 135) { // Brighter color has more impact to human eye than the darker color
+		return '#000000';
+	}
+	return '#FFFFFF';
+};
+
+/** @public
+* @param {string} rgbCode
+* @return {string} resultColor
+*/
+tr.grid.CellPainter.rgb2Hex = function (rgbCode) {
+	var rgb = rgbCode.match(/\d+/g);
+	if(!rgb || rgb.length &lt; 3) {
+		return rgbCode;
+	}
+
+	var triplet = [];
+	for(var i = 0; i &lt; 3; i++) { // TODO: This is slow
+		triplet.push(parseInt(rgb[i], 10));
+	}
+	return tr.grid.CellPainter.num2Hex(triplet);
+};
+
+/** @public
+* @function
+* @param {Array.&lt;number&gt;} triplet
+* @return {string} resultColor
+*/
+tr.grid.CellPainter.num2Hex = function (triplet) {
+	var rgb = triplet[2] | (triplet[1] &lt;&lt; 8) | (triplet[0] &lt;&lt; 16);
+	return ('#' + (0x1000000 + rgb).toString(16).slice(1)).toUpperCase();
+};
+/** Note that Chrome, IE, and Firefox store color in rgb representation.
+* @public
+* @function
+* @param {Array.&lt;number&gt;} triplet
+* @return {string} Color string in RGB represetation (e.g. rgb(100, 44, 1))
+*/
+tr.grid.CellPainter.num2Rgb = function (triplet) {
+	return 'rgb(' + triplet[0] + ', ' + triplet[1] + ', ' + triplet[2] + ')'; 
+};
+/** @public
+* @function
+* @param {string} hex
+* @return {Array.&lt;number&gt;} array of size 3 which contains [red, green, blue]
+*/
+tr.grid.CellPainter.hex2Num = function (hex) {
+	var hexInt = parseInt(hex.replace(/[^0-9A-F]/gi, ''), 16);
+	var r = (hexInt &gt;&gt; 16) &amp; 255;
+	var g = (hexInt &gt;&gt; 8) &amp; 255;
+	var b = hexInt &amp; 255;
+	return [r, g, b];
+};
+/** @public
+* @function
+* @param {string} hex Color string with leading # character (e.g. #FFAA00)
+* @return {string} Color string in RGB represetation (e.g. rgb(100, 44, 1))
+*/
+tr.grid.CellPainter.hex2Rgb = function (hex) {
+	if(hex) {
+		var hexInt = parseInt(hex.replace(/[^0-9A-F]/gi, ''), 16);
+		var r = (hexInt &gt;&gt; 16) &amp; 255;
+		var g = (hexInt &gt;&gt; 8) &amp; 255;
+		var b = hexInt &amp; 255;
+		return 'rgb(' + r + ', ' + g + ', ' + b + ')'; 
+	}
+	return ''; 
+};
+
+
+/** @public
+* @function
+* @param {Object} highlightColors
+*/
+tr.grid.CellPainter.setHighlightColors = function (highlightColors) {
+	tr.grid.CellPainter.highlightColors = highlightColors;
+};
+
+
+/** @public
+* @ignore
+* @description TODO: The name of this method should be changed to reflect what it does
+* @param {string} baseGridColor Color rgb representation
+* @param {string} baseTextColor Color rgb representation
+* @param {string} upColor
+* @param {string} downColor
+* @param {string} levelColor
+* @param {string} tickUpColor
+* @param {string} tickDownColor
+*/
+tr.grid.CellPainter.themeChanged = function(baseGridColor, baseTextColor, upColor, downColor, levelColor, tickUpColor, tickDownColor) {
+	if(baseGridColor != null) {
+		tr.grid.CellPainter.colors["baseGrid"] = tr.grid.CellPainter.rgb2Hex(baseGridColor);
+	}
+	if(baseTextColor != null) {
+		tr.grid.CellPainter.colors["baseText"] = tr.grid.CellPainter.rgb2Hex(baseTextColor);
+	}
+	if(upColor != null) {
+		tr.grid.CellPainter.colors["up"] = upColor;
+	}
+	if(downColor != null) {
+		tr.grid.CellPainter.colors["down"] = downColor;
+	}
+	if(levelColor != null) {
+		tr.grid.CellPainter.colors["level"] = levelColor;
+	}
+	if(tickUpColor != null) {
+		tr.grid.CellPainter.colors["tickUp"] = tickUpColor;
+	}
+	if(tickDownColor != null) {
+		tr.grid.CellPainter.colors["tickDown"] = tickDownColor;
+	}
+
+	// Apply newly changed theme to all the painters
+	var painters = tr.grid.CellPainter._painters;
+	for(var i = painters.length; --i &gt;= 0;) {
+		painters[i].applyThemeColor(); // Re-apply theme color
+	}
+};
+/** @public
+* @ignore
+ * @param {tr.IElementControl} cell
+*/
+tr.grid.CellPainter.clearCellStyle = function(cell) {
+	var elem = cell.getElement();
+	if(!elem) {
+		return; // Cell has been disposed
+	}
+
+	if(cell["blinking"]) { // Clear blinking scope
+		var scope = cell["blinking"];
+		tr.grid.CellPainter._clearBlinkTimer(scope);
+
+		delete cell["blinking"]; // Delete cell blinking scope
+
+		scope["cell"] = null;
+		scope["styles"] = null;
+		// delete this._scopes[scope["id"]];
+	}
+
+	var styles = tr.grid.CellPainter._supportedStyles;
+	for(var i = styles.length; --i &gt;= 0;) {
+		elem.style[styles[i]] = "";  // WARNING: Very slow
+	}
+};
+/** @private
+* @param {!Object} scp Scope Object
+* @param {string|null} upColor Color in hex representation
+* @param {string|null} downColor 
+* @param {string|null=} levelColor 
+*/
+tr.grid.CellPainter._setUpDownColors = function(scp, upColor, downColor, levelColor) {
+	if(upColor != null) {
+		scp["upColor"] = upColor;
+		//scp["rgbUp"] = tr.grid.CellPainter.hex2Rgb(upColor);
+	}
+	if(downColor != null) {
+		scp["downColor"] = downColor;
+		//scp["rgbDown"] = tr.grid.CellPainter.hex2Rgb(downColor);
+	}
+	if(levelColor != null) {
+		scp["levelColor"] = levelColor;
+		//scp["rgbLevel"] = tr.grid.CellPainter.hex2Rgb(levelColor);
+	}
+};
+/** @private
+* @param {!Object} scp Scope Object
+* @param {string|boolean=} opt_blinkType
+*/
+tr.grid.CellPainter._setBlinkRestorer = function(scp, opt_blinkType) {
+	if(opt_blinkType === true || opt_blinkType === "border") {
+		scp["border"] = true;
+		scp._restorer = tr.grid.CellPainter._borderRestorer;
+	} else {
+		scp._restorer = tr.grid.CellPainter._cellRestorer;
+	}
+};
+/** @private
+* @param {!Object} scp Scope Object
+*/
+tr.grid.CellPainter._clearBlinkTimer = function(scp) {
+	if(scp["blinkTimer"]) {
+		clearTimeout(scp["blinkTimer"]);
+		scp["blinkTimer"] = 0;
+		return true;
+	}
+	return false;
+};
+/** @public
+* @param {string} hexCode
+* @return {string}
+*/
+tr.grid.CellPainter.getOppositeColor = function (hexCode) {
+	var triplet = tr.grid.CellPainter.hex2Num(hexCode);
+	return tr.grid.CellPainter.blackAndWhite(triplet);
+};
+
+goog.exportSymbol("tr.grid.CellPainter", tr.grid.CellPainter);
+
+tr.grid.CellPainter._proto = tr.grid.CellPainter.prototype;
+goog.exportProperty(tr.grid.CellPainter._proto, "dispose", tr.grid.CellPainter._proto.dispose);
+goog.exportProperty(tr.grid.CellPainter._proto, "reset", tr.grid.CellPainter._proto.reset);
+goog.exportProperty(tr.grid.CellPainter._proto, "applyThemeColor", tr.grid.CellPainter._proto.applyThemeColor);
+goog.exportProperty(tr.grid.CellPainter._proto, "render", tr.grid.CellPainter._proto.render);
+goog.exportProperty(tr.grid.CellPainter._proto, "renderForPrinting", tr.grid.CellPainter._proto.renderForPrinting);
+
+goog.exportProperty(tr.grid.CellPainter._proto, "getConditions", tr.grid.CellPainter._proto.getConditions);
+goog.exportProperty(tr.grid.CellPainter._proto, "setConditions", tr.grid.CellPainter._proto.setConditions);
+goog.exportProperty(tr.grid.CellPainter._proto, "getColoringType", tr.grid.CellPainter._proto.getColoringType);
+
+goog.exportProperty(tr.grid.CellPainter._proto, "addHeatmap", tr.grid.CellPainter._proto.addHeatmap);
+goog.exportProperty(tr.grid.CellPainter._proto, "addColorText", tr.grid.CellPainter._proto.addColorText);
+goog.exportProperty(tr.grid.CellPainter._proto, "addTickColorText", tr.grid.CellPainter._proto.addTickColorText);
+goog.exportProperty(tr.grid.CellPainter._proto, "addTickBlink", tr.grid.CellPainter._proto.addTickBlink);
+goog.exportProperty(tr.grid.CellPainter._proto, "addBlink", tr.grid.CellPainter._proto.addBlink);
+
+goog.exportProperty(tr.grid.CellPainter._proto, "addHeatmapWithTheme", tr.grid.CellPainter._proto.addHeatmapWithTheme);
+goog.exportProperty(tr.grid.CellPainter._proto, "addColorTextWithTheme", tr.grid.CellPainter._proto.addColorTextWithTheme);
+goog.exportProperty(tr.grid.CellPainter._proto, "addTickColorTextWithTheme", tr.grid.CellPainter._proto.addTickColorTextWithTheme);
+goog.exportProperty(tr.grid.CellPainter._proto, "addTickBlinkWithTheme", tr.grid.CellPainter._proto.addTickBlinkWithTheme);
+goog.exportProperty(tr.grid.CellPainter._proto, "addBlinkWithTheme", tr.grid.CellPainter._proto.addBlinkWithTheme);</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="AdFin.html">AdFin</a></li><li><a href="DateTime.html">DateTime</a></li><li><a href="Info.html">Info</a></li><li><a href="Logic.html">Logic</a></li><li><a href="Math.html">Math</a></li><li><a href="Realtime.html">Realtime</a></li><li><a href="Statistic.html">Statistic</a></li><li><a href="Text.html">Text</a></li><li><a href="tr.ElementFrameWork.html">ElementFrameWork</a></li><li><a href="tr.PipDefinition.html">PipDefinition</a></li></ul><h3>Classes</h3><ul><li><a href="tr.ADCSubscription.html">ADCSubscription</a></li><li><a href="tr.AdFinSubscription.html">AdFinSubscription</a></li><li><a href="tr.cgrid.editor.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.filter.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.formatter.AsyncFormatter.html">AsyncFormatter</a></li><li><a href="tr.cgrid.formatter.CheckBox.html">CheckBox</a></li><li><a href="tr.cgrid.formatter.UpDownColor.html">UpDownColor</a></li><li><a href="tr.ColumnStats.html">ColumnStats</a></li><li><a href="tr.CompositeGrid.html">CompositeGrid</a></li><li><a href="tr.DataCache.html">DataCache</a></li><li><a href="tr.DataTable.html">DataTable</a></li><li><a href="tr.DataView.html">DataView</a></li><li><a href="tr.DropDown.html">DropDown</a></li><li><a href="tr.ElementControl.html">ElementControl</a></li><li><a href="tr.ElementWrapper.html">ElementWrapper</a></li><li><a href="tr.Event.html">Event</a></li><li><a href="tr.EventDispatcher.html">EventDispatcher</a></li><li><a href="tr.EventDispatcher.extendClass-tempCtor.html">tempCtor</a></li><li><a href="tr.EventManager.html">EventManager</a></li><li><a href="tr.FieldFormatter.html">FieldFormatter</a></li><li><a href="tr.fn.Engine.html">Engine</a></li><li><a href="tr.fn.Formula.html">Formula</a></li><li><a href="tr.fn.VariableToken.html">VariableToken</a></li><li><a href="tr.Grid.html">Grid</a></li><li><a href="tr.grid.BidOfferSpan.html">BidOfferSpan</a></li><li><a href="tr.grid.Blinker.html">Blinker</a></li><li><a href="tr.grid.Cell.html">Cell</a></li><li><a href="tr.grid.CellBlinkingPlugin.html">CellBlinkingPlugin</a></li><li><a href="tr.grid.CellEditingPlugin.html">CellEditingPlugin</a></li><li><a href="tr.grid.CellFloatingPanel.html">CellFloatingPanel</a></li><li><a href="tr.grid.CellPainter.html">CellPainter</a></li><li><a href="tr.grid.CellSpan.html">CellSpan</a></li><li><a href="tr.grid.CellSpans.html">CellSpans</a></li><li><a href="tr.grid.CellWriter.html">CellWriter</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html">CheckboxColumnPlugin</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html">CollapsibleHeaderPlugin</a></li><li><a href="tr.grid.ColumnFilterPlugin.html">ColumnFilterPlugin</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html">ColumnGroupingPlugin</a></li><li><a href="tr.grid.ColumnSelectionPlugin.html">ColumnSelectionPlugin</a></li><li><a href="tr.grid.ColumnStackingPlugin.html">ColumnStackingPlugin</a></li><li><a href="tr.grid.ColumnWidthAdjustingPlugin.html">ColumnWidthAdjustingPlugin</a></li><li><a href="tr.grid.Conflator.html">Conflator</a></li><li><a href="tr.grid.DataSourceTreePlugin.html">DataSourceTreePlugin</a></li><li><a href="tr.grid.DirectContentBindingPlugin.html">DirectContentBindingPlugin</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html">DragAndDropTitlePlugin</a></li><li><a href="tr.grid.DraggableContentPlugin.html">DraggableContentPlugin</a></li><li><a href="tr.grid.FindBar.html">FindBar</a></li><li><a href="tr.grid.FindBarPlugin.html">FindBarPlugin</a></li><li><a href="tr.grid.GroupStatisticsPlugin.html">GroupStatisticsPlugin</a></li><li><a href="tr.grid.HeatMapRenderer.html">HeatMapRenderer</a></li><li><a href="tr.grid.HScrollbar.html">HScrollbar</a></li><li><a href="tr.grid.IndexMarker.html">IndexMarker</a></li><li><a href="tr.grid.MovableHeaderPlugin.html">MovableHeaderPlugin</a></li><li><a href="tr.grid.NumberFormatter.html">NumberFormatter</a></li><li><a href="tr.grid.PercentBar.html">PercentBar</a></li><li><a href="tr.grid.PercentBarRenderer.html">PercentBarRenderer</a></li><li><a href="tr.grid.Plugin.html">Plugin</a></li><li><a href="tr.grid.RangeBar.html">RangeBar</a></li><li><a href="tr.grid.ResizableTitlePlugin.html">ResizableTitlePlugin</a></li><li><a href="tr.grid.Reverter.html">Reverter</a></li><li><a href="tr.grid.RowHeightAdjustingPlugin.html">RowHeightAdjustingPlugin</a></li><li><a href="tr.grid.RowSelectionPlugin.html">RowSelectionPlugin</a></li><li><a href="tr.grid.Scrollbar.html">Scrollbar</a></li><li><a href="tr.grid.SectionSettings.html">SectionSettings</a></li><li><a href="tr.grid.SmartTooltipsPlugin.html">SmartTooltipsPlugin</a></li><li><a href="tr.grid.SortableTitlePlugin.html">SortableTitlePlugin</a></li><li><a href="tr.grid.TreeIndentingPlugin.html">TreeIndentingPlugin</a></li><li><a href="tr.grid.Virtualizer.html">Virtualizer</a></li><li><a href="tr.grid.VScrollbar.html">VScrollbar</a></li><li><a href="tr.grid.ZoomPlugin.html">ZoomPlugin</a></li><li><a href="tr.HttpRequest.html">HttpRequest</a></li><li><a href="tr.IntervalSubscription.html">IntervalSubscription</a></li><li><a href="tr.LayoutGrid.html">LayoutGrid</a></li><li><a href="tr.ListMenu.html">ListMenu</a></li><li><a href="tr.MenuItem.html">MenuItem</a></li><li><a href="tr.MockArchive.html">MockArchive</a></li><li><a href="tr.MockJET.html">MockJET</a></li><li><a href="tr.MockQuotes.html">MockQuotes</a></li><li><a href="tr.MockQuotes2.html">MockQuotes2</a></li><li><a href="tr.MockSubscription.html">MockSubscription</a></li><li><a href="tr.MockSubscriptions.html">MockSubscriptions</a></li><li><a href="tr.Popup.html">Popup</a></li><li><a href="tr.PopupMenu.html">PopupMenu</a></li><li><a href="tr.PrintTrait.html">PrintTrait</a></li><li><a href="tr.RequestQueue.html">RequestQueue</a></li><li><a href="tr.Segment.html">Segment</a></li><li><a href="tr.SegmentCollection.html">SegmentCollection</a></li><li><a href="tr.TSISubscription.html">TSISubscription</a></li></ul><h3>Interfaces</h3><ul><li><a href="tr.cgrid.ICompositeExtension.html">ICompositeExtension</a></li><li><a href="tr.grid.IPlugin.html">IPlugin</a></li><li><a href="tr.IElementControl.html">IElementControl</a></li><li><a href="tr.ILayoutGrid.html">ILayoutGrid</a></li></ul><h3>Events</h3><ul><li><a href="tr.CompositeGrid.html#event:cellClicked">cellClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellDblClicked">cellDblClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellMouseDown">cellMouseDown</a></li><li><a href="tr.CompositeGrid.html#event:cellRightClicked">cellRightClicked</a></li><li><a href="tr.CompositeGrid.html#event:columnSorted">columnSorted</a></li><li><a href="tr.CompositeGrid.html#event:editorAttached">editorAttached</a></li><li><a href="tr.CompositeGrid.html#event:editorDetached">editorDetached</a></li><li><a href="tr.CompositeGrid.html#event:filterAdded">filterAdded</a></li><li><a href="tr.CompositeGrid.html#event:filterCleared">filterCleared</a></li><li><a href="tr.CompositeGrid.html#event:filterModified">filterModified</a></li><li><a href="tr.CompositeGrid.html#event:filterRemoved">filterRemoved</a></li><li><a href="tr.CompositeGrid.html#event:mouseLeaveCell">mouseLeaveCell</a></li><li><a href="tr.CompositeGrid.html#event:mouseOverCell">mouseOverCell</a></li><li><a href="tr.CompositeGrid.html#event:pageChanged">pageChanged</a></li><li><a href="tr.CompositeGrid.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.DataCache.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataCache.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataTable.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataTable.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataView.html#event:beforeFiltering">beforeFiltering</a></li><li><a href="tr.DataView.html#event:beforeGroupAdded">beforeGroupAdded</a></li><li><a href="tr.DataView.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataView.html#event:groupAdded">groupAdded</a></li><li><a href="tr.DataView.html#event:groupCriteriaChanged">groupCriteriaChanged</a></li><li><a href="tr.DataView.html#event:pageCountChanged">pageCountChanged</a></li><li><a href="tr.DataView.html#event:pageIndexChanged">pageIndexChanged</a></li><li><a href="tr.DataView.html#event:preDisposed">preDisposed</a></li><li><a href="tr.Formula.html#event:dataCacheChanged">dataCacheChanged</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:cancelled">cancelled</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:change">change</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:closed">closed</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:editorOpened">editorOpened</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:preEditorOpening">preEditorOpening</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:click">click</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:columnCollapsed">columnCollapsed</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:groupChanged">groupChanged</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:render">render</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:columnMoved">columnMoved</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:drag">drag</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragEnd">dragEnd</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragStart">dragStart</a></li><li><a href="tr.grid.FindBarPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:groupMoved">groupMoved</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:sectionMoved">sectionMoved</a></li><li><a href="tr.grid.RowSelectionPlugin.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:columnSorted">columnSorted</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preClicked">preClicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preDataSorting">preDataSorting</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.Grid.html#event:columnAdded">columnAdded</a></li><li><a href="tr.Grid.html#event:columnAlignmentChanged">columnAlignmentChanged</a></li><li><a href="tr.Grid.html#event:columnRemoved">columnRemoved</a></li><li><a href="tr.Grid.html#event:columnVisibilityChanged">columnVisibilityChanged</a></li><li><a href="tr.Grid.html#event:dataSourceChanged">dataSourceChanged</a></li><li><a href="tr.Grid.html#event:postSectionDataBinding">postSectionDataBinding</a></li><li><a href="tr.Grid.html#event:rowExpansionBinding">rowExpansionBinding</a></li><li><a href="tr.Grid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Grid.html#event:sectionAdded">sectionAdded</a></li><li><a href="tr.Grid.html#event:widthChanged">widthChanged</a></li><li><a href="tr.HttpRequest.html#event:abort">abort</a></li><li><a href="tr.HttpRequest.html#event:error">error</a></li><li><a href="tr.HttpRequest.html#event:load">load</a></li><li><a href="tr.HttpRequest.html#event:loadend">loadend</a></li><li><a href="tr.HttpRequest.html#event:loadstart">loadstart</a></li><li><a href="tr.HttpRequest.html#event:timeout">timeout</a></li><li><a href="tr.IElementControl.html#event:blur">blur</a></li><li><a href="tr.IElementControl.html#event:change">change</a></li><li><a href="tr.IElementControl.html#event:click">click</a></li><li><a href="tr.IElementControl.html#event:contextmenu">contextmenu</a></li><li><a href="tr.IElementControl.html#event:dblclick">dblclick</a></li><li><a href="tr.IElementControl.html#event:drag">drag</a></li><li><a href="tr.IElementControl.html#event:dragend">dragend</a></li><li><a href="tr.IElementControl.html#event:dragenter">dragenter</a></li><li><a href="tr.IElementControl.html#event:dragleave">dragleave</a></li><li><a href="tr.IElementControl.html#event:dragover">dragover</a></li><li><a href="tr.IElementControl.html#event:dragstart">dragstart</a></li><li><a href="tr.IElementControl.html#event:drop">drop</a></li><li><a href="tr.IElementControl.html#event:focus">focus</a></li><li><a href="tr.IElementControl.html#event:formchange">formchange</a></li><li><a href="tr.IElementControl.html#event:forminput">forminput</a></li><li><a href="tr.IElementControl.html#event:input">input</a></li><li><a href="tr.IElementControl.html#event:invalid">invalid</a></li><li><a href="tr.IElementControl.html#event:keydown">keydown</a></li><li><a href="tr.IElementControl.html#event:keypress">keypress</a></li><li><a href="tr.IElementControl.html#event:keyup">keyup</a></li><li><a href="tr.IElementControl.html#event:mousedown">mousedown</a></li><li><a href="tr.IElementControl.html#event:mousemove">mousemove</a></li><li><a href="tr.IElementControl.html#event:mouseout">mouseout</a></li><li><a href="tr.IElementControl.html#event:mouseover">mouseover</a></li><li><a href="tr.IElementControl.html#event:mouseup">mouseup</a></li><li><a href="tr.IElementControl.html#event:mousewheel">mousewheel</a></li><li><a href="tr.IElementControl.html#event:reset">reset</a></li><li><a href="tr.IElementControl.html#event:scroll">scroll</a></li><li><a href="tr.IElementControl.html#event:select">select</a></li><li><a href="tr.IElementControl.html#event:submit">submit</a></li><li><a href="tr.ILayoutGrid.html#event:blur">blur</a></li><li><a href="tr.ILayoutGrid.html#event:change">change</a></li><li><a href="tr.ILayoutGrid.html#event:click">click</a></li><li><a href="tr.ILayoutGrid.html#event:contextmenu">contextmenu</a></li><li><a href="tr.ILayoutGrid.html#event:dblclick">dblclick</a></li><li><a href="tr.ILayoutGrid.html#event:drag">drag</a></li><li><a href="tr.ILayoutGrid.html#event:dragend">dragend</a></li><li><a href="tr.ILayoutGrid.html#event:dragenter">dragenter</a></li><li><a href="tr.ILayoutGrid.html#event:dragleave">dragleave</a></li><li><a href="tr.ILayoutGrid.html#event:dragover">dragover</a></li><li><a href="tr.ILayoutGrid.html#event:dragstart">dragstart</a></li><li><a href="tr.ILayoutGrid.html#event:drop">drop</a></li><li><a href="tr.ILayoutGrid.html#event:focus">focus</a></li><li><a href="tr.ILayoutGrid.html#event:formchange">formchange</a></li><li><a href="tr.ILayoutGrid.html#event:forminput">forminput</a></li><li><a href="tr.ILayoutGrid.html#event:input">input</a></li><li><a href="tr.ILayoutGrid.html#event:invalid">invalid</a></li><li><a href="tr.ILayoutGrid.html#event:keydown">keydown</a></li><li><a href="tr.ILayoutGrid.html#event:keypress">keypress</a></li><li><a href="tr.ILayoutGrid.html#event:keyup">keyup</a></li><li><a href="tr.ILayoutGrid.html#event:mousedown">mousedown</a></li><li><a href="tr.ILayoutGrid.html#event:mousemove">mousemove</a></li><li><a href="tr.ILayoutGrid.html#event:mouseout">mouseout</a></li><li><a href="tr.ILayoutGrid.html#event:mouseover">mouseover</a></li><li><a href="tr.ILayoutGrid.html#event:mouseup">mouseup</a></li><li><a href="tr.ILayoutGrid.html#event:mousewheel">mousewheel</a></li><li><a href="tr.ILayoutGrid.html#event:reset">reset</a></li><li><a href="tr.ILayoutGrid.html#event:scroll">scroll</a></li><li><a href="tr.ILayoutGrid.html#event:select">select</a></li><li><a href="tr.ILayoutGrid.html#event:submit">submit</a></li><li><a href="tr.LayoutGrid.html#event:rowCountChanged">rowCountChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHeightChanged">rowHeightChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Popup.html#event:hidden">hidden</a></li><li><a href="tr.Popup.html#event:shown">shown</a></li><li><a href="tr.PopupMenu.html#event:hidden">hidden</a></li><li><a href="tr.PopupMenu.html#event:shown">shown</a></li><li><a href="tr.PrintTrait.html#event:afterprint">afterprint</a></li><li><a href="tr.PrintTrait.html#event:beforeprint">beforeprint</a></li><li><a href="tr.PrintTrait.html#event:pageCounting">pageCounting</a></li></ul><h3>Global</h3><ul><li><a href="global.html#cellRef%255Bundefined%255D">cellRef[undefined]</a></li><li><a href="global.html#e%255Bundefined%255D">e[undefined]</a></li><li><a href="global.html#.textContent">.textContent</a></li><li><a href="global.html#get">get</a></li><li><a href="global.html#input%255Bundefined%255D">input[undefined]</a></li><li><a href="global.html#q%255Bundefined%255D">q[undefined]</a></li><li><a href="global.html#sortingDef%255B1%255D">sortingDef[1]</a></li></ul>
+</nav>
+
+
+<script src="scripts/linenumber.js"> </script>
+<script src="scripts/prettify.js"> </script>
+<script> prettyPrint(); </script>
+</body>
+</html>

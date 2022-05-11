@@ -1,0 +1,1677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: data/DataTable.js</title>
+
+    <script src="scripts/prettify.js"> </script>
+    <script src="scripts/lang-css.js"> </script>
+    <!--[if lt IE 9]&gt;
+      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
+    &lt;![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/default.css">
+    <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
+</head>
+
+<body>
+
+<div id="main-template" class="elf-template">
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import Ext from "../../../node_modules/tr-grid-util/es6/Ext.js";
+import DataCache from "./DataCache.js";
+import Util from "../grid/util/util.js";
+import SegmentCollection from "./SegmentCollection.js";
+
+/** Trigger when data within the table has been changed
+* @event DataTable#dataChanged
+* @property {boolean} globalChange Indicates a big change. User should expect all data has been change
+* @property {string} type Type of changes. Possible values are "inserted", "removed", "updated", and undefined
+* @property {string} rid Row Id
+* @property {Object.&lt;string, *&gt;} rowData Column values of the changed row in JSON object format
+*/
+
+/** Trigger before DataTable#dataChanged. Perform any data update during the event will NOT cause more dataChanged events
+* @event DataTable#dataComposed
+*/
+
+/** @constructor
+* @extends {DataCache}
+*/
+var DataTable = function() {
+	DataTable.base(this, 'constructor');
+
+	this._removeRows = this._removeRows.bind(this);
+	this._bySegmentSeparator = this._bySegmentSeparator.bind(this);
+
+	this._prevData = {};
+	this._rids = [];
+
+	this._compMap = {};
+};
+Ext.inherits(DataTable, DataCache);
+
+/** @private
+* @type {Object.&lt;string, Object.&lt;string, *&gt;&gt;}
+*/
+DataTable.prototype._prevData = null; // Mainly used for blinking
+/** @private
+* @type {!Array.&lt;string&gt;}
+*/
+DataTable.prototype._rids;
+/** @private
+* @type {boolean}
+*/
+DataTable.prototype._frozen = false;
+/** @private
+* @type {number}
+*/
+DataTable.prototype._runningId = 0;
+
+/** Comparer map that will be shared across all child DataViews
+* @private
+* @type {Object.&lt;string, DataTable.SortLogic&gt;}
+*/
+DataTable.prototype._compMap = null;
+
+/** @private
+* @type {SegmentCollection}
+*/
+DataTable.prototype._segments = null;
+/** @private
+* @type {boolean}
+*/
+DataTable.prototype._autoSegmentFilling = false;
+/** @private
+* @type {Object}
+*/
+DataTable.prototype._removedRows = null;
+/** @private
+* @type {Function}
+*/
+DataTable.prototype._userSegmentComparer = null;
+
+
+/** @typedef {Function} DataTable~SortLogic
+* @description SortLogic function is used for comparison between two values during sorting. &lt;br&gt;
+* The function should return:&lt;br&gt;
+* negative value to put val1 before val2, &lt;br&gt;
+* positive value to put val2 before val1. &lt;br&gt;
+* zero or falsy value to keep val1 and val2 unchanged.
+* @property {*} val1 Value from a row
+* @property {*} val2 Value from another row
+* @property {number=} order 1 indicates ascending order, and -1 indicates descending order
+* @property {*=} contextObject Any given user context
+* @example
+* var customComparer = function(a, b, order) {
+*   if(a + 10 &lt; b) { return -order; }
+*   if(b + 10 &lt; a) { return order; }
+*   return 0; // a and b are less than 10 difference apart
+* };
+*/
+DataTable.SortLogic;
+
+
+/** @override
+*/
+DataTable.prototype.dispose = function() {
+	this.unlistenAll();
+	this.clearAllData(true);
+
+	this._compMap = null; // Release user function that may be bound
+	this._segments = null;
+};
+
+/** {@link DataCache#getColumnData}
+* @override
+*/
+DataTable.prototype.getColumnData = function(cid) {
+	var rows = new Array(this._rids.length);
+	for(var i = this._rids.length; --i &gt;= 0;) {
+		rows[i] = this._rows[this._rids[i]][cid];
+	}
+	return rows;
+};
+/** @public
+* @param {number} rowIndex
+* @return {string}
+*/
+DataTable.prototype.getRowId = function(rowIndex) {
+	return this._rids[rowIndex] || "";
+};
+/** {@link DataCache#getAllRowIds}
+* @override
+* @param {boolean=} opt_shallowCopy Default value is false. Set to true for speed
+*/
+DataTable.prototype.getAllRowIds = function(opt_shallowCopy) {
+	if(opt_shallowCopy) {
+		return this._rids;
+	}
+	return this._rids.slice(0); // Fastest way to clone an array
+};
+/** @public
+* @param {string} rid
+* @return {number}
+*/
+DataTable.prototype.getRowIndex = function(rid) {
+	return this._rids.indexOf(rid);
+};
+/** @public
+* @return {number}
+*/
+DataTable.prototype.getRowCount = function() {
+	return this._rids.length;
+};
+/** @public
+* @param {number} rowIndex
+* @param {string} cid
+* @return {Object.&lt;string, *&gt;}
+*/
+DataTable.prototype.getDataAt = function(rowIndex, cid) {
+	return this.getData(this._rids[rowIndex], cid);
+};
+/** @public
+* @param {number} rowIndex
+* @return {Object.&lt;string, *&gt;}
+*/
+DataTable.prototype.getRowDataAt = function(rowIndex) {
+	return this.getRowData(this._rids[rowIndex]);
+};
+/** Get previously set data. This is good for blinking changed data
+* @public
+* @param {string} rid
+* @param {string} cid
+* @return {Object.&lt;string, *&gt;}
+*/
+DataTable.prototype.getPreviousData = function(rid, cid) {
+	var row = this._prevData[rid] || null;
+	if(row) {
+		return row[cid];
+	}
+	return null;
+};
+
+/** Set data to individual cell
+* @override
+* @param {string} rid Row Id
+* @param {string} cid Column Id
+* @param {*} value
+* @return {boolean} Return true if there is any change, and false otherwise
+* @fires DataTable#dataChanged
+*/
+DataTable.prototype.setData = function(rid, cid, value) { // Data changed event may be dispatched
+	if(!this._needFiring()) {
+		return this._setData(rid, cid, value);
+	}
+	var values = {};
+	values[cid] = value;
+	return this.setRowData(rid, values);
+};
+/** Set data in row manner
+* @override
+* @param {string} rid Row Id
+* @param {Object.&lt;string, *&gt;=} values Object where the key is column Id and value is the data to be set
+* @param {Object=} eventArg Additional arguments to be attached to the event fired
+* @return {boolean} Return true if there is any change, and false otherwise
+* @fires DataTable#dataChanged
+* @example
+* var dt = new DataTable();
+* dt.setRowData("row 1", {"column 1": "a", "column 2": 1, "column 3": null});
+* dt.log(); // See console for the results
+*/
+DataTable.prototype.setRowData = function(rid, values, eventArg) { // Data changed event may be dispatched
+	if(!rid) {
+		return false;
+	}
+
+	var row = this.getRowData(rid);
+	var dirty = false;
+	var type = "updated";
+	var segmentChanged = false;
+
+	if(values) {
+		if(!row) {
+			type = "inserted";
+			row = values;
+			this._rows[rid] = row; // WARNING: Dangerous use of external reference. User may modify data without using DataTable's API
+			this._prevData[rid] = {};
+			if(eventArg) {
+				var nextRid = /** @type{string} */(eventArg["nextRid"]); // Used for insertion only
+				var rowIndex = (nextRid != null) ? this.getRowIndex(nextRid) : -1;
+				if(rowIndex &lt; 0) {
+					rowIndex = /** @type{number} */(eventArg["fallback"]);
+				}
+				if(rowIndex == null || rowIndex &lt; 0 || rowIndex &gt;= this._rids.length) {
+					this._rids.push(rid);
+				} else {
+					this._rids.splice(rowIndex, 0, rid);
+					segmentChanged = !this._isLastSegment(rowIndex);
+				}
+			} else {
+				this._rids.push(rid);
+			}
+		} else {
+			var prevData = this._prevData[rid];
+			for (var cid in values) {
+				prevData[cid] = row[cid];
+				row[cid] = values[cid];
+			}
+		}
+		dirty = true;
+	} else {
+		if(row) {
+			type = "removed";
+			// WARNING: Even if row is removed we still keep previous data
+			// delete this._prevData[rid];
+			this._prevData[rid] = this._rows[rid]; // Move reference from the removed row to history
+			delete this._rows[rid];
+			if(this._segments) {
+				segmentChanged = this._segments.containsSegment(rid); // TODO: Handle this case where the segment separator row is removed
+			}
+			for(var i = this._rids.length; --i &gt;= 0;) {
+				if(this._rids[i] === rid) {
+					this._rids.splice(i, 1);
+					break;
+				}
+			}
+			dirty = true;
+		}
+	}
+
+	if(dirty &amp;&amp; this._needFiring()) {
+		this._autoFillSegments();
+		var e = eventArg || {};
+		e["rid"] = rid;
+		e["changes"] = values; // WARNING: External user data is passed along
+		e["rowData"] = row;
+		e["type"] = type;
+		if(segmentChanged) {
+			e["segmentChanged"] = true;
+		}
+		this._dispatchDataChange(e);
+	}
+	return dirty;
+};
+/** Set data in a column manner. This is faster than repeatedly calling {@link DataTable#setData}
+* @public
+* @param {string} cid
+* @param {Array.&lt;*&gt;} valueList
+* @param {Array.&lt;string&gt;=} opt_ridList Specify row id to be set corresponding to the data item
+* @example
+* var dt = new DataTable();
+* dt.setColumnData("column 1", ["1st row data", "2nd row data", "3rd row data"]);
+* dt.log(); // See console for the results
+*/
+DataTable.prototype.setColumnData = function(cid, valueList, opt_ridList) { // Data changed event may be dispatched
+	var rLen = (valueList) ? valueList.length : 0;
+	if(rLen &lt; 0) { return; }
+
+	var prevFrozen = this._frozen;
+	this.freeze();
+	var rids = this._generateRids(rLen, opt_ridList);
+
+	for(var r = 0; r &lt; rLen; ++r) {
+		this._setData(rids[r], cid, valueList[r]);
+	}
+
+	this.freeze(prevFrozen);
+};
+/** Add, update, and remove data in batch by using JSON object. This is faster than repeatedly calling {@link DataTable#setRowData}. &lt;br&gt;
+Any existing row, that is not matched by the same row id provided in the argument, remains the same. &lt;br&gt;
+Any existing row with the same row id from the provided argument will be updated. &lt;br&gt;
+Row id with null value will cause a removal of the row with the same id.
+* @public
+* @param {Object.&lt;string, Object.&lt;string, *&gt;&gt;} obj Object is 2 level nested object where 1st level key is row Id and 2nd level key is column Id
+* @see {@link DataTable#addRows}
+* @see {@link DataTable#setDataFrom2DArray}
+* @example
+* var data = {
+*   "rowId 1": {"column 1": "a", "column 2": 1, "column 3": 2},
+*   "rowId 2": {"column 1": "b", "column 2": 3, "column 3": 4},
+*   "rowId 4": {"column 1": "d", "group_criteria": 1} // Rows don't need to be in uniform structure
+* };
+* var dt = new DataTable();
+* dt.setDataFromObjectMap(data);
+* dt.log(); // See console for the results
+* dt.setDataFromObjectMap({"rowId 1": null}); // Remove the row with "rowId 1"
+* dt.setDataFromObjectMap({"rowId 2": {"column 1": "newValue"} }); // Update existing row
+*/
+DataTable.prototype.setDataFromObjectMap = function(obj) {
+	if(!obj) {
+		return;
+	}
+	if(Array.isArray(obj)) {
+		this.addRows(/** @type{Array.&lt;Object&gt;} */(obj));
+		return;
+	}
+
+	var prevFrozen = this._frozen;
+	this.freeze();
+
+	for(var rid in obj) {
+		this.setRowData(rid, obj[rid]);
+	}
+
+	this.freeze(prevFrozen);
+};
+/** Set data in batch from 2 dimensional array. This is faster than repeatedly calling {@link DataTable#setRowData}
+* @public
+* @param {Array.&lt;Array.&lt;*&gt;&gt;} ary Row based array
+* @param {Array.&lt;string&gt;=} opt_cidList
+* @param {Array.&lt;string&gt;=} opt_ridList
+* @see {@link DataTable#addRows}
+* @see {@link DataTable#setDataFromObjectMap}
+* @example
+* var data = [
+*   ["a", 1, 2],
+*   ["b", 3, 4],
+*   ["c", 5, 6]
+* ];
+* var dt = new DataTable();
+* dt.setDataFrom2DArray(data, ["column 1", "column 2", "column 3"]);
+* dt.log(); // See console for the results
+*/
+DataTable.prototype.setDataFrom2DArray = function(ary, opt_cidList, opt_ridList) {
+	var rLen = (ary) ? ary.length : 0;
+	if(rLen &lt; 0) { return; }
+
+	var prevFrozen = this._frozen;
+	this.freeze();
+
+	var c = 0;
+	var rids = this._generateRids(rLen, opt_ridList);
+
+	for(var r = 0; r &lt; rLen; ++r) {
+		var row = ary[r];
+		var rid = rids[r];
+		if(opt_cidList) {
+			for(c = row.length; --c &gt;= 0;) {
+				this._setData(rid, opt_cidList[c], row[c]);
+			}
+		} else {
+			for(c = row.length; --c &gt;= 0;) {
+				this._setData(rid, "" + c, row[c]); // Auto-generate column id
+			}
+		}
+	}
+
+	this.freeze(prevFrozen);
+};
+
+/** Set data to individual cell by specified row index instead of row Id
+* @public
+* @param {number} rowIndex Invalid row index will not produce any effect
+* @param {string} cid
+* @param {*} value
+* @return {boolean} Return true if there is any change, and false otherwise
+* @fires DataTable#dataChanged
+*/
+DataTable.prototype.setDataAt = function(rowIndex, cid, value) { // Data changed event may be dispatched
+	var rid = this.getRowId(rowIndex);
+	return (rid) ? this.setData(rid, cid, value) : false;
+};
+/** @public
+* @param {number} rowIndex Invalid row index will not produce any effect
+* @param {Object.&lt;string, *&gt;=} values Object where the key is column Id and value is the data to be set
+* @param {Object=} opt_eventArg
+* @return {boolean} Return true if there is any change, and false otherwise
+* @fires DataTable#dataChanged
+*/
+DataTable.prototype.setRowDataAt = function(rowIndex, values, opt_eventArg) { // Data changed event may be dispatched
+	var rid = this.getRowId(rowIndex);
+	return (rid) ? this.setRowData(rid, values, opt_eventArg) : false;
+};
+/** Add new row of data to the end of the Data Table
+* @public
+* @param {Object.&lt;string, *&gt;=} values field-value pair object
+* @param {string|null=} rid If the given row Id already exists, data is updated and no new row is added. Leave blank or null to let DataTable generate unique row Id
+* @return {string} Return Row id that has been inserted or changed
+* @fires DataTable#dataChanged
+* @example
+* var dt = new DataTable();
+* dt.addRow({"column 1": "a", "column 2": 1, "column 3": null});
+* dt.addRow({"column 1": "b", "column 2": 5, "column 3": {"someKey": 10}});
+* dt.log(); // See console for the results
+*/
+DataTable.prototype.addRow = function(values, rid) {
+	if(!values) { values = {}; }
+	rid = this._generateUniqueRid(values, rid);
+
+	this.setRowData(rid, values);
+	return rid;
+};
+/** Add multiple rows all at once. This is used to improve the performance. dataChagned with globalChange flag will be fired, if multiple rows are added.
+* @public
+* @param {Array.&lt;Object&gt;} rows Array of field-value pair object.
+* @param {Array.&lt;string&gt;=} rids If the given row Id already exists, data is updated and no new row is added. Leave blank or null to let DataTable generate unique row Id
+* @fires DataTable#dataChanged
+* @see {@link DataTable#setDataFrom2DArray}
+* @see {@link DataTable#setDataFromObjectMap}
+* @example
+* var dt = new DataTable();
+* dt.addRows([
+*   {"field1": "a", "field2": 1, "field3": null},
+*   {"field1": "b", "field2": 5, "field3": {"someKey": 10}},
+*   {"field1": "c", "field2": 7, "field3": [1, 2, 3]},
+*   {"field1": "c", "field4": "some value"} // Rows don't need to be in uniform structure
+* ]); // 4 rows are added
+* dt.log(); // See console for the results
+*/
+DataTable.prototype.addRows = function(rows, rids) {
+	if(!Array.isArray(rows)) {
+		return;
+	}
+	var len = rows.length;
+	if(!len) {
+		return;
+	} else if(len === 1) {
+		this.addRow(rows[0], rids ? rids[0] : null);
+		return;
+	}
+	if(!rids) {
+		rids = [];
+	}
+	var prevFrozen = this._frozen;
+	this.freeze();
+	for(var i = 0; i &lt; len; ++i) {
+		this.addRow(rows[i], rids[i]);
+	}
+	this.freeze(prevFrozen);
+};
+
+/** Insert a new row as the first row
+* @public
+* @param {Object.&lt;string, *&gt;=} opt_values
+* @param {string|null=} opt_rid If the given row Id already exists, data is updated and no new row is added. Leave blank or null to let DataTable generate unique row Id
+* @return {string} Return Row id that has been inserted or changed
+* @fires DataTable#dataChanged
+* @see {@link DataTable#insertRow}
+*/
+DataTable.prototype.unshiftRow = function(opt_values, opt_rid) {
+	return this.insertRow(0, opt_values, opt_rid);
+};
+/** @public
+* @param {string|number|null=} rowRef
+* @param {Object.&lt;string, *&gt;=} values Key/value pair object map
+* @param {string|null=} rid If the given row Id already exists, data is updated and no new row is added. Leave blank or null to let DataTable generate unique row Id
+* @return {string} Return Row id that has been inserted or changed
+* @fires DataTable#dataChanged
+* @see {@link DataTable#unshiftRow}
+* @see {@link DataTable#removeRow}
+*/
+DataTable.prototype.insertRow = function(rowRef, values, rid) {
+	var arg = {};
+	if(typeof rowRef === "number") {
+		arg["nextRid"] = this._rids[rowRef];
+		arg["fallback"] = rowRef; // Fallback index in case of no nextRid found
+	} else {
+		arg["nextRid"] = /** @type{string} */(rowRef);
+	}
+
+	if(!values) { values = {}; }
+	rid = this._generateUniqueRid(values, rid);
+
+	this.setRowData(rid, values, arg);
+	return rid;
+};
+/** @public
+ * @param {string|number} rowRef
+ * @param {Object=} opt_values
+ * @param {string=} opt_rid
+ * @return {string}
+ * @fires DataTable#dataChanged
+ */
+DataTable.prototype.insertAfter = function(rowRef, opt_values, opt_rid) {
+	var rowIndex = (typeof rowRef === "string") ? this.getRowIndex(rowRef) : /** @type{number}*/ (rowRef);
+
+	if(!(rowIndex &gt;= 0) || rowIndex &gt;= this._rids.length - 1) {
+		return this.addRow(opt_values, opt_rid);
+	}
+	return this.insertRow(rowIndex + 1, opt_values, opt_rid);
+};
+
+/** @public
+* @param {number|string} rowRef Reference to the row to be removed
+* @see {@link DataTable#removeRows}
+*/
+DataTable.prototype.removeRow = function(rowRef) { // Data changed event may be dispatched
+	if(typeof rowRef === "number") {
+		this.setRowData(this.getRowId(rowRef), null);
+	} else {
+		this.setRowData(/** @type{string} */(rowRef), null);
+	}
+};
+/** @public
+* @param {Array.&lt;number|string&gt;} refs Reference to the rows to be removed
+* @see {@link DataTable#removeAllRows}
+*/
+DataTable.prototype.removeRows = function(refs) {
+	if(refs.length === 1) {
+		var rid = refs[0];
+		if (typeof rid === "number") {
+			this.removeRow(rid);
+		} else {
+			this.setRowData(rid, null);
+		}
+		return;
+	}
+
+	var i;
+	var dirty = false;
+	this._removedRows = {};
+	for (i = refs.length; --i &gt;= 0;) {
+		rid = refs[i];
+		if (typeof rid === "number") {
+			rid = this.getRowId(rid);
+		}
+
+		var row = this.getRowData(rid);
+		if(row) {
+			this._prevData[rid] = this._rows[rid];
+			this._removedRows[rid] = 1;
+			delete this._rows[rid];
+			dirty = true;
+		}
+	}
+	if(dirty) {
+		this._rids = this._rids.filter(this._removeRows);
+		this._removedRows = null;
+		this.dispatchGlobalChange();
+	} else {
+		this._removedRows = null;
+	}
+};
+/** @private
+* @param {string} rid
+* @return {boolean}
+*/
+DataTable.prototype._removeRows = function(rid) {
+	return !this._removedRows[rid];
+};
+/** Remove all existing rows
+* @override
+*/
+DataTable.prototype.clearAllData = function(suppressEvent) {
+	DataTable.base(this, "clearAllData", true);
+	this._prevData = {};
+
+	if(this._rids.length) {
+		this._rids.length = 0;
+
+		this.dispatchGlobalChange(suppressEvent);
+	}
+};
+/** Alias to {@link DataTable#clearAllData}
+* @public
+* @function
+* @param {boolean=} suppressEvent
+* @fires DataTable#dataChanged
+*/
+DataTable.prototype.removeAllRows = DataTable.prototype.clearAllData;
+/** @private
+* @function
+* @param {number} a
+* @param {number} b
+* @return {number}
+*/
+DataTable._ascendingOrder = function(a, b) { return a - b; };
+/** @public
+* @param {Array.&lt;number&gt;|number} fromIndex
+* @param {number} toIndex
+* @param {boolean=} suppressEvent
+* @return {Array.&lt;string&gt;|string} Return row id(s). Return null if nothing has changed
+*/
+DataTable.prototype.moveRow = function(fromIndex, toIndex, suppressEvent) {
+	var output = null;
+	var rid = "";
+	if(!(toIndex &gt;= 0 &amp;&amp; toIndex &lt; this._rids.length)) {
+		toIndex = this._rids.length;
+	}
+
+	if (Array.isArray(fromIndex)) {
+		var fromIndices = fromIndex;
+		fromIndices.sort(DataTable._ascendingOrder);
+		var movedRids = [];
+		for (var i = fromIndices.length; --i &gt;= 0;) {
+			var idx = fromIndices[i];
+			rid = this._rids[idx];
+			if(rid) {
+				movedRids.unshift(rid);
+				this._rids.splice(idx, 1); // WARNING: splice method is slow
+				if (idx &lt; toIndex) {
+					--toIndex;
+				}
+			}
+		}
+		if(movedRids.length) {
+			this._rids.splice.apply(this._rids, [toIndex, 0].concat(movedRids));
+			output = movedRids;
+		}
+	} else {
+		if (fromIndex &lt; 0) {
+			fromIndex = 0;
+		}
+
+		if(fromIndex !== toIndex &amp;&amp; (fromIndex + 1) !== toIndex) {
+			rid = this._rids.splice(fromIndex, 1)[0];
+			if (rid) {
+				if (fromIndex &lt; toIndex) {
+					--toIndex;
+				}
+				this._rids.splice(toIndex, 0, rid);
+				output = rid;
+			}
+		}
+	}
+
+	if(output) {
+		if(this._segments) {
+			this._sort(null); // Reorder segment members
+		}
+		this._dispatchPositionChange(suppressEvent);
+	}
+	return output;
+};
+/** @public
+* @ignore
+* @param {Array.&lt;string&gt;} fromRids
+* @param {string} toRid If rid is empty string, insert the rid to the last index
+* @param {boolean=} suppressEvent
+* @return {Array.&lt;string&gt;|string} rid
+*/
+DataTable.prototype._moveRow = function(fromRids, toRid, suppressEvent) {
+	var len = fromRids.length;
+	if(!len) {
+		return null;
+	}
+
+	var fromIndices = new Array(len);
+	for(var i = 0; i &lt; len; ++i) {
+		fromIndices[i] = this.getRowIndex(fromRids[i]);
+	}
+
+	var toIndex = (toRid) ? this.getRowIndex(toRid) : this._rids.length;
+	if(len &gt; 1) {
+		return this.moveRow(fromIndices, toIndex, suppressEvent);
+	}
+	return this.moveRow(fromIndices[0], toIndex, suppressEvent);
+};
+
+/** Move rows in chunk by specifying chunk size in the third parameter.
+* @public
+* @param {number|string} startIndex
+* @param {number|string} toIndex
+* @param {number=} opt_count
+* @param {boolean=} suppressEvent
+* @return {Array.&lt;string&gt;} rids Return null if nothing has changed
+* @see {@link DataTable#moveRow}
+*/
+DataTable.prototype.moveRows = function(startIndex, toIndex, opt_count, suppressEvent) {
+	if(typeof startIndex === "string") {
+		startIndex = this.getRowIndex(startIndex);
+	}
+	if(typeof toIndex === "string") {
+		toIndex = this.getRowIndex(toIndex);
+	}
+	if(startIndex &lt; 0) { startIndex = 0; }
+	if(toIndex &lt; 0) { toIndex = this._rids.length; }
+	if(!opt_count) { opt_count = 1; }
+
+	var endIndex = startIndex + opt_count - 1;
+	var targetIndex = toIndex;
+	if (toIndex &gt;= startIndex) {
+		if (toIndex &lt;= endIndex) {
+			targetIndex = startIndex;
+		} else {
+			targetIndex = toIndex - opt_count;
+		}
+	}
+
+	if ((opt_count &gt; 0) &amp;&amp; (endIndex &lt;= this._rids.length)) {
+		if (targetIndex &gt; this._rids.length) {
+			targetIndex = this._rids.length;
+		}
+
+		var rows = this._rids.splice(startIndex, opt_count);
+		var args = [targetIndex, 0].concat(rows);
+		Array.prototype.splice.apply(this._rids, args);
+
+		if(this._segments) {
+			this._sort(null); // Reorder segment members
+		}
+		this._dispatchPositionChange(suppressEvent);
+		return rows;
+	}
+
+	return null;
+};
+
+/** This method is deprecated in favor of more sophisticate {@link DataTable#moveRow}
+* @public
+* @param {number} fromIndex
+* @param {number} toIndex
+*/
+DataTable.prototype.swapRow = function(fromIndex, toIndex) { // No event is fired. No effect on other views
+	var len = this._rids.length;
+	if(fromIndex &lt; 0 || fromIndex &gt;= len) { return; }
+	if(toIndex &lt; 0 || toIndex &gt;= len) { return; }
+
+	var rid = this._rids[fromIndex];
+	this._rids[fromIndex] = this._rids[toIndex];
+	this._rids[toIndex] = rid;
+};
+
+/** @public
+* @function
+* @param {string} rid
+*/
+DataTable.prototype.clearRowData = DataTable.prototype.removeRow;
+/** {@link DataCache#clearColumnData}
+* @override
+*/
+DataTable.prototype.clearColumnData = function(colId, suppressEvent) {
+	var cids = (typeof colId === "string") ? [/** @type {string} */(colId)] : /** @type {Array.&lt;string&gt;} */(colId);
+	for(var i = cids.length; --i &gt;= 0;) {
+		var cid = cids[i];
+		if(cid) {
+			for(var rid in this._rows) {
+				delete this._rows[rid][cid];
+				delete this._prevData[rid][cid];
+			}
+		}
+	}
+
+	this.dispatchGlobalChange(suppressEvent);
+};
+
+/** Get parent data source. Note that DataTable cannot be child of other data source. So the returned value will always be null.
+* @public
+* @return {null}
+*/
+DataTable.prototype.getDataSource = function() {
+	return null; // No other source
+};
+/** @public
+* @param {*} source
+*/
+DataTable.prototype.setDataSource = function(source) {};
+
+/**
+* @public
+* @ignore
+* @return {Object.&lt;string, DataTable.SortLogic&gt;}
+*/
+DataTable.prototype.getSortingLogics = function() {
+	return this._compMap;
+};
+/** @public
+* @param {string|Array.&lt;string&gt;} cid Column id
+* @param {string|number|Array.&lt;string|number&gt;=} sortOrders "a"|"d"|"n"
+* @param {DataTable.SortLogic=} customComparer
+* @param {*=} contextObj Context object that will be provided as the forth parameter of the given comparer method
+* @return {boolean} Return true if there is any change, otherwise false
+* @fires DataTable#dataChanged
+*/
+DataTable.prototype.sortOnce = function(cid, sortOrders, customComparer, contextObj) {
+	var sortingDefs = DataTable._buildSortContext(
+		[],
+		cid,
+		sortOrders,
+		customComparer || this._compMap,
+		contextObj // User context
+	);
+
+	if(this._sort(sortingDefs)) {
+		this._dispatchPositionChange();
+		return true;
+	}
+	return false;
+};
+/** @public
+* @param {DataTable.SortLogic} func
+* @example
+* customLogic = function(a, b, sortOrder) {
+*   return (a - b) * sortOrder; // for numeric comparison
+* };
+* var dt = new DataTable();
+* dt.setSortingLogic(customLogic);
+* dt.sortOnce("Column id", "ascending");
+*/
+DataTable.prototype.setSortingLogic = function(func) {
+	this._compMap["_default"] = func;
+};
+/** Specified sorting logic for the column with the given column id. This will override logic set by {@link DataTable#setSortingLogic}, when the column is sorted
+* @public
+* @param {string} cid
+* @param {DataTable.SortLogic} func Use null to remove current sorting logic
+*/
+DataTable.prototype.setColumnSortingLogic = function(cid, func) {
+	this._compMap[cid] = func;
+};
+
+/** Freeze data table so that no event is fired for data processing until executing {@link DataTable#unfreeze} method
+* @public
+* @param {boolean=} bool
+* @return {boolean} Previous freeze state before the execution
+* @fires DataTable#dataChanged
+* @example
+* var prevState = dt.freeze();
+* for(var i = 0; i &lt; 100; ++i) {
+*   dt.insertRow({}); // no event is fired
+* }
+* dt.freeze(prevState); // Restore previous freeze states
+*/
+DataTable.prototype.freeze = function(bool) {
+	bool = bool !== false;
+	var prevState = this._frozen;
+	if(prevState !== bool) {
+		this._frozen = bool;
+		this._autoFillSegments();
+		this.dispatchGlobalChange();
+	}
+	return prevState;
+};
+/** @public
+* @param {boolean=} bool
+* @return {boolean} Previous freeze state before the execution
+*/
+DataTable.prototype.unfreeze = function(bool) {
+	return this.freeze(bool === false);
+};
+/** @public
+* @return {boolean} Current freeze state
+*/
+DataTable.prototype.isFrozen = function() {
+	return this._frozen;
+};
+
+
+/**
+* @public
+* @param {string} rid
+* @param {boolean=} enabled
+* @return {boolean} Return true if there is any change
+*/
+DataTable.prototype.setSegmentSeparator = function(rid, enabled) {
+	var change = false;
+	if(typeof rid === "string") {
+		if(enabled !== false) {
+			if(!this._segments) {
+				this._segments = new SegmentCollection();
+			}
+			if(this._segments.addSegment(rid)) {
+				change = true;
+			}
+		} else if(this._segments) {
+			if(this._segments.removeSegment(rid)) {
+				change = true;
+				if(!this._segments.getSegmentCount()) {
+					this._segments = null;
+				}
+			}
+		}
+	}
+	if(change) {
+		this._autoFillSegments();
+		var rowData = this._rows[rid] || null;
+		if(rowData &amp;&amp; this._needFiring()) {
+			this._dispatchDataChange({
+				"rid": rid,
+				"changes": {},
+				"rowData": rowData,
+				"type": "updated",
+				"segmentChanged": true
+			});
+		}
+	}
+
+	return change;
+};
+/** @public
+* @return {boolean} Return true if there is any change
+*/
+DataTable.prototype.unsetAllSegmentSeparators = function() {
+	if(this._segments) {
+		this._segments = null;
+		this.dispatchGlobalChange();
+		return true;
+	}
+	return false;
+};
+/**
+* @public
+* @return {boolean}
+*/
+DataTable.prototype.hasSegmentation = function() {
+	return this._segments ? true : false;
+};
+/**
+* @public
+* @param {string} rid
+* @return {boolean}
+*/
+DataTable.prototype.isSegmentSeparator = function(rid) {
+	if(this._segments) {
+		return this._segments.containsSegment(rid);
+	}
+	return false;
+};
+/**
+* @public
+* @param {Array.&lt;string&gt;=} rids If no row id is given, row ids of this data table is used instead
+* @return {Array.&lt;number&gt;} Return null if there is no segmentation
+*/
+DataTable.prototype.getSegmentValues = function(rids) {
+	if(this._segments) {
+		return this._segments.getSegmentValues(rids || this._rids);
+	}
+	return null;
+};
+/**
+* @private
+* @param {number} at Row index
+* @return {boolean} Return true if the given row is in the last segment
+*/
+DataTable.prototype._isLastSegment = function(at) {
+	var segmentSeparators = this._segments;
+	if(segmentSeparators) {
+		var rids = this._rids;
+		var rowCount = rids.length;
+		for(var r = at + 1; r &lt; rowCount; ++r) {
+			if(segmentSeparators.containsSegment(rids[r])) {
+				return false;
+			}
+		}
+	}
+	return true;
+};
+/**
+* @public
+* @ignore
+* @return {SegmentCollection} Return null if there is no segmentation
+*/
+DataTable.prototype._getSegmentSeparators = function() {
+	return this._segments;
+};
+/** @public
+* @param {boolean=} enabled
+* @ignore
+*/
+DataTable.prototype.enableAutoSegmentFilling = function(enabled) {
+	this._autoSegmentFilling = enabled != false;
+	this._autoFillSegments();
+};
+/** @private
+*/
+DataTable.prototype._autoFillSegments = function() {
+	if(this._autoSegmentFilling) {
+		this.fillSegments();
+	}
+};
+/** Remove existing segment children and fill the segments with all contnet rows before the next segment separator
+* @public
+* @param {string} segmentId Row id
+*/
+DataTable.prototype.fillSegment = function(segmentId) {
+	if(this._segments) {
+		this._segments.fillSegment(segmentId, this._rids);
+	}
+};
+/** Remove all existing segment children in each segment and fill the segments with all contnet rows before the next segment separator
+* @public
+*/
+DataTable.prototype.fillSegments = function() {
+	if(this._segments) {
+		this._segments.fillSegments(this._rids);
+	}
+};
+/** @public
+* @param {string} segmentId Row id
+* @param {string} rid Row id
+* @return {boolean} Return true if there is any change
+*/
+DataTable.prototype.addSegmentChild = function(segmentId, rid) {
+	if(this._segments) {
+		var dirty = this._segments.addSegmentChild(segmentId, rid);
+		if(dirty) {
+			if(this._sort(null)) {
+				this._dispatchPositionChange();
+			}
+			return true;
+		}
+	}
+	return false;
+};
+/** @public
+* @param {string} segmentId Row id
+* @param {Array.&lt;string&gt;} rids Row id
+* @return {boolean} Return true if there is any change
+*/
+DataTable.prototype.addSegmentChildren = function(segmentId, rids) {
+	if(this._segments) {
+		var dirty = this._segments.addSegmentChildren(segmentId, rids);
+		if(dirty) {
+			if(this._sort(null)) {
+				this._dispatchPositionChange();
+			}
+			return true;
+		}
+	}
+	return false;
+};
+/** @public
+* @param {string} segmentId Row id
+* @param {string} rid Row id
+* @return {boolean} Return true if there is any change
+*/
+DataTable.prototype.removeSegmentChild = function(segmentId, rid) {
+	if(this._segments) {
+		return this._segments.removeSegmentChild(segmentId, rid);
+	}
+	return false;
+};
+/** @public
+* @param {string} segmentId Row id
+* @param {Array.&lt;string&gt;} rids Row id
+* @return {boolean} Return true if there is any change
+*/
+DataTable.prototype.removeSegmentChildren = function(segmentId, rids) {
+	if(this._segments) {
+		return this._segments.removeSegmentChildren(segmentId, rids);
+	}
+	return false;
+};
+/** @public
+* @return {boolean} Return true if there is any change
+*/
+DataTable.prototype.removeAllSegmentChildren = function() {
+	if(this._segments) {
+		return this._segments.removeAllSegmentChildren();
+	}
+	return false;
+};
+/** Get row ids of all segment separator
+* @public
+* @return {Array.&lt;string&gt;} Return null if there is no segment separator
+*/
+DataTable.prototype.getSegmentIds = function() {
+	if(this._segments) {
+		return this._segments.getSegmentIds();
+	}
+	return null;
+};
+/** Get row ids of all children from the specified segment
+* @public
+* @param {string} segmentId
+* @return {Array.&lt;string&gt;} Returns array of row ids. Returns null if there is no child or no segment separator found
+*/
+DataTable.prototype.getSegmentChildIds = function(segmentId) {
+	if(this._segments) {
+		var segment = this._segments.getSegment(segmentId);
+		if(segment) {
+			var chdr = segment.getChildIds();
+			return chdr.length ? chdr : null;
+		}
+	}
+	return null;
+};
+/** Sort all of existing segments by given compare function
+* @public
+* @param {Function} compare
+*/
+DataTable.prototype.sortSegments = function (compare) {
+	if(!this._segments || typeof compare !== "function") {
+		return;
+	}
+	var rids = this._rids;
+	var segments = this._segments;
+	var segmentCount = segments.getSegmentCount();
+	var segmentList = [];
+	var origOrder = [];
+	var itemCount = 0;
+	var rowCount = rids.length;
+	var rid = "";
+	var segment = null;
+	var i;
+	for(i = 0; i &lt; rowCount; ++i) {
+		rid = rids[i];
+		segment = segments.getSegment(rid);
+		if(segment) {
+			origOrder.push(i);
+			segmentList.push(segment);
+			if(++itemCount &gt;= segmentCount) {
+				break;
+			}
+		}
+	}
+
+	this._userSegmentComparer = compare;
+	segmentList.sort(this._bySegmentSeparator);
+	this._userSegmentComparer = null;
+
+	var dirty = false;
+	for(i = 0; i &lt; itemCount; ++i) {
+		var idx = origOrder[i];
+		rid = rids[idx];
+		segment = segmentList[i];
+		var newRid = segment.getId();
+		if(rid !== newRid) {
+			rids[idx] = newRid;
+			dirty = true;
+		}
+	}
+
+	if(dirty) {
+		this._sort(null);
+		this._dispatchPositionChange();
+	}
+};
+/** Sort all of existing segments by given compare function
+* @private
+* @param {tr.Segment} segmentA
+* @param {tr.Segment} segmentB
+* @return {number}
+*/
+DataTable.prototype._bySegmentSeparator = function (segmentA, segmentB) {
+	return /** @type{number} */(this._userSegmentComparer(
+		this.getRowData(segmentA.getId()),
+		this.getRowData(segmentB.getId())
+	));
+};
+
+
+/**
+* @public
+* @ignore
+* @param {Array.&lt;Array&gt;} sortingDefs
+* @return {boolean} Return true if there is any change, otherwise false
+*/
+DataTable.prototype._sort = function(sortingDefs) {
+	var rids = this._rids;
+	var dataRows = this.getMultipleRowData(rids);
+	var segmentValues = this.getSegmentValues(rids);
+	var change = DataTable._performMultiLevelSorting(dataRows, sortingDefs, segmentValues);
+
+	if(change) {
+		this._rids = DataTable._reorderItems(rids, change);
+		return true;
+	}
+	return false;
+};
+
+/** Simulate data changed event by firing global change event argument to all listeners&lt;br&gt;
+* Normally this will force data view to do sorting, filtering, and grouping again
+* @public
+* @param {boolean=} suppressEvent
+* @fires DataTable#dataComposed
+* @fires DataTable#dataChanged
+*/
+DataTable.prototype.dispatchGlobalChange = function(suppressEvent) {
+	if(!suppressEvent &amp;&amp; this._needFiring()) {
+		this._dispatchDataChange(DataTable._globalChangeArg);
+	}
+};
+/** Position change will not cause dataComposed to be fired
+* @private
+* @param {boolean=} suppressEvent
+* @fires DataTable#dataChanged
+*/
+DataTable.prototype._dispatchPositionChange = function(suppressEvent) {
+	if(!suppressEvent &amp;&amp; this._needFiring()) {
+		this._dispatch("dataChanged", DataTable._positionChangeArg);
+	}
+};
+
+/** {@link DataCache#dump} Construct a JSON object that is compatible with console.table()
+* @override
+* @param {Object=} opt_options {@link DataCache#dump}
+* @return {!Array.&lt;Object&gt;} Return a JSON object that is compatible with console.table()
+* @see {@link DataCache#dump}
+*/
+DataTable.prototype.dump = function(opt_options) {
+	return DataCache.constructTable(this.getMultipleRowData(this._rids), opt_options, this._rids);
+};
+
+
+/** @private
+* @param {string} rid
+* @param {string} cid
+* @param {*} value
+* @return {boolean} Return true if there is any change, and false otherwise
+*/
+DataTable.prototype._setData = function(rid, cid, value) {
+	var row = this.getRowData(rid);
+
+	if(!row) {
+		row = {};
+		this._rows[rid] = row;
+		this._prevData[rid] = {};
+		this._rids.push(rid);
+	}
+	this._prevData[rid][cid] = row[cid];
+	row[cid] = value;
+	return true;
+};
+/** @private
+* @param {number} len
+* @param {Array.&lt;string&gt;=} opt_ridList
+* @returns {Array.&lt;string&gt;}
+*/
+DataTable.prototype._generateRids = function(len, opt_ridList) {
+	var r = 0, rids;
+	if(opt_ridList) {
+		rids = opt_ridList;
+	} else {
+		rids = [];
+		var rowCount = this._rids.length;
+		while(r &lt; rowCount &amp;&amp; r &lt; len) {
+			rids.push(this._rids[r++]);
+		}
+	}
+	r = rids.length;
+	while(r &lt; len) {
+		rids.push("" + r++); // Auto-generate row id
+	}
+	return rids;
+};
+/** @private
+* @param {Object} values
+* @param {string|null=} rid
+* @return {string}
+*/
+DataTable.prototype._generateUniqueRid = function(values, rid) {
+	if(!rid) {
+		if(values["ROW_ID"]) {
+			return values["ROW_ID"];
+		}
+		rid = "_" + this._runningId++;
+		while(this._rows[rid]) {
+			rid = "_" + this._runningId++;
+		}
+	}
+	return rid;
+};
+
+/** @private
+* @return {boolean}
+*/
+DataTable.prototype._needFiring = function() {
+	return !this._frozen &amp;&amp; !this._composing;
+};
+
+/** Deprecated
+* @deprecated
+* @public
+* @function
+*/
+DataTable.getSortingDefinitions = Util._deprecatedFunction;
+/** @public
+* @const
+* @ignore
+* @type {!Object}
+*/
+DataTable._globalChangeArg = {"globalChange": true};
+/** @public
+* @const
+* @ignore
+* @type {!Object}
+*/
+DataTable._positionChangeArg = {"globalChange": true, "positionChangeOnly": true};
+
+
+/**
+* @function
+* @public
+* @ignore
+* @param {Array.&lt;Array&gt;} out_defs Output object. Array is used to optimize property accessing time.
+* @param {string|Array.&lt;string&gt;} cids
+* @param {string|number|Array.&lt;string|number&gt;=} sortOrders
+* @param {Function|Array.&lt;Function&gt;|Object.&lt;string, DataTable.SortLogic&gt;=} logics
+* @param {*=} contextObj Context object that will be provided as the forth parameter of the given comparer method
+* @return {!Array.&lt;Array&gt;}
+*/
+DataTable._buildSortContext = function(out_defs, cids, sortOrders, logics, contextObj) {
+	var aryColumnIds, aryOrders;
+	if(Array.isArray(cids)) {
+		aryColumnIds = /** @type{Array.&lt;string&gt;} */(cids);
+		aryOrders = /** @type{Array.&lt;string|number&gt;} */(sortOrders);
+	} else {
+		aryColumnIds = [/** @type{string} */(cids)];
+		aryOrders = (cids) ? [/** @type{string|number} */(sortOrders)] : [0];
+	}
+
+	var logic = null;
+	var logicMap = null;
+	if(typeof logics == "function") {
+		logic = logics;
+	} else {
+		logicMap = /** @type{Array.&lt;Function&gt;|Object.&lt;string, DataTable.SortLogic&gt;} */(logics);
+	}
+	var len = aryColumnIds.length;
+	out_defs.length = len;
+	for(var c = len; --c &gt;= 0;) {
+		if (Array.isArray(logicMap)) {
+			logic = logicMap[c];
+		}
+		var sortingDef = out_defs[c];
+		if(!sortingDef) {
+			sortingDef = out_defs[c] = new Array(5);
+		}
+		var columnId = aryColumnIds[c];
+		sortingDef[0] = columnId; // text field
+		sortingDef[1] = null; // Reserved for row data
+		sortingDef[2] = logic || logicMap[columnId] || logicMap["_default"]; // sort logic
+		if(!sortingDef[2]) {
+			sortingDef[2] = DataTable._defaultComparer;
+		}
+		sortingDef[3] = DataTable._getSortOrder(aryOrders[c]); // sort order
+		sortingDef[4] = contextObj;
+	}
+	return out_defs;
+};
+/** Performance is extremely vital in this method
+* @public
+* @ignore
+* @function
+* @param {number} a
+* @param {number} b
+* @param {number} order Not used by in this method
+* @param {Array.&lt;Array&gt;} sortingDefs
+* @return {number}
+*/
+DataTable._multiColumnCompareLogic = function(a, b, order, sortingDefs) {
+	var count = sortingDefs.length;
+	var result = 0;
+	for(var c = 0; c &lt; count; ++c) {
+		var sortingDef = sortingDefs[c];
+		result = DataTable._singleColumnCompareLogic(a, b, sortingDef[3], sortingDef);
+		if(result) {
+			return result;
+		}
+	}
+	return result;
+};
+/** Performance is extremely vital in this method
+* @public
+* @ignore
+* @function
+* @param {number} a
+* @param {number} b
+* @param {number} order
+* @param {Array} sortingDef
+* @return {number}
+*/
+DataTable._singleColumnCompareLogic = function(a, b, order, sortingDef) {
+	var values = /** @type{Array} */(sortingDef[1]);
+	return /** @type{number} */(sortingDef[2](
+		values[a], // Value1
+		values[b], // Value2
+		order, // Sort order (3)
+		sortingDef[4] // Context object
+	));
+};
+/** @public
+* @function
+* @ignore
+* @param {!Array.&lt;Object&gt;} dataRows
+* @param {Array.&lt;Array&gt;} sortingDefs
+* @param {Array.&lt;number&gt;=} segmentValues
+* @return {Array.&lt;number&gt;} Returns new item positions if there is any change, otherwise returns null
+*/
+DataTable._performMultiLevelSorting = function(dataRows, sortingDefs, segmentValues) {
+	var rowCount = dataRows ? dataRows.length : 0;
+	var defCount = sortingDefs ? sortingDefs.length : 0;
+	if(!rowCount) {
+		return null;
+	}
+
+	// Populate data for each definition
+	for(var c = 0; c &lt; defCount; ++c) {
+		var sortingDef = sortingDefs[c];
+		var columnId = sortingDef[0];
+		var rows = sortingDef[1];
+		if(rows) {
+			rows.length = rowCount;
+		} else {
+			rows = sortingDef[1] = new Array(rowCount);
+		}
+		for(var r = 0; r &lt; rowCount; ++r) {
+			rows[r] = dataRows[r][columnId];
+		}
+	}
+
+	if(segmentValues) {
+		var segmentDef = [ // TODO: Make this static variable
+			"ROW_SEGMENT", // Dummy column id
+			segmentValues, // Segment values
+			DataTable._segmentComparer,
+			1, // Ascending order
+			null // Context object
+		];
+		if(sortingDefs) {
+			sortingDefs = sortingDefs.slice();
+			sortingDefs.unshift(segmentDef);
+		} else {
+			sortingDefs = [segmentDef];
+		}
+		++defCount;
+	}
+
+	if(!defCount) {
+		return null;
+	}
+
+	var sortOrder = 0;
+	var sortLogic, sortContext;
+	if(defCount &gt; 1) {
+		sortLogic = DataTable._multiColumnCompareLogic;
+		sortContext = sortingDefs;
+		sortOrder = 1; // sortOrder is not used by _multiColumnCompareLogic
+	} else { // Single level sorting
+		sortLogic = DataTable._singleColumnCompareLogic;
+		sortContext = sortingDefs[0];
+		sortOrder = /** @type{number} */(sortContext[3]);
+	}
+
+	return DataTable._mergeSort(rowCount, sortOrder, sortLogic, sortContext);
+};
+/**
+* @function
+* @public
+* @ignore
+* @param {number} len Length of array item
+* @param {number} order
+* @param {DataTable.SortLogic} comparer
+* @param {*=} contextObj Context object that will be provided as the forth parameter of the given comparer method
+* @return {Array.&lt;number&gt;} Returns new item positions if there is any change, otherwise returns null
+*/
+DataTable._mergeSort = function(len, order, comparer, contextObj) {
+	var change = false;
+
+	var grpSize = 1;
+	var iter, lhsFrom, rhsFrom, lhsTo, rhsTo;
+	var subj = DataTable._createIndexArray(len);
+	var obj = subj.slice();
+
+	while(grpSize &lt;= len) {
+		iter = rhsTo = 0; // start from 0
+		while(iter &lt; len) {
+			lhsFrom = rhsTo;
+			lhsTo = lhsFrom + grpSize;
+			rhsFrom = lhsTo;
+			rhsTo = rhsFrom + grpSize;
+			if(rhsTo &gt; len) rhsTo = len;
+
+			if(rhsFrom &lt; rhsTo) {
+				while(true) { // Merge two groups together
+					if(comparer(subj[lhsFrom], subj[rhsFrom], order, contextObj) &lt;= 0) {
+						obj[iter++] = subj[lhsFrom];
+						if(++lhsFrom &gt;= lhsTo) {
+							while(rhsFrom &lt; rhsTo) {
+								obj[iter++] = subj[rhsFrom];
+								++rhsFrom;
+							}
+							break;
+						}
+					} else {
+						change = true;
+						obj[iter++] = subj[rhsFrom];
+						if(++rhsFrom &gt;= rhsTo) {
+							while(lhsFrom &lt; lhsTo) {
+								obj[iter++] = subj[lhsFrom];
+								++lhsFrom;
+							}
+							break;
+						}
+					}
+				}
+			} else {
+				while(iter &lt; len) {
+					obj[iter] = subj[iter];
+					++iter;
+				}
+			}
+		}
+
+		var tmp = subj;
+		subj = obj;
+		obj = tmp;
+		grpSize &lt;&lt;= 1;
+	}
+	return change ? subj : null;
+};
+/** reorderItems(["a", "b", "c", "d"], [1, 3, 0, 2]) === ["b", "d", "a", "c"]; (Move the first item to where its corresponding index is) &lt;br&gt;
+* Not in-place reordering. Orders array will become the results
+* @function
+* @public
+* @ignore
+* @param {!Array} ary
+* @param {Array} orders
+* @return {!Array}
+*/
+DataTable._reorderItems = function (ary, orders) {
+	if(orders) {
+		for(var i = ary.length; --i &gt;= 0;) {
+			orders[i] = ary[orders[i]];
+		}
+		return orders;
+	}
+	return ary;
+};
+/** Create array of incremental series starting from 0 (e.g. [0, 1, 2, 3, ...])
+* @private
+* @function
+* @ignore
+* @param {number} len Length of the generated array
+* @return {!Array.&lt;number&gt;}
+*/
+DataTable._createIndexArray = function(len) {
+	var ary = DataTable._idxAryMap[len];
+	if(!ary) {
+		if(DataTable._idxAryCount &gt; 50) { // Clear cache to avoid caching huge memory
+			DataTable._idxAryMap = {};
+			DataTable._idxAryCount = 0;
+		}
+		ary = DataTable._idxAryMap[len] = new Array(len);
+		DataTable._idxAryCount++;
+
+		for(var i = 0; i &lt; len; ++i) {
+			ary[i] = i;
+		}
+	}
+	return ary.slice(); // Fastest way to clone an array is to perform slice() method
+};
+/** @private
+* @type {Object.&lt;number, Array.&lt;number&gt;&gt;}
+*/
+DataTable._idxAryMap = {};
+/** @private
+* @type {number}
+*/
+DataTable._idxAryCount = 0;
+
+/** @private
+* @function
+* @param {number} a
+* @param {number} b
+* @return {number}
+*/
+DataTable._segmentComparer = function(a, b) {
+	if(a === b) {
+		return 0;
+	}
+	return (a &lt; b) ? -1 : 1;
+};
+/** @private
+* @function
+* @param {*} a
+* @param {*} b
+* @param {number} order
+* @return {number}
+*/
+DataTable._defaultComparer = function(a, b, order) { // User data may contain invalid value such as undefined or null
+	if(a == null || a !== a) {
+		if(b == null || b !== b) {
+			return 0;
+		}
+		return 1;
+	}
+	if(b == null || b !== b) {
+		return -1;
+	}
+
+	if(a &lt; b) {
+		return -order;
+	}
+	if(b &lt; a) {
+		return order;
+	}
+	return 0;
+};
+/** @private
+* @function
+* @param {string|number=} sortOrder
+* @returns {number}
+*/
+DataTable._getSortOrder = function(sortOrder) {
+	if(typeof sortOrder === "number") {
+		return sortOrder;
+	} else if(sortOrder &amp;&amp; typeof sortOrder === "string") {
+		sortOrder = sortOrder.charAt(0).toLowerCase();
+		if(sortOrder === "a") {
+			return 1;
+		} else if(sortOrder === "d") {
+			return -1;
+		}
+	}
+	return 0;
+};
+
+DataTable._proto = DataTable.prototype;
+
+export default DataTable;
+export { DataTable };
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="ElementFrameWork.html">ElementFrameWork</a></li><li><a href="Util.html">Util</a></li></ul><h3>Classes</h3><ul><li><a href="Cell.html">Cell</a></li><li><a href="CellFloatingPanel.html">CellFloatingPanel</a></li><li><a href="CellSpan.html">CellSpan</a></li><li><a href="CellSpans.html">CellSpans</a></li><li><a href="ColumnStats.html">ColumnStats</a></li><li><a href="Conflator.html">Conflator</a></li><li><a href="DataCache.html">DataCache</a></li><li><a href="DataTable.html">DataTable</a></li><li><a href="DataView.html">DataView</a></li><li><a href="DragAndDropTitlePlugin.html">DragAndDropTitlePlugin</a></li><li><a href="ElementWrapper.html">ElementWrapper</a></li><li><a href="EventDispatcher.html">EventDispatcher</a></li><li><a href="EventListeners.html">EventListeners</a></li><li><a href="Grid.html">Grid</a></li><li><a href="HScrollbar.html">HScrollbar</a></li><li><a href="HttpRequest.html">HttpRequest</a></li><li><a href="LayoutGrid.html">LayoutGrid</a></li><li><a href="PercentBar.html">PercentBar</a></li><li><a href="PercentBarRenderer.html">PercentBarRenderer</a></li><li><a href="Plugin.html">Plugin</a></li><li><a href="RangeBar.html">RangeBar</a></li><li><a href="Reverter.html">Reverter</a></li><li><a href="Scrollbar.html">Scrollbar</a></li><li><a href="SectionSettings.html">SectionSettings</a></li><li><a href="Segment.html">Segment</a></li><li><a href="SegmentCollection.html">SegmentCollection</a></li><li><a href="SortableTitlePlugin.html">SortableTitlePlugin</a></li><li><a href="Virtualizer.html">Virtualizer</a></li><li><a href="VScrollbar.html">VScrollbar</a></li></ul><h3>Interfaces</h3><ul><li><a href="ILayoutGrid.html">ILayoutGrid</a></li></ul><h3>Events</h3><ul><li><a href="DataCache.html#event:dataChanged">dataChanged</a></li><li><a href="DataCache.html#event:dataComposed">dataComposed</a></li><li><a href="DataTable.html#event:dataChanged">dataChanged</a></li><li><a href="DataTable.html#event:dataComposed">dataComposed</a></li><li><a href="DataView.html#event:beforeFiltering">beforeFiltering</a></li><li><a href="DataView.html#event:beforeGroupAdded">beforeGroupAdded</a></li><li><a href="DataView.html#event:dataChanged">dataChanged</a></li><li><a href="DataView.html#event:groupAdded">groupAdded</a></li><li><a href="DataView.html#event:groupCriteriaChanged">groupCriteriaChanged</a></li><li><a href="DataView.html#event:pageCountChanged">pageCountChanged</a></li><li><a href="DataView.html#event:pageIndexChanged">pageIndexChanged</a></li><li><a href="DataView.html#event:preDisposed">preDisposed</a></li><li><a href="DragAndDropTitlePlugin.html#event:columnMoved">columnMoved</a></li><li><a href="DragAndDropTitlePlugin.html#event:dragged">dragged</a></li><li><a href="Grid.html#event:columnAdded">columnAdded</a></li><li><a href="Grid.html#event:columnRemoved">columnRemoved</a></li><li><a href="Grid.html#event:columnVisibilityChanged">columnVisibilityChanged</a></li><li><a href="Grid.html#event:dataSourceChanged">dataSourceChanged</a></li><li><a href="Grid.html#event:postSectionDataBinding">postSectionDataBinding</a></li><li><a href="Grid.html#event:rowExpansionBinding">rowExpansionBinding</a></li><li><a href="Grid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="Grid.html#event:sectionAdded">sectionAdded</a></li><li><a href="Grid.html#event:widthChanged">widthChanged</a></li><li><a href="HttpRequest.html#event:abort">abort</a></li><li><a href="HttpRequest.html#event:error">error</a></li><li><a href="HttpRequest.html#event:load">load</a></li><li><a href="HttpRequest.html#event:loadend">loadend</a></li><li><a href="HttpRequest.html#event:loadstart">loadstart</a></li><li><a href="HttpRequest.html#event:timeout">timeout</a></li><li><a href="LayoutGrid.html#event:rowCountChanged">rowCountChanged</a></li><li><a href="LayoutGrid.html#event:rowHeightChanged">rowHeightChanged</a></li><li><a href="LayoutGrid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="SortableTitlePlugin.html#event:clicked">clicked</a></li><li><a href="SortableTitlePlugin.html#event:columnSorted">columnSorted</a></li><li><a href="SortableTitlePlugin.html#event:preClicked">preClicked</a></li><li><a href="SortableTitlePlugin.html#event:preDataSorting">preDataSorting</a></li></ul><h3>Global</h3><ul><li><a href="global.html#get">get</a></li><li><a href="global.html#sortingDef%255B1%255D">sortingDef[1]</a></li></ul>
+</nav>
+
+
+<script src="scripts/linenumber.js"> </script>
+<script src="scripts/prettify.js"> </script>
+<script> prettyPrint(); </script>
+</body>
+</html>

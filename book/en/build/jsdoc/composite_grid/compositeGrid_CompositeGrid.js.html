@@ -1,0 +1,4754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: compositeGrid/CompositeGrid.js</title>
+
+    <script src="scripts/prettify.js"> </script>
+    <script src="scripts/lang-css.js"> </script>
+    <!--[if lt IE 9]&gt;
+      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
+    &lt;![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/default.css">
+    <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
+</head>
+
+<body>
+
+<div id="main-template" class="elf-template">
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>goog.provide("tr.CompositeGrid");
+
+goog.require("tr.ElementControl");
+goog.require("tr.IElementControl");
+goog.require("tr.ElementWrapper");
+goog.require("tr.DropDown");
+goog.require("tr.Grid");
+goog.require("tr.Event");
+goog.require("tr.grid.DataSourceTreePlugin");
+goog.require("tr.grid.CollapsibleHeaderPlugin");
+goog.require("tr.grid.CellBlinkingPlugin");
+goog.require("tr.grid.CellEditingPlugin");
+goog.require("tr.grid.ColumnFilterPlugin");
+goog.require("tr.grid.SortableTitlePlugin");
+goog.require("tr.grid.ResizableTitlePlugin");
+goog.require("tr.grid.DragAndDropTitlePlugin");
+goog.require("tr.grid.CheckboxColumnPlugin");
+goog.require("tr.grid.RowSelectionPlugin");
+goog.require("tr.grid.ColumnSelectionPlugin");
+goog.require("tr.grid.ColumnWidthAdjustingPlugin");
+goog.require("tr.grid.DraggableContentPlugin");
+goog.require("tr.DataTable");
+goog.require("tr.DataView");
+goog.require("tr.ILayoutGrid");
+goog.require("tr.fn.Engine");
+
+
+/** Make sure string or boolean value is boolean.
+ * @private
+ * @param {*} input
+ * @return {boolean}
+ */
+tr.ensureBoolean = function(input) {
+	if (input == null) {
+		return false;
+	}
+	var boolValue = JSON.parse(/**@type{string}*/(input)); // This could cause error
+	if (boolValue !== true &amp;&amp; boolValue !== false) {
+		boolValue = false;
+	}
+	return boolValue;
+};
+
+/** Make sure string or number value is number
+ * @private
+ * @param {*} input
+ * @return {number}
+ */
+tr.ensureNumber = function(input) {
+	return Number(input);
+};
+
+/** Make sure the input object is an array, if not, wrap the curent value as an array
+ * @private
+ * @param {*} input
+ * @return {Array}
+ */
+tr.ensureArray = function(input) {
+	if (input == null) {
+		return [];
+	} else
+	if (!Array.isArray(input)) {
+		return [input];
+	} else {
+		return /** @type {Array} */(input);
+	}
+};
+
+/**
+ * @constructor
+ * @implements {tr.IElementControl}
+ * @extends {tr.ElementControl}
+ * @param {Element} opt_initializer
+ * @param {tr.CompositeGrid.Options=} opt_model
+ */
+tr.CompositeGrid = function (opt_initializer, opt_model) {
+	var _t = this;
+	_t._columnModelById = {};
+	_t._formatterMap = {};
+	var actualGridDiv = _t._initializeDOM(opt_initializer);
+
+	_t._addEvents(
+		"mouseOverCell",
+		"mouseLeaveCell",
+		"cellMouseDown",
+		"cellClicked",
+		"cellDblClicked",
+		"cellRightClicked",
+		"filterAdded",
+		"filterRemoved",
+		"filterModified",
+		"filterCleared",
+		"columnSorted",
+		"pageChanged",
+		"selectionChanged",
+		"editorDetached",
+		"editorAttached"
+	);
+
+	_t._dataChangedHandler = _t._dataChangedHandler.bind(_t);
+	_t._groupHeaderBinding = _t._groupHeaderBinding.bind(_t);
+	_t._groupContentBinding = _t._groupContentBinding.bind(_t);
+	_t._groupFooterBinding = _t._groupFooterBinding.bind(_t);
+	_t._checkboxColumnPlugInClick = _t._checkboxColumnPlugInClick.bind(_t);
+	_t._checkboxColumnPlugInCreated = _t._checkboxColumnPlugInCreated.bind(_t);
+	_t._cellRenderingHandler = _t._cellRenderingHandler.bind(_t);
+	_t._cellDataBindingHandler = _t._cellDataBindingHandler.bind(_t);
+	_t._mouseDownHandler = _t._mouseDownHandler.bind(_t);
+	_t._mouseMoveHandler = _t._mouseMoveHandler.bind(_t);
+	_t._mouseLeaveHandler = _t._mouseLeaveHandler.bind(_t);
+	_t._mouseDblClickHandler = _t._mouseDblClickHandler.bind(_t);
+	_t._mouseClickHandler = _t._mouseClickHandler.bind(_t);
+	_t._contextMenuHandler = _t._contextMenuHandler.bind(_t);
+	_t._columnMovedHandler = _t._columnMovedHandler.bind(_t);
+	_t._columnDraggedHandler = _t._columnDraggedHandler.bind(_t);
+	_t._columnResizedHandler = _t._columnResizedHandler.bind(_t);
+	_t._columnSortedHandler = _t._columnSortedHandler.bind(_t);
+	_t._rowDragStartHandler = _t._rowDragStartHandler.bind(_t);
+	_t._rowDragEndHandler = _t._rowDragEndHandler.bind(_t);
+	_t._rowExpansionBindingHandler = _t._rowExpansionBindingHandler.bind(_t);
+	_t._onAutoLayoutUpdate = _t._onAutoLayoutUpdate.bind(_t);
+	_t._onCancelEditing = _t._onCancelEditing.bind(_t);
+
+	_t._initialize(actualGridDiv, opt_model);
+
+	//WORKAROUND: To fix incorrect column width when in fit-to-container mode (no width).
+	setTimeout(_t._onAutoLayoutUpdate, 100);
+};
+
+goog.inherits(tr.CompositeGrid, tr.ElementControl);
+
+/** @private */
+tr.CompositeGrid.prototype._onAutoLayoutUpdate = function () {
+	var elem = this._grid ? this._grid.getElement() : null;
+
+	if (!elem) {
+		return;
+	}
+
+	var cw = elem.clientWidth;
+	var ch = elem.clientHeight;
+
+	if (cw !== this._clientWidth || ch !== this._clientHeight) {
+		this._clientWidth = cw;
+		this._clientHeight = ch;
+
+		if (cw &amp;&amp; ch) { // grid must have valid size
+			this._grid.updateLayout();
+		}
+	}
+};
+
+/** TODO: Top Element should be topNode and deprecate this element
+ * @private
+ * @type {Element}
+ */
+tr.CompositeGrid.prototype._topLevelElement = null;
+
+/**
+ * @private
+ * @type {tr.Grid}
+ */
+tr.CompositeGrid.prototype._grid = null;
+
+/**
+ * @private
+ * @type {tr.DataTable}
+ */
+tr.CompositeGrid.prototype._dataTable = null;
+
+/**
+ * @private
+ * @type {tr.DataView}
+ */
+tr.CompositeGrid.prototype._dataView = null;
+
+/**
+ * @private
+ * @type {Object}
+ */
+tr.CompositeGrid.prototype._model = null;
+
+/**
+ * @private
+ * @type {number}
+ */
+tr.CompositeGrid.prototype._mouseOnRow = -1;
+
+/**
+ * @private
+ * @type {number}
+ */
+tr.CompositeGrid.prototype._mouseOnColumn = -1;
+
+/**
+ * @private
+ * @type {number}
+ */
+tr.CompositeGrid.prototype._mouseOnSection = -1;
+
+/**
+ * @private
+ * @type {tr.grid.SortableTitlePlugin}
+ */
+tr.CompositeGrid.prototype._sortPlugIn = null;
+
+/**
+ * @private
+ * @type {tr.grid.CellBlinkingPlugin}
+ */
+tr.CompositeGrid.prototype._blinkPlugIn = null;
+
+/**
+ * @private
+ * @type {tr.grid.DataSourceTreePlugin}
+ */
+tr.CompositeGrid.prototype._dataSourceTreePlugIn = null;
+
+/**
+ * @private
+ * @type {tr.grid.CollapsibleHeaderPlugin}
+ */
+tr.CompositeGrid.prototype._collapsibleHeaderPlugIn = null;
+
+/**
+ * @private
+ * @type {tr.grid.ColumnFilterPlugin}
+ */
+tr.CompositeGrid.prototype._columnFilterPlugIn = null;
+
+/**
+ * @private
+ * @type {tr.grid.CheckboxColumnPlugin}
+ */
+tr.CompositeGrid.prototype._checkboxColumnPlugIn = null;
+
+/**
+ * @private
+ * @type {tr.grid.RowSelectionPlugin}
+ */
+tr.CompositeGrid.prototype._rowSelectionPlugIn = null;
+
+/**
+ * @private
+ * @type {tr.grid.ResizableTitlePlugin}
+ */
+tr.CompositeGrid.prototype._resizableTitlePlugIn = null;
+
+/**
+ * @private
+ * @type {tr.grid.ColumnWidthAdjustingPlugin}
+ */
+tr.CompositeGrid.prototype._columnWidthAdjustingPlugIn = null;
+
+/**
+ * @private
+ * @type {tr.grid.DraggableContentPlugin}
+ */
+tr.CompositeGrid.prototype._draggableContentPlugIn = null;
+
+/** @type {Object.&lt;string, Object&gt;}
+ * @private
+ */
+tr.CompositeGrid.prototype._columnModelById = null;
+
+/**
+ * @private
+ * @type {boolean}
+ */
+tr.CompositeGrid.prototype._editing = false;
+
+/**
+ * @private
+ * @type {number}
+ */
+tr.CompositeGrid.prototype._editingRow = -1;
+
+/**
+ * @private
+ * @type {Element}
+ */
+tr.CompositeGrid.prototype._editorPanel = null;
+
+/**
+ * @private
+ * @type {Element}
+ */
+tr.CompositeGrid.prototype._loadingMask = null;
+
+/**
+ * @private
+ * @type {number}
+ */
+tr.CompositeGrid.prototype._headerRowHeight = 32;
+
+/**
+ * @private
+ * @type {tr.ElementWrapper}
+ */
+tr.CompositeGrid.prototype._pagerUI = null;
+
+/**
+ * @private
+ * @type {number}
+ */
+tr.CompositeGrid.prototype._currentPage = 1;
+
+/**
+ * @private
+ * @type {number}
+ */
+tr.CompositeGrid.prototype._totalPages = 1;
+
+/**
+ * @private
+ * @type {number}
+ */
+tr.CompositeGrid.prototype._totalRows = 0;
+
+/**
+ * @private
+ * @type {Object.&lt;string, Object&gt;}
+ */
+tr.CompositeGrid.prototype._formatterMap = null;
+
+/**
+ * @private
+ * @type {Object.&lt;string, Object&gt;}
+ */
+tr.CompositeGrid.prototype._columnGroupTreeNodes = null;
+
+/**
+ * @private
+ * @type {number}
+ */
+tr.CompositeGrid.prototype._totalHeaderSection = 0;
+
+/**
+ * @private
+ * @type {number}
+ */
+tr.CompositeGrid.prototype._autoLayoutTimer = 0;
+/**
+ * @private
+ * @type {number}
+ */
+tr.CompositeGrid.prototype._clientWidth = NaN;
+/**
+ * @private
+ * @type {number}
+ */
+tr.CompositeGrid.prototype._clientHeight = NaN;
+
+
+/** Get the model of the grid. It's the same object that has been passed as grid's options. &lt;br&gt;
+ * The states of the model may not be up to date and may not represent current states of the grid. &lt;br&gt;
+ * Please use getConfigObject() method instead.
+ * @public
+ * @return {Object} model JSON object that represents the grid model
+ */
+tr.CompositeGrid.prototype.getModel = function () {
+	return this._model;
+};
+
+/**
+ * @public
+ * @return {Array.&lt;Object&gt;} model JSON object that represents the current grid column configurations
+ */
+tr.CompositeGrid.prototype.getColumns = function () {
+	return (this._model["columns"] || []).slice();
+};
+
+/**
+ * Add a new column to this grid by specifying the column definition
+ * as a JSON object
+ * @public
+ * @param {Object} columnModel JSON object that represents the column definition
+ */
+tr.CompositeGrid.prototype.addColumn = function (columnModel) {
+	this.insertColumn(this.getColumnCount(), columnModel);
+};
+
+/**
+ * Add multiple new columns to this grid by specifying the array of column definitions
+ * @public
+ * @param {Array.&lt;Object&gt;} columnModels Array of JSON objects that represent the column definition
+ */
+tr.CompositeGrid.prototype.addColumns = function (columnModels) {
+	this.insertColumns(this.getColumnCount(), columnModels);
+};
+
+/**
+ * Insert a new column to this grid at a specific index by specifying the index of the position
+ * for the new column to be inserted and the column definition as a JSON object
+ * @public
+ * @param {number} atIndex index of the position of the column to be inserted
+ * @param {Object} columnModel JSON object that represents the column definition. ColumnModel must be present
+ */
+tr.CompositeGrid.prototype.insertColumn = function (atIndex, columnModel) {
+	if(!columnModel) {
+		return;
+	}
+	var frozen = this.freezeLayout(true); // TODO: This may be unnecessary
+
+	//Make sure formatter is an array
+	columnModel["formatter"] = tr.ensureArray(columnModel["formatter"]);
+
+	//Process Extension
+	this._processExtension('beforeCreateColumn', [columnModel]);
+
+	//Delete empty formatter array
+	if (columnModel["formatter"]["length"] === 0) {
+		delete columnModel["formatter"];
+	}
+
+	this._model["columns"].splice(atIndex, 0, columnModel);
+	this._grid.insertColumn(atIndex, columnModel);
+	this._applyColumnProperty(atIndex, columnModel);
+	this._columnModelById[columnModel["id"]] = columnModel;
+
+	this.freezeLayout(frozen);
+};
+
+/**
+ * Insert multiple columns to this grid at a specific index by specifying the index of the position for the new column to be inserted and the array of column definitions.&lt;br&gt;
+ * If no column model is given, nothing will be done
+ * @public
+ * @param {number} atIndex index of the position of the column to be inserted. If null value, is given column coun is used instead. If negative index is given, 0 is used instead.
+ * @param {Array.&lt;Object&gt;} columnModels JSON object that represents the column definition
+ */
+tr.CompositeGrid.prototype.insertColumns = function (atIndex, columnModels) {
+	var len = 0;
+	if(Array.isArray(columnModels)) {
+		columnModels = columnModels.filter(Boolean); // Ensure that there is no empty item
+		len = columnModels.length;
+	}
+	if(len &gt; 0) {
+		if(atIndex &lt; 0) {
+			atIndex = 0;
+		}
+		var colCount = this.getColumnCount();
+		if(atIndex == null || atIndex &gt; colCount) {
+			atIndex = colCount;
+		}
+		for (var i = 0; i &lt; len; i++) {
+			var toIndex = atIndex + i;
+
+			this._model["columns"].splice(toIndex, 0, columnModels[i]); // TODO: native splice() can be very slow in a loop
+			this._columnModelById[columnModels[i]["id"]] = columnModels[i];
+		}
+
+		this._grid.insertColumns(atIndex, columnModels);
+
+		for (var i = 0; i &lt; columnModels.length; i++) {
+			this._applyColumnProperty(atIndex + i, columnModels[i]);
+		}
+
+		this._updateColumnGroupingStructure();
+		this._grid.updateLayout();
+	}
+};
+
+/**
+ * @public
+ * @param {number} colIndex Column index of the position of the column to be updated
+ * @param {tr.CompositeGrid.ColumnFormatter|Function=} formatter Formatter object or bind function
+ */
+tr.CompositeGrid.prototype.setColumnFormatter = function (colIndex, formatter) {
+	if (colIndex == null) { return; }
+
+	var obj = formatter;
+	if (typeof formatter === "function") {
+		obj = {
+			render: function() {},
+			bind: formatter
+		};
+	}
+
+	var target = this._model["columns"][colIndex];
+
+	if (!target) { return; }
+
+	target["formatter"] = tr.ensureArray(obj);
+	//Delete empty formatter array
+	if (target["formatter"]["length"] === 0) {
+		delete target["formatter"];
+	}
+
+	// Initialize predefined formatter
+	var fmt = target["formatter"] ? target["formatter"][0] : null; // Support only one formatter in the array
+	if(fmt) {
+		var formatterInitializer = fmt["init"];
+		if(typeof formatterInitializer === "function") {
+			formatterInitializer(target, this._grid); // Pass on userJson object and core grid instance
+		}
+	}
+
+	var section = this._grid.getSection("content");
+
+	var col = /** @type {tr.grid.Column} */(section.getColumn(colIndex));
+	if (col) {
+		col.clearContent();
+	}
+	this._grid.requestRowRefresh();
+};
+
+/**
+ * Update some properties of an existing column dynamically. The column can be referenced by index or column id
+ * @public
+ * @param {number|string} idOrIndex Column id or index of the position of the column to be updated
+ * @param {Object} columnModel JSON object that contains only properties that need to be updated.
+ */
+tr.CompositeGrid.prototype.updateColumn = function (idOrIndex, columnModel) {
+	var columnIndex = -1;
+
+	if (typeof idOrIndex === "string") {
+		columnIndex = this.getColumnIndex(idOrIndex);
+	} else {
+		columnIndex = /** @type {number} */(idOrIndex);
+	}
+
+	var tgtColModel = this._model["columns"][columnIndex];
+
+	if (!tgtColModel) {
+		return;
+	}
+
+	var frozen = this.freezeLayout(true);
+
+	for (var property in columnModel) {
+		tgtColModel[property] = columnModel[property];
+
+		if (property === "id") {
+			this._columnModelById[columnModel["id"]] = tgtColModel;
+		}
+	}
+
+	this._applyColumnProperty(columnIndex, columnModel);
+
+	this.freezeLayout(frozen);
+};
+
+/** Set column title
+* @public
+* @param {number} colIndex
+* @param {string} name
+*/
+tr.CompositeGrid.prototype.setColumnName = function (colIndex, name) {
+	var tgtColModel = this._model["columns"][colIndex];
+	if (tgtColModel) {
+		tgtColModel["title"] = name;
+		var tss = this._grid.getSectionSettings("title");
+		if (tss) {
+			tss.rerender();
+		}
+	}
+};
+
+/** Deprecated in favor of hideColumn, hideColumns, and showAllColumns methods
+ * Show/Hide column at the specified index
+ * @public
+ * @param {number} index Index of the column
+ * @param {boolean} visibility Visibility as a boolean true or false.
+ */
+tr.CompositeGrid.prototype.setColumnVisible = function (index, visibility) {
+	this._grid.hideColumn(index, !visibility);
+	this._model["columns"][index]["visible"] = !!visibility;
+
+	if (this._model["columnGroups"]) {
+		this.update();
+	}
+};
+
+/**
+ * Show/Hide column at the specified index
+ * @public
+ * @param {number} index Index of the column
+ * @param {boolean=} opt_hidden
+ * @see {@link tr.CompositeGrid#hideColumns}
+ */
+tr.CompositeGrid.prototype.hideColumn = function (index, opt_hidden) {
+	this.setColumnVisible(index, opt_hidden === false); // TODO: This has different behaviors from hideColumns method
+};
+
+/** Hide multiple columns at once, improving the performance. Note that the hidden columns continue to exist and occupy the index. So there is no index shifted after this function call.
+ * @public
+ * @param {Array.&lt;number&gt;} colIndices
+ * @param {boolean=} hidden If the value is true or undefined, hide the specified columns. Otherwise, show the columns
+ * @see {@link tr.CompositeGrid#showAllColumns}
+*/
+tr.CompositeGrid.prototype.hideColumns = function (colIndices, hidden) {
+	this._grid.hideColumns(colIndices, hidden);
+};
+/** @public
+ * @see {@link tr.CompositeGrid#hideColumns}
+*/
+tr.CompositeGrid.prototype.showAllColumns = function () {
+	this._grid.showAllColumns();
+};
+
+/**
+ * Remove column at the specified index
+ * @public
+ * @param {number} index Index of the column to be removed
+ * @see {@link tr.CompositeGrid#removeAllColumns}
+ */
+tr.CompositeGrid.prototype.removeColumn = function (index) {
+	if(typeof index === "number") {
+		var cols = this._model["columns"];
+		var len = cols ? cols.length : 0;
+		if(index &gt;= 0 &amp;&amp; index &lt; len) {
+			cols.splice(index, 1);
+			this._grid.removeColumnAt(index);
+
+			// TODO: Only call this when we have the column groups
+			// The header column may be shifted due to removing column in the front
+			this.update(); // Header may contains span and need to be updated
+		}
+	}
+};
+
+/**
+ * Remove column at the specified column ids or indices
+ * @public
+ * @param {Array.&lt;string|number&gt;} colIds Array of column ids or indices
+ * @see {@link tr.CompositeGrid#removeAllColumns}
+ */
+tr.CompositeGrid.prototype.removeColumns = function (colIds) {
+	// TODO: Add support of removing multiple columns to tr.Grid core
+	var frozen = this.freezeLayout(true);
+
+	var indices = this.findColumnIndex(colIds, false);
+
+	indices.sort(function(a, b) {
+		return b - a;
+	});
+
+	var includeLast = false;
+
+	if (indices[0] === this._model["columns"].length - 1) {
+		includeLast = true;
+	}
+
+	for (var i = 0; i &lt; indices.length ; i++) {
+		//Skip the last one to boost the performance of removing because
+		//the CSS change needs to be made if the last one is removed.
+		if (includeLast &amp;&amp; i === 0) {
+			continue;
+		}
+
+		var index = indices[i];
+
+		if (index &gt; -1) {
+			this._model["columns"].splice(index, 1);
+			this._grid.removeColumnAt(index);
+		}
+	}
+
+	//Remove the last column only at the end
+	if (includeLast) {
+		this._model["columns"].pop();
+		this._grid.removeColumnAt(this._grid.getColumnCount() - 1);
+	}
+
+	this.freezeLayout(frozen); // This will call update() method and force header to be refreshed
+};
+/**
+ * Remove all existing columns
+ * @public
+ * @see {@link tr.CompositeGrid#removeColumn}
+ * @see {@link tr.CompositeGrid#removeColumns}
+ */
+tr.CompositeGrid.prototype.removeAllColumns = function () {
+	if(this._grid) {
+		this._grid.removeAllColumns();
+	}
+	if(this._model) {
+		this._model["columns"] = []; // Discard any reference to the user object
+	}
+};
+
+/**
+ * Add new column group with the specified model. There's no need for column group to be used
+ * at the time it's added. It can be used later by newly added/updated column.
+ * @public
+ * @param {Object} columnGroupModel column group model to be used
+ */
+tr.CompositeGrid.prototype.addColumnGroup = function (columnGroupModel) {
+	var frozen = this.freezeLayout(true);
+
+	var groupModel = this._model["columnGroups"];
+
+	if (!groupModel) {
+		groupModel = [];
+		this._model["columnGroups"] = groupModel;
+	}
+
+	groupModel.push(columnGroupModel);
+
+	this.freezeLayout(frozen);
+};
+
+/**
+ * Remove existing column group. The column group structure in the grid will be updated
+ * according to the remaining groups.
+ * @public
+ * @param {string} id Id of the column group to be removed
+ */
+tr.CompositeGrid.prototype.removeColumnGroup = function (id) {
+	var groupModel = this._model["columnGroups"];
+
+	if (!groupModel) {
+		return;
+	}
+
+	var index = this._getColumnGroupIndex(id);
+	var removedGroup = groupModel[index];
+
+	if (!removedGroup) {
+		return;
+	}
+
+	var frozen = this.freezeLayout(true);
+	groupModel.splice(index, 1);
+
+	//Assign the removed group's parent as the new parent to the column if there is parent defined
+	//in the removed group to try to maintain group structure
+	if (removedGroup["parent"] != null) {
+		var newParent = removedGroup["parent"];
+		var columns = this._model["columns"];
+		var len = columns ? columns.length : 0;
+		for (var i = 0; i &lt; len; i++) {
+			if (columns[i]["columnGroup"] === removedGroup["id"]) {
+				columns[i]["columnGroup"] = newParent;
+			}
+		}
+	}
+
+	this.freezeLayout(frozen);
+};
+
+/**
+ * Update existing column group. The visible column group will be updated immediately.
+ * There's no need to specifiy all properies in the model, just the property that needs to be updated
+ * @public
+ * @param {string} id Id of the column group to be updated
+ * @param {Object} columnGroupModel column group model properties to be updated
+ */
+tr.CompositeGrid.prototype.updateColumnGroup = function (id, columnGroupModel) {
+	var frozen = this.freezeLayout(true);
+
+	var groupModel = this._model["columnGroups"];
+
+	if (!groupModel) {
+		groupModel = [columnGroupModel];
+
+		this._model["columnGroups"] = groupModel;
+	} else {
+		var index = this._getColumnGroupIndex(id);
+
+		if (!groupModel[index]) {
+			groupModel[index] = {};
+		}
+
+		goog.mixin(groupModel[index], columnGroupModel);
+	}
+
+	this.freezeLayout(frozen);
+};
+
+/**
+ * Autoresize all columns to fit their respective content
+ * @public
+ */
+tr.CompositeGrid.prototype.autoResizeAllColumns = function (){
+	for (var i = 0; i &lt; this._grid.getColumnCount(); i++) {
+		this._setColumnWidth(i, -1); // set width = -1 to mean set width fit to content
+	}
+};
+
+/**
+ * Move the column at the specified index to the target index.
+ * @public
+ * @param {number|Array.&lt;number&gt;} fromColIndex index or array of indices of the column(s) to be moved.
+ * @param {number} toColIndex target column index
+ */
+tr.CompositeGrid.prototype.moveColumn = function (fromColIndex, toColIndex) {
+	//Wrap single index to array
+	if (!Array.isArray(fromColIndex)) {
+		fromColIndex = [fromColIndex];
+	}
+
+	var frozen = this.freezeLayout(true);
+
+	fromColIndex.sort(function(a, b) {
+		return a - b;
+	});
+
+	var marker = [];
+	var runner = 0;
+
+	for (var i = 0; i &lt; this._grid.getColumnCount(); i++) {
+		if (i == fromColIndex[runner]) {
+			marker.push(true);
+			runner++;
+		} else {
+			marker.push(false);
+		}
+	}
+	//Find the index to be moved to
+	var counter = -1;
+	var toMoveTo = -1;
+
+	for (var i = 0; i &lt; this._grid.getColumnCount(); i++) {
+		if (marker[i] === false) {
+			counter++;
+		}
+
+		if (counter === toColIndex) {
+			toMoveTo = i;
+			break;
+		}
+	}
+
+	//If toMoveTo == -1, it means the target column index is beyond the last colmn so just move the columns
+	//to the end of the table
+	if (toMoveTo === -1) {
+		toMoveTo = this._grid.getColumnCount();
+	}
+
+	//Perform moving
+	var leftList = [], rightList = [];
+
+	for (var i = 0; i &lt; fromColIndex.length; i++) {
+		if (fromColIndex[i] &lt; toMoveTo) {
+			leftList.push(fromColIndex[i]);
+		} else if (fromColIndex[i] &gt; toMoveTo) {
+			rightList.push(fromColIndex[i]);
+		}
+	}
+
+	for (var i = 0; i &lt; rightList.length; i++) {
+		//WORKAROUND: Moving hidden column shows incorrect cell border
+		var columnIsHidden = !this._grid.isColumnVisible(rightList[i]);
+
+		if (columnIsHidden) {
+			this._grid.hideColumn(rightList[i], false);
+		}
+		//ENDWORKAROUND
+
+		this._grid.moveColumn(rightList[i], toMoveTo + i);
+
+		//WORKAROUND: Moving hidden column shows incorrect cell border
+		if (columnIsHidden) {
+			this._grid.hideColumn(toMoveTo + i, true);
+		}
+		//ENDWORKAROUND
+	}
+
+	for (var i = leftList.length-1; i &gt;= 0; i--) {
+		toMoveTo--;
+
+		//WORKAROUND: Moving hidden column shows incorrect cell border
+		var columnIsHidden = !this._grid.isColumnVisible(leftList[i]);
+
+		if (columnIsHidden) {
+			this._grid.hideColumn(leftList[i], false);
+		}
+		//ENDWORKAROUND
+
+		this._grid.moveColumn(leftList[i], toMoveTo);
+
+		//WORKAROUND: Moving hidden column shows incorrect cell border
+		if (columnIsHidden) {
+			this._grid.hideColumn(toMoveTo, true);
+		}
+		//ENDWORKAROUND
+	}
+
+	this.freezeLayout(frozen);
+};
+
+/** Freeze the column at the left side of the table starting from index 0 to the specified colIndex
+ * If no index is specified (null or undefined index), unfreeze all columns.
+ * @public
+ * @param {number=} opt_colIndex
+ * @param {number=} pinnedRightColumns Number of columns to be pinned/snapped on the right side
+ */
+tr.CompositeGrid.prototype.freezeColumn = function(opt_colIndex, pinnedRightColumns) {
+	this._grid.freezeColumn(opt_colIndex, pinnedRightColumns);
+	this._model["freezeColumn"] = opt_colIndex;
+	// TODO:: verify that function should save pinnedRightColumns to this._model or not
+};
+
+/** Pin a column or list of columns to the frozen column area on the left side of the grid. &lt;br&gt;
+* This method will be deprecated in favor of less complicated {@link tr.CompositeGrid#freezeColumn}.
+* @public
+* @param {string|Array.&lt;string&gt;} columnList columnId or array of columnIds to be pinned
+* @see {@link tr.CompositeGrid#freezeColumn}
+*/
+tr.CompositeGrid.prototype.pinColumn = function (columnList) {
+	//Wrap the parameter in an array if it's not yet an array
+	if (!Array.isArray(columnList)) {
+		columnList = [columnList];
+	}
+
+	var currentFrozen = this._grid.getFrozenColumnCount();
+	var indices = this.findColumnIndex(columnList);
+	var validToPin = [];
+
+	for (var i = 0; i &lt;indices.length; i++) {
+		if (indices[i] !== -1 &amp;&amp; validToPin.indexOf(indices[i]) == -1 &amp;&amp; indices[i] &gt;= currentFrozen) {
+			validToPin.push(indices[i]);
+		}
+	}
+
+	if (currentFrozen === 0) {
+		if (this._checkboxColumnPlugIn != null) {
+			currentFrozen = 1;
+		}
+	}
+
+	this.moveColumn(validToPin, currentFrozen);
+	this.freezeColumn(currentFrozen + validToPin.length - 1);
+};
+
+/** Unpin a column or list of columns back to the scrollable area on the right side of the grid. &lt;br&gt;
+* The unpinned columns will be moved to the left most side of the scrollable area on the right. &lt;br&gt;
+* This method will be deprecated in favor of less complicated {@link tr.CompositeGrid#freezeColumn}.
+* @public
+* @param {string|Array.&lt;string&gt;} columnList columnId or array of columnIds to be pinned
+* @see {@link tr.CompositeGrid#freezeColumn}
+*/
+tr.CompositeGrid.prototype.unpinColumn = function (columnList) {
+	//Wrap the parameter in an array if it's not yet an array
+	if (!Array.isArray(columnList)) {
+		columnList = [columnList];
+	}
+
+	var currentFrozen = this._grid.getFrozenColumnCount();
+	var indices = this.findColumnIndex(columnList);
+	var validToUnpin = [];
+
+	for (var i = 0; i &lt;indices.length; i++) {
+		if (indices[i] !== -1 &amp;&amp; validToUnpin.indexOf(indices[i]) == -1 &amp;&amp; indices[i] &lt; currentFrozen) {
+			validToUnpin.push(indices[i]);
+		}
+	}
+
+	this.moveColumn(validToUnpin, currentFrozen - validToUnpin.length);
+	this.freezeColumn(currentFrozen - validToUnpin.length - 1);
+};
+
+/** Get the list of pinned columns (frozen column)
+* @public
+* @return {Array.&lt;string&gt;} Array of pinned column.
+*/
+tr.CompositeGrid.prototype.getPinnedColumns = function () {
+	var output = [];
+
+	var columns = this._model["columns"];
+	if(columns) {
+		var currentFrozen = this._grid.getFrozenColumnCount();
+		for (var i = 0; i &lt; currentFrozen; i++) {
+			if (columns[i]["id"] != null) {
+				output.push(columns[i]["id"]);
+			}
+		}
+	}
+
+	return output;
+};
+
+/**
+* Restore the column pinning state
+* @public
+* @param {Array.&lt;string&gt;} pinnedColumns Array of pinned columns
+*/
+tr.CompositeGrid.prototype.restorePinnedColumns = function (pinnedColumns) {
+	this.freezeColumn();
+	this.pinColumn(pinnedColumns);
+};
+
+/** @description Add new data rows to this grid. This method will be deprecated in favor of {@link tr.CompositeGrid#getDataTable} due to slow data parsing involved in this method. &lt;br&gt;
+ * The data will be added to the internal DataTable. &lt;br&gt;
+ * The structure of the data can be in several formats depending on the value of the 'format' parameter. See the example below &lt;br&gt;
+ * @public
+ * @param {Object|Array.&lt;Object|Array&gt;} data Data object to be added. The structure is depending on the other parameter 'format'
+ * @param {string=} format Format of the data. Possible values are 'array', 'rows', 'columns'
+ * @see {@link tr.DataTable#addRows}
+ * @example
+ * // Rows format (Recommended)
+ * var data = [
+ *   {col1: 0, col2: 12, col3: 33},
+ *   {col1: 1, col2: 13, col3: 44},
+ *   {col1: 2, col2: 15, col3: 55}
+ * ]
+ * //Array format (Default). The order of data in each row has to match the 'fields' property of the 'dataModel'
+ * var data = [
+ *   [true, "row1", 0, 1, 2],
+ *   [true, "row2", 0, 1, 2],
+ *   [false, "row3", 0, 1, 2]
+ * ];
+ *
+ * //Column format
+ * var data = {
+ *   ts: ['2014-01-01', '2014-01-02', '2014-01-03'],
+ *   open:  [100, 101, 102],
+ *   high:  [105, 107, 105],
+ *   low:   [100, 101, 100],
+ *   close: [101, 102, 103]
+ * }
+ */
+tr.CompositeGrid.prototype.addData = function (data, format) {
+	if(!data) {
+		return; // Nothing needs to be done
+	}
+	if (!format) {
+		if(Array.isArray(data)) {
+			if(!data.length) {
+				return; // Nothing needs to be done
+			}
+
+			var firstItem = data[0];
+			format = Array.isArray(firstItem) ? "array" : "rows";
+		} else {
+			format = "columns";
+		}
+	}
+
+		var field, i;
+	if (format === "rows") {
+		this._dataTable.addRows(/** @type{Array.&lt;Object&gt;} */(data));
+	} else if(format === "array") {
+		var dataModel = this._model["dataModel"];
+		var fields = dataModel ? dataModel["fields"] : null;
+		if(fields) {
+			fields = fields.slice(); // Fastest way for cloning array
+		} else {
+			var columns = this._model["columns"];
+			var colCount = columns ? columns.length : 0;
+			fields = new Array(colCount);
+			for(i = 0; i &lt; colCount; ++i) {
+				fields[i] = columns[i]["field"] || "";
+			}
+		}
+
+		var fieldCount = fields.length;
+		for (i = 0; i &lt; fieldCount; i++) {
+			field = fields[i];
+			var equalSign = field.indexOf("=");
+
+			if (equalSign &gt;= 0) {
+				fields[i] = field.substring(0, equalSign);
+			}
+		}
+
+		// TODO: Add a way to define ROW_ID
+		this._dataTable.setDataFrom2DArray(/** @type {Array.&lt;(Array)&gt;}**/(data), fields);
+	} else if(format === "columns") {
+		var rows = [];
+		for(field in data) { // Assume that the given data is an object
+			var colAry = data[field];
+			var rowCount = colAry ? colAry.length : 0;
+			for(var r = 0; r &lt; rowCount; ++r) {
+				var colVal = colAry[r];
+				var row = rows[r];
+				if(!row) {
+					row = rows[r] = {};
+				}
+				row[field] = colVal != null ? colVal : null;
+			}
+		}
+		this._dataTable.addRows(/** @type{Array.&lt;Object&gt;} */(rows));
+	}
+};
+
+/**
+ * Get the internal DataView of this Grid. You can do many things with
+ * the DataView such as retrieving data by row index, listen for data changed. &lt;br&gt;
+ * Data available from DataView are mapped directly to the data showing in the grid
+ * which are sorted, filtered, paginated.
+ * @public
+ * @return {tr.DataView}
+ */
+tr.CompositeGrid.prototype.getDataView = function () {
+	return this._dataView;
+};
+
+/**
+ * Get the internal DataTable of this Grid. You can do many things with
+ * the DataTable such as adding/manipulating data, listen for data changed,
+ * adding new field, etc.
+ * @public
+ * @return {tr.DataTable}
+ */
+tr.CompositeGrid.prototype.getDataTable = function () {
+	return this._dataTable;
+};
+
+/**
+ * Get data rows at the specified row index or array of indices.&lt;br&gt;
+ * If a row index is passed, you'll get an instance of Row object&lt;br&gt;
+ * Since version 1.1.0 regarding the introduction of row grouping.&lt;br&gt;
+ * To get data row from indices, please get the correct DataView from getDataView()
+ * method and then use &lt;code&gt;dataView.getRowDataAt(rowIndex)&lt;/code&gt;
+ * @public
+ * @param {Array.&lt;number&gt;} rowIndices Array that contains row indices
+ * @return {Array.&lt;Object&gt;}
+ */
+tr.CompositeGrid.prototype.getDataRows = function (rowIndices) {
+	var output = [];
+
+	for (var i = 0; i &lt; rowIndices.length; i++) {
+		var rowId = this._dataView.getRowId(rowIndices[i]);
+		var row = this._dataView.getRowData(rowId);
+
+		output.push(row);
+	}
+
+	return output;
+};
+
+/**
+ * Filter the data of this grid by clearing the all existing filters and using formula expression string that returns boolean.
+ * The expression syntax can be found at {@link tr.formula.BasicExcelFunctions}
+ * @public
+ * @param {Function|string} filterFunction
+ * @return {string} the filterId (can be used to remove this filter later)
+ */
+tr.CompositeGrid.prototype.filter = function (filterFunction) {
+	this.clearAllFilters();
+	return this.addFilter(filterFunction);
+};
+
+/**
+ * Add a new filter on top of the existing filters added (AND together) using formula expression string that returns boolean.
+ * The expression syntax can be found at {@link tr.formula.BasicExcelFunctions}
+ * @public
+ * @param {Function|string} filterFunc
+ * @return {string} the filterRef (can be used to remove this filter later)
+ */
+tr.CompositeGrid.prototype.addFilter = function (filterFunc) {
+	filterFunc = this._getFilterFunction(filterFunc);
+
+	var filterRef = this._columnFilterPlugIn.addFilter(filterFunc);
+
+	if (filterRef) {
+		if (this._hasListener("filterAdded")) {
+			this._dispatch("filterAdded", {"filterId": filterRef});
+		}
+	}
+
+	return filterRef;
+};
+
+/**
+ * Remove the specified filter which is referenced by filterRef
+ * @public
+ * @param {string} filterRef The id of the filter (which is returned from the addFilter method) to be removed.
+ */
+tr.CompositeGrid.prototype.removeFilter = function (filterRef) {
+	if (this._columnFilterPlugIn.removeFilter(filterRef)) {
+		if (this._hasListener("filterRemoved")) {
+			this._dispatch("filterRemoved", {"filterId": filterRef});
+		}
+	}
+};
+
+/**
+ * Modify the specified filter, which is referenced by filterId, by using the new expression instead.
+ * The expression syntax can be found at {@link tr.formula.BasicExcelFunctions}
+ * @public
+ * @param {string} filterRef The id of the filter (which is returned from the addFilter method) to be removed.
+ * @param {Function|string} filterFunc
+ */
+tr.CompositeGrid.prototype.modifyFilter = function (filterRef, filterFunc) {
+	this._columnFilterPlugIn.removeFilter(filterRef);
+
+	filterFunc = this._getFilterFunction(filterFunc);
+
+	var filterRefStr = this._columnFilterPlugIn.addFilter(filterFunc, filterRef);
+
+	if (filterRefStr) {
+		if (this._hasListener("filterModified")) {
+			this._dispatch("filterModified", {"filterId": filterRefStr});
+		}
+	}
+};
+
+/**
+ * Execute the filter list. No need to call after adding/removing/modification of filters because this function is called internally
+ * @public
+ */
+tr.CompositeGrid.prototype.execFilter = function () {
+	this._columnFilterPlugIn.refresh();
+
+	//WORKAROUND: Fix issue that rows are not showing when filter is set while the vscroll is not at the top.
+	setTimeout(function() {
+		if (this._grid) {
+			this._grid.getVScrollbar().setScrollTop(0);
+		}
+	}.bind(this), 100);
+};
+
+/** Since version 1.6.0. Please use clearAllFilters() instead.
+ * Clear all the filters.
+ * @public
+ */
+tr.CompositeGrid.prototype.resetFilter = function () {
+	this.clearAllFilters();
+};
+
+/**
+ * Get the column definition object of the specified colRef
+ * @public
+ * @param {number|string} colRef Column index or column Id
+ * @return {Object}
+ */
+tr.CompositeGrid.prototype.getColumnModel = function (colRef) {
+	if (typeof colRef === "string" &amp;&amp; this._columnModelById[colRef]) {
+		return this._columnModelById[colRef];
+	} else if (typeof colRef === "number") {
+		var columns = this._model["columns"];
+		if (columns &amp;&amp; columns[colRef]) {
+			return columns[colRef];
+		}
+	}
+	return null;
+};
+/** Get field property from the column model by either column index or column id (string)
+* @public
+* @param {number|string} colRef Column index or column Id
+* @return {string}
+*/
+tr.CompositeGrid.prototype.getColumnField = function(colRef) {
+	var columns = this._model["columns"];
+	var colDef = null;
+
+	if(typeof colRef === "string") {
+		var colCount = columns.length;
+		for (var i = 0; i &lt; colCount; ++i) {
+			if (columns[i]["id"] == colRef) {
+				colDef = columns[i];
+				break;
+			}
+		}
+	} else if(typeof colRef === "number") {
+		colDef = columns[colRef];
+	}
+	return colDef ? (colDef["field"] || "") : "";
+};
+/** @public
+* @return {!Array.&lt;string&gt;}
+*/
+tr.CompositeGrid.prototype.getColumnFields = function() {
+	var fields = [];
+	var columns = this._model ? /** @type{Array} */(this._model["columns"]) : null;
+	if(columns) {
+		var colCount = columns.length;
+		for (var i = 0; i &lt; colCount; ++i) {
+			var colDef = columns[i];
+			fields[i] = colDef ? (colDef["field"] || "") : "";
+		}
+	}
+	return fields;
+};
+
+/** Get the column definition object of the specified columnId
+ * @param {number} columnIndex
+ * @public
+ * @return {string} Return empty string, if no column id is detected
+ */
+tr.CompositeGrid.prototype.getColumnId = function (columnIndex) {
+	var columns = this._model["columns"];
+
+	if (columns) {
+		var colModel = columns[columnIndex];
+
+		if (colModel) {
+			return colModel["id"] || "";
+		}
+	}
+
+	return "";
+};
+
+/** Get the index of the column with the specified columnId.
+ * @param {string} columnId
+ * @return {number}
+ * @public
+ */
+tr.CompositeGrid.prototype.getColumnIndex = function (columnId) {
+	var columns = this._model["columns"];
+
+	for (var i = 0; i &lt; columns.length; i++) {
+		if (columns[i]["id"] == columnId) {
+			return i;
+		}
+	}
+
+	return -1;
+};
+
+/**
+ * Get the index of the column with the specified columnId.
+ * @param {Array.&lt;string|number&gt;|string} columnId This parameter can be a string of columnId or an array of columnIds. If an array is passed, the return value is retured as array of indices.
+ * @param {boolean=} opt_includeNotFound=true Include not found indicies as -1 element.
+ * @return {Array.&lt;number&gt;|number}
+ * @public
+ */
+tr.CompositeGrid.prototype.findColumnIndex = function (columnId, opt_includeNotFound) {
+	if (Array.isArray(columnId)) {
+		var i, cid;
+
+		if (opt_includeNotFound == null) {
+			opt_includeNotFound = true;
+		}
+
+		// Create a map from id to index
+		var idToIndexTable = {};
+		var columns = this._model["columns"];
+		for (i = 0; i &lt; columns.length; i++) {
+			cid = columns[i]["id"];
+			if (cid) {
+				idToIndexTable[cid] = i;
+			}
+		}
+
+		var ary = [];
+		var colCount = this.getColumnCount();
+		for (i = 0; i &lt; columnId.length; i++) {
+			cid = columnId[i];
+			var idx = -1;
+			if (typeof cid == "number") {
+				idx = cid &lt; colCount ? cid : -1;
+			} else if (idToIndexTable[cid] != null) {
+				idx = /** @type{number} */(idToIndexTable[cid]);
+			}
+
+			if (opt_includeNotFound || idx &gt;= 0) {
+				ary.push(idx);
+			}
+		}
+
+		return ary;
+	} else {
+		return this.getColumnIndex(/** @type{string} */(columnId));
+	}
+};
+/**
+ * @return {number}
+ * @public
+ */
+tr.CompositeGrid.prototype.getColumnCount = function () {
+	return this._grid.getColumnCount();
+};
+
+/** @public
+* @param {number} colIndex
+* @return {string}
+*/
+tr.CompositeGrid.prototype.getColumnDataType = function (colIndex) {
+	var colDef = this._model["columns"][colIndex];
+	if (colDef) {
+		return colDef.dataType || '';
+	}
+	return '';
+};
+
+/** @description This method will be deprecated in favor of tr-grid-row-grouping extension. &lt;br&gt;
+ * Group the grid by the specified criteria.
+ * @param {string|Array.&lt;string&gt;} criteria
+ * Null input will clear all existing grouping criteria. &lt;br&gt;
+ * String input is treat as column name in data table &lt;br&gt;
+ * Array input will create mutilple groups in tree like manner (nested group criteria) &lt;br&gt;
+ * Any previous given values will be cleared out after calling this method
+ */
+tr.CompositeGrid.prototype.groupBy = function (criteria) {
+	console.log("groupBy() is deprecated in favor of tr-grid-row-grouping extension");
+	this._collapsibleHeaderPlugIn.disable(!criteria); // Disable if there is no criteria
+	this._updateHeaderSpanning();
+	this._dataSourceTreePlugIn.setGroupingCriteria(criteria); // WARNING: Header and footer data binding will be executed twice due to this._updateHeaderSpanning()
+};
+
+/** @private
+ */
+tr.CompositeGrid.prototype._updateHeaderSpanning = function () {
+	var startColumn = 0;
+
+	if (this._checkboxColumnPlugIn != null) {
+		startColumn = 1;
+	}
+
+	//Find the first visible column to create a span
+	for (var i = startColumn; i &lt; this._grid.getColumnCount(); i++) {
+		if (this._grid.isColumnVisible(i)) {
+			startColumn = i;
+			break;
+		}
+	}
+
+	this._collapsibleHeaderPlugIn.setDisplayColumnIndex(startColumn); // Force updating headers and footer data binding
+};
+
+/** @public
+ * @description Set groupSortLogic.
+ */
+tr.CompositeGrid.prototype.setGroupSortingLogic = function (comparer) {
+	var rowGrouping = this._model["rowGrouping"];
+	if (rowGrouping) {
+		rowGrouping["groupSortLogic"] = comparer;
+	}
+	this._dataSourceTreePlugIn.setGroupSortingLogic(comparer);
+};
+
+/** @public
+ * @description Re-sort row grouping
+ */
+tr.CompositeGrid.prototype.sortGroups = function () {
+	this._dataSourceTreePlugIn.sortGroups();
+};
+
+/** @public
+ * @description Expand all groups and subgroups.
+ */
+tr.CompositeGrid.prototype.expandAllGroups = function () {
+	this._collapsibleHeaderPlugIn.expandAll();
+};
+
+/** @public
+ * @description Collapse all groups and subgroups.
+ */
+tr.CompositeGrid.prototype.collapseAllGroups = function () {
+	this._collapsibleHeaderPlugIn.collapseAll();
+};
+
+/** @public
+ * @description Get the state of group expanding to be restored later.
+ * @return {Object.&lt;string, boolean&gt;}
+ */
+tr.CompositeGrid.prototype.getGroupExpandingStates = function () {
+	var output = {};
+	var allGroups = this._dataView.getAllGroups();
+
+	for (var i = 0; i &lt; allGroups.length; i++) {
+		output[allGroups[i].getGroupRowId()] = !allGroups[i].isCollapsed();
+	}
+
+	return output;
+};
+
+/** Restore group expanding states
+ * @public
+ * @param {Object} states Use null to keep the exisiting state
+ * @param {boolean=} opt_default Default value for the group that's not in the given state (true to have them expanded)
+ */
+tr.CompositeGrid.prototype.restoreGroupExpandingStates = function (states, opt_default) {
+	var allGroups = this._dataView.getAllGroups();
+
+	for (var i = 0; i &lt; allGroups.length; i++) {
+		var curGroup = allGroups[i];
+		var groupRowId = curGroup.getGroupRowId();
+		var state = states[groupRowId];
+		if(state == null) {
+			state = opt_default;
+		}
+
+		if (state != null) {
+			if (!curGroup.isCollapsed() != state) {
+				curGroup.collapse(!state);
+			}
+		}
+	}
+};
+
+/**
+ * Show the auto filter row
+ * @public
+ */
+tr.CompositeGrid.prototype.showFilterRow = function() {
+	this.hideFilterRow(false);
+};
+
+/**
+ * Hide the auto filter row
+ * @param {boolean=} opt_hidden
+ * @public
+ */
+tr.CompositeGrid.prototype.hideFilterRow = function(opt_hidden) {
+	opt_hidden = opt_hidden !== false;
+
+	var section = this._grid.getSection("filterRow");
+
+	if (section != null) {
+		section.show(!opt_hidden);
+	} else {
+		console.log("No filter row, please enable filter row first");
+	}
+};
+
+/**
+ * Get a list of all the current filter Ids
+ * @public
+ * @return {Array.&lt;Object&gt;} Array of current filters with id and function
+ */
+tr.CompositeGrid.prototype.getFilterStates = function () {
+	return this._columnFilterPlugIn.getFilterStates();
+};
+
+/**
+ * Get a list of all the column filter state
+ * @public
+ * @return {Array.&lt;Object&gt;} Array of filter state for each column
+ */
+tr.CompositeGrid.prototype.getColumnFilterStates = function () {
+	var filterStates = [];
+	var columns = this._model["columns"];
+	var colCount = columns.length;
+
+	for (var i = 0; i &lt;colCount; i++) {
+		var col = columns[i];
+		var filter = col &amp;&amp; col["filter"];
+
+		if (filter &amp;&amp; filter["getState"]) {
+			filterStates.push({
+				"colId": col["id"],
+				"state": filter["getState"]()
+			});
+		}
+	}
+
+	return filterStates;
+};
+
+/**
+ * Restore the filter states
+ * @public
+ * @param {Array.&lt;Object&gt;} states Array of filter states to be restored
+ */
+tr.CompositeGrid.prototype.restoreColumnFilterStates = function (states) {
+	var filterMap = {};
+	var columns = this._model["columns"];
+
+	for (var i = 0; i &lt; columns.length; i++) {
+		var col = columns[i];
+
+		if (col["id"] &amp;&amp; col["filter"] &amp;&amp; col["filter"]["setState"]) {
+			filterMap[col["id"]] = col["filter"];
+		}
+	}
+
+	for (var i = 0; i &lt; states.length; i++) {
+		var colId = states[i]["colId"];
+
+		if (colId) {
+			var filter =  filterMap[colId];
+
+			if (filter) {
+				filter["setState"](states[i]["state"]);
+			}
+		}
+	}
+};
+
+/**
+ * Remove all current filters
+ * @public
+ */
+tr.CompositeGrid.prototype.clearAllFilters = function () {
+	this._columnFilterPlugIn.removeAllFilters();
+
+	// Dispatch event
+	if (this._hasListener("filterCleared")) {
+		this._dispatch("filterCleared", {});
+	}
+};
+
+/**
+ * Sort the column.
+ * @param {string|number} columnRef The value can be column id or column index
+ * @param {string} direction Can be 'a' = ascending, 'd' = descending, 'n' = neutral
+ * @public
+ */
+tr.CompositeGrid.prototype.sortColumn = function (columnRef, direction) {
+	var colIndex = (typeof columnRef === "number") ? columnRef : this.findColumnIndex(columnRef);
+
+	this._sortPlugIn.sortColumn(/** @type{number} */(colIndex), direction);
+};
+
+/**
+ * Get sorting states of all columns
+ * @public
+ * @return {Array.&lt;Object&gt;} Array of sorted column states ordered by priority
+ */
+tr.CompositeGrid.prototype.getSortingStates = function () {
+	var output = [];
+	var columns = this._model["columns"];
+
+	//Enhance event data with colId for each column
+	if (columns) {
+		var states = this._sortPlugIn.getSortingStates();
+
+		for (var i = 0; i &lt; states.length; i++) {
+			var state = states[i];
+			var colIndex = this._sortPlugIn.getSortedColumnIndex(i);
+			var sortedColumn = columns[colIndex];
+			var colId = sortedColumn ? sortedColumn["id"] : "";
+
+			output.push({
+				"colId": colId,
+				"colIndex": colIndex,
+				"order": state["order"],
+				"prevOrder": state["prevOrder"]
+			});
+		}
+	}
+
+	return output;
+};
+
+/**
+ * Restore sorting states of all columns
+ * @public
+ * @param {Array.&lt;Object&gt;} states Array of sorted column states to be restored
+ */
+tr.CompositeGrid.prototype.restoreSortingStates = function (states) {
+	this.clearAllSorting();
+
+	for (var i = 0; i &lt; states.length; i++) {
+		this.sortColumn(states[i]["colId"], states[i]["order"]);
+	}
+};
+
+/**
+ * Clear sorting of all columns
+ * @public
+ */
+tr.CompositeGrid.prototype.clearAllSorting = function () {
+	this._sortPlugIn.clearSortState();
+};
+
+/**
+ * Go to the page page in the paginated mode.
+ * @return {boolean} 'true' if the next page is a valid page (less then or equal to the total pages)
+ * @public
+ */
+tr.CompositeGrid.prototype.nextPage  = function () {
+	return this.goToPage(this._currentPage + 1);
+};
+
+/**
+ * Go to the previous page in the paginated mode.
+ * @return {boolean} 'true' if the previous page is a valid page (greater then 0)
+ * @public
+ */
+tr.CompositeGrid.prototype.previousPage  = function () {
+	var gotoPage = this._currentPage - 1;
+
+	if (gotoPage &lt; 1) {
+		gotoPage = 1;
+	}
+
+	return this.goToPage(gotoPage);
+};
+
+/**
+ * Go to a specific page in the paginated mode.
+ * @return {boolean} 'true' if the page is a valid page (greater then 0 and less than or equal to total pages)
+ * @public
+ */
+tr.CompositeGrid.prototype.goToPage = function (page) {
+	var totalPage = this.getTotalPages();
+
+	if (page &lt;= totalPage &amp;&amp; page != 0) {
+		if (this._getPagingMode() === "auto") {
+			this._currentPage = page;
+			this._dataView.gotoPage(page);
+			this._updateTotalPage();
+		}
+
+		if (this._hasListener("pageChanged")) {
+			this._dispatch("pageChanged", {"toPage": page, "pageSize": this.getPageSize()});
+		}
+
+		return true;
+	} else {
+		return false;
+	}
+};
+
+/**
+ * Get the current page in the paginated mode.
+ * @return {number} Current page
+ * @public
+ */
+tr.CompositeGrid.prototype.getCurrentPage = function () {
+	if (this._getPagingMode() === "auto") {
+		this._currentPage = this._dataView.getCurrentPage();
+
+		if (this._dataView.getRowCount() == 0) {
+			return 0;
+		} else {
+			return this._currentPage;
+		}
+	} else {
+		return this._currentPage;
+	}
+};
+
+/**
+ * Get the page size in the paginated mode.
+ * @return {number} Page size
+ * @public
+ */
+tr.CompositeGrid.prototype.getPageSize = function () {
+	if (this._model["paging"] &amp;&amp; this._model["paging"]["pageSize"] !== undefined) {
+		return this._model["paging"]["pageSize"];
+	} else {
+		return this._dataView.getRowCount();
+	}
+};
+
+/**
+ * Get the total number of pages in the paginated mode.
+ * @return {number} Total page
+ * @public
+ */
+tr.CompositeGrid.prototype.getTotalPages  = function () {
+	if (this._getPagingMode() === "auto") {
+		if (this._dataView) {
+			return this._dataView.getTotalPages();
+		} else {
+			return 1;
+		}
+	} else {
+		var totalPages = Math.ceil(this._totalRows / this.getPageSize());
+		if (totalPages == 0) {
+			totalPages = 1;
+		}
+		return totalPages;
+	}
+};
+
+/**
+ * Get the Pager UI element
+ * @return {tr.ElementWrapper}
+ */
+tr.CompositeGrid.prototype.getPagerUI = function () {
+	return this._pagerUI;
+};
+
+/**
+ * Select rows in the Grid by specifying the start index and the length
+ * of selection. Calling this method is not deselecting any
+ * currently being selected rows.
+ * @param {number} rowIndex Index of the start of selection
+ * @param {number} length Size of the selection
+ * @public
+ */
+tr.CompositeGrid.prototype.selectRows = function (rowIndex, length) {
+	if(this._rowSelectionPlugIn) {
+		this._rowSelectionPlugIn.selectRowRange(rowIndex, length);
+	}
+};
+/**
+ * Unselect rows in the Grid by specifying the start index and the length
+ * of selection.
+ * @param {number} rowIndex Index of the start of selection
+ * @param {number} length Size of the selection
+ * @public
+ */
+tr.CompositeGrid.prototype.unselectRows = function (rowIndex, length) {
+	if(this._rowSelectionPlugIn) {
+		for (var i = 0; i &lt; length; i++) {
+			this._rowSelectionPlugIn.setSelectedRow(rowIndex + i, false);
+		}
+	}
+};
+/**
+ * Clear the current selection in any rows
+ * @public
+ */
+tr.CompositeGrid.prototype.clearSelection = function () {
+	if(this._rowSelectionPlugIn) {
+		this._rowSelectionPlugIn.clearSelectedRows();
+	}
+};
+/**
+ * Get the index of all selected rows. Use this method in conjunction with
+ * getDataRows() method to get data of the selected rows. For the grid with row grouping,
+ * this function always returns "null", please use getSelectedDataRows() which
+ * returns the data row directly.
+ * @public
+ * @return {Array.&lt;number&gt;}
+ */
+tr.CompositeGrid.prototype.getSelectedRows = function () {
+	return this._rowSelectionPlugIn ? this._rowSelectionPlugIn.getSelectedRows() : null;
+};
+
+/**
+ * Get the array of data row of selected rows
+ * @public
+ * @return {Array.&lt;Object&gt;}
+ */
+tr.CompositeGrid.prototype.getSelectedDataRows = function () {
+	var settings = this._grid.getAllSectionSettings(tr.res.content);
+	var output = [];
+
+	for (var i = 0; i &lt; settings.length; i++) {
+		var selectedRows = this._rowSelectionPlugIn ? this._rowSelectionPlugIn.getSelectedRows(settings[i].getSection()) : null;
+		var dataSource = settings[i].getDataSource();
+
+		if (dataSource &amp;&amp; selectedRows) {
+			for (var j = 0; j &lt; selectedRows.length; j++) {
+				var rowData = dataSource.getRowDataAt(selectedRows[j]);
+
+				output.push(rowData);
+			}
+		}
+	}
+
+	return output;
+};
+
+/** @public
+* @param {tr.Grid.SectionReference} sectionRef Reference to the section. Mainly can be section's name
+* @return {tr.ILayoutGrid}
+*/
+tr.CompositeGrid.prototype.getSection = function (sectionRef) {
+	return this._grid.getSection(sectionRef);
+};
+
+/** @public
+* @param {string} sectionName The name of the newly created section. Can be used for referencing it later.
+* @return {tr.ILayoutGrid} Returns null if section name is already used, else returns section
+*/
+tr.CompositeGrid.prototype.addHeaderSection = function (sectionName) {
+
+	// Check if section name
+	if (sectionName === undefined) {
+		window.console.log("ERROR: Please specify a section name");
+
+		return null;
+	}
+
+	//Add new section and state the internal state. Automatically set the row count of this
+	//column to 1, otherwise, developer won't see the change after adding. They can change
+	//the row count later via the instance we returned.
+	var newSection = this._grid.addSectionAt(this._totalHeaderSection, "title", sectionName);
+
+	//If the section can be added correctly then update the state for frozen sections and the
+	//preserved header section for data source tree plug-in
+	if (newSection !== null){
+		newSection.setRowCount(1);
+		this._totalHeaderSection++;
+		this._dataSourceTreePlugIn.setStartSection(this._totalHeaderSection);
+
+		return newSection;
+	} else {
+		return null;
+	}
+};
+
+/** @public
+* @param {string} sectionName The name of the header section added by addHeaderSection() method.
+*/
+tr.CompositeGrid.prototype.removeHeaderSection = function (sectionName) {
+	var sectionIndex = this._grid.getSectionIndex(sectionName);
+
+	//Removing Header Section. Check if the index if greater than 1 because
+	//index 0 = title
+	if (sectionIndex &gt;= 1 &amp;&amp; sectionIndex &lt; this._totalHeaderSection) {
+		if (this._checkboxColumnPlugIn !== null) {
+			this._checkboxColumnPlugIn.removeExceptSectionName(sectionName);
+		}
+
+		this._grid.removeSection(sectionName);
+		this._totalHeaderSection--;
+	}
+};
+
+/** @public
+* @param {string} sectionName The name of the newly created section. Can be used for referencing it later.
+* @return {tr.ILayoutGrid} Returns null if section name is already used, else returns section
+*/
+tr.CompositeGrid.prototype.addFooterSection = function (sectionName) {
+	// Check if section name
+	if (sectionName === undefined) {
+		window.console.log("ERROR: Please specify a section name");
+		return null;
+	}
+
+	var position = this._grid.getSectionCount();
+
+	//Add new section and state the internal state. Automatically set the row count of this
+	//column to 1, otherwise, developer won't see the change after adding. They can change
+	//the row count later via the instance we returned.
+	var newSection = this._grid.addSectionAt(position, "footer", sectionName);
+
+	// check if error
+	if (newSection === null) {
+		return null;
+	}
+
+	newSection.setRowCount(1);
+
+	this._grid.updateLayout();
+
+	return newSection;
+};
+
+/** @public
+* @param {string} sectionName The name of the footer section added by addFooterSection() method.
+*/
+tr.CompositeGrid.prototype.removeFooterSection = function (sectionName) {
+	var sectionIndex = this._grid.getSectionIndex(sectionName);
+	var allSectionsCount = this._grid.getSectionCount();
+	var frozenFooterCount = this._grid.getFooterCount();
+
+	// section in scroll area
+	if (sectionIndex &gt;= allSectionsCount - frozenFooterCount) {
+		if (this._checkboxColumnPlugIn !== null) {
+			this._checkboxColumnPlugIn.removeExceptSectionName(sectionName);
+		}
+	}
+
+	this._grid.removeSection(sectionName);
+};
+
+/**
+* Vertically Scroll the grid view to the row index
+* @public
+* @param {number} rowIndex Row Index to be scrolled to
+* @param {boolean=} opt_topOfTheView If true, try to put to the row at the top of the view
+*/
+tr.CompositeGrid.prototype.scrollToRow = function (rowIndex, opt_topOfTheView) {
+	this._grid.scrollToRow(null, rowIndex, opt_topOfTheView);
+};
+
+/** Horizontally scroll the grid to make the column at the specified index visible in the view.
+* @public
+* @param {number} colIndex
+* @param {boolean=} opt_leftOfView Default is false. If true, always make to specified column at the left most of the view.
+*/
+tr.CompositeGrid.prototype.scrollToColumn = function (colIndex, opt_leftOfView) {
+	this._grid.scrollToColumn(colIndex, opt_leftOfView);
+};
+
+/** Enable the cell editor at the specified cell
+* @public
+* @param {number} rowIndex Index of the row to be edited
+* @param {string} columnId Id of the column to be edited
+* @param {tr.Grid.SectionReference=} opt_sectionRef Section reference in case the rows are grouped and there's multiple sections.
+* Can be section index, section name, or the section object.
+*/
+tr.CompositeGrid.prototype.editCell = function (rowIndex, columnId, opt_sectionRef) {
+	if (opt_sectionRef === undefined) {
+		opt_sectionRef = "content";
+	}
+
+	var colIndex = this.getColumnIndex(columnId);
+	var section = this._grid.getSection(opt_sectionRef);
+
+	if (section &amp;&amp; colIndex != null) {
+		var cell = section.getCell(/** @type {number} */(colIndex), rowIndex);
+
+		if (cell) {
+			if (this._editing &amp;&amp; this._editingRow != rowIndex) {
+				this.detachEditor();
+			}
+
+			this._attachEditor(cell, section, /** @type {number} */(colIndex), rowIndex);
+		}
+	}
+};
+
+/**
+ * Get internal Core Grid component so you can access low level grid API
+ * @return {tr.Grid} core grid
+ * @public
+ */
+tr.CompositeGrid.prototype.getCoreGrid = function () {
+	return this._grid;
+};
+
+/** Get relative position of the given object compared to the top-left of this element.&lt;br&gt;
+* The returned object contains &lt;br&gt;
+* `boolean` hit : Indicates whether the given position is on the grid &lt;br&gt;
+* `number` x : Horizontal coordinate that is relative to the top-left of the grid (Zero means left-most) &lt;br&gt;
+* `number` y : Vertical coordinate that is relative to the top-left of the grid (Zero means top-most) &lt;br&gt;
+* `number` colIndex &lt;br&gt;
+* `number` sectionIndex &lt;br&gt;
+* `number` rowIndex &lt;br&gt;
+* and other related properties to the given position.
+* @public
+* @param {!tr.IElementControl|Element|Event|MouseEvent} obj Element, Browser's Event object, Browser's Mouse Event object are all valid
+* @return {!Object}
+*/
+tr.CompositeGrid.prototype.getRelativePosition = function (obj) {
+	return this._grid.getRelativePosition(obj);
+};
+
+/**
+ * Register formatter to be used for cell formatting
+ * @param {string} name
+ * @param {Object} formatter
+ * @public
+ */
+tr.CompositeGrid.prototype.registerFormatter = function (name, formatter) {
+	this._formatterMap[name] = formatter;
+};
+
+/** Re-render all sections (headers and contents) in grid. Layout will not be affected by this method
+ * @public
+ */
+tr.CompositeGrid.prototype.update = function () {
+	this._grid.rerender();
+	this._updateHeaderSpanning(); // Update header rows structure
+	var groupUpdated = this._updateColumnGroupingStructure(); // Update title section structure
+	if(!groupUpdated) {
+		this._sortPlugIn.refresh();
+	}
+};
+
+/**
+ * Dispose the grid
+ * @public
+ */
+tr.CompositeGrid.prototype.dispose = function () {
+	if (!this._grid) {
+		return;
+	}
+
+	try { // For extension specific disposing logics
+		this._processExtension("beforeDispose", [this._grid.getElement(), this._model, this]);
+	} catch (err) {	}
+
+	if (this._autoLayoutTimer) {
+		clearInterval(this._autoLayoutTimer);
+		this._autoLayoutTimer = 0;
+	}
+
+	//Remove all event handlers
+	this._grid.unlisten("mousedown", this._mouseDownHandler);
+	this._grid.unlisten("mouseover", this._mouseMoveHandler);
+	this._grid.unlisten("mouseleave", this._mouseLeaveHandler);
+	this._grid.unlisten("dblclick", this._mouseDblClickHandler);
+	this._grid.unlisten("click", this._mouseClickHandler);
+	this._grid.unlisten("contextmenu", this._contextMenuHandler);
+	this._grid.unlisten("columnMoved", this._columnMovedHandler);
+	this._grid.unlisten("rowExpansionBinding", this._rowExpansionBindingHandler);
+
+	if (this._resizableTitlePlugIn) {
+		this._resizableTitlePlugIn.unlisten("columnResized", this._columnResizedHandler);
+	}
+	if (this._sortPlugIn) {
+		this._sortPlugIn.unlisten("columnSorted", this._columnSortedHandler);
+	}
+	if (this._dataView) {
+		this._dataView.unlisten("dataChanged", this._dataChangedHandler);
+	}
+	if (this._collapsibleHeaderPlugIn) {
+		this._collapsibleHeaderPlugIn.unlisten("headerBinding", this._groupHeaderBinding);
+		this._collapsibleHeaderPlugIn.unlisten("footerBinding", this._groupFooterBinding);
+	}
+	if (this._checkboxColumnPlugIn) {
+		this._checkboxColumnPlugIn.unlisten("clicked", this._checkboxColumnPlugInClick);
+		this._checkboxColumnPlugIn.unlisten("checkboxCreated", this._checkboxColumnPlugInCreated);
+	}
+	if (this._draggableContentPlugIn) {
+		this._draggableContentPlugIn.unlisten("dragStart", this._rowDragStartHandler);
+		this._draggableContentPlugIn.unlisten("dragEnd", this._rowDragEndHandler);
+	}
+
+	// Dispose the CoreGrid
+	var pn = this._topLevelElement.parentNode;
+	if (pn) {
+		pn.removeChild(this._topLevelElement);
+	}
+	this._grid.dispose();
+
+	//Remove References
+	this._topLevelElement = null;
+	this._dataView = this._grid = null;
+	this._sortPlugIn = this._blinkPlugIn = this._dataSourceTreePlugIn = this._resizableTitlePlugIn = null;
+	this._collapsibleHeaderPlugIn = this._rowSelectionPlugIn = this._columnWidthAdjustingPlugIn = null;
+};
+/**
+ * Hide row(s) in the Grid by specifying the rId
+ * @param {number | string} rowId rowId of the row to hide
+ * @public
+ */
+tr.CompositeGrid.prototype.hideRow = function (rowId) {
+	this._grid.hideRows(rowId);
+};
+/**
+ * Hide row(s) in the Grid by specifying the rIds
+ * @param {number | string | Array.&lt;number | string&gt;} rowIds rowId(s) of the rows to hide
+ * @public
+ */
+tr.CompositeGrid.prototype.hideRows = function (rowIds) {
+	this._grid.hideRows(rowIds);
+};
+/**
+ * Show row(s) in the Grid by specifying the rIds
+ * @param {number | string | Array.&lt;number | string&gt;} rowIds rowId(s) of the rows to show
+ * @param {boolean=} opt_show if false, hide instead of show
+ * @public
+ */
+tr.CompositeGrid.prototype.showRows = function (rowIds, opt_show) {
+	this._grid.showRows(rowIds, opt_show);
+};
+/**
+ * Unhide all hidden rows in the Grid
+ * @public
+ */
+tr.CompositeGrid.prototype.unhideAllRows = function () {
+	this._grid.unhideAllRows();
+};
+/**
+* @public
+*/
+tr.CompositeGrid.prototype.hasHiddenRow = function(){
+	return this._grid.hasHiddenRow();
+};
+
+/**
+ * Detach the active cell editor
+ * @public
+ */
+tr.CompositeGrid.prototype.detachEditor = function () {
+	if (!this._editorPanel || !this._editorPanel.parentNode) {
+		return;
+	}
+
+	this._editorPanel.parentNode.removeChild(this._editorPanel);
+	this._editing = false;
+
+	if (this._model["rowHighlight"] == true) {
+		this._grid.enableRowHighlighting(true);
+	}
+
+	this._dispatch("editorDetached", {
+		"editor": this._editorPanel,
+		"rowIndex": this._editingRow
+	});
+
+	//Focus at the grid's element to allow keyboard navigation immediately after editing
+	this._grid.focus();
+};
+
+/**
+ * prevent grid to call bind function
+ * @param {boolean=} disabled
+ * @public
+ */
+tr.CompositeGrid.prototype.deactivateRendering = function (disabled) {
+	if (this._grid) {
+		this._grid.deactivateRendering(disabled);
+	}
+};
+
+/**
+ * @private
+ * @param {number} colIndex column index
+ * @param {number} width in px unit. If width = -1 that mean width will adjust to fit content
+ * Set Column width in px
+ * @param {boolean=} scalable
+ * width can be -1 for automatically adjust width to fit content
+ */
+tr.CompositeGrid.prototype._setColumnWidth = function (colIndex, width, scalable) {
+	if (width === undefined) { // if width not set just do nothing
+		return;
+	} else if (width === -1) { // if width = -1, then fit to content
+		width = this._columnWidthAdjustingPlugIn.getAdjustedColumnWidth(colIndex);
+	} else {
+		width = tr.ensureNumber(width);
+	}
+
+	this._grid.setColumnWidth(colIndex, width, scalable);
+};
+
+
+/**
+ * Show loading mask
+ * @param {string=} position Position of the loading mask. Possible values are 'full' and 'bottom'. Default value is 'full'
+ * @public
+ */
+tr.CompositeGrid.prototype.showLoadingMask = function (position) {
+	if (!this._loadingMask) {
+		this._loadingMask = document.createElement('div');
+		this._loadingMask.className = 'tr-composite-loading-mask';
+		this._loadingMask.style.position = "absolute";
+		this._loadingMask.innerHTML = '&lt;div class="throbber" style="position:absolute;left:50%;top:50%;margin-left:-35px;margin-top:-10px;"&gt;&lt;/div&gt;';
+	}
+
+	this._loadingMask.style.bottom = "";
+	this._loadingMask.style.width = "100%";
+
+	var gridHeight = this._topLevelElement.offsetHeight;
+
+	switch (position) {
+		case "content":
+			var content = this._topLevelElement.querySelector('div.grid-pane.sections');
+
+			this._loadingMask.style.top =  (content.offsetTop + 1) + "px";
+			this._loadingMask.style.left =  "1px";
+			this._loadingMask.style.width = "calc(100% - 1px)"; // Subtract border width
+			this._loadingMask.style.height = gridHeight - (content.offsetTop + 1)  + "px";
+
+			break;
+
+		case "bottom":
+			this._loadingMask.style.top = "";
+			this._loadingMask.style.bottom = "0";
+			this._loadingMask.style.left =  "0";
+			this._loadingMask.style.height = "48px";
+
+			break;
+
+		default:
+			this._loadingMask.style.top = "0";
+			this._loadingMask.style.left =  "0";
+			this._loadingMask.style.height = "100%";
+
+			break;
+	}
+
+	var topElem = this._topNode.getElement();
+
+	topElem._origPosition = topElem.style.position;
+	topElem.style.position = "relative";
+	topElem.appendChild(this._loadingMask);
+};
+
+/**
+ * Hide loading mask
+ * @public
+ */
+tr.CompositeGrid.prototype.hideLoadingMask = function () {
+	if (this._loadingMask) {
+		var parentNode = this._loadingMask.parentNode;
+
+		if (parentNode) {
+			parentNode.style.position = parentNode._origPosition || "";
+			parentNode.removeChild(this._loadingMask);
+		}
+	}
+};
+
+/**
+ * Check if the current layout is being frozen by freezeLayout function.
+ * @public
+ * @return {boolean}
+ */
+tr.CompositeGrid.prototype.isLayoutFrozen = function () {
+	return this._grid.isLayoutFrozen();
+};
+
+/**
+ * Freeze the expensive layout re-rendering for example updating group structure
+ * @public
+ * @param {boolean=} bool 'true' to freeze, 'false' to unfreeze
+ * @return {boolean} Previous Freezing State for restoration of the original state
+ */
+tr.CompositeGrid.prototype.freezeLayout = function (bool) {
+	bool = bool !== false;
+
+	var frozen = this.isLayoutFrozen();
+
+	//Do nothing if there's no state change
+	if (frozen === bool) {
+		return frozen;
+	}
+
+	if (bool) {
+		this._grid.freezeLayout(true);
+	} else {
+		//Force update grid layout to make sure things are rendered correctly
+		this._grid.freezeLayout(false);
+		// this._grid.updateLayout(); // TODO: This is super bad. If unfreezeLayout doesn't update Layout appropriately, there must be some serious problem in unfreezeLayout.
+
+		this.update();
+
+		//Force update the column group header
+		// this._updateColumnGroupingStructure(); Note that _updateColumnGroupingStructure is already called inside update() method
+	}
+	return frozen;
+};
+
+/** Deprecated. Please use freezeLayout instead
+ * @public
+ */
+tr.CompositeGrid.prototype.unfreezeLayout = function () {
+	this.freezeLayout(false);
+};
+
+/** @public
+* @return {number}
+*/
+tr.CompositeGrid.prototype.getScrollLeft = function () {
+	return this._grid.getScrollLeft();
+};
+/** @public
+* @param {number} px
+*/
+tr.CompositeGrid.prototype.setScrollLeft = function (px) {
+	this._grid.setScrollLeft(px);
+};
+/** @public
+* @return {number}
+*/
+tr.CompositeGrid.prototype.getScrollTop = function () {
+	return this._grid.getScrollTop();
+};
+/** @public
+* @param {number} px
+*/
+tr.CompositeGrid.prototype.setScrollTop = function (px) {
+	this._grid.setScrollTop(px);
+};
+
+
+/**
+ * @private
+ * @param {Element} elem
+ * @return {Element}
+ */
+tr.CompositeGrid.prototype._initializeDOM = function (elem) {
+	this._topNode = new ElementWrapper(elem);
+
+	 // TODO: _topLevelElement is created to support pagination. So it should be removed in the future
+	this._topLevelElement = document.createElement("div");
+	this._topLevelElement.className = "composite-grid tr-fill-parent";
+
+	var actualGridDiv = document.createElement("div"); // Element for core grid (tr-grid)
+	actualGridDiv.style.height = "100%";
+
+	this._topLevelElement.appendChild(actualGridDiv);
+	this._topNode.addContent(this._topLevelElement);
+
+	return actualGridDiv;
+};
+
+/**
+ * @private
+ * @param {Element} gridElem
+ * @param {Object=} model
+ */
+tr.CompositeGrid.prototype._initialize = function (gridElem, model) {
+	if (!model) {
+		return;
+	}
+
+	this._model = model;
+	if(!Array.isArray(model["columns"])) {
+		model["columns"] = [];
+	}
+
+	// Extension Point
+	if (!this._model["extensions"] || !Array.isArray(this._model["extensions"])) {
+		this._model["extensions"] = [];
+	}
+
+	// Process Extension Point
+	this._processExtension("beforeInit", [gridElem, this._model]);
+
+	// Copy the data to the internal data table
+	var dataModel = this._model["dataModel"];
+
+	if (dataModel &amp;&amp; dataModel["dataTable"]) {
+		this._dataTable = dataModel["dataTable"];
+	} else {
+		this._dataTable = new DataTable();
+	}
+
+	if (dataModel &amp;&amp; dataModel["data"]) {
+		this.addData(dataModel["data"], dataModel["format"]);
+	}
+
+	this._dataView = new DataView(this._dataTable);
+	this._dataView.listen("dataChanged", this._dataChangedHandler);
+
+	// Modify Column Model when some option is turned on
+	this._processOptionExtension("checkboxSelector");
+
+	var checkboxSelector = this._model["checkboxSelector"]; // TODO: Obsolete this option
+	if (checkboxSelector) {
+		console.log("checkboxSelector is deprecated in favor of tr-grid-checkbox extension");
+		this._model["columns"].unshift({
+			"width": 34,
+			"filter": checkboxSelector["filter"],
+			"filterBy": checkboxSelector["mappedField"],
+			"emptyColumn": true,
+			"resizable": false
+		});
+	}
+
+	if (!this._autoLayoutTimer) {
+		var autoLayoutOption = this._model["autoLayoutUpdate"];
+
+		if (autoLayoutOption) {
+			var updateInterval = (typeof autoLayoutOption === "number") ? autoLayoutOption : 1000;
+
+			this._autoLayoutTimer = setInterval(this._onAutoLayoutUpdate, updateInterval);
+		}
+	}
+
+	// Create internal tr.Grid
+	this._grid = new Grid(gridElem);
+	this._grid["_wrapper"] = this; // For back referencing
+
+	// option flag text-select
+	// allow user to select text for copy or so something
+	// however we will allow only if user option rowReorder = false
+	// search tr-text-select in grid.less for better understanding
+	if (this._model['textSelect'] &amp;&amp; !this._model['rowReorder']) {
+		this._grid.addClass('tr-text-select');
+	}
+
+	var borders = this._model['borders'];
+	if (borders != null) {
+		this._grid.toggleBorders(borders);
+	}
+	var gridlines = this._model['gridlines'];
+	if (gridlines != null) {
+		this._grid.toggleGridlines(gridlines);
+	}
+	var vLines = this._model['verticalLines'];
+	if (vLines != null) {
+		this._grid.toggleVerticalLines(vLines);
+	}
+	var hLines = this._model['horizontalLines'];
+	if (hLines != null) {
+		this._grid.toggleHorizontalLines(hLines);
+	}
+
+	var sHost = this._model["scrollbarParent"];
+
+	if (tr.isElement(sHost)) {
+		this._setScrollbarParent(sHost);
+	}
+
+	//Load All Plug-In
+
+	this._dataSourceTreePlugIn = new grid.DataSourceTreePlugin(this._totalHeaderSection);
+	this._dataSourceTreePlugIn.setGroupSortingLogic(this._dataSourceTreePlugIn.getGroupSortingLogic()); // Sort group by default
+
+	this._grid.loadPlugin(this._dataSourceTreePlugIn);
+	this._collapsibleHeaderPlugIn = new grid.CollapsibleHeaderPlugin(checkboxSelector ? 1 : 0); // Row Grouping feature
+	this._collapsibleHeaderPlugIn.disable(); // Disable by default until the grouping feature is activated
+
+	this._grid.loadPlugin(this._collapsibleHeaderPlugIn);
+	this._processOptionExtension("rowGrouping");
+
+	if (this._model["rowGrouping"]) {
+		var groupModel = this._model["rowGrouping"];
+
+		this._collapsibleHeaderPlugIn.listen("headerBinding", this._groupHeaderBinding);
+		this._collapsibleHeaderPlugIn.listen("contentBinding", this._groupContentBinding);
+
+		if (groupModel["autoGroupRemoval"]) {
+			this._dataView.enableAutoGroupRemoval();
+		}
+
+		if (groupModel["autoGroupHiding"]) {
+			this._dataView.enableAutoGroupHiding();
+		}
+
+		if (groupModel["groupSortLogic"]) {
+			this._dataSourceTreePlugIn.setGroupSortingLogic(groupModel["groupSortLogic"]);
+		}
+
+		if (groupModel["headerSpanning"] !== undefined) {
+			this._collapsibleHeaderPlugIn.enableHeaderRowSpanning(groupModel["headerSpanning"]);
+		}
+
+		if (groupModel["footerFormatter"]) {
+			this._collapsibleHeaderPlugIn.listen("footerBinding", this._groupFooterBinding);
+
+			var numberOfFooterRows = 1;
+
+			if (groupModel["footerRows"]) {
+				numberOfFooterRows = groupModel["footerRows"];
+			}
+
+			this._collapsibleHeaderPlugIn.enableFooterRow(numberOfFooterRows);
+		}
+
+		if (groupModel["footerSpanning"] !== undefined) {
+			this._collapsibleHeaderPlugIn.enableFooterRowSpanning(groupModel["footerSpanning"]);
+		}
+	}
+
+	this._sortPlugIn = new grid.SortableTitlePlugin({
+		"sortableColumns": false
+	});
+	this._processOptionExtension("sorting");
+	this._grid.loadPlugin(this._sortPlugIn, this._model);
+
+	this._processOptionExtension("columnReorder");
+
+	if (tr.ensureBoolean(this._model["columnReorder"])) {
+		var dndPlugin = new grid.DragAndDropTitlePlugin(null, (checkboxSelector ? [0] : null), [0]);
+		var isLock = !this._model["pinnedColumnReorder"];
+
+		this._grid.loadPlugin(dndPlugin);
+		dndPlugin.lockFrozenColumn(isLock);
+		dndPlugin.disableMoving(true);
+		dndPlugin.listen('columnMoved', this._columnDraggedHandler);
+	}
+
+	this._processOptionExtension("columnResizability");
+
+	if (this._model["columnResizability"] !== false) {
+		this._resizableTitlePlugIn = new grid.ResizableTitlePlugin();
+		this._resizableTitlePlugIn.listen("columnResized", this._columnResizedHandler);
+		this._resizableTitlePlugIn.config(this._model);
+		this._grid.loadPlugin(this._resizableTitlePlugIn);
+	}
+
+	this._columnWidthAdjustingPlugIn = new grid.ColumnWidthAdjustingPlugin(undefined, undefined, false);
+	this._grid.loadPlugin(this._columnWidthAdjustingPlugIn);
+
+	this._processOptionExtension("rowReorder");
+
+	if (this._model["rowReorder"]) {
+		console.log("Built-in dragging feature is deprecated in favor of tr-grid-row-dragging extension");
+		this._draggableContentPlugIn = new grid.DraggableContentPlugin(false);
+		this._grid.loadPlugin(this._draggableContentPlugIn);
+		this._draggableContentPlugIn.listen("dragStart", this._rowDragStartHandler);
+		this._draggableContentPlugIn.listen("dragEnd", this._rowDragEndHandler);
+	}
+
+	if (checkboxSelector) {
+		var selectCheckedRow = tr.ensureBoolean(checkboxSelector["selectCheckedRow"]);
+
+		this._checkboxColumnPlugIn = new grid.CheckboxColumnPlugin(0, checkboxSelector["mappedField"], /**@type {boolean}*/(selectCheckedRow));
+		this._grid.loadPlugin(this._checkboxColumnPlugIn);
+		this._checkboxColumnPlugIn.listen("clicked", this._checkboxColumnPlugInClick);
+		this._checkboxColumnPlugIn.listen("checkboxCreated", this._checkboxColumnPlugInCreated);
+	}
+
+	this._processOptionExtension("blinker");
+
+	if (this._model["blinker"]) {
+		console.log("Built-in blinker is deprecated in favor of tr-grid-conditional-coloring extension");
+		var columnBlinkBy = [];
+		var columnBlink = [];
+
+		for (var col = 0; col &lt; this._model["columns"].length; col++) {
+			if (this._model["columns"][col]["blinkBy"]) {
+				columnBlink.push(col);
+				columnBlinkBy.push(this._model["columns"][col]["blinkBy"]);
+			} else {
+				columnBlinkBy.push(null);
+			}
+		}
+
+		// TODO: Obsolete CellBlinkingPlugin in favor of the CellPainter
+		this._blinkPlugIn = new grid.CellBlinkingPlugin(columnBlink, null);
+
+		var blinker = this._blinkPlugIn.getDefaultBlinker();
+
+		blinker.setClassColors(
+			this._model["blinker"]["cssClass"][0],
+			this._model["blinker"]["cssClass"][1],
+			this._model["blinker"]["cssClass"][2],
+			true
+		);
+		blinker.setUseTwoColorMode(true); //
+		blinker.setNumericParser(function (val) {
+			if (val["raw"] !== undefined) {
+				return val["raw"];
+			} else {
+				return parseFloat(val.toString());
+			}
+		});
+
+		this._blinkPlugIn.setDataColumnMap(columnBlinkBy); //
+		this._grid.loadPlugin(this._blinkPlugIn);
+	}
+
+	this._processOptionExtension("cellEditing");
+
+	if (tr.ensureBoolean(this._model["cellEditing"])) {
+		console.log("Built-in cellEditing is deprecated in favor of tr-grid-in-cell-editing extension");
+
+		var cep = this._grid.loadPlugin(new grid.CellEditingPlugin([0]));
+
+		cep.disableTitleEditing();
+		cep.disableDataBinding();
+		cep.disableAutoSuggest(false);
+	}
+
+	this._processOptionExtension("rowSelection");
+	var rowSelectionMode = this._model["rowSelection"];
+	if (rowSelectionMode) {
+		if(typeof rowSelectionMode !== "object") { // To avoid duplication loading of RowSelectionExtension
+			this._rowSelectionPlugIn = new grid.RowSelectionPlugin();
+			this._rowSelectionPlugIn.listen("selectionChanged", this._dispatch.bind(this, "selectionChanged"));
+			if (rowSelectionMode === "single") {
+				this._rowSelectionPlugIn.disableMultiSelection();
+			}
+			this._grid.loadPlugin(this._rowSelectionPlugIn);
+		}
+	}
+
+	this._processOptionExtension("columnSelection");
+	var colSelectionMode = this._model["columnSelection"];
+	if (colSelectionMode) {
+		if(typeof colSelectionMode !== "object") { // To avoid duplication loading of ColumnSelectionExtension
+			var csp = new grid.ColumnSelectionPlugin();
+			if (colSelectionMode === "single") {
+				csp.enableSingleSelectionMode();
+			}
+			this._grid.loadPlugin(csp);
+		}
+	}
+
+	// Set Paging
+	this._processOptionExtension("paging");
+
+	if (this._model["paging"]) {
+		console.log("built-in paging UI is deprecated in favor of tr-grid-pagination extension");
+
+		if (this._model["paging"]["page"]) {
+			this._currentPage = tr.ensureNumber(this._model["paging"]["page"]);
+		}
+
+		this._addPagerUI(this._model["paging"]);
+
+		if (this._getPagingMode() === "auto") {
+			this._dataView.setPageSize(tr.ensureNumber(this._model["paging"]["pageSize"]));
+			this._dataView.setPage(tr.ensureNumber(this._model["paging"]["page"]));
+		}
+
+		this._updateTotalPage();
+	}
+
+	// Initialize all the columns
+
+	this._processOptionExtension("rowVirtualRendering");
+
+	var rowVir = true;
+	if (this._model["rowVirtualRendering"] != null) {
+		rowVir = this._model["rowVirtualRendering"];
+	}
+	if (this._model["rowVirtualization"] != null) {
+		rowVir = this._model["rowVirtualization"];
+	}
+	this._grid.enableRowVirtualization(!!rowVir);
+
+	// TODO: Make pinning of columns on the right side support columnVirtualRendering
+	var pinnedRightColumns = this._model["pinnedRightColumns"] || this._model["frozenRightColumns"];
+	if (!pinnedRightColumns) {
+		this._processOptionExtension("columnVirtualRendering");
+
+		var colVir = true;
+		if (this._model["columnVirtualRendering"] != null) {
+			colVir = this._model["columnVirtualRendering"];
+		}
+		if (this._model["columnVirtualization"] != null) {
+			colVir = this._model["columnVirtualization"];
+		}
+		this._grid.enableColumnVirtualization(!!colVir);
+	}
+
+	//Create columns
+	var columnModels = this._model["columns"];
+	var columnCount = columnModels.length;
+	for (var i = 0; i &lt; columnCount; i++) {
+		var col = columnModels[i];
+		//Make sure formatter array is there
+		col["formatter"] = tr.ensureArray(col["formatter"]);
+
+		//Process Extension
+		this._processExtension('beforeCreateColumn', [col]);
+
+		//If no formatter installed, delete the array
+		if (col["formatter"]["length"] === 0) {
+			delete col["formatter"];
+		}
+
+		this._columnModelById[col.id] = col;
+	}
+	this._grid.insertColumns(0, columnModels);
+
+	// Set row highlighting flag
+	if(this._model["rowHighlighting"] != null) { // Make rowHighlighting an alias to rowHighlight
+		this._model["rowHighlight"] = this._model["rowHighlighting"];
+	}
+	this._processOptionExtension("rowHighlight");
+
+	if (tr.ensureBoolean(this._model["rowHighlight"])) {
+		this._grid.enableRowHighlighting(true);
+	}
+
+	// Set scrollbar visibility
+	this._processOptionExtension("autoHideScrollbar");
+
+	if (this._model['autoHideScrollbar'] != null) {
+		this._grid.autoHideScrollbars(this._model['autoHideScrollbar'] ? true : false);
+	}
+
+	this._grid.setDefaultRenderingHandler(this._cellRenderingHandler);
+	this._grid.setDefaultDataBindingHandler(this._cellDataBindingHandler);
+
+	this._processOptionExtension("freezeColumn");
+
+	if (this._model["freezeColumn"] !== undefined) {
+		this.freezeColumn(tr.ensureNumber(this._model["freezeColumn"]), pinnedRightColumns);
+	} else {
+		this.freezeColumn(-1, pinnedRightColumns);
+	}
+
+	// Check header model
+	this._processOptionExtension("header");
+
+	if (this._model["header"]) {
+		if (this._model["header"]["rowHeight"] !== undefined) {
+			this._headerRowHeight = tr.ensureNumber(this._model["header"]["rowHeight"]);
+		}
+	}
+
+	this.addHeaderSection(tr.res.title);
+
+	if (this._model["filterRow"] == true) {
+		console.log("filterRow is deprecated in favor of tr-grid-filter-input extension");
+		this._processOptionExtension("filterRow");
+
+		var filterRow = this.addHeaderSection("filterRow");
+
+		// Workaround to fix TRGRID-557, when user tab through filter input, if the input is
+		// beyond the visible view, it'll make the filterRow section scrolled and went out of sync
+		// with the content section
+		var filterRowScrollPane = filterRow.getElement().querySelector('div.grid-pane');
+
+		if (filterRowScrollPane) {
+			filterRowScrollPane.addEventListener('scroll', function(e) {
+				var scrollTo = e.srcElement.scrollLeft;
+
+				if (scrollTo !== 0) {
+					e.srcElement.scrollLeft = 0;
+					this._grid.getHScrollbar().setScrollLeft(scrollTo);
+				}
+			}.bind(this), false);
+		}
+	}
+
+	var contentBottomPadding = this._model["contentBottomPadding"];
+
+	if (contentBottomPadding) {
+		this._grid.setBottomPaddingSection(contentBottomPadding);
+	}
+
+	var contentRightPadding = this._model["contentRightPadding"];
+
+	if (contentRightPadding) {
+		if (typeof contentRightPadding !== "number") {
+			contentRightPadding = 6;
+		}
+
+		this._grid.reserveRightSpace(contentRightPadding);
+	}
+
+	this._columnFilterPlugIn = new grid.ColumnFilterPlugin();
+	this._columnFilterPlugIn.setFilterDelay(0);
+	this._columnFilterPlugIn.addDataView(this._dataView);
+
+
+	this.freezeLayout(true);
+
+	for (var i = 0; i &lt; columnCount; i++) {
+		this._applyColumnProperty(i, columnModels[i]); // Applying property to column may cause data binding event to occur, thus avoid doing it after data has populated
+	}
+
+	// Bind DataSource to the Grid
+	// should set data when finished manipulate _dataView
+	// because when you setDataSource the UI will immediately show
+	// and if you change data after that the ui will rerender
+	// then behavior will make ui flashy
+	this._grid.setDataSource(this._dataView); // TODO: Anything doing after data population is bad and should be avoided
+
+	var dataConflationRate = this._model['dataConflationRate'];
+	if (dataConflationRate != null) {
+		this._grid.setDataConflationRate(dataConflationRate);
+	}
+
+	// Set row height flag
+	this._processOptionExtension("rowHeight");
+
+	if (this._model["rowHeight"]) {
+		this._grid.setDefaultRowHeight(tr.ensureNumber(this._model["rowHeight"]));
+	}
+
+	this._grid.getSection('title').setDefaultRowHeight(this._headerRowHeight);
+
+
+	// Set the step Scroll
+	this._processOptionExtension("stepScroll");
+	if (tr.ensureBoolean(this._model["stepScroll"])) {
+		this._grid.setRowScrollingStep(1);
+	}
+	var linearWheelScrolling = this._model["linearWheelScrolling"];
+	if(linearWheelScrolling) {
+		this._grid.getVScrollbar().setMouseWheelSpeed("linear");
+	}
+
+
+	// Create Title Group Structure
+	this._processOptionExtension("columnGroups");
+	if (this._model["columnGroups"]) {
+		//Column grouping requires cell spanning which doesn't work well in Column Virtualization mode
+		//so until we've got the cell spanning refactored, we have to disable the column virtualization
+		//in the case that we have column grouping
+		this._updateColumnGroupingStructure();
+	}
+
+	// Hook Mouse Wheel Events
+	this._grid.getVScrollbar().addWheelListener(gridElem.parentNode);
+
+	// Hook Events
+	this._grid.listen("mousedown", this._mouseDownHandler);
+	this._grid.listen("mouseover", this._mouseMoveHandler);
+	this._grid.listen("mouseleave", this._mouseLeaveHandler); // TODO: This is super costly
+	this._grid.listen("dblclick", this._mouseDblClickHandler);
+	this._grid.listen("click", this._mouseClickHandler);
+	this._grid.listen("contextmenu", this._contextMenuHandler);
+	this._grid.listen("columnMoved", this._columnMovedHandler);
+	this._grid.listen("rowExpansionBinding", this._rowExpansionBindingHandler);
+	this._sortPlugIn.listen("columnSorted", this._columnSortedHandler);
+
+	// Process Extension Point
+	this._processExtension("afterInit", [gridElem, this._model, this]);
+	this._sortPlugIn.afterInit();
+
+	var topFreezingCount = this._model['topFreezingCount'];
+	if (typeof topFreezingCount === 'number') {
+		topFreezingCount = (topFreezingCount &gt; 0) ? topFreezingCount : 0;
+		var sectionIndex = topFreezingCount - 1;
+		this._grid.freezeSection(sectionIndex);
+	} else if (topFreezingCount === false) {
+		this._grid.freezeSection(null);
+	}
+
+	var bottomFreezingCount = this._model['bottomFreezingCount'];
+	if (typeof bottomFreezingCount === 'number') {
+		this._grid.freezeFooter((bottomFreezingCount &gt; 0) ? bottomFreezingCount : 0);
+	}
+
+	this.freezeLayout(false);
+
+	// set column width after unfreezeLayout
+	// because _columnWidthAdjustingPlugIn need to run after data in cell already set
+	// but in freeze state the cell is frozed and no data will be set until unfreeze it
+	// so we need to set column width after unfreezeLayout()
+	var colCount = columnModels.length;
+	for (var i = 0; i &lt; colCount; i++) {
+		var columnModel = columnModels[i];
+		var colWidth = columnModel["width"];
+		if(colWidth === -1) {
+			this._setColumnWidth(i, colWidth, columnModel["scalable"]);
+		}
+	}
+};
+
+/** Get configuration object based on current states of the grid, including states in the plugins and extensions.
+* @public
+* @param {Object=} gridOptions
+* @return {!Object}
+*/
+tr.CompositeGrid.prototype.getConfigObject = function (gridOptions) {
+	var obj = gridOptions || {};
+	if(!this._grid) {
+		return obj; // Grid has been disposed
+	}
+
+	var mod = this._model;
+
+	if(mod["autoLayoutUpdate"] != null) {
+		obj["autoLayoutUpdate"] = mod["autoLayoutUpdate"];
+	}
+	if(this._grid.hasClass('tr-text-select')) {
+		obj["textSelect"] = true;
+	}
+	var rowVir = this._grid.getRowVirtualizer();
+	if(!rowVir.isEnabled()) {
+		obj["rowVirtualization"] = false;
+	}
+
+	var num = this._grid.getHScrollStartIndex();
+	if(num &gt; 0) {
+		obj["freezeColumn"] = num - 1;
+	}
+
+	num = this._grid.getDefaultRowHeight();
+	if (num !== 32) {
+		obj["rowHeight"] = num;
+	}
+
+	if(this._headerRowHeight !== 32) { // TODO: Use value from grid's title section
+		var headerObj = obj["header"];
+		if(!headerObj) {
+			headerObj = obj["header"] = {};
+		}
+		headerObj["rowHeight"] = this._headerRowHeight;
+	}
+
+	// TODO: The following states need to be retrieved
+	// columnReorder, pinnedColumnReorder &gt;&gt; move these properties to extension
+	// columnResizability &gt;&gt; move these properties to extension
+	// contentRightPadding
+
+	var columns = obj["columns"];
+	if(!columns) {
+		columns = obj["columns"] = [];
+	}
+
+	var columnProperties = [
+		"id",
+		"title",
+		"field",
+		"tooltip",
+		"alignment",
+		// "resizable", // TODO: This should be in the extension
+		"textSelect",
+		"classes"
+	];
+	var propCount = columnProperties.length;
+	var len = this.getColumnCount();
+	for(var i = 0; i &lt; len; ++i) {
+		var column = columns[i];
+		if(!column) {
+			column = columns[i] = {};
+		}
+
+		var mCol = mod["columns"][i];
+		if(!mCol) {
+			break;
+		}
+		for(var j = 0; j &lt; propCount; ++j) {
+			var prop = columnProperties[j];
+			var val = mCol[prop];
+			if(val != null) {
+				column[prop] = val;
+			}
+		}
+		var visible = this._grid.isColumnVisible(i);
+		if(!visible) {
+			column["visible"] = false;
+		}
+
+		column["width"] = this._grid.getColumnCustomLaneSize(i);
+		column["scalable"] = this._grid.getColumnScalability(i);
+
+		var minWidth = this._grid.getMinimumColumnWidth(i);
+		if(minWidth !== 32) {
+			column["minWidth"] = minWidth;
+		}
+	}
+
+	this._grid.getConfigObject(obj);
+
+	return obj;
+};
+
+/**
+ * @private
+ * @param {Object} options
+ */
+tr.CompositeGrid.prototype._addPagerUI = function (options) {
+	this._pagerUI = new ElementWrapper(document.createElement('div'));
+	this._pagerUI.addClass('tr-pager-ui');
+
+	var pagerElem = this._pagerUI.getElement();
+
+	pagerElem.innerHTML =
+		'&lt;div style="float:right;text-align: left; display: inline-block;"&gt;'+
+			'&lt;button class="icon" data-uitype="firstButton" style="border-right:transparent;"&gt;&lt;span class="icon-previous"&gt;&lt;/span&gt;&lt;/button&gt;'+
+			'&lt;button class="icon" data-uitype="prevButton"&gt;&lt;span class="icon-left"&gt;&lt;/span&gt;&lt;/button&gt;'+
+			'&lt;input type="text" style="text-align: center; height:21px; vertical-align:top;margin-top:2px" value="Page 1 of " data-uitype="currentPage" onmouseup="return false" onkeypress="return event.charCode &gt;= 48 &amp;&amp; event.charCode &lt;= 57"&gt;&lt;/input&gt;'+
+			'&lt;button class="icon" data-uitype="nextButton"&gt;&lt;span class="icon-right"&gt;&lt;/span&gt;&lt;/button&gt;'+
+			'&lt;button class="icon" data-uitype="lastButton" style="border-left:transparent;"&gt;&lt;span class="icon-next"&gt;&lt;/span&gt;&lt;/button&gt; '+
+		'&lt;/div&gt;' +
+		'&lt;div style="float:right;display: inline-block; padding-right: 10px;"&gt;&lt;span data-uitype="startRow"&gt;&lt;/span&gt;-&lt;span data-uitype="endRow"&gt;&lt;/span&gt; of &lt;span data-uitype="totalRows"&gt;&lt;/span&gt; items&lt;/div&gt;';
+
+	this._topLevelElement.style.height = "calc(100% - 32px)";
+	this._topNode.getElement().appendChild(pagerElem);
+
+	var pagerButtons = pagerElem.querySelectorAll('button');
+	var _this = this;
+
+	for (var i = 0; i &lt; pagerButtons.length; i++){
+		pagerButtons[i].addEventListener("click", function() {
+			if (this['dataset']['uitype'] === 'prevButton'){
+				_this.previousPage();
+			}	else if (this['dataset']['uitype'] === 'nextButton'){
+				_this.nextPage();
+			}	else if (this['dataset']['uitype'] === 'lastButton'){
+				_this.goToPage(_this.getTotalPages());
+			}	else {
+				_this.goToPage(1);
+			}
+			pagerElem.querySelector('*[data-uitype="currentPage"]').textContent = _this._getPagerText(_this._currentPage, _this.getTotalPages());
+		}, false);
+	}
+
+	var currentPageUI = pagerElem.querySelector('*[data-uitype="currentPage"]');
+
+	currentPageUI.addEventListener('focus', function (e) {
+		this.value = _this.getCurrentPage();
+		this.select();
+	}, false);
+	currentPageUI.addEventListener('blur', function(){
+		this.value = _this._getPagerText(_this._currentPage, _this.getTotalPages());
+	}, false);
+
+	currentPageUI.addEventListener('keypress', function (e) {
+		if (e.which == '13'){
+			var totalPage = _this.getTotalPages();
+
+			if (this.value &gt; totalPage){
+				this.value = totalPage;
+			}
+
+			var toGoPage = parseInt(this.value, 10);
+
+			_this.goToPage(toGoPage);
+			this.blur();
+		}
+   }, false);
+};
+
+/**
+ * @private
+ */
+tr.CompositeGrid.prototype._updateTotalPage = function () {
+	if (this._pagerUI) {
+		if (this._getPagingMode() === "auto") {
+			if (this._dataView.getRowCount() == 0) {
+				this._currentPage = 0;
+
+				if (this._pagerUI.isVisible()) {
+					this._pagerUI.hide();
+					this._topLevelElement.style.height = "100%";
+					this._grid.updateLayout();
+				}
+			} else {
+				if (!this._pagerUI.isVisible()) {
+					this._pagerUI.show();
+					this._topLevelElement.style.height = "calc(100% - 32px)";
+					this._grid.updateLayout();
+				}
+			}
+			this.setPagingState(this.getCurrentPage(), this._dataTable.getRowCount());
+		} else {
+			this.setPagingState(this._currentPage, this._totalRows);
+		}
+	}
+};
+
+/**
+ * @public
+ */
+tr.CompositeGrid.prototype.setPagingState = function (currentPage, totalRows) {
+	this._currentPage = currentPage;
+	this._totalRows = totalRows;
+
+	var totalPages = this.getTotalPages();
+	var pageSize = this.getPageSize();
+
+	if (this._currentPage &gt; totalPages) {
+		this._currentPage = totalPages;
+	}
+
+	var startRow = (pageSize * (this._currentPage - 1)) + 1;
+	var endRow = startRow + (pageSize - 1);
+
+	if (endRow &gt; totalRows) {
+		endRow = totalRows;
+	}
+
+	if (this._pagerUI) {
+		var pagerElem = this._pagerUI.getElement();
+		var currentPageUI = pagerElem.querySelector('*[data-uitype="currentPage"]');
+
+		if (currentPageUI !== document.activeElement &amp;&amp; currentPageUI.value != this._currentPage.toString()) {
+			currentPageUI.value = this._getPagerText(this._currentPage, totalPages);
+		}
+
+		pagerElem.querySelector('*[data-uitype="totalRows"]').textContent = this._totalRows + "";
+		pagerElem.querySelector('*[data-uitype="startRow"]').textContent = startRow + "";
+		pagerElem.querySelector('*[data-uitype="endRow"]').textContent = endRow + "";
+	}
+};
+
+/**
+ * @private
+ * @return {string} Returns generated "Page .. of .." text
+ */
+tr.CompositeGrid.prototype._getPagerText = function (currentPage, totalPage) {
+	return "Page " + currentPage + " of " + totalPage;
+};
+
+/**
+ * @private
+ * @param {number} atIndex
+ * @param {Object} columnModel
+ */
+tr.CompositeGrid.prototype._applyColumnProperty = function (atIndex, columnModel) {
+	this._setColumnWidth(atIndex, columnModel["width"], columnModel["scalable"]);
+
+	// if minimum width is set, use that, else set to 32px
+	var minWidth = (columnModel["minWidth"] !== undefined) ? tr.ensureNumber(columnModel["minWidth"]) : 32;
+
+	this._grid.setMinimumColumnWidth(atIndex, minWidth);
+
+	if (columnModel["alignment"]) {
+		this._grid.setColumnAlignment(atIndex, columnModel["alignment"]);
+	}
+
+	if (columnModel["style"]) {
+		for (var style in columnModel["style"]) {
+			var styleValue = columnModel["style"][style];
+
+			this._grid.setColumnStyle(atIndex, style, styleValue, "content");
+		}
+	}
+
+	if (columnModel["cssClass"]) {
+		var sp = columnModel["cssClass"].split(' ');
+
+		for (var i = 0; i &lt;sp.length; i++) {
+			this._grid.enableColumnClass(atIndex, sp[i], true, "content");
+		}
+	}
+
+	// text select flag per column
+	// with this flag enabled user can select text in cell of this column
+	// Cannot use with rowReorder flag of global options.
+	if (columnModel["textSelect"] &amp;&amp; !this._model['rowReorder']) {
+		this._grid.enableColumnClass(atIndex, 'tr-text-select', true, "content");
+	}
+
+	if (columnModel["blinkBy"]) {
+		var currentDataMap = this._blinkPlugIn.getDataColumnMap();
+		if (!currentDataMap) {
+			currentDataMap = [];
+		}
+		currentDataMap[atIndex] = columnModel["blinkBy"];
+		this._blinkPlugIn.setDataColumnMap(currentDataMap);
+	}
+
+	if (columnModel["visible"] !== undefined) {
+		var currentlyVisible = this._grid.isColumnVisible(atIndex);
+
+		if ( currentlyVisible !== columnModel["visible"]) {
+			if (columnModel["visible"] === false) {
+				this.setColumnVisible(atIndex, false);
+			} else {
+				this.setColumnVisible(atIndex, true);
+			}
+		}
+	}
+};
+
+/**
+ * @private
+ */
+tr.CompositeGrid.prototype._findGroupTreeDepth = function (node, currentDepth) {
+	if (node["parent"]) {
+		return this._findGroupTreeDepth(node["parent"], currentDepth+1);
+	} else {
+		return currentDepth;
+	}
+};
+
+/**
+ * @private
+ */
+tr.CompositeGrid.prototype._findGroupColSpan = function (node) {
+	if (!node["children"]) {
+		if (node["leftCol"] !== undefined &amp;&amp; node["rightCol"] !== undefined) {
+			return {"left": node["leftCol"], "right": node["rightCol"]};
+		} else {
+			return null;
+		}
+	} else {
+		var left = null;
+		var right = null;
+
+		if (node["leftCol"] !== undefined) {
+			left = node["leftCol"];
+			right = node["rightCol"];
+		}
+
+		for (var i = 0; i &lt;node["children"].length; i++) {
+			var span = this._findGroupColSpan(node["children"][i]);
+
+			if (span != null) {
+				if (left == null) {
+					left = span["left"];
+					right = span["right"];
+				} else {
+					left = Math.min(left, span["left"]);
+					right = Math.max(right, span["right"]);
+				}
+			}
+		}
+
+		if (left != null) {
+			return {"left": left, "right": right};
+		} else {
+			return null;
+		}
+	}
+};
+
+tr.CompositeGrid.prototype._createColumnGroupTreeNodes = function (incHiddenColumn) {
+	var _columnGroupTreeNodes = {};
+	var columnGroups = this._model["columnGroups"];
+
+	if (columnGroups) {
+		//Create group map for faster access
+		var groupMap = {};
+
+		for (var cg = 0;cg &lt; columnGroups.length; cg++) {
+			var groupId = columnGroups[cg]["id"];
+
+			groupMap[groupId] = columnGroups[cg];
+		}
+
+		//Find group in-used by any column
+		var inUsedGroup = {};
+
+		for (var c = 0;c &lt; this._model["columns"].length; c++) {
+			var column = this._model["columns"][c];
+
+			if (column["columnGroup"] &amp;&amp; (incHiddenColumn || this._grid.isColumnVisible(c))) {
+				//Search up the tree
+				var groupData = groupMap[column["columnGroup"]];
+
+				while (groupData &amp;&amp; groupData["id"]) {
+					//Skip the tree that's already parsed
+					if (!inUsedGroup[groupData["id"]]) {
+						inUsedGroup[groupData["id"]] = true;
+
+						if (groupData["parent"]) {
+							groupData = groupMap[groupData["parent"]];
+						} else {
+							groupData = null;
+						}
+					} else {
+						break;
+					}
+				}
+			}
+		}
+
+		// Create Tree node for only in-used group
+		for (var i = 0; i &lt;columnGroups.length; i++) {
+			if (inUsedGroup[columnGroups[i]["id"]] === true) {
+				_columnGroupTreeNodes[columnGroups[i].id] = {
+					"data": columnGroups[i]
+				};
+			}
+		}
+
+		// Map Tree Parents
+		for (var id in _columnGroupTreeNodes) {
+			var currentNode = _columnGroupTreeNodes[id];
+
+			if (currentNode["data"]["parent"]) {
+				var parentNode = _columnGroupTreeNodes[currentNode["data"]["parent"]];
+
+				if (parentNode) {
+					currentNode["parent"] = parentNode;
+
+					if (!parentNode["children"]) {
+						parentNode["children"] = [];
+					}
+
+					parentNode["children"].push(currentNode);
+				}
+			}
+		}
+
+		// Calculate Column Span
+		var colCount = this._model["columns"].length;
+
+		for (var id in _columnGroupTreeNodes) {
+			var node = _columnGroupTreeNodes[id];
+
+			node["onRow"] = this._findGroupTreeDepth(node, 1) - 1;
+
+			for (var i = 0; i &lt; colCount; i++) {
+				var colDef = this._model["columns"][i];
+
+				//Skip hidden column from span checking to make sure that the colspanning is not
+				//on the hidden column and cause the spanning to disappear together
+				if ((incHiddenColumn || this._grid.isColumnVisible(i)) &amp;&amp; colDef["columnGroup"] == node["data"]["id"]) {
+					if (node["leftCol"] == undefined) {
+						node["leftCol"] = i;
+						node["rightCol"] = i;
+					} else {
+						node["leftCol"] = Math.min(node["leftCol"], i);
+						node["rightCol"] = Math.max(node["rightCol"], i);
+					}
+				}
+			}
+		}
+	}
+
+	return _columnGroupTreeNodes;
+};
+
+tr.CompositeGrid.prototype._updateColumnGroupingStructure = function () {
+	if (this.isLayoutFrozen()) {
+		return false;
+	}
+
+	if (!this._model["columnGroups"]) {
+		return false;
+	}
+
+	var i;
+	var columnGroupTreeNodes = this._createColumnGroupTreeNodes(false);
+
+	// Calculate Max Tree depth to create extra header rows.
+	var maxDepth = -1;
+
+	if (Object.keys(columnGroupTreeNodes).length == 0) {
+		maxDepth = 0;
+	} else {
+		for (var id in columnGroupTreeNodes) {
+			var currentNode = columnGroupTreeNodes[id];
+			var depth = this._findGroupTreeDepth(currentNode, 1);
+
+			maxDepth = Math.max(maxDepth, depth);
+		}
+	}
+
+	// Create Extra Header Rows
+	var titleSection = this._grid.getSection('title');
+	var rowCount = maxDepth + 1;
+
+	//Set row count of the title to 0 and back to the proper row count
+	//to force title content re-rendering.
+	titleSection["setRowCount"](rowCount);
+	titleSection.clearCellSpans();
+
+	// Row Span
+	var columns = this._model["columns"];
+	var colCount = columns.length;
+
+	for (i = 0; i &lt;colCount; i++) {
+		var toSpan = maxDepth + 1;
+		var columnModel = columns[i];
+
+		if (columnModel["columnGroup"] !== undefined) {
+			var groupId = columnModel["columnGroup"];
+			var parentNode = columnGroupTreeNodes[groupId];
+
+			if (parentNode) {
+				var depth = this._findGroupTreeDepth(parentNode, 1);
+
+				toSpan = (maxDepth - depth) + 1;
+			}
+		}
+
+		if (columnModel["visible"] !== false &amp;&amp; toSpan &gt; 1) { // Note that invisible column cannot have row span
+			titleSection.setCellRowSpan(i, rowCount - toSpan, toSpan);
+		}
+	}
+
+	for (var id in columnGroupTreeNodes) {
+		var node = columnGroupTreeNodes[id];
+		var span = this._findGroupColSpan(node);
+		var leftCol = 0;
+		var rightCol = colCount - 1;
+
+		if (span) {
+			leftCol = span["left"];
+			rightCol = span["right"];
+		}
+
+		// Do the rendering
+		for (i=leftCol;i &lt;=rightCol;i++) {
+			var groupDef = node["data"];
+			var cell = titleSection.getCell(i, node["onRow"]);
+
+			if (groupDef["alignment"]) {
+				cell["setStyle"]("text-align", groupDef["alignment"]);
+			}
+
+			var formatter = this._getFormatters(groupDef["formatter"]);
+			var handledByFormatter = false;
+
+			if (formatter) {
+				for (var f = 0; f &lt; formatter.length; f++) {
+					if (formatter[f]["render"]) {
+						formatter[f]["render"](i, cell, groupDef, this);
+						handledByFormatter = true;
+					}
+				}
+			}
+
+			if (!handledByFormatter) {
+				cell["setContent"](groupDef["title"]);
+			}
+
+			cell["addClass"]("no-sort");
+		}
+
+		if (span) {
+			titleSection["setCellColSpan"](span["left"], node["onRow"], (span["right"] - span["left"] + 1));
+		} else {
+			titleSection["setCellColSpan"](0, node["onRow"], colCount);
+		}
+	}
+
+	this._sortPlugIn.updateSortSymbols();
+
+	return true;
+};
+
+/**
+ * @private
+ * @param {tr.IElementControl} cell
+ * @param {number} colIndex
+ * @param {number} rowIndex
+ */
+tr.CompositeGrid.prototype._attachEditor = function (cell, section, colIndex, rowIndex) {
+	var dataView = this._grid.getSectionSettings(section).getDataSource();
+
+	if (!dataView) { // If there's no data view, there's no data to edit
+		return;
+	}
+
+	this._editing = true;
+	this._editingRow = rowIndex;
+	this._grid.enableRowHighlighting(false);
+	this._grid.scrollToColumn(colIndex);
+
+	var cellBound = cell.getBoundingClientRect();
+	var sectionBound = section.getBoundingClientRect();
+
+	if (this._editorPanel) {
+		while(this._editorPanel.lastChild) {
+			this._editorPanel.removeChild(this._editorPanel.lastChild);
+		}
+	} else {
+		this._editorPanel = document.createElement('div');
+	}
+
+	var styObj = this._editorPanel.style;
+
+	styObj["padding"] = "0";
+	styObj["backgroundColor"] = "#36260c";
+	styObj["position"] = "absolute";
+	styObj["top"] = (cellBound.top - sectionBound.top) + "px";
+	styObj["left"] = (cellBound.left - sectionBound.left) + "px";
+	styObj["width"] = (cellBound.width - 1) + "px";
+	styObj["height"] = styObj["lineHeight"] = (cellBound.height - 1) + "px";
+
+	section.addContent(this._editorPanel);
+
+	var rowId = dataView.getRowId(rowIndex);
+	var rowData = dataView.getRowData(rowId);
+
+	var colModel = this._model["columns"][colIndex];
+
+	colModel["editor"]["attach"](
+		colModel["editBy"],
+		this._editorPanel,
+		rowId,
+		rowData,
+		this._dataTable,
+		this._onCancelEditing
+	);
+
+	this._dispatch("editorAttached", {
+		"editor": this._editorPanel,
+		"rowIndex": this._editingRow
+	});
+};
+
+/** @private
+ */
+tr.CompositeGrid.prototype._onCancelEditing = function () {
+	this.update(); // TODO: Check if we require this
+	this.detachEditor();
+};
+
+/**
+ * @private
+ * @param {string|Function} filterFunction
+ * @return {Function}
+ */
+tr.CompositeGrid.prototype._getFilterFunction = function (filterFunction) {
+	if (!filterFunction) {
+		return null;
+	} else if (typeof filterFunction === "string") {
+		var formula = new fn.Formula(filterFunction, tr.fn.Engine.getContext());
+
+		return (formula["calculate"]).bind(formula);
+	} else {
+		return function(rowData, rid) {
+			return /** @type{Function} */(filterFunction)(rid, rowData);
+		};
+	}
+};
+
+/**
+ * @private
+ * @param {MouseEvent} e
+ */
+tr.CompositeGrid.prototype._mouseDownHandler = function (e) {
+	if (!this._hasListener("cellMouseDown")) {
+		return;
+	}
+
+	var mouseInfo = this._grid.getRelativePosition(e);
+
+	if (!mouseInfo["hit"]) {
+		return;
+	}
+
+	this._mouseOnSection = mouseInfo[tr.res.sectionIndex]; // TODO: This is for mouseleave
+
+	if (mouseInfo["sectionType"] !== "content") {
+		return;
+	}
+
+	this._dispatchMouseEvent("cellMouseDown", e,
+		this._mouseOnSection,
+		mouseInfo[tr.res.colIndex],
+		mouseInfo[tr.res.rowIndex]
+	);
+};
+
+/**
+ * @private
+ * @param {string} eventName
+ * @param {MouseEvent} e Native mouse event argument
+ * @param {number} s Section Index
+ * @param {number} c Column Index
+ * @param {number} r Row Index
+ */
+tr.CompositeGrid.prototype._dispatchMouseEvent = function (eventName, e, s, c, r) {
+	if (this._hasListener(eventName)) {
+		var dataSource, rowId, dataRow, section, cell;
+		var sectionSettings = this._grid.getSectionSettings(s);
+
+		dataSource = rowId = dataRow = section = cell = null;
+
+		if (sectionSettings) {
+			dataSource = sectionSettings.getDataSource();
+			section = sectionSettings.getSection();
+			cell = section.getCell(c, r);
+		}
+
+		if (dataSource) {
+			rowId = dataSource.getRowId(r);
+			dataRow = dataSource.getRowData(rowId);
+		}
+
+		this._dispatch(eventName, {
+			"rowIndex": r,
+			"colIndex": c,
+			"columnDef": this._model["columns"][c],
+			"rowId": rowId,
+			"dataRow": dataRow,
+			"mouseEvent": e,
+			"cell": cell,
+			"section": section
+		});
+	}
+};
+
+/**
+ * @private
+ * @param {MouseEvent} e
+ */
+tr.CompositeGrid.prototype._mouseClickHandler = function (e) {
+	var mouseInfo = this._grid.getRelativePosition(e);
+
+	if (mouseInfo["hit"]) {
+		this._mouseOnSection = mouseInfo[tr.res.sectionIndex];
+
+		if (mouseInfo["sectionType"] === "content") {
+			var colIndex = /** @type{number} */(mouseInfo[tr.res.colIndex]);
+			var rowIndex = /** @type{number} */(mouseInfo[tr.res.rowIndex]);
+
+			this._dispatchMouseEvent("cellClicked", e,
+				this._mouseOnSection, colIndex, rowIndex);
+
+			if (this._editing) {
+				this.detachEditor();
+			}
+
+			var colModel = this._model["columns"][colIndex];
+
+			if (
+				this._model["autoEdit"] === true &amp;&amp;
+				colModel["editBy"] &amp;&amp;
+				colModel["editor"] &amp;&amp;
+				!this._editing
+			) {
+				console.log("autoEdit is deprecated in favor of in-cell-editing extension");
+				var cell = mouseInfo["section"].getCell(colIndex, rowIndex);
+
+				this._attachEditor(cell, mouseInfo["section"], colIndex, rowIndex);
+			}
+		}
+	}
+};
+
+/**
+ * @private
+ * @param {MouseEvent} e
+ */
+tr.CompositeGrid.prototype._mouseMoveHandler = function (e) {
+	var mouseInfo = this._grid.getRelativePosition(e);
+
+	if (mouseInfo["hit"]) {
+		var sectionIndex = /** @type{number} */(mouseInfo[tr.res.sectionIndex]);
+		var colIndex = /** @type{number} */(mouseInfo[tr.res.colIndex]);
+		var rowIndex = /** @type{number} */(mouseInfo[tr.res.rowIndex]);
+
+		if (sectionIndex != this._mouseOnSection ||
+			colIndex != this._mouseOnColumn ||
+			rowIndex != this._mouseOnRow) {
+			if (this._mouseOnColumn &gt;= 0 &amp;&amp; this._mouseOnRow &gt;= 0) {
+				this._dispatchMouseEvent(
+					"mouseLeaveCell", e, this._mouseOnSection, this._mouseOnColumn, this._mouseOnRow
+				);
+			}
+
+			this._mouseOnSection = sectionIndex;
+			this._mouseOnColumn = colIndex;
+			this._mouseOnRow = rowIndex;
+
+			if (mouseInfo["sectionType"] == "content") {
+				this._dispatchMouseEvent(
+					"mouseOverCell", e,	sectionIndex, colIndex, rowIndex
+				);
+			} else {
+				this._mouseOnSection = sectionIndex;
+				this._mouseOnColumn = this._mouseOnRow = -1;
+			}
+		}
+	} else {
+		this._mouseLeaveHandler(e);
+	}
+};
+
+/**
+ * @private
+ * @param {MouseEvent} e
+ */
+tr.CompositeGrid.prototype._mouseLeaveHandler = function (e) {
+	if (this._mouseOnColumn &gt;= 0 &amp;&amp; this._mouseOnRow &gt;= 0 &amp;&amp; this._mouseOnSection &gt;= 0) {
+		this._dispatchMouseEvent(
+			"mouseLeaveCell", e, this._mouseOnSection, this._mouseOnColumn, this._mouseOnRow
+		);
+	}
+
+	this._mouseOnColumn = this._mouseOnRow = this._mouseOnSection = -1;
+};
+
+/**
+ * @private
+ * @param {MouseEvent} e
+ */
+tr.CompositeGrid.prototype._mouseDblClickHandler = function (e) {
+	var mouseInfo = this._grid.getRelativePosition(e);
+
+	if (!mouseInfo["hit"])  return;
+
+	if (mouseInfo["sectionType"] === "content") {
+		var colIndex = /** @type{number} */(mouseInfo[tr.res.colIndex]);
+		var rowIndex = /** @type{number} */(mouseInfo[tr.res.rowIndex]);
+
+		this._dispatchMouseEvent(
+			"cellDblClicked", e, mouseInfo[tr.res.sectionIndex], colIndex, rowIndex
+		);
+
+		var colModel = this._model["columns"][colIndex];
+		var autoEdit = this._model["autoEdit"];
+
+		if (
+			!autoEdit &amp;&amp; !this._editing &amp;&amp;
+			colModel["editBy"] &amp;&amp;	colModel["editor"]
+		) {
+			var cell = mouseInfo["section"].getCell(colIndex, rowIndex);
+
+			this._attachEditor(cell, mouseInfo["section"], colIndex, rowIndex);
+		}
+	}
+};
+
+/**
+ * @private
+ * @param {MouseEvent} e
+ */
+tr.CompositeGrid.prototype._contextMenuHandler = function (e) {
+	var eventName = "cellRightClicked";
+	if (this._hasListener(eventName)) {
+		var mouseInfo = this._grid.getRelativePosition(e);
+		if (!mouseInfo["hit"]) return;
+
+		this._dispatchMouseEvent(eventName, e,
+			mouseInfo[tr.res.sectionIndex],
+			mouseInfo[tr.res.colIndex],
+			mouseInfo[tr.res.rowIndex]
+		);
+	}
+};
+
+/**
+ * @private
+ * @param {MouseEvent} e
+ */
+tr.CompositeGrid.prototype._checkboxColumnPlugInClick = function (e) {
+	var chkboxSelector = this._model["checkboxSelector"];
+	var handler = chkboxSelector ? chkboxSelector["checkChangedHandler"] : null;
+
+	if (handler) {
+		var rowIndex = /** @type{number} */(e["rowIndex"]);
+		var sectionType = e["sectionType"];
+		var rowId = (sectionType === "content") ? this._dataView.getRowId(rowIndex) : null;
+		var state = e["checkState"] === "checked" || e["checkState"] === "partial";
+
+		handler(rowId, rowIndex, state, sectionType);
+	}
+};
+
+tr.CompositeGrid.prototype._checkboxColumnPlugInCreated = function (e) {
+	var chkboxSelector = this._model["checkboxSelector"];
+	var handler = chkboxSelector ? chkboxSelector["checkboxCreatedHandler"] : null;
+
+	if (handler) {
+		var rowIndex = e["rowIndex"];
+		var rowId = this._dataView.getRowId(rowIndex);
+		var checkbox = e["checkbox"];
+		var section = e["section"];
+
+		handler(checkbox, rowId, rowIndex, section);
+	}
+};
+
+/**
+ * @private
+ * @param {Object} e
+ */
+tr.CompositeGrid.prototype._cellRenderingHandler = function (e) {
+	var i;
+	var rowIndex = e[tr.res.rowIndex];
+	var colIndex = e[tr.res.colIndex];
+	var columns = this._model["columns"];
+	var columnDef = columns ? columns[colIndex] : null;
+	var cell = e["cell"];
+	if(!columnDef) {
+		return; // We cannot render anything unless columnDef exists
+	}
+
+	if (e[tr.res.sectionName] === "title") {
+		if (!columnDef["emptyColumn"]) {
+			if (columnDef["titleAlignment"]) {
+				cell["setStyle"]("text-align", columnDef["titleAlignment"]);
+			}
+
+			var formatter = this._getFormatters(columnDef["formatter"]);
+			var handledByFormatter = false;
+
+			if (formatter) {
+				for (i = 0; i &lt; formatter.length; i++) {
+					if (formatter[i]["renderTitle"]) {
+						formatter[i]["renderTitle"](colIndex, cell, columnDef, this);
+						handledByFormatter = true;
+					}
+				}
+			}
+
+			if (!handledByFormatter) {
+				cell["setContent"](columnDef["title"]);
+
+				var tooltip = columnDef["tooltip"];
+				if (tooltip) {
+					if (typeof tooltip === "string") {
+						cell["setTooltip"](tooltip);
+					} else if (tooltip === true) {
+						cell["setTooltip"](columnDef["title"]);
+					}
+				}
+			}
+		}
+
+		if (columnDef["menu"]) {
+			console.log("Built-in menu is deprecated as it does not follow ELF standard");
+			// TODO: Cache menuOpener in the cell
+			// Create Menu Opener and manage its event
+			var menu = columnDef["menu"];
+			var menuHeight = this._headerRowHeight + "px";
+			var symbolClass = (menu["symbol"] !== undefined) ? menu["symbol"] : "icon-menu";
+			var menuSymbol = document.createElement("span");
+
+			menuSymbol.className = symbolClass;
+
+			var symbolContainer = document.createElement("div");
+			symbolContainer.style.display = "table-cell";
+			symbolContainer.style.verticalAlign = "middle";
+			symbolContainer.style.height = menuHeight;
+			symbolContainer.style.lineHeight = menuHeight;
+
+			var menuOpener = document.createElement('div');
+			menuOpener.className = 'title tr-title-menu'; // For title styling and theme
+			menuOpener.style.height = menuHeight;
+			menuOpener.style.lineHeight = this._headerRowHeight + "px";
+
+			if (menu["alignment"] === undefined || menu["alignment"] === "right") {
+				menuOpener.style.right = "7px";
+				menuOpener.style.borderLeft = "solid 1px #000";
+				symbolContainer.style.padding = "1px 0 0 8px";
+			} else if (menu["alignment"] === "left") {
+				menuOpener.style.left = "5px";
+				menuOpener.style.borderRight = "solid 1px #000";
+				symbolContainer.style.padding = "1px 0 0 2px";
+			}
+
+			symbolContainer.appendChild(menuSymbol);
+			menuOpener.appendChild(symbolContainer);
+			menuOpener._columnId = columnDef["id"];
+
+			if (menu["autoHide"] == true) {
+				menuOpener.style.display = "none";
+			}
+
+			//Convert Menu Data Structure
+			var newMenuModel = {};
+			newMenuModel["menu"] = {};
+			newMenuModel["menu"]["items"] = [];
+
+			for (i = 0; i &lt;menu["items"].length; i++) {
+				newMenuModel["menu"]["items"].push(menu["items"][i]);
+			}
+
+			//Create Dropdown Menu
+			var dropDown = new DropDown(newMenuModel);
+			dropDown.setInput(menuOpener);
+			dropDown.getPopupMenu().setMinWidth("100px");
+			dropDown.listen("itemSelected", function(e) {
+				var columnId = menuOpener._columnId;
+				var columnModel = this.getColumnModel(columnId);
+				var columnIndex = this.getColumnIndex(columnId);
+				if (columnModel["menu"]["menuSelectedHandler"]) {
+					columnModel["menu"]["menuSelectedHandler"]({
+						"sender": e["sender"],
+						"selectedItem": e["item"],
+						"colIndex": columnIndex,
+						"columnDef": columnModel
+					});
+				}
+			}.bind(this));
+
+			cell.addContent(menuOpener);
+
+			if (menu["autoHide"] == true) {
+				cell.listen("mouseover", function() {
+					menuOpener.style.display = "";
+				});
+				cell.listen("mouseout", function() {
+					menuOpener.style.display = "none";
+				});
+			}
+
+			// Handle Sorting
+			cell.listen("click", {"colIndex": colIndex}, function(e) { // TODO: Check if this is a valid syntax
+				if (this._model["columns"][e["data"]["colIndex"]]["sortBy"]) {
+					this._sortPlugIn.sortColumn(e["data"]["colIndex"]);
+				}
+			}.bind(this));
+			menuOpener.addEventListener('click', function(e) {
+				e.stopPropagation();
+			}, false);
+			this._sortPlugIn.disableCellClick(cell, true);
+		}
+	} else if (e[tr.res.sectionName] === "filterRow") {
+		if (columnDef["filter"] &amp;&amp; columnDef["filterBy"]) {
+			columnDef["filter"]["attach"](cell, columnDef["filterBy"], this);
+		} else {
+			cell["setContent"]('');
+		}
+		cell["addClass"]('no-sort');
+	} else if (e["sectionType"] === "content") {
+		if (!columnDef["emptyColumn"] &amp;&amp; !columnDef["template"]) {
+			var dataSource = e["dataSource"];
+
+			if (dataSource) {
+				var rowId = dataSource.getRowId(rowIndex);
+				var dataRow = dataSource.getRowData(rowId);
+				var data = (dataRow) ? dataRow[columnDef["field"]] : undefined;
+				var formatter = this._getFormatters(columnDef["formatter"]);
+				var handledByFormatter = false;
+
+				if (formatter) {
+					if (dataRow) {
+						for (i = 0; i &lt;formatter.length; i++) {
+							if (formatter[i]["transform"]) {
+								data = formatter[i]["transform"](data, dataRow);
+							}
+						}
+					}
+
+					for (i = 0; i &lt;formatter.length; i++) {
+						if (formatter[i]["render"]) {
+							formatter[i]["render"](rowIndex, colIndex, data, cell, columnDef, dataRow, this._dataTable, dataSource, this);
+							handledByFormatter = true;
+						}
+					}
+				}
+
+				if (!handledByFormatter) {
+					cell["setContent"](data);
+				}
+			}
+		}
+	}
+};
+
+/**
+ * @private
+ * @param {Object} e
+ */
+tr.CompositeGrid.prototype._cellDataBindingHandler = function (e) {
+	var colIndex = e[tr.res.colIndex];
+	var columns = this._model["columns"];
+	var column = columns ? columns[colIndex] : null;
+
+	if (!column || column["emptyColumn"]) {
+		return;
+	}
+
+	var dataSource = e["dataSource"];
+	if (!dataSource) {
+		return;
+	}
+
+	if (e[tr.res.sectionType] !== tr.res.content) {
+		return;
+	}
+
+	var cell = /** @type{tr.grid.Cell} */(e["cell"]);
+
+	var rowIndex = /** @type{number} */(e[tr.res.rowIndex]);
+	var template = column["template"];
+	var handled = false;
+
+	if (!template) {
+		var dataRow = e["rowData"];
+		var formatters = this._getFormatters(column["formatter"]);
+		var formatterCount = formatters ? formatters.length : 0;
+
+		var data, formatter, i;
+		if (dataRow) { // TODO: Check if this always exist
+			data = dataRow[column["field"]];
+			for (i = 0; i &lt; formatterCount; i++) {
+				formatter = formatters[i];
+				if (formatter["transform"]) {
+					data = formatter["transform"](data, dataRow);
+				}
+			}
+		}
+
+		for (i = 0; i &lt; formatterCount; i++) {
+			formatter = formatters[i];
+			if (formatter["bind"]) {
+				formatter["bind"](rowIndex, colIndex, data, cell, column, dataRow, this._dataTable, dataSource, this);
+				handled = true;
+			}
+		}
+	} else { // TODO: Template is deprecated
+		var templateStr = "";
+
+		if (typeof template === 'string') {
+			templateStr = template.replace(/\$\{([\w\.\_]*)\}/g, function(str, key) {
+				return dataSource.getDataAt(rowIndex, key);
+			});
+		} else {
+			var rowId = dataSource.getRowId(rowIndex); // TODO: dataSource should be the same thing as this._dataView.
+			var rowPtr = this._dataView.getRowData(rowId); // TODO: rowPtr should be the same thing as dataRow and e["rowData"]
+			templateStr = template(rowPtr);
+		}
+
+		data = this._toDOMElement(templateStr); // Convert HTML string to DOM element
+	}
+
+	if(!handled) {
+		cell["setContent"](data);
+	}
+};
+
+/**
+ * @private
+ * @param {Object} e
+ */
+tr.CompositeGrid.prototype._groupHeaderBinding = function (e) {
+	var cell = e["cell"];
+	if (!cell) { //Handle the case that there's no column for showing group header
+		return;
+	}
+
+	//Set default text-align for group header cell. The alignment can be overridden
+	//by the headerFormatter that will be triggered after this (if specified)
+	cell["setStyle"]("text-align", "left");
+
+	var groupModel = this._model["rowGrouping"];
+
+	if (groupModel["headerFormatter"] &amp;&amp; groupModel["headerFormatter"]["bind"]) {
+		var formatter = groupModel["headerFormatter"];
+
+		if (cell.getContent() &amp;&amp; formatter["dispose"]) {
+			formatter["dispose"](cell, e["section"], e["groupId"], e["dataSource"], this);
+		}
+
+		formatter["bind"](cell, e["section"], e["groupId"], e["dataSource"], e["rowIndex"], this);
+	} else {
+		cell["setContent"](e["groupId"]);
+	}
+
+	//HACK: Hide checkbox of footer row if the checkbox selector is available
+	if (this._checkboxColumnPlugIn !== null) {
+		var checkboxCell = e["section"].getCell(0, e["rowIndex"]);
+		var checkbox = checkboxCell.getElement().querySelector("input");
+
+		checkbox.style.visibility = 'visible';
+	}
+};
+
+/**
+ * @private
+ * @param {Object} e
+ */
+tr.CompositeGrid.prototype._groupContentBinding = function (e) {
+	//HACK: Show checkbox of footer row if the checkbox selector is available
+	if (this._checkboxColumnPlugIn !== null) {
+		var checkboxCell = e["section"].getCell(0, e["rowIndex"]);
+		var checkbox = checkboxCell.getElement().querySelector("input");
+
+		checkbox.style.visibility = 'visible';
+	}
+};
+
+/**
+ * @private
+ * @param {Object} e
+ */
+tr.CompositeGrid.prototype._groupFooterBinding = function (e) {
+	var cell = e["cell"];
+	if (!cell) { //Handle the case that there's no column for showing group header
+		return;
+	}
+
+	var groupModel = this._model["rowGrouping"];
+
+	if (groupModel["footerFormatter"] &amp;&amp; groupModel["footerFormatter"]["bind"]) {
+		var formatter = groupModel["footerFormatter"];
+
+		if (cell.getContent() &amp;&amp; formatter["dispose"]) {
+			formatter["dispose"](cell,e["section"],e["groupId"],e["dataSource"],this);
+		}
+
+		formatter["bind"](cell, e["section"], e["groupId"], e["dataSource"], e["rowIndex"], e["footerIndex"], this);
+	}
+
+	//HACK: Hide checkbox of footer row if the checkbox selector is available
+	if (this._checkboxColumnPlugIn !== null) {
+		var checkboxCell = e["section"].getCell(0, e["rowIndex"]);
+		var checkbox = checkboxCell.getElement().querySelector("input");
+
+		checkbox.style.visibility = 'hidden';
+	}
+};
+
+/**
+ * @private
+ * @param {Object} e
+ */
+tr.CompositeGrid.prototype._columnMovedHandler = function (e) {
+	//Swap the column model
+	var columns = this._model["columns"];
+	var tmp = columns[e["fromColIndex"]];
+
+	columns.splice(e["fromColIndex"], 1);
+	columns.splice(e["toColIndex"], 0, tmp);
+
+	//Below action will be performed when the layout is unfrozen
+	if (this.isLayoutFrozen()) {
+		return;
+	}
+
+	//Force update data so the row group title header is re-rendered
+	this.update(); // Slow
+
+	//Update Column Group Structure
+	this._updateColumnGroupingStructure();
+};
+
+/**
+ * @private
+ * @param {Object} e
+ */
+tr.CompositeGrid.prototype._columnDraggedHandler = function (e) {
+	var start = e["startColumnIndex"];
+	var end = e["endColumnIndex"];
+	var dest = e["destColumnIndex"];
+	var dragLeft = true;
+
+	if (dest &gt; start) {
+		dragLeft = false;
+	}
+
+	//If a group is dragged, all the columns in the group should be dragged together
+	//the columnGroupTreeNodes is created by including hidden columns so those
+	//hidden columns are handled correctly
+	var columnGroupTreeNodes = this._createColumnGroupTreeNodes(true);
+
+	for (var groupId in columnGroupTreeNodes) {
+		var node = columnGroupTreeNodes[groupId];
+
+		if (e["clickedRow"] == node["onRow"] &amp;&amp;
+			start &gt;= node["leftCol"] &amp;&amp; start &lt;= node["rightCol"] &amp;&amp;
+			end &gt;= node["leftCol"] &amp;&amp; end &lt;= node["rightCol"] ) {
+			start = node["leftCol"];
+			end = node["rightCol"];
+		}
+
+		//Also adjust the destination column, the column should't be dropped
+		//in the middle of another group. We handle this case here because
+		//there might be some invisible rows
+		if (e["clickedRow"] == node["onRow"] &amp;&amp;
+			dest &gt;= node["leftCol"] &amp;&amp; dest &lt;= node["rightCol"]) {
+			if (dragLeft) {
+				dest = node["leftCol"];
+			} else {
+				dest = node["rightCol"];
+			}
+		}
+	}
+
+	//We need to adjust the dest column because the moving algorithm
+	//in composite grid and in the core grid are different.
+	if (!dragLeft) {
+		dest -= (end - start);
+	}
+
+	var movingColumn = [];
+
+	for (var i = start; i &lt;= end; i++) {
+		movingColumn.push(i);
+	}
+
+	this.moveColumn(movingColumn, dest);
+};
+
+/**
+ * @private
+ * @param {Object} e
+ */
+tr.CompositeGrid.prototype._columnResizedHandler = function (e) {
+	var colModel = this._model["columns"][e["colIndex"]];
+
+	if (colModel) {
+		colModel["width"] = e["width"];
+	}
+};
+
+/**
+ * @private
+ * @param {Object} e
+ */
+tr.CompositeGrid.prototype._columnSortedHandler = function (e) {
+	//Find columnId
+	var colId = null;
+
+	if (this._model["columns"]) {
+		colId = this._model["columns"][e["colIndex"]]["id"];
+	}
+
+	e["colId"] = colId;
+
+	// Dispatch columnSorted event
+	this._dispatch("columnSorted", e);
+};
+
+/**
+ * @private
+ * @param {Object} e
+ */
+tr.CompositeGrid.prototype._rowDragStartHandler = function (e) {
+	var dragBox = this._draggableContentPlugIn.getDragBox();
+
+	if (
+		typeof this._model["rowReorder"] === "object" &amp;&amp;
+		this._model["rowReorder"]["dragBoxRenderer"] &amp;&amp;
+		typeof this._model["rowReorder"]["dragBoxRenderer"] === "function"
+	) {
+		dragBox.show();
+
+		var section = e[tr.res.section];
+		var dataSource = e[tr.res.dataSource];
+		var selections = section.getSelectedRows();
+		var dataRows = [];
+
+		for (var i = 0; i &lt;selections.length; i++) {
+			dataRows.push(dataSource.getRowDataAt(selections[i]));
+		}
+
+		this._model["rowReorder"]["dragBoxRenderer"](e, dragBox, dataRows);
+	} else {
+		dragBox.hide();
+	}
+};
+
+/**
+ * @private
+ * @param {Object} e
+ */
+tr.CompositeGrid.prototype._rowDragEndHandler = function (e) {
+	var selectedRows = 	this._rowSelectionPlugIn ? this._rowSelectionPlugIn.getSelectedRows() : null;
+	if(!selectedRows) {
+		return;
+	}
+	var dataSource = e["dataSource"];
+	// TODO: right now grid allow drag end occur out of grid so dataSource will undefined if drag end occur outside grid
+	// and it will make infinite loop error event
+	var moveRowIds = dataSource.moveRow(selectedRows, e["rowIndex"]);
+
+	this.clearSelection();
+
+	if (moveRowIds) {
+		if (Array.isArray(moveRowIds)) {
+			if (moveRowIds.length &gt; 0) {
+				var firstIndex = dataSource.getRowIndex(moveRowIds[0]);
+
+				this.selectRows(firstIndex, moveRowIds.length);
+			}
+		} else {
+			var firstIndex = dataSource.getRowIndex(moveRowIds);
+
+			this.selectRows(firstIndex, 1);
+		}
+	}
+};
+
+/**
+ * @private
+ * @param {Object} e
+ */
+tr.CompositeGrid.prototype._dataChangedHandler = function (e) {
+	if (this._model["paging"] &amp;&amp; this._getPagingMode() === "auto") {
+		this._updateTotalPage();
+	}
+};
+
+/**
+ * @private
+ * @param {Object} e
+ */
+tr.CompositeGrid.prototype._rowExpansionBindingHandler = function (e) {
+	var model = this._model["rowExpansion"];
+	if (model) {
+		var renderer = model["renderer"];
+
+		if(renderer) {
+			this._renderRowExpansion(
+				e["rowExpansion"] ? renderer["bind"] : renderer["dispose"],
+				e
+			);
+		}
+	}
+};
+/**
+ * @private
+ * @param {Function} method
+ * @param {Object} e
+ */
+tr.CompositeGrid.prototype._renderRowExpansion = function (method, e) {
+	if(method) {
+		method(e["section"], e["originalRowData"], e["dataSource"], e["rowId"], e["rowIndex"], this);
+	}
+};
+
+/**
+ * @private
+ * @param {string} htmlString e.g. "&lt;div id='foo'&gt;bar&lt;/div&gt;"
+ * @return {Element|string}
+ */
+tr.CompositeGrid.prototype._toDOMElement = function (htmlString) {
+	var div = document.createElement("div");
+
+	div.innerHTML = htmlString;
+
+	if (div.children.length &gt; 0) {
+		var node = div.children[0];
+
+		div.removeChild(node);
+
+		return node;
+	} else {
+		return htmlString;
+	}
+};
+
+/** @private
+* @param {*} formatter
+* @return {Array.&lt;Object&gt;}
+*/
+tr.CompositeGrid.prototype._getFormatters = function (formatter) {
+	var obj;
+	if (Array.isArray(formatter)) {
+		var len = formatter.length;
+		var returnedFormatter = [];
+
+		for (var i = 0; i &lt; len; i++) {
+			obj = this._getFormatter(formatter[i]);
+			if(obj) {
+				returnedFormatter.push(obj);
+			}
+		}
+		return returnedFormatter.length ? returnedFormatter : null;
+	} else {
+		obj = this._getFormatter(formatter);
+		return obj ? [obj] : null;
+	}
+};
+/** @private
+* @param {*} formatterRef
+* @return {Object}
+*/
+tr.CompositeGrid.prototype._getFormatter = function (formatterRef) {
+	if(formatterRef) {
+		if(typeof formatterRef === "string") {
+			if (this._formatterMap[formatterRef]) {
+				return this._formatterMap[formatterRef];
+			} else if (window[formatterRef]) {
+				return window[formatterRef]; // WARNING: This is very dangerous as we don't do any type checking
+			}
+		} else {
+			return /** @type{Object} */(formatterRef);
+		}
+	}
+	return null;
+};
+
+tr.CompositeGrid.prototype._getColumnGroupIndex = function (idOrIndex) {
+	var groupModel = this._model["columnGroups"];
+	var index = -1;
+
+	if (typeof idOrIndex === "string") {
+		for (var i = 0; i &lt;groupModel.length; i++) {
+			if (groupModel[i]["id"] === idOrIndex) {
+				index = i;
+				break;
+			}
+		}
+	} else if (!isNaN(idOrIndex)) {
+		index = idOrIndex;
+	}
+
+	return index;
+};
+
+tr.CompositeGrid.prototype._getPagingMode = function () {
+	if (this._model["paging"]) {
+		if (!this._model["paging"]["mode"]) {
+			return "auto";
+		} else {
+			return this._model["paging"]["mode"];
+		}
+	}
+};
+
+tr.CompositeGrid.prototype._processExtension = function (extPoint, params) {
+	var exts = /** @type{!Array} */(this._model["extensions"]);
+
+	for (var i = 0; i &lt; exts.length; i++) {
+		if (exts[i][extPoint]) {
+			exts[i][extPoint].apply(exts[i], params);
+		}
+	}
+};
+
+tr.CompositeGrid.prototype._processOptionExtension = function (optionName) {
+	var exts = /** @type{!Array} */(this._model["extensions"]);
+	var optionValues = [];
+
+	for (var i = 0; i &lt; exts.length; i++) {
+		if (exts[i]["beforeProcessOption"]) {
+			var returnedValue = exts[i]["beforeProcessOption"].apply(exts[i], [optionName, this._model[optionName]]);
+
+			// Ignore the function call that doesn't return any value
+			if (returnedValue !== undefined) {
+				this._model[optionName] = returnedValue;
+				optionValues.push(returnedValue);
+			}
+		}
+	}
+
+	// Check for option value conflict between several extensions
+	if (optionValues.length &gt; 1) {
+		var prev = optionValues[0];
+
+		for (var i=1; i &lt;optionValues.length; i++) {
+			if (optionValues[i] !== prev) {
+				console.error("Conflict values at composite grid option ['" + optionName + "'] from multiple extensions");
+				break;
+			}
+
+			prev = optionValues[i];
+		}
+	}
+};
+
+/**
+ * @private
+ * @param {Node} host
+ */
+tr.CompositeGrid.prototype._setScrollbarParent = function(host) {
+	host.style.boxSizing = "border-box";
+	host.style.overflow = "hidden";
+	host.style.position = "relative";
+
+	var topElem = this._topNode.getElement();
+
+	topElem.style.height = "100%";
+
+	this._grid.autoHideScrollbars(false);
+	this._grid.getVScrollbar().attachToExternalElement(host);
+	this._grid.getHScrollbar().attachToExternalElement(host);
+};
+
+/**
+ * @typedef {Object} tr.CompositeGrid~ColumnFormatter
+ * @property {Function=} render
+ * @property {Function=} bind
+ * @property {Object=} transform
+ */
+tr.CompositeGrid.ColumnFormatter;
+
+/**
+ * The configuration object for CompositeGrid.
+ * @typedef {Object} tr.CompositeGrid~Options.
+ * @property {Array.&lt;tr.CompositeGrid~Column&gt;=} columns Array of column definitions/options.
+ * @property {boolean=} rowHighlight=false Row will be highlighted when hovering mouse over the rows.
+ * @property {(Object | boolean | "single")=} rowSelection=false If enabled, rows in the content section can be selected by click. "single" mode can be defined to prevent multi-selection from shift+click or control+click.
+ * @property {boolean=} columnSelection=false If enabled, column can be selected by click at the top section. Sorting will require two click instead of one.
+ * @property {boolean=} columnReorder=false If enabled, column can be dragged to change its order.
+ * @property {boolean=} pinnedColumnReorder=false If enabled, Pinned column can be dragged to change its order.
+ * @property {boolean=} columnResizability=true If disabled, column edge cannot be dragged to resize.
+ * @property {boolean=} stepScroll=false If enabled, a full row will be scrolled at a time instead of actual scroll value.
+ * @property {number=} rowHeight=32 Row height for all rows in the content section.
+ * @property {tr.CompositeGrid~HeaderOptions=} header=null Options for the header section.
+ * @property {number=} freezeColumn=-1 Column index of the column to be frozen/pinned on the left side. Use 0 to pin the first column.
+ * @property {boolean=} autoHideScrollbar=true Fading in/out Scrollbar on hover.
+ * @property {number=} pinnedRightColumns=0 Number of columns to be frozen/pinned on the right side.
+ * @property {tr.grid.SortableTitlePlugin~Options=} sorting Options for sorting.
+ * @property {tr.CompositeGrid~DataModel=} dataModel Data model for initial data population. The model has a one time use and will not be synchronized. Use {@link tr.DataTable} and {@link tr.DataView} to manage the data.
+ * @property {Array=} extensions Array of Grid's extension instance.
+ * @property {Element=} scrollbarParent=null Element to be attached by grid's scrollbars, allowing them to move outside and avoid overlapping with the content.
+ * @property {number=} contentRightPadding=0 Padding that is added next to the right most column. The padding is still a part of scrollable content.
+ * @property {number=} contentBottomPadding=0 Padding that is added below the last section. The padding is still a part of scrollable content.
+ * @property {boolean=} linearWheelScrolling=false If enabled, wheel scrolling will move the content linearly regardless of how long the content is (i.e. no skipping).
+ * @property {boolean=} textSelect=false If enabled, User can select text for copy or something. Cannot work with flag rowReorder = true.
+ * @property {boolean=} rowVirtualization=true If disabled, all data rows will be rendered. This will greatly impact grid's performance if the data set is huge.
+ * @property {boolean=} columnVirtualization=true If enabled, all columns will be rendered. This will greatly impact grid's performance if the column set is huge.
+ * @property {(number|null|boolean)=} topFreezingCount=null If number &gt;= 0 will fix number of frozen title section, If false = disabled scrollbar, if null then title section will freeze auto when new section added
+ * @property {(number|null)=} bottomFreezingCount=null If number &gt;= 0 will fix nuber of frozen footer section, if null then footer section will freeze auto when new section added
+ * @property {boolean=} borders=true Lines around grid element
+ * @property {boolean=} gridlines=true Horizontal and Vertical lines for ONLY content sections
+ * @property {boolean=} verticalLines=true Vertical lines for all sections
+ * @property {boolean=} horizontalLines=true Horizontal lines for all sections
+ * @property {number=} dataConflationRate=0 set delay for data to avoid to much sorting operation when data changed
+ */
+
+tr.CompositeGrid.Options;
+
+/** The configuration object for header (top) sections. This can be defined by `header` property in CompositeGrid configuration object.
+ * @typedef {Object} tr.CompositeGrid~HeaderOptions
+ * @property {number=} rowHeight=32 Row height for all rows in the header section
+ */
+tr.CompositeGrid.HeaderOptions;
+
+/** The configuration object for sorting options. This can be defined by `sorting` property in CompositeGrid configuration object.
+ * @typedef {Object} tr.CompositeGrid~SortingOptions
+ * @property {boolean|number=} multicolumn=false Allow mulitple columns to be sorted at the same time. If number is defined, it is treated as maximum number of column to be sorted.
+ * @property {boolean|number=} multiColumn=false Alias to `multicolumn`
+ * @property {boolean=} threeStatesSorting=false If enabled, sorting will cycle through ascending, descending and original order states.
+ * @property {Object.&lt;string, Function&gt;=} sortLogic=null Custom logic for sorting based on the specified field. The key is field name and the value pair is a function.
+ */
+tr.CompositeGrid.SortingOptions;
+
+/** The configuration object for columns in CompositeGrid.
+ * @typedef {Object} tr.CompositeGrid~Column
+ * @property {string} field Field that will be used for data binding
+ * @property {string=} dataType="" data type eg. string, datetime, number
+ * @property {(string|boolean|null)=} tooltip Show tooltip in header section
+ * @property {string=} title Column title/name/label
+ * @property {string=} id Column id is optional. It is primarily used for column grouping.
+ * @property {("l" | "left" | "r" | "right" | "c" | "center")=} alignment='left' Available options are `left`, `center`, and `right`
+ * @property {number=} width Column width in pixel. This can be acted as a percentage weight, when scalable flag is turned on.
+ * @property {number=} size Alias to `width`
+ * @property {number=} minWidth Minimum column width
+ * @property {number=} minSize Alias to `minWidth`
+ * @property {boolean=} visible=true Column visibility
+ * @property {boolean=} resizable If defined, it will override `columnResizability` flag for this column
+ * @property {boolean=} textSelect=false If enabled, user can select text in this column
+ * @property {boolean=} scalable=true Column scalability forces column to be scaled and filled the grid. `width` property will be used as a weight/ratio
+ * @property {tr.CompositeGrid.ColumnFormatter=} formatter Formatter specifies how to render data for each cell in the column
+ * @property {Object.&lt;string, string&gt;=} styles Key/value pair Object specifying CSS styles
+ * @property {Object.&lt;string, string&gt;=} classes Key/value pair Object specifying CSS classes
+ * @property {boolean=} sortable=false If enable, the column can be sorted by user click
+ * @property {string=} sortBy Field to be used for sorting. If defined, user can click at the header section to sort the column
+ * @property {tr.DataTable.SortLogic=} sortLogic=null Custom compare function for sorting
+ * @property {tr.DataTable.SortLogic=} sortingLogic Alias to `sortLogic`
+ * @property {tr.DataTable.SortLogic=} sorter Alias to `sortLogic`
+ */
+
+/**
+ * @typedef {Object} tr.CompositeGrid~DataModel
+ * @property {Array.&lt;string&gt;=} fields Colums's field name.
+ * @property {string=} format="array" The data format that was given in `data` property. Available options are: "rows", "columns", and "array"
+ * @property {Array|Object=} data Data, the order of data in each row has to match the 'fields' property.
+ */
+
+/**
+ * @event tr.CompositeGrid#columnSorted
+ */
+/**
+ * @event tr.CompositeGrid#mouseOverCell
+ */
+/**
+ * @event tr.CompositeGrid#mouseLeaveCell
+ */
+/**
+ * @event tr.CompositeGrid#cellClicked
+ */
+/**
+ * @event tr.CompositeGrid#cellDblClicked
+ */
+/**
+ * @event tr.CompositeGrid#cellRightClicked
+ */
+/**
+ * @event tr.CompositeGrid#cellMouseDown
+ */
+/**
+ * @event tr.CompositeGrid#filterAdded
+ */
+/**
+ * @event tr.CompositeGrid#filterRemoved
+ */
+/**
+ * @event tr.CompositeGrid#filterModified
+ */
+/**
+ * @event tr.CompositeGrid#filterCleared
+ */
+/**
+ * @event tr.CompositeGrid#pageChanged
+ */
+/**
+ * @event tr.CompositeGrid#selectionChanged
+ */
+/**
+ * @event tr.CompositeGrid#editorAttached
+ */
+/**
+ * @event tr.CompositeGrid#editorDetached
+ */
+
+goog.exportSymbol("tr.CompositeGrid", tr.CompositeGrid);
+
+(function() {
+	var pt = tr.CompositeGrid.prototype;
+	var methodMap = {
+		"getModel": pt.getModel,
+		"getConfigObject": pt.getConfigObject,
+		// Column related methods
+		"getColumns": pt.getColumns,
+		"addColumn": pt.addColumn,
+		"addColumns": pt.addColumns,
+		"insertColumn": pt.insertColumn,
+		"insertColumns": pt.insertColumns,
+		"setColumnFormatter": pt.setColumnFormatter,
+		"updateColumn": pt.updateColumn,
+		"moveColumn": pt.moveColumn,
+		"setColumnName": pt.setColumnName,
+		"setColumnVisible": pt.setColumnVisible,
+		"hideColumn": pt.hideColumn,
+		"hideColumns": pt.hideColumns,
+		"showAllColumns": pt.showAllColumns,
+		"removeColumn": pt.removeColumn,
+		"removeColumns": pt.removeColumns,
+		"removeAllColumns": pt.removeAllColumns,
+		"getColumnModel": pt.getColumnModel,
+		"getColumnField": pt.getColumnField,
+		"getColumnFields": pt.getColumnFields,
+		"getColumnId": pt.getColumnId,
+		"getColumnIndex": pt.getColumnIndex,
+		"findColumnIndex": pt.findColumnIndex,
+		"getColumnCount": pt.getColumnCount,
+		"getColumnDataType": pt.getColumnDataType,
+		"sortColumn": pt.sortColumn,
+		"addColumnGroup": pt.addColumnGroup,
+		"removeColumnGroup": pt.removeColumnGroup,
+		"updateColumnGroup": pt.updateColumnGroup,
+		"autoResizeAllColumns": pt.autoResizeAllColumns,
+		"freezeColumn": pt.freezeColumn,
+		"pinColumn": pt.pinColumn,
+		"unpinColumn": pt.unpinColumn,
+		"getPinnedColumns": pt.getPinnedColumns,
+		"restorePinnedColumns": pt.restorePinnedColumns,
+		// Sorting wrapper methods
+		"getSortingStates": pt.getSortingStates,
+		"clearAllSorting": pt.clearAllSorting,
+		"restoreSortingStates": pt.restoreSortingStates,
+		// Section methods
+		"getSection": pt.getSection,
+		"addHeaderSection": pt.addHeaderSection,
+		"removeHeaderSection": pt.removeHeaderSection,
+		"addFooterSection": pt.addFooterSection,
+		"removeFooterSection": pt.removeFooterSection,
+		// Data manipulation methods
+		"addData": pt.addData,
+		"getDataTable": pt.getDataTable,
+		"getDataView": pt.getDataView,
+		"getDataRows": pt.getDataRows,
+		// Filtering methods
+		"filter": pt.filter,
+		"addFilter": pt.addFilter,
+		"removeFilter": pt.removeFilter,
+		"modifyFilter": pt.modifyFilter,
+		"execFilter": pt.execFilter,
+		"resetFilter": pt.resetFilter,
+		"showFilterRow": pt.showFilterRow,
+		"hideFilterRow": pt.hideFilterRow,
+		"getFilterStates": pt.getFilterStates,
+		"clearAllFilters": pt.clearAllFilters,
+		"getColumnFilterStates": pt.getColumnFilterStates,
+		"restoreColumnFilterStates": pt.restoreColumnFilterStates,
+		// Row show/hide methods
+		"hideRow": pt.hideRow,
+		"hideRows": pt.hideRows,
+		"showRows": pt.showRows,
+		"unhideAllRows": pt.unhideAllRows,
+		"hasHiddenRow": pt.hasHiddenRow,
+		// Selection methods
+		"selectRows": pt.selectRows,
+		"unselectRows": pt.unselectRows,
+		"getSelectedRows": pt.getSelectedRows,
+		"getSelectedDataRows": pt.getSelectedDataRows,
+		"clearSelection": pt.clearSelection,
+		// Grouping methods
+		"groupBy": pt.groupBy,
+		"setGroupSortingLogic": pt.setGroupSortingLogic,
+		"sortGroups": pt.sortGroups,
+		"expandAllGroups": pt.expandAllGroups,
+		"collapseAllGroups": pt.collapseAllGroups,
+		"getGroupExpandingStates": pt.getGroupExpandingStates,
+		"restoreGroupExpandingStates": pt.restoreGroupExpandingStates,
+		// Grid action methods
+		"scrollToRow": pt.scrollToRow,
+		"scrollToColumn": pt.scrollToColumn,
+		"editCell": pt.editCell,
+		"detachEditor": pt.detachEditor,
+		"deactivateRendering": pt.deactivateRendering,
+		// Pagination methods
+		"nextPage": pt.nextPage,
+		"previousPage": pt.previousPage,
+		"goToPage": pt.goToPage,
+		"getPagerUI": pt.getPagerUI,
+		"setPagingState": pt.setPagingState,
+		"showLoadingMask": pt.showLoadingMask,
+		"hideLoadingMask": pt.hideLoadingMask,
+		// Utilities methods
+		"freezeLayout": pt.freezeLayout,
+		"unfreezeLayout": pt.unfreezeLayout,
+		"isLayoutFrozen": pt.isLayoutFrozen,
+		"getCoreGrid": pt.getCoreGrid,
+		"getRelativePosition": pt.getRelativePosition,
+		"registerFormatter": pt.registerFormatter,
+
+		"getScrollLeft": pt.getScrollLeft,
+		"setScrollLeft": pt.setScrollLeft,
+		"getScrollTop": pt.getScrollTop,
+		"setScrollTop": pt.setScrollTop,
+
+		"update": pt.update,
+		"dispose": pt.dispose
+	};
+
+	// Export methods for Closure's advanced compilation
+	for (var methodName in methodMap) {
+		goog.exportProperty(pt, methodName, methodMap[methodName]);
+	}
+})();
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="AdFin.html">AdFin</a></li><li><a href="DateTime.html">DateTime</a></li><li><a href="Info.html">Info</a></li><li><a href="Logic.html">Logic</a></li><li><a href="Math.html">Math</a></li><li><a href="Realtime.html">Realtime</a></li><li><a href="Statistic.html">Statistic</a></li><li><a href="Text.html">Text</a></li><li><a href="tr.ElementFrameWork.html">ElementFrameWork</a></li><li><a href="tr.PipDefinition.html">PipDefinition</a></li></ul><h3>Classes</h3><ul><li><a href="tr.ADCSubscription.html">ADCSubscription</a></li><li><a href="tr.AdFinSubscription.html">AdFinSubscription</a></li><li><a href="tr.cgrid.editor.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.filter.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.formatter.AsyncFormatter.html">AsyncFormatter</a></li><li><a href="tr.cgrid.formatter.CheckBox.html">CheckBox</a></li><li><a href="tr.cgrid.formatter.UpDownColor.html">UpDownColor</a></li><li><a href="tr.ColumnStats.html">ColumnStats</a></li><li><a href="tr.CompositeGrid.html">CompositeGrid</a></li><li><a href="tr.DataCache.html">DataCache</a></li><li><a href="tr.DataTable.html">DataTable</a></li><li><a href="tr.DataView.html">DataView</a></li><li><a href="tr.DropDown.html">DropDown</a></li><li><a href="tr.ElementControl.html">ElementControl</a></li><li><a href="tr.ElementWrapper.html">ElementWrapper</a></li><li><a href="tr.Event.html">Event</a></li><li><a href="tr.EventDispatcher.html">EventDispatcher</a></li><li><a href="tr.EventDispatcher.extendClass-tempCtor.html">tempCtor</a></li><li><a href="tr.EventManager.html">EventManager</a></li><li><a href="tr.FieldFormatter.html">FieldFormatter</a></li><li><a href="tr.fn.Engine.html">Engine</a></li><li><a href="tr.fn.Formula.html">Formula</a></li><li><a href="tr.fn.VariableToken.html">VariableToken</a></li><li><a href="tr.Grid.html">Grid</a></li><li><a href="tr.grid.BidOfferSpan.html">BidOfferSpan</a></li><li><a href="tr.grid.Blinker.html">Blinker</a></li><li><a href="tr.grid.Cell.html">Cell</a></li><li><a href="tr.grid.CellBlinkingPlugin.html">CellBlinkingPlugin</a></li><li><a href="tr.grid.CellEditingPlugin.html">CellEditingPlugin</a></li><li><a href="tr.grid.CellFloatingPanel.html">CellFloatingPanel</a></li><li><a href="tr.grid.CellPainter.html">CellPainter</a></li><li><a href="tr.grid.CellSpan.html">CellSpan</a></li><li><a href="tr.grid.CellSpans.html">CellSpans</a></li><li><a href="tr.grid.CellWriter.html">CellWriter</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html">CheckboxColumnPlugin</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html">CollapsibleHeaderPlugin</a></li><li><a href="tr.grid.ColumnFilterPlugin.html">ColumnFilterPlugin</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html">ColumnGroupingPlugin</a></li><li><a href="tr.grid.ColumnSelectionPlugin.html">ColumnSelectionPlugin</a></li><li><a href="tr.grid.ColumnStackingPlugin.html">ColumnStackingPlugin</a></li><li><a href="tr.grid.ColumnWidthAdjustingPlugin.html">ColumnWidthAdjustingPlugin</a></li><li><a href="tr.grid.Conflator.html">Conflator</a></li><li><a href="tr.grid.DataSourceTreePlugin.html">DataSourceTreePlugin</a></li><li><a href="tr.grid.DirectContentBindingPlugin.html">DirectContentBindingPlugin</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html">DragAndDropTitlePlugin</a></li><li><a href="tr.grid.DraggableContentPlugin.html">DraggableContentPlugin</a></li><li><a href="tr.grid.FindBar.html">FindBar</a></li><li><a href="tr.grid.FindBarPlugin.html">FindBarPlugin</a></li><li><a href="tr.grid.GroupStatisticsPlugin.html">GroupStatisticsPlugin</a></li><li><a href="tr.grid.HeatMapRenderer.html">HeatMapRenderer</a></li><li><a href="tr.grid.HScrollbar.html">HScrollbar</a></li><li><a href="tr.grid.IndexMarker.html">IndexMarker</a></li><li><a href="tr.grid.MovableHeaderPlugin.html">MovableHeaderPlugin</a></li><li><a href="tr.grid.NumberFormatter.html">NumberFormatter</a></li><li><a href="tr.grid.PercentBar.html">PercentBar</a></li><li><a href="tr.grid.PercentBarRenderer.html">PercentBarRenderer</a></li><li><a href="tr.grid.Plugin.html">Plugin</a></li><li><a href="tr.grid.RangeBar.html">RangeBar</a></li><li><a href="tr.grid.ResizableTitlePlugin.html">ResizableTitlePlugin</a></li><li><a href="tr.grid.Reverter.html">Reverter</a></li><li><a href="tr.grid.RowHeightAdjustingPlugin.html">RowHeightAdjustingPlugin</a></li><li><a href="tr.grid.RowSelectionPlugin.html">RowSelectionPlugin</a></li><li><a href="tr.grid.Scrollbar.html">Scrollbar</a></li><li><a href="tr.grid.SectionSettings.html">SectionSettings</a></li><li><a href="tr.grid.SmartTooltipsPlugin.html">SmartTooltipsPlugin</a></li><li><a href="tr.grid.SortableTitlePlugin.html">SortableTitlePlugin</a></li><li><a href="tr.grid.TreeIndentingPlugin.html">TreeIndentingPlugin</a></li><li><a href="tr.grid.Virtualizer.html">Virtualizer</a></li><li><a href="tr.grid.VScrollbar.html">VScrollbar</a></li><li><a href="tr.grid.ZoomPlugin.html">ZoomPlugin</a></li><li><a href="tr.HttpRequest.html">HttpRequest</a></li><li><a href="tr.IntervalSubscription.html">IntervalSubscription</a></li><li><a href="tr.LayoutGrid.html">LayoutGrid</a></li><li><a href="tr.ListMenu.html">ListMenu</a></li><li><a href="tr.MenuItem.html">MenuItem</a></li><li><a href="tr.MockArchive.html">MockArchive</a></li><li><a href="tr.MockJET.html">MockJET</a></li><li><a href="tr.MockQuotes.html">MockQuotes</a></li><li><a href="tr.MockQuotes2.html">MockQuotes2</a></li><li><a href="tr.MockSubscription.html">MockSubscription</a></li><li><a href="tr.MockSubscriptions.html">MockSubscriptions</a></li><li><a href="tr.Popup.html">Popup</a></li><li><a href="tr.PopupMenu.html">PopupMenu</a></li><li><a href="tr.PrintTrait.html">PrintTrait</a></li><li><a href="tr.RequestQueue.html">RequestQueue</a></li><li><a href="tr.Segment.html">Segment</a></li><li><a href="tr.SegmentCollection.html">SegmentCollection</a></li><li><a href="tr.TSISubscription.html">TSISubscription</a></li></ul><h3>Interfaces</h3><ul><li><a href="tr.cgrid.ICompositeExtension.html">ICompositeExtension</a></li><li><a href="tr.grid.IPlugin.html">IPlugin</a></li><li><a href="tr.IElementControl.html">IElementControl</a></li><li><a href="tr.ILayoutGrid.html">ILayoutGrid</a></li></ul><h3>Events</h3><ul><li><a href="tr.CompositeGrid.html#event:cellClicked">cellClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellDblClicked">cellDblClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellMouseDown">cellMouseDown</a></li><li><a href="tr.CompositeGrid.html#event:cellRightClicked">cellRightClicked</a></li><li><a href="tr.CompositeGrid.html#event:columnSorted">columnSorted</a></li><li><a href="tr.CompositeGrid.html#event:editorAttached">editorAttached</a></li><li><a href="tr.CompositeGrid.html#event:editorDetached">editorDetached</a></li><li><a href="tr.CompositeGrid.html#event:filterAdded">filterAdded</a></li><li><a href="tr.CompositeGrid.html#event:filterCleared">filterCleared</a></li><li><a href="tr.CompositeGrid.html#event:filterModified">filterModified</a></li><li><a href="tr.CompositeGrid.html#event:filterRemoved">filterRemoved</a></li><li><a href="tr.CompositeGrid.html#event:mouseLeaveCell">mouseLeaveCell</a></li><li><a href="tr.CompositeGrid.html#event:mouseOverCell">mouseOverCell</a></li><li><a href="tr.CompositeGrid.html#event:pageChanged">pageChanged</a></li><li><a href="tr.CompositeGrid.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.DataCache.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataCache.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataTable.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataTable.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataView.html#event:beforeFiltering">beforeFiltering</a></li><li><a href="tr.DataView.html#event:beforeGroupAdded">beforeGroupAdded</a></li><li><a href="tr.DataView.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataView.html#event:groupAdded">groupAdded</a></li><li><a href="tr.DataView.html#event:groupCriteriaChanged">groupCriteriaChanged</a></li><li><a href="tr.DataView.html#event:pageCountChanged">pageCountChanged</a></li><li><a href="tr.DataView.html#event:pageIndexChanged">pageIndexChanged</a></li><li><a href="tr.DataView.html#event:preDisposed">preDisposed</a></li><li><a href="tr.Formula.html#event:dataCacheChanged">dataCacheChanged</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:cancelled">cancelled</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:change">change</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:closed">closed</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:editorOpened">editorOpened</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:preEditorOpening">preEditorOpening</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:click">click</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:columnCollapsed">columnCollapsed</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:groupChanged">groupChanged</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:render">render</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:columnMoved">columnMoved</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:drag">drag</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragEnd">dragEnd</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragStart">dragStart</a></li><li><a href="tr.grid.FindBarPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:groupMoved">groupMoved</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:sectionMoved">sectionMoved</a></li><li><a href="tr.grid.RowSelectionPlugin.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:columnSorted">columnSorted</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preClicked">preClicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preDataSorting">preDataSorting</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.Grid.html#event:columnAdded">columnAdded</a></li><li><a href="tr.Grid.html#event:columnAlignmentChanged">columnAlignmentChanged</a></li><li><a href="tr.Grid.html#event:columnRemoved">columnRemoved</a></li><li><a href="tr.Grid.html#event:columnVisibilityChanged">columnVisibilityChanged</a></li><li><a href="tr.Grid.html#event:dataSourceChanged">dataSourceChanged</a></li><li><a href="tr.Grid.html#event:postSectionDataBinding">postSectionDataBinding</a></li><li><a href="tr.Grid.html#event:rowExpansionBinding">rowExpansionBinding</a></li><li><a href="tr.Grid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Grid.html#event:sectionAdded">sectionAdded</a></li><li><a href="tr.Grid.html#event:widthChanged">widthChanged</a></li><li><a href="tr.HttpRequest.html#event:abort">abort</a></li><li><a href="tr.HttpRequest.html#event:error">error</a></li><li><a href="tr.HttpRequest.html#event:load">load</a></li><li><a href="tr.HttpRequest.html#event:loadend">loadend</a></li><li><a href="tr.HttpRequest.html#event:loadstart">loadstart</a></li><li><a href="tr.HttpRequest.html#event:timeout">timeout</a></li><li><a href="tr.IElementControl.html#event:blur">blur</a></li><li><a href="tr.IElementControl.html#event:change">change</a></li><li><a href="tr.IElementControl.html#event:click">click</a></li><li><a href="tr.IElementControl.html#event:contextmenu">contextmenu</a></li><li><a href="tr.IElementControl.html#event:dblclick">dblclick</a></li><li><a href="tr.IElementControl.html#event:drag">drag</a></li><li><a href="tr.IElementControl.html#event:dragend">dragend</a></li><li><a href="tr.IElementControl.html#event:dragenter">dragenter</a></li><li><a href="tr.IElementControl.html#event:dragleave">dragleave</a></li><li><a href="tr.IElementControl.html#event:dragover">dragover</a></li><li><a href="tr.IElementControl.html#event:dragstart">dragstart</a></li><li><a href="tr.IElementControl.html#event:drop">drop</a></li><li><a href="tr.IElementControl.html#event:focus">focus</a></li><li><a href="tr.IElementControl.html#event:formchange">formchange</a></li><li><a href="tr.IElementControl.html#event:forminput">forminput</a></li><li><a href="tr.IElementControl.html#event:input">input</a></li><li><a href="tr.IElementControl.html#event:invalid">invalid</a></li><li><a href="tr.IElementControl.html#event:keydown">keydown</a></li><li><a href="tr.IElementControl.html#event:keypress">keypress</a></li><li><a href="tr.IElementControl.html#event:keyup">keyup</a></li><li><a href="tr.IElementControl.html#event:mousedown">mousedown</a></li><li><a href="tr.IElementControl.html#event:mousemove">mousemove</a></li><li><a href="tr.IElementControl.html#event:mouseout">mouseout</a></li><li><a href="tr.IElementControl.html#event:mouseover">mouseover</a></li><li><a href="tr.IElementControl.html#event:mouseup">mouseup</a></li><li><a href="tr.IElementControl.html#event:mousewheel">mousewheel</a></li><li><a href="tr.IElementControl.html#event:reset">reset</a></li><li><a href="tr.IElementControl.html#event:scroll">scroll</a></li><li><a href="tr.IElementControl.html#event:select">select</a></li><li><a href="tr.IElementControl.html#event:submit">submit</a></li><li><a href="tr.ILayoutGrid.html#event:blur">blur</a></li><li><a href="tr.ILayoutGrid.html#event:change">change</a></li><li><a href="tr.ILayoutGrid.html#event:click">click</a></li><li><a href="tr.ILayoutGrid.html#event:contextmenu">contextmenu</a></li><li><a href="tr.ILayoutGrid.html#event:dblclick">dblclick</a></li><li><a href="tr.ILayoutGrid.html#event:drag">drag</a></li><li><a href="tr.ILayoutGrid.html#event:dragend">dragend</a></li><li><a href="tr.ILayoutGrid.html#event:dragenter">dragenter</a></li><li><a href="tr.ILayoutGrid.html#event:dragleave">dragleave</a></li><li><a href="tr.ILayoutGrid.html#event:dragover">dragover</a></li><li><a href="tr.ILayoutGrid.html#event:dragstart">dragstart</a></li><li><a href="tr.ILayoutGrid.html#event:drop">drop</a></li><li><a href="tr.ILayoutGrid.html#event:focus">focus</a></li><li><a href="tr.ILayoutGrid.html#event:formchange">formchange</a></li><li><a href="tr.ILayoutGrid.html#event:forminput">forminput</a></li><li><a href="tr.ILayoutGrid.html#event:input">input</a></li><li><a href="tr.ILayoutGrid.html#event:invalid">invalid</a></li><li><a href="tr.ILayoutGrid.html#event:keydown">keydown</a></li><li><a href="tr.ILayoutGrid.html#event:keypress">keypress</a></li><li><a href="tr.ILayoutGrid.html#event:keyup">keyup</a></li><li><a href="tr.ILayoutGrid.html#event:mousedown">mousedown</a></li><li><a href="tr.ILayoutGrid.html#event:mousemove">mousemove</a></li><li><a href="tr.ILayoutGrid.html#event:mouseout">mouseout</a></li><li><a href="tr.ILayoutGrid.html#event:mouseover">mouseover</a></li><li><a href="tr.ILayoutGrid.html#event:mouseup">mouseup</a></li><li><a href="tr.ILayoutGrid.html#event:mousewheel">mousewheel</a></li><li><a href="tr.ILayoutGrid.html#event:reset">reset</a></li><li><a href="tr.ILayoutGrid.html#event:scroll">scroll</a></li><li><a href="tr.ILayoutGrid.html#event:select">select</a></li><li><a href="tr.ILayoutGrid.html#event:submit">submit</a></li><li><a href="tr.LayoutGrid.html#event:rowCountChanged">rowCountChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHeightChanged">rowHeightChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Popup.html#event:hidden">hidden</a></li><li><a href="tr.Popup.html#event:shown">shown</a></li><li><a href="tr.PopupMenu.html#event:hidden">hidden</a></li><li><a href="tr.PopupMenu.html#event:shown">shown</a></li><li><a href="tr.PrintTrait.html#event:afterprint">afterprint</a></li><li><a href="tr.PrintTrait.html#event:beforeprint">beforeprint</a></li><li><a href="tr.PrintTrait.html#event:pageCounting">pageCounting</a></li></ul><h3>Global</h3><ul><li><a href="global.html#cellRef%255Bundefined%255D">cellRef[undefined]</a></li><li><a href="global.html#e%255Bundefined%255D">e[undefined]</a></li><li><a href="global.html#.textContent">.textContent</a></li><li><a href="global.html#get">get</a></li><li><a href="global.html#input%255Bundefined%255D">input[undefined]</a></li><li><a href="global.html#q%255Bundefined%255D">q[undefined]</a></li><li><a href="global.html#sortingDef%255B1%255D">sortingDef[1]</a></li></ul>
+</nav>
+
+
+<script src="scripts/linenumber.js"> </script>
+<script src="scripts/prettify.js"> </script>
+<script> prettyPrint(); </script>
+</body>
+</html>

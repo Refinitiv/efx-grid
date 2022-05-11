@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: grid/plugins/TreeIndentingPlugin.js</title>
+
+    <script src="scripts/prettify.js"> </script>
+    <script src="scripts/lang-css.js"> </script>
+    <!--[if lt IE 9]&gt;
+      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
+    &lt;![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/default.css">
+    <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
+</head>
+
+<body>
+
+<div id="main-template" class="elf-template">
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>goog.provide("tr.grid.TreeIndentingPlugin");
+
+goog.require("tr.res");
+goog.require("tr.IElementControl");
+goog.require("tr.DataView");
+
+goog.require("tr.grid.IPlugin");
+goog.require("tr.grid.Plugin");
+goog.require("tr.grid.SectionSettings");
+
+/** Event
+* @event tr.grid.TreeIndentingPlugin#clicked
+* @property {number} sectionIndex
+* @property {boolean} expanded
+*/
+
+/** Event
+* @event tr.grid.TreeIndentingPlugin#headerBinding
+* @property {tr.ILayoutGrid} section
+* @property {tr.grid.Cell} cell
+* @property {string} groupId
+* @property {tr.DataView} dataSource
+*/
+/** Event
+* @event tr.grid.TreeIndentingPlugin#footerBinding
+* @property {tr.ILayoutGrid} section
+* @property {tr.grid.Cell} cell
+* @property {string} groupId
+* @property {number} footerIndex Row index of the footer row
+* @property {tr.DataView} dataSource
+*/
+/** Event
+* @event tr.grid.TreeIndentingPlugin#contentBindinig
+* @property {tr.ILayoutGrid} section
+* @property {tr.grid.Cell} cell
+* @property {string} groupId
+* @property {tr.DataView} dataSource
+*/
+
+/** @constructor
+* @param {number=} opt_displayColumn
+* @extends {tr.grid.Plugin}
+* @implements {tr.grid.IPlugin}
+*/
+tr.grid.TreeIndentingPlugin = function (opt_displayColumn) {
+	var _t = this;
+	if (opt_displayColumn !== undefined &amp;&amp; opt_displayColumn &gt; 0) {
+		_t._displayColumn = opt_displayColumn;
+	}
+
+	_t._onColumnMoved = _t._onColumnMoved.bind(_t);
+	_t._onColumnAdded = _t._onColumnAdded.bind(_t);
+	_t._onColumnRemoved = _t._onColumnRemoved.bind(_t);
+	_t._onCellClicked = _t._onCellClicked.bind(_t);
+	
+	_t._onPostSectionDataBinding = _t._onPostSectionDataBinding.bind(_t);
+	_t._onPostDataSourceChanged = _t._onPostDataSourceChanged.bind(_t);
+	_t._onGroupCriteriaChanged = _t._onGroupCriteriaChanged.bind(_t);
+	_t._onGroupAdded = _t._onGroupAdded.bind(_t);
+	
+
+	_t._addEvent(tr.res.clicked);
+	_t._addEvent("headerBinding");
+	_t._addEvent("footerBinding");
+	_t._addEvent("contentBinding");
+};
+goog.inherits(tr.grid.TreeIndentingPlugin, tr.grid.Plugin);
+
+//#region IPlugin
+/** @override */
+tr.grid.TreeIndentingPlugin.prototype.getName = function () {
+	return "TreeIndentingPlugin"; // Read Only
+};
+/** @override */
+tr.grid.TreeIndentingPlugin.prototype.initialize = function (host) {
+	this._host = host;
+	this._host.listen(tr.res.columnMoved, this._onColumnMoved);
+	this._host.listen(tr.res.columnAdded, this._onColumnAdded);
+	this._host.listen(tr.res.columnRemoved, this._onColumnRemoved);
+	this._host.listen("postSectionDataBinding", this._onPostSectionDataBinding);
+	this._host.listen("dataSourceChanged", this._onPostDataSourceChanged);
+};
+/** @override */
+tr.grid.TreeIndentingPlugin.prototype.unload = function (host) {
+	this._host.unlisten(tr.res.columnMoved, this._onColumnMoved);
+	this._host.unlisten(tr.res.columnAdded, this._onColumnAdded);
+	this._host.unlisten(tr.res.columnRemoved, this._onColumnRemoved);
+	this._host.unlisten("postSectionDataBinding", this._onPostSectionDataBinding);
+	this._host.unlisten("dataSourceChanged", this._onPostDataSourceChanged);
+	// TODO unlilsten to the dataView
+
+	this._host = null;
+};
+
+//#endregion IPlugin
+
+//#region Public methods
+/** @public
+* @param {boolean=} opt_disabled
+*/
+tr.grid.TreeIndentingPlugin.prototype.disable = function (opt_disabled) {
+	var val = opt_disabled !== false;
+	if(val === this._disabled) {
+		return;
+	}
+	if(val) {
+		this._clearSectionStyles(this._displayColumn);
+	}
+	this._disabled = val;
+};
+/** @public
+* @param {number} start of tree depth where the indent should begin
+*/
+tr.grid.TreeIndentingPlugin.prototype.setIndentStart = function (start) {
+	start = start &gt; 0 ? start : 0;
+	this._indentStart = start;
+	this.updateHeaders();
+};
+/**Negative number means no ends for indenting level. 
+* Zero value means there will be no indent
+* @public 
+* @param {number} end of tree depth where the indent should be ended
+*/
+tr.grid.TreeIndentingPlugin.prototype.setIndentEnd = function (end) {
+	this._indentEnd = end;
+	this.updateHeaders();
+};
+
+/** @public
+* @param {number} size
+*/
+tr.grid.TreeIndentingPlugin.prototype.setIndentSize = function (size) {
+	if (this._indentSize !== size) {
+		this._indentSize = size;
+		this.updateHeaders();
+	}
+};
+
+/** Set negative number to hide all hitbox
+* @public 
+* @deprecated 
+* @param {number} start of tree depth where the clickable cell should begin
+*/
+tr.grid.TreeIndentingPlugin.prototype.setHitBoxStart = tr._deprecatedFunction;
+
+/** @public
+* @return {number}
+*/
+tr.grid.TreeIndentingPlugin.prototype.getDisplayColumnIndex = function () {
+	return this._displayColumn;
+};
+
+/** @public
+* @param {number} index Display column index
+*/
+tr.grid.TreeIndentingPlugin.prototype.setDisplayColumnIndex = function (index) {
+	if(this._displayColumn === index) { return; }
+	
+	this._clearSectionStyles(this._displayColumn);
+	this._displayColumn = index;
+	this.updateHeaders();
+};
+/** Fix display column to stay at the same position even though the column has been moved, or shifted by removing and inserting column
+* @public
+* @param {boolean=} opt_enabled
+*/
+tr.grid.TreeIndentingPlugin.prototype.enableFixedDisplayColumn = function (opt_enabled) {
+	this._fixedDisplayColumn = opt_enabled !== false;
+};
+
+/** @public
+* @deprecated
+* @param {string} name Section name that would like to be excluded from the affect of this plugin
+* this method must be called before the section that want to be excluded is added.
+*/
+tr.grid.TreeIndentingPlugin.prototype.addExceptSectionName = tr._deprecatedFunction;
+
+/** @public
+* @param {boolean=} opt_expanded
+*/
+tr.grid.TreeIndentingPlugin.prototype.expandAll = function (opt_expanded) {
+	this.collapseAll(opt_expanded === false);
+};
+/** @public
+* @param {boolean=} opt_collapsed
+*/
+tr.grid.TreeIndentingPlugin.prototype.collapseAll = function (opt_collapsed) {
+	if (!this._host) { return; }
+
+	this._host.getDataSource().collapseAllGroups(opt_collapsed);
+};
+
+/** @public
+* @param {string} rowId
+* @param {boolean=} opt_expanded
+*/
+tr.grid.TreeIndentingPlugin.prototype.expand = function (rowId, opt_expanded) {
+	this.collapse(rowId, opt_expanded === false);
+};
+/** @public
+* @param {string} rowId
+* @param {boolean=} opt_collapsed
+*/
+tr.grid.TreeIndentingPlugin.prototype.collapse = function (rowId, opt_collapsed) {
+	if (!this._host) { return; }
+	var dv = this._host.getDataSource();
+	var grp = dv.getGroup(rowId);
+	if(grp) {
+		grp.collapse(opt_collapsed);
+	}
+};
+
+/**
+* Refresh the indentation of all group headers
+* @deprecated
+* @public
+*/
+tr.grid.TreeIndentingPlugin.prototype.updateAllIndents = function () {
+};
+/**
+* Refresh all group headers text by dispatching "headerBinding"
+* @public
+*/
+tr.grid.TreeIndentingPlugin.prototype.updateHeaders = function () {
+	if (this._host === null || this._disabled) { return; }
+	
+	var settingList = this._host.getAllSectionSettings(tr.res.content);
+	for (var i = settingList.length; --i &gt;= 0; ) {
+		this._updateHeader(settingList[i]);
+	}
+};
+
+/**
+* @public
+* @param {boolean=} opt_disabled
+*/
+tr.grid.TreeIndentingPlugin.prototype.disableClicking = function (opt_disabled) {
+	this._clickDisabled = opt_disabled !== false;
+};
+
+/**
+* @public
+* @param {boolean=} opt_enabled
+*/
+tr.grid.TreeIndentingPlugin.prototype.enableHeaderRowSpanning = function (opt_enabled) {
+	opt_enabled = opt_enabled !== false;
+	if(this._headerSpanning === opt_enabled) {
+		return;
+	}
+	
+	if(!opt_enabled) {
+		this._clearSectionStyles(this._displayColumn, true);
+	}
+	this._headerSpanning = opt_enabled;
+	this.updateHeaders();
+};
+
+/**
+* @public
+* @param {boolean=} opt_enabled
+*/
+tr.grid.TreeIndentingPlugin.prototype.enableFooterRowSpanning = function (opt_enabled) {
+	opt_enabled = opt_enabled !== false;
+	if(this._footerSpanning === opt_enabled) {
+		return;
+	}
+	
+	if(!opt_enabled) {
+		this._clearSectionStyles(this._displayColumn, true);
+	}
+	this._footerSpanning = opt_enabled;
+	this.updateHeaders();
+};
+
+/**
+* @public
+* @param {boolean|number=} opt_num
+*/
+tr.grid.TreeIndentingPlugin.prototype.enableFooterRow = function (opt_num) {
+	if(opt_num === undefined || opt_num === true) {
+		opt_num = 1;
+	} else if(opt_num &lt;= 0) { // Including false and null
+		opt_num = 0;
+	}
+	
+	this._footerRows = /** @type{number} */(opt_num);
+};
+
+//#endregion
+
+
+//#region Private methods
+/** @private
+* @param {Object} e
+*/
+tr.grid.TreeIndentingPlugin.prototype._onPostDataSourceChanged = function(e) {
+	var prev = /** @type{tr.DataView} */(e["prevDataSource"]);
+	if(prev) {
+		prev.unlisten("groupCriteriaChanged", this._onGroupCriteriaChanged);
+		prev.unlisten("groupAdded", this._onGroupAdded);
+	}
+	
+	var dv = /** @type{tr.DataView} */(e[tr.res.dataSource]);
+	if(dv) {
+		dv.listen("groupCriteriaChanged", this._onGroupCriteriaChanged);
+		dv.listen("groupAdded", this._onGroupAdded);
+	}
+};
+/** @private
+* @param {Object} e
+*/
+tr.grid.TreeIndentingPlugin.prototype._onGroupCriteriaChanged = function(e) {
+	var dv = /** @type{tr.DataView} */(e["sender"]);
+	if(!dv.hasGroup()) {
+		this._clearSectionStyles(this._displayColumn, true);
+	}
+};
+/** @private
+* @param {Object} e
+*/
+tr.grid.TreeIndentingPlugin.prototype._onGroupAdded = function(e) {
+	if(this._footerRows) {
+		e["newGroup"].addFooter(this._footerRows);
+	}
+};
+
+/** @private
+* @param {Object} e
+*/
+tr.grid.TreeIndentingPlugin.prototype._onPostSectionDataBinding = function(e) {
+	var settings = e[tr.res.sectionSettings];
+	this._updateHeader(settings, e[tr.res.fromRowIndex], e[tr.res.toRowIndex] - 1);
+};
+
+/** @private
+* @param {MouseEvent} e
+*/
+tr.grid.TreeIndentingPlugin.prototype._onCellClicked = function (e) {
+	if(this._clickDisabled) {
+		return;
+	}
+	
+	var cellElem = e.currentTarget;
+	if(!cellElem.classList.contains("folder")) {
+		return;
+	}
+	
+	var collapsed = cellElem.classList.contains("closed");
+	if(collapsed) {
+		cellElem.classList.remove("closed");
+	} else {
+		cellElem.classList.add("closed");
+	}
+	
+	var info = this._host.getRelativePosition(e);
+	var rowIndex = info[tr.res.rowIndex];
+	var settings = /** @type{tr.grid.SectionSettings} */(info[tr.res.sectionSettings]);
+	
+	var dv = settings.getDataSource();
+	var grpView = dv.getGroup(dv.getRowId(rowIndex));
+	if(grpView) {
+		grpView.collapse(!collapsed);
+	}
+
+	info["expanded"] = collapsed; // After toggled
+	this._dispatch(tr.res.clicked, info);
+};
+
+/** @override 
+* @ignore
+*/
+tr.grid.TreeIndentingPlugin.prototype._onColumnMoved = function (e) {
+	var from = /** @type{number} */(e[tr.res.fromColIndex]);
+	var to = /** @type{number} */(e[tr.res.toColIndex]);
+	
+	if(this._fixedDisplayColumn) {
+		this._clearSectionStyles(to);
+	} else {
+		this._clearSectionStyles(from);
+		this._displayColumn = tr.moveIndex(this._displayColumn, from, to);
+	}
+	this.updateHeaders();
+};
+
+/** @override 
+* @ignore
+*/
+tr.grid.TreeIndentingPlugin.prototype._onColumnAdded = function (e) {
+	if (!e["atTheMiddle"]) { return; }
+	var colIndex = /** @type{number} */(e[tr.res.colIndex]);
+	var shiftedIndex = tr.moveIndex(this._displayColumn, null, colIndex);
+	
+	if(this._fixedDisplayColumn) {
+		this._clearSectionStyles(shiftedIndex);
+	} else {
+		this._displayColumn = shiftedIndex;
+	}
+	this.updateHeaders(); // Update current span
+};
+
+/** @override 
+* @ignore
+*/
+tr.grid.TreeIndentingPlugin.prototype._onColumnRemoved = function (e) {
+	if (!e["atTheMiddle"]) { return; }
+	var colIndex = /** @type{number} */(e[tr.res.colIndex]);
+	var shiftedIndex = tr.moveIndex(this._displayColumn, colIndex, null);
+	
+	if(this._fixedDisplayColumn) {
+		this._clearSectionStyles(shiftedIndex);
+		this.updateHeaders(); // Update current span
+	} else {
+		this._displayColumn = shiftedIndex;
+	}
+	
+};
+
+/**
+* @private
+* @param {tr.grid.SectionSettings} settings
+* @param {number=} firstIndex
+* @param {number=} lastIndex INCLUSIVE
+*/
+tr.grid.TreeIndentingPlugin.prototype._updateHeader = function (settings, firstIndex, lastIndex) {
+	if (!this._isGroupHeader(settings)) {
+		return;
+	}
+	
+	var dataSource = settings.getDataSource();
+	var groupRows = dataSource.getGroupRows();
+	var section = settings.getSection();
+	var fi = (firstIndex || firstIndex === 0) ? firstIndex : section.getFirstIndexInView(); 
+	var li = (lastIndex || lastIndex === 0) ? lastIndex : section.getLastIndexInView();
+	
+	var colCount = section.getColumnCount();
+	var headerListener = this._hasListener("headerBinding");
+	var contentListener = this._hasListener("contentBinding");
+	var curGroupLevel = dataSource.getGroupLevel(fi);
+	var arg = {};
+	arg[tr.res.section] = section;
+	
+	for(var r = fi; r &lt;= li; r++) {
+		var rowId = dataSource.getRowId(r); // Slow
+		var cell = section.getCell(this._displayColumn, r, false); // Work only one row
+		if(!cell) { // There may be no header to be updated
+			continue;
+		}
+		arg[tr.res.cell] = cell;
+		arg[tr.res.rowIndex] = r;
+		arg[tr.res.rowId] = rowId;
+		arg["rowData"] = dataSource.getRowData(rowId);
+		
+		var groupView = groupRows.getData(rowId, "DataView");
+		if(groupView) {
+			var footerIndex = groupView.getFooterRowIndex(rowId);
+			arg["footerIndex"] = footerIndex;
+			this._addHeaderStyle(section, this._displayColumn, r, colCount, footerIndex);
+			cell.enableClass("closed", groupView.isCollapsed());
+			
+			var groupId = groupView.getGroupId();
+			curGroupLevel = groupView.getGroupLevel();
+			if(footerIndex &gt;= 0 || headerListener) {
+				arg["groupId"] = groupId;
+				arg[tr.res.dataSource] = groupView;
+				
+				if(footerIndex &gt;= 0) {
+					this._dispatch("footerBinding", arg);
+				} else {
+					this._dispatch("headerBinding", arg);
+				}
+			} else {
+				arg[tr.res.dataSource] = dataSource;
+				cell.setContent(groupId);
+			}
+		} else {
+			this._removeHeaderStyle(section, this._displayColumn, r, colCount);
+			
+			if(contentListener) {
+				arg["rowData"] = dataSource.getRowData(rowId);
+				arg[tr.res.dataSource] = dataSource;
+
+				this._dispatch("contentBinding", arg);
+			}
+		}
+		
+		var rowLevel = (groupView) ? curGroupLevel : curGroupLevel + 1;
+		var indent = 0;
+		if (this._indentEnd !== 0 &amp;&amp; rowLevel &gt;= this._indentStart) {
+			if (this._indentEnd &lt; 0 || rowLevel &lt; this._indentEnd) {
+				indent = (rowLevel - this._indentStart + 1) * this._indentSize + 12; //Add default indent 12px
+			}
+		}
+		cell.setStyle("paddingLeft", (indent &gt; 0) ? indent + "px" : "");
+	}
+};
+/**
+* @private
+* @param {number} colIndex
+* @param {boolean=} opt_force
+*/
+tr.grid.TreeIndentingPlugin.prototype._clearSectionStyles = function (colIndex, opt_force) {
+	if (this._host === null) { return; }
+	
+	var settingList = this._host.getAllSectionSettings(tr.res.content);
+	for (var i = settingList.length; --i &gt;= 0; ) {
+		var settings = settingList[i];
+		if (!opt_force &amp;&amp; !this._isGroupHeader(settings)) {
+			continue;
+		}
+		var section = settings.getSection();
+		var colCount = section.getColumnCount();
+		var fi = section.getFirstIndexInView(); 
+		var li = section.getLastIndexInView();
+		for(var r = fi; r &lt;= li; r++) {
+			this._removeHeaderStyle(section, colIndex, r, colCount);
+		}
+	}
+};
+
+/**
+* @private
+* @param {tr.ILayoutGrid} section
+* @param {number} c
+* @param {number} r
+* @param {number} colCount
+* @param {number} footerIndex
+*/
+tr.grid.TreeIndentingPlugin.prototype._addHeaderStyle = function (section, c, r, colCount, footerIndex) {
+	var cell = section.getCell(c, r, false);
+	if(!cell) { return; }
+	
+	if(this._headerSpanning &amp;&amp; footerIndex &lt; 0) {
+		section.stretchCell(c, r, true, true); // No left stretching
+	} else if(this._footerSpanning &amp;&amp; footerIndex &gt;= 0) {
+		section.stretchCell(c, r, true, true); // No left stretching
+	} else {
+		for(var j = colCount; --j &gt;= c;) {
+			section.getCell(j, r, false).addClass("header");
+		}
+	}
+	
+	if(this._clickDisabled || footerIndex &gt;= 0) {
+		cell.addClass("header");
+		cell.removeClass("folder");
+	} else {
+		cell.addClass("folder");
+		if(!cell._collapsingListener) {
+			cell._collapsingListener = true;
+			cell.listen("click", this._onCellClicked);
+		}
+	}
+};
+/**
+* @private
+* @param {tr.ILayoutGrid} section
+* @param {number} c
+* @param {number} r
+* @param {number} colCount
+*/
+tr.grid.TreeIndentingPlugin.prototype._removeHeaderStyle = function (section, c, r, colCount) {
+	var cell = section.getCell(c, r, false);
+	if(!cell) { return; }
+	
+	section.unstretchCell(c, r);
+	for(var j = colCount; --j &gt;= 0;) {
+		section.getCell(j, r, false).removeClass("header"); // Very slow
+	}
+	cell.removeClass("folder");
+	cell.removeClass("closed");
+	cell.setStyle("paddingLeft", "");
+};
+
+/**
+* @private
+* @param {tr.grid.SectionSettings} settings
+* @return {boolean}
+*/
+tr.grid.TreeIndentingPlugin.prototype._isGroupHeader = function (settings) {
+	if(settings &amp;&amp; settings.getType() === tr.res.content) {
+		var dv = settings.getDataSource();
+		if(dv) {
+			return dv.hasGroup();
+		}
+	}
+	
+	return false;
+};
+//#endregion
+
+
+//#region Private properties
+/** @protected
+ * @ignore
+ * @type {boolean}
+ */
+tr.grid.TreeIndentingPlugin.prototype._disabled = false;
+/** @protected
+ * @ignore
+ * @type {number}
+ */
+tr.grid.TreeIndentingPlugin.prototype._displayColumn = 0;
+
+/** @protected
+ * @ignore
+ * @type {number} 
+ */
+tr.grid.TreeIndentingPlugin.prototype._indentStart = 2;
+
+/** Negative number means no ends for indenting level. Zero value means there will be no indent
+ * @protected 
+ * @ignore
+ * @type {number} 
+ */
+tr.grid.TreeIndentingPlugin.prototype._indentEnd = -1;
+
+/** -1 number results in no hitbox in any level depth
+ * @protected
+ * @ignore
+ * @type {number}
+ */
+tr.grid.TreeIndentingPlugin.prototype._hitboxStart = 0;
+
+/** @protected
+* @ignore
+* @type {number}
+*/
+tr.grid.TreeIndentingPlugin.prototype._indentSize = 15;
+
+/** @protected
+* @ignore
+* @type {boolean}
+*/
+tr.grid.TreeIndentingPlugin.prototype._headerSpanning = false;
+
+/** @protected
+* @ignore
+* @type {boolean}
+*/
+tr.grid.TreeIndentingPlugin.prototype._footerSpanning = false;
+
+/** @protected
+* @ignore
+* @type {boolean}
+*/
+tr.grid.TreeIndentingPlugin.prototype._fixedDisplayColumn = false;
+/** @private
+ * @type {boolean}
+ */
+tr.grid.TreeIndentingPlugin.prototype._clickDisabled = false;
+/** @private
+ * @type {number}
+ */
+tr.grid.TreeIndentingPlugin.prototype._footerRows = 0;
+//#endregion
+
+
+goog.exportSymbol("tr.grid.TreeIndentingPlugin", tr.grid.TreeIndentingPlugin);
+
+tr.grid.TreeIndentingPlugin._proto = tr.grid.TreeIndentingPlugin.prototype;
+goog.exportProperty(tr.grid.TreeIndentingPlugin._proto, "getName", tr.grid.TreeIndentingPlugin._proto.getName);
+goog.exportProperty(tr.grid.TreeIndentingPlugin._proto, "initialize", tr.grid.TreeIndentingPlugin._proto.initialize);
+goog.exportProperty(tr.grid.TreeIndentingPlugin._proto, "unload", tr.grid.TreeIndentingPlugin._proto.unload);
+
+goog.exportProperty(tr.grid.TreeIndentingPlugin._proto, "disable", tr.grid.TreeIndentingPlugin._proto.disable);
+
+goog.exportProperty(tr.grid.TreeIndentingPlugin._proto, "addExceptSectionName", tr.grid.TreeIndentingPlugin._proto.addExceptSectionName);
+
+goog.exportProperty(tr.grid.TreeIndentingPlugin._proto, "setIndentStart", tr.grid.TreeIndentingPlugin._proto.setIndentStart);
+goog.exportProperty(tr.grid.TreeIndentingPlugin._proto, "setIndentEnd", tr.grid.TreeIndentingPlugin._proto.setIndentEnd);
+goog.exportProperty(tr.grid.TreeIndentingPlugin._proto, "setIndentSize", tr.grid.TreeIndentingPlugin._proto.setIndentSize);
+goog.exportProperty(tr.grid.TreeIndentingPlugin._proto, "updateAllIndents", tr.grid.TreeIndentingPlugin._proto.updateAllIndents);
+goog.exportProperty(tr.grid.TreeIndentingPlugin._proto, "updateHeaders", tr.grid.TreeIndentingPlugin._proto.updateHeaders);
+
+goog.exportProperty(tr.grid.TreeIndentingPlugin._proto, "setHitBoxStart", tr.grid.TreeIndentingPlugin._proto.setHitBoxStart);
+goog.exportProperty(tr.grid.TreeIndentingPlugin._proto, "getDisplayColumnIndex", tr.grid.TreeIndentingPlugin._proto.getDisplayColumnIndex);
+goog.exportProperty(tr.grid.TreeIndentingPlugin._proto, "setDisplayColumnIndex", tr.grid.TreeIndentingPlugin._proto.setDisplayColumnIndex);
+goog.exportProperty(tr.grid.TreeIndentingPlugin._proto, "enableFixedDisplayColumn", tr.grid.TreeIndentingPlugin._proto.enableFixedDisplayColumn);
+
+goog.exportProperty(tr.grid.TreeIndentingPlugin._proto, "expandAll", tr.grid.TreeIndentingPlugin._proto.expandAll);
+goog.exportProperty(tr.grid.TreeIndentingPlugin._proto, "collapseAll", tr.grid.TreeIndentingPlugin._proto.collapseAll);
+
+goog.exportProperty(tr.grid.TreeIndentingPlugin._proto, "expand", tr.grid.TreeIndentingPlugin._proto.expand);
+goog.exportProperty(tr.grid.TreeIndentingPlugin._proto, "collapse", tr.grid.TreeIndentingPlugin._proto.collapse);
+
+goog.exportProperty(tr.grid.TreeIndentingPlugin._proto, "disableClicking", tr.grid.TreeIndentingPlugin._proto.disableClicking);
+goog.exportProperty(tr.grid.TreeIndentingPlugin._proto, "enableHeaderRowSpanning", tr.grid.TreeIndentingPlugin._proto.enableHeaderRowSpanning);
+goog.exportProperty(tr.grid.TreeIndentingPlugin._proto, "enableFooterRow", tr.grid.TreeIndentingPlugin._proto.enableFooterRow);
+goog.exportProperty(tr.grid.TreeIndentingPlugin._proto, "enableFooterRowSpanning", tr.grid.TreeIndentingPlugin._proto.enableFooterRowSpanning);
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="AdFin.html">AdFin</a></li><li><a href="DateTime.html">DateTime</a></li><li><a href="Info.html">Info</a></li><li><a href="Logic.html">Logic</a></li><li><a href="Math.html">Math</a></li><li><a href="Realtime.html">Realtime</a></li><li><a href="Statistic.html">Statistic</a></li><li><a href="Text.html">Text</a></li><li><a href="tr.ElementFrameWork.html">ElementFrameWork</a></li><li><a href="tr.PipDefinition.html">PipDefinition</a></li></ul><h3>Classes</h3><ul><li><a href="tr.ADCSubscription.html">ADCSubscription</a></li><li><a href="tr.AdFinSubscription.html">AdFinSubscription</a></li><li><a href="tr.cgrid.editor.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.filter.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.formatter.AsyncFormatter.html">AsyncFormatter</a></li><li><a href="tr.cgrid.formatter.CheckBox.html">CheckBox</a></li><li><a href="tr.cgrid.formatter.UpDownColor.html">UpDownColor</a></li><li><a href="tr.ColumnStats.html">ColumnStats</a></li><li><a href="tr.CompositeGrid.html">CompositeGrid</a></li><li><a href="tr.DataCache.html">DataCache</a></li><li><a href="tr.DataTable.html">DataTable</a></li><li><a href="tr.DataView.html">DataView</a></li><li><a href="tr.DropDown.html">DropDown</a></li><li><a href="tr.ElementControl.html">ElementControl</a></li><li><a href="tr.ElementWrapper.html">ElementWrapper</a></li><li><a href="tr.Event.html">Event</a></li><li><a href="tr.EventDispatcher.html">EventDispatcher</a></li><li><a href="tr.EventDispatcher.extendClass-tempCtor.html">tempCtor</a></li><li><a href="tr.EventManager.html">EventManager</a></li><li><a href="tr.FieldFormatter.html">FieldFormatter</a></li><li><a href="tr.fn.Engine.html">Engine</a></li><li><a href="tr.fn.Formula.html">Formula</a></li><li><a href="tr.fn.VariableToken.html">VariableToken</a></li><li><a href="tr.Grid.html">Grid</a></li><li><a href="tr.grid.BidOfferSpan.html">BidOfferSpan</a></li><li><a href="tr.grid.Blinker.html">Blinker</a></li><li><a href="tr.grid.Cell.html">Cell</a></li><li><a href="tr.grid.CellBlinkingPlugin.html">CellBlinkingPlugin</a></li><li><a href="tr.grid.CellEditingPlugin.html">CellEditingPlugin</a></li><li><a href="tr.grid.CellFloatingPanel.html">CellFloatingPanel</a></li><li><a href="tr.grid.CellPainter.html">CellPainter</a></li><li><a href="tr.grid.CellSpan.html">CellSpan</a></li><li><a href="tr.grid.CellSpans.html">CellSpans</a></li><li><a href="tr.grid.CellWriter.html">CellWriter</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html">CheckboxColumnPlugin</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html">CollapsibleHeaderPlugin</a></li><li><a href="tr.grid.ColumnFilterPlugin.html">ColumnFilterPlugin</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html">ColumnGroupingPlugin</a></li><li><a href="tr.grid.ColumnSelectionPlugin.html">ColumnSelectionPlugin</a></li><li><a href="tr.grid.ColumnStackingPlugin.html">ColumnStackingPlugin</a></li><li><a href="tr.grid.ColumnWidthAdjustingPlugin.html">ColumnWidthAdjustingPlugin</a></li><li><a href="tr.grid.Conflator.html">Conflator</a></li><li><a href="tr.grid.DataSourceTreePlugin.html">DataSourceTreePlugin</a></li><li><a href="tr.grid.DirectContentBindingPlugin.html">DirectContentBindingPlugin</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html">DragAndDropTitlePlugin</a></li><li><a href="tr.grid.DraggableContentPlugin.html">DraggableContentPlugin</a></li><li><a href="tr.grid.FindBar.html">FindBar</a></li><li><a href="tr.grid.FindBarPlugin.html">FindBarPlugin</a></li><li><a href="tr.grid.GroupStatisticsPlugin.html">GroupStatisticsPlugin</a></li><li><a href="tr.grid.HeatMapRenderer.html">HeatMapRenderer</a></li><li><a href="tr.grid.HScrollbar.html">HScrollbar</a></li><li><a href="tr.grid.IndexMarker.html">IndexMarker</a></li><li><a href="tr.grid.MovableHeaderPlugin.html">MovableHeaderPlugin</a></li><li><a href="tr.grid.NumberFormatter.html">NumberFormatter</a></li><li><a href="tr.grid.PercentBar.html">PercentBar</a></li><li><a href="tr.grid.PercentBarRenderer.html">PercentBarRenderer</a></li><li><a href="tr.grid.Plugin.html">Plugin</a></li><li><a href="tr.grid.RangeBar.html">RangeBar</a></li><li><a href="tr.grid.ResizableTitlePlugin.html">ResizableTitlePlugin</a></li><li><a href="tr.grid.Reverter.html">Reverter</a></li><li><a href="tr.grid.RowHeightAdjustingPlugin.html">RowHeightAdjustingPlugin</a></li><li><a href="tr.grid.RowSelectionPlugin.html">RowSelectionPlugin</a></li><li><a href="tr.grid.Scrollbar.html">Scrollbar</a></li><li><a href="tr.grid.SectionSettings.html">SectionSettings</a></li><li><a href="tr.grid.SmartTooltipsPlugin.html">SmartTooltipsPlugin</a></li><li><a href="tr.grid.SortableTitlePlugin.html">SortableTitlePlugin</a></li><li><a href="tr.grid.TreeIndentingPlugin.html">TreeIndentingPlugin</a></li><li><a href="tr.grid.Virtualizer.html">Virtualizer</a></li><li><a href="tr.grid.VScrollbar.html">VScrollbar</a></li><li><a href="tr.grid.ZoomPlugin.html">ZoomPlugin</a></li><li><a href="tr.HttpRequest.html">HttpRequest</a></li><li><a href="tr.IntervalSubscription.html">IntervalSubscription</a></li><li><a href="tr.LayoutGrid.html">LayoutGrid</a></li><li><a href="tr.ListMenu.html">ListMenu</a></li><li><a href="tr.MenuItem.html">MenuItem</a></li><li><a href="tr.MockArchive.html">MockArchive</a></li><li><a href="tr.MockJET.html">MockJET</a></li><li><a href="tr.MockQuotes.html">MockQuotes</a></li><li><a href="tr.MockQuotes2.html">MockQuotes2</a></li><li><a href="tr.MockSubscription.html">MockSubscription</a></li><li><a href="tr.MockSubscriptions.html">MockSubscriptions</a></li><li><a href="tr.Popup.html">Popup</a></li><li><a href="tr.PopupMenu.html">PopupMenu</a></li><li><a href="tr.PrintTrait.html">PrintTrait</a></li><li><a href="tr.RequestQueue.html">RequestQueue</a></li><li><a href="tr.Segment.html">Segment</a></li><li><a href="tr.SegmentCollection.html">SegmentCollection</a></li><li><a href="tr.TSISubscription.html">TSISubscription</a></li></ul><h3>Interfaces</h3><ul><li><a href="tr.cgrid.ICompositeExtension.html">ICompositeExtension</a></li><li><a href="tr.grid.IPlugin.html">IPlugin</a></li><li><a href="tr.IElementControl.html">IElementControl</a></li><li><a href="tr.ILayoutGrid.html">ILayoutGrid</a></li></ul><h3>Events</h3><ul><li><a href="tr.CompositeGrid.html#event:cellClicked">cellClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellDblClicked">cellDblClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellMouseDown">cellMouseDown</a></li><li><a href="tr.CompositeGrid.html#event:cellRightClicked">cellRightClicked</a></li><li><a href="tr.CompositeGrid.html#event:columnSorted">columnSorted</a></li><li><a href="tr.CompositeGrid.html#event:editorAttached">editorAttached</a></li><li><a href="tr.CompositeGrid.html#event:editorDetached">editorDetached</a></li><li><a href="tr.CompositeGrid.html#event:filterAdded">filterAdded</a></li><li><a href="tr.CompositeGrid.html#event:filterCleared">filterCleared</a></li><li><a href="tr.CompositeGrid.html#event:filterModified">filterModified</a></li><li><a href="tr.CompositeGrid.html#event:filterRemoved">filterRemoved</a></li><li><a href="tr.CompositeGrid.html#event:mouseLeaveCell">mouseLeaveCell</a></li><li><a href="tr.CompositeGrid.html#event:mouseOverCell">mouseOverCell</a></li><li><a href="tr.CompositeGrid.html#event:pageChanged">pageChanged</a></li><li><a href="tr.CompositeGrid.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.DataCache.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataCache.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataTable.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataTable.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataView.html#event:beforeFiltering">beforeFiltering</a></li><li><a href="tr.DataView.html#event:beforeGroupAdded">beforeGroupAdded</a></li><li><a href="tr.DataView.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataView.html#event:groupAdded">groupAdded</a></li><li><a href="tr.DataView.html#event:groupCriteriaChanged">groupCriteriaChanged</a></li><li><a href="tr.DataView.html#event:pageCountChanged">pageCountChanged</a></li><li><a href="tr.DataView.html#event:pageIndexChanged">pageIndexChanged</a></li><li><a href="tr.DataView.html#event:preDisposed">preDisposed</a></li><li><a href="tr.Formula.html#event:dataCacheChanged">dataCacheChanged</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:cancelled">cancelled</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:change">change</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:closed">closed</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:editorOpened">editorOpened</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:preEditorOpening">preEditorOpening</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:click">click</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:columnCollapsed">columnCollapsed</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:groupChanged">groupChanged</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:render">render</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:columnMoved">columnMoved</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:drag">drag</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragEnd">dragEnd</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragStart">dragStart</a></li><li><a href="tr.grid.FindBarPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:groupMoved">groupMoved</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:sectionMoved">sectionMoved</a></li><li><a href="tr.grid.RowSelectionPlugin.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:columnSorted">columnSorted</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preClicked">preClicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preDataSorting">preDataSorting</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.Grid.html#event:columnAdded">columnAdded</a></li><li><a href="tr.Grid.html#event:columnAlignmentChanged">columnAlignmentChanged</a></li><li><a href="tr.Grid.html#event:columnRemoved">columnRemoved</a></li><li><a href="tr.Grid.html#event:columnVisibilityChanged">columnVisibilityChanged</a></li><li><a href="tr.Grid.html#event:dataSourceChanged">dataSourceChanged</a></li><li><a href="tr.Grid.html#event:postSectionDataBinding">postSectionDataBinding</a></li><li><a href="tr.Grid.html#event:rowExpansionBinding">rowExpansionBinding</a></li><li><a href="tr.Grid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Grid.html#event:sectionAdded">sectionAdded</a></li><li><a href="tr.Grid.html#event:widthChanged">widthChanged</a></li><li><a href="tr.HttpRequest.html#event:abort">abort</a></li><li><a href="tr.HttpRequest.html#event:error">error</a></li><li><a href="tr.HttpRequest.html#event:load">load</a></li><li><a href="tr.HttpRequest.html#event:loadend">loadend</a></li><li><a href="tr.HttpRequest.html#event:loadstart">loadstart</a></li><li><a href="tr.HttpRequest.html#event:timeout">timeout</a></li><li><a href="tr.IElementControl.html#event:blur">blur</a></li><li><a href="tr.IElementControl.html#event:change">change</a></li><li><a href="tr.IElementControl.html#event:click">click</a></li><li><a href="tr.IElementControl.html#event:contextmenu">contextmenu</a></li><li><a href="tr.IElementControl.html#event:dblclick">dblclick</a></li><li><a href="tr.IElementControl.html#event:drag">drag</a></li><li><a href="tr.IElementControl.html#event:dragend">dragend</a></li><li><a href="tr.IElementControl.html#event:dragenter">dragenter</a></li><li><a href="tr.IElementControl.html#event:dragleave">dragleave</a></li><li><a href="tr.IElementControl.html#event:dragover">dragover</a></li><li><a href="tr.IElementControl.html#event:dragstart">dragstart</a></li><li><a href="tr.IElementControl.html#event:drop">drop</a></li><li><a href="tr.IElementControl.html#event:focus">focus</a></li><li><a href="tr.IElementControl.html#event:formchange">formchange</a></li><li><a href="tr.IElementControl.html#event:forminput">forminput</a></li><li><a href="tr.IElementControl.html#event:input">input</a></li><li><a href="tr.IElementControl.html#event:invalid">invalid</a></li><li><a href="tr.IElementControl.html#event:keydown">keydown</a></li><li><a href="tr.IElementControl.html#event:keypress">keypress</a></li><li><a href="tr.IElementControl.html#event:keyup">keyup</a></li><li><a href="tr.IElementControl.html#event:mousedown">mousedown</a></li><li><a href="tr.IElementControl.html#event:mousemove">mousemove</a></li><li><a href="tr.IElementControl.html#event:mouseout">mouseout</a></li><li><a href="tr.IElementControl.html#event:mouseover">mouseover</a></li><li><a href="tr.IElementControl.html#event:mouseup">mouseup</a></li><li><a href="tr.IElementControl.html#event:mousewheel">mousewheel</a></li><li><a href="tr.IElementControl.html#event:reset">reset</a></li><li><a href="tr.IElementControl.html#event:scroll">scroll</a></li><li><a href="tr.IElementControl.html#event:select">select</a></li><li><a href="tr.IElementControl.html#event:submit">submit</a></li><li><a href="tr.ILayoutGrid.html#event:blur">blur</a></li><li><a href="tr.ILayoutGrid.html#event:change">change</a></li><li><a href="tr.ILayoutGrid.html#event:click">click</a></li><li><a href="tr.ILayoutGrid.html#event:contextmenu">contextmenu</a></li><li><a href="tr.ILayoutGrid.html#event:dblclick">dblclick</a></li><li><a href="tr.ILayoutGrid.html#event:drag">drag</a></li><li><a href="tr.ILayoutGrid.html#event:dragend">dragend</a></li><li><a href="tr.ILayoutGrid.html#event:dragenter">dragenter</a></li><li><a href="tr.ILayoutGrid.html#event:dragleave">dragleave</a></li><li><a href="tr.ILayoutGrid.html#event:dragover">dragover</a></li><li><a href="tr.ILayoutGrid.html#event:dragstart">dragstart</a></li><li><a href="tr.ILayoutGrid.html#event:drop">drop</a></li><li><a href="tr.ILayoutGrid.html#event:focus">focus</a></li><li><a href="tr.ILayoutGrid.html#event:formchange">formchange</a></li><li><a href="tr.ILayoutGrid.html#event:forminput">forminput</a></li><li><a href="tr.ILayoutGrid.html#event:input">input</a></li><li><a href="tr.ILayoutGrid.html#event:invalid">invalid</a></li><li><a href="tr.ILayoutGrid.html#event:keydown">keydown</a></li><li><a href="tr.ILayoutGrid.html#event:keypress">keypress</a></li><li><a href="tr.ILayoutGrid.html#event:keyup">keyup</a></li><li><a href="tr.ILayoutGrid.html#event:mousedown">mousedown</a></li><li><a href="tr.ILayoutGrid.html#event:mousemove">mousemove</a></li><li><a href="tr.ILayoutGrid.html#event:mouseout">mouseout</a></li><li><a href="tr.ILayoutGrid.html#event:mouseover">mouseover</a></li><li><a href="tr.ILayoutGrid.html#event:mouseup">mouseup</a></li><li><a href="tr.ILayoutGrid.html#event:mousewheel">mousewheel</a></li><li><a href="tr.ILayoutGrid.html#event:reset">reset</a></li><li><a href="tr.ILayoutGrid.html#event:scroll">scroll</a></li><li><a href="tr.ILayoutGrid.html#event:select">select</a></li><li><a href="tr.ILayoutGrid.html#event:submit">submit</a></li><li><a href="tr.LayoutGrid.html#event:rowCountChanged">rowCountChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHeightChanged">rowHeightChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Popup.html#event:hidden">hidden</a></li><li><a href="tr.Popup.html#event:shown">shown</a></li><li><a href="tr.PopupMenu.html#event:hidden">hidden</a></li><li><a href="tr.PopupMenu.html#event:shown">shown</a></li><li><a href="tr.PrintTrait.html#event:afterprint">afterprint</a></li><li><a href="tr.PrintTrait.html#event:beforeprint">beforeprint</a></li><li><a href="tr.PrintTrait.html#event:pageCounting">pageCounting</a></li></ul><h3>Global</h3><ul><li><a href="global.html#cellRef%255Bundefined%255D">cellRef[undefined]</a></li><li><a href="global.html#e%255Bundefined%255D">e[undefined]</a></li><li><a href="global.html#.textContent">.textContent</a></li><li><a href="global.html#get">get</a></li><li><a href="global.html#input%255Bundefined%255D">input[undefined]</a></li><li><a href="global.html#q%255Bundefined%255D">q[undefined]</a></li><li><a href="global.html#sortingDef%255B1%255D">sortingDef[1]</a></li></ul>
+</nav>
+
+
+<script src="scripts/linenumber.js"> </script>
+<script src="scripts/prettify.js"> </script>
+<script> prettyPrint(); </script>
+</body>
+</html>

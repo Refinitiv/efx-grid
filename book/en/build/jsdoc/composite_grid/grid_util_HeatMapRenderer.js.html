@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: grid/util/HeatMapRenderer.js</title>
+
+    <script src="scripts/prettify.js"> </script>
+    <script src="scripts/lang-css.js"> </script>
+    <!--[if lt IE 9]&gt;
+      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
+    &lt;![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/default.css">
+    <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
+</head>
+
+<body>
+
+<div id="main-template" class="elf-template">
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>goog.provide("tr.grid.HeatMapRenderer");
+
+goog.require("tr.IElementControl");
+
+/** @constructor
+* @deprecated Use CellPainter instead
+*/
+tr.grid.HeatMapRenderer = function () {
+};
+
+//#region Public Methods
+/** @public
+* @param {tr.IElementControl} cell
+* @param {number} value
+* @param {number} min
+* @param {number} max
+*/
+tr.grid.HeatMapRenderer.prototype.render = function(cell, value, min, max) {
+	if(!cell) { return; }
+
+	var style = this.calculateStyle(value, min, max);	
+	cell.setStyle('backgroundColor', style['background-color']);
+	cell.setStyle('color', style['color']);
+};
+
+/** Calculate heatmap styles to be used to render a cell 
+* @public
+* @param {number} value
+* @param {number} min
+* @param {number} max
+* @return {Object}
+*/
+tr.grid.HeatMapRenderer.prototype.calculateStyle = function(value, min, max) {
+	var diff = (value || value === 0) ? value - this._midPoint : NaN;
+	if (diff === 0 || diff !== diff) {
+		return {
+			'background-color': '',
+			'color': ''
+		};
+	}
+
+	var ratio, topColor;
+	if(diff &gt; 0) {
+		var posDiffDenominator = max - this._midPoint;
+		var posDiffColor = this._maxColor;
+		if (posDiffDenominator &lt;= 0) {
+			posDiffDenominator = min - this._midPoint;
+			posDiffColor = this._minColor;
+		}
+		ratio = diff/posDiffDenominator;
+		topColor = posDiffColor;
+	} else {
+		var negDiffDenominator = min - this._midPoint;
+		var negDiffColor = this._minColor;
+		if (negDiffDenominator &gt;= 0) {
+			negDiffDenominator = max - this._midPoint;
+			negDiffColor = this._maxColor;
+		}
+		
+		ratio = diff/negDiffDenominator;
+		topColor = negDiffColor;
+	}
+	
+	var blendedColor;
+	if (this._textRendering) {
+		blendedColor = this._blendColor(this._baseTextColor, topColor, ratio);
+		return {
+			'background-color': '',
+			'color': this._num2Hex(blendedColor)
+		};
+	} else {
+		blendedColor = this._blendColor(this._baseBgColor, topColor, ratio);
+		return {
+			'background-color': this._num2Hex(blendedColor),
+			'color': this._blackAndWhite(blendedColor)
+		};
+	}
+};
+
+/** @public
+* @return {string}
+*/
+tr.grid.HeatMapRenderer.prototype.getBaseBgColor = function() {
+	return this._baseBgColor;
+};
+/** @public
+* @return {string}
+*/
+tr.grid.HeatMapRenderer.prototype.getBaseTextColor = function() {
+	return this._baseTextColor;
+};
+/** @public
+* @return {string}
+*/
+tr.grid.HeatMapRenderer.prototype.getMaxColor = function() {
+	return this._maxColor;
+};
+/** @public
+* @return {string}
+*/
+tr.grid.HeatMapRenderer.prototype.getMinColor = function() {
+	return this._minColor;
+};
+/** @public
+* @return {number}
+*/
+tr.grid.HeatMapRenderer.prototype.getMidPoint = function() {
+	return this._midPoint;
+};
+/** @public
+* @return {boolean}
+*/
+tr.grid.HeatMapRenderer.prototype.isTextRenderingMode = function() {
+	return this._textRendering;
+};
+
+/** @public
+* @param {string} baseColor
+*/
+tr.grid.HeatMapRenderer.prototype.setBaseBgColor = function(baseColor) {
+	this._baseBgColor = baseColor || '#000000';
+};
+/** @public
+* @param {string} baseColor
+*/
+tr.grid.HeatMapRenderer.prototype.setBaseTextColor = function(baseColor) {
+	this._baseTextColor = baseColor || '#FFFFFF';
+};
+/** @public
+* @param {string} maxColor
+*/
+tr.grid.HeatMapRenderer.prototype.setMaxColor = function(maxColor) {
+	this._maxColor = maxColor || '#00FF00';
+};
+/** @public
+* @param {string} minColor
+*/
+tr.grid.HeatMapRenderer.prototype.setMinColor = function(minColor) {
+	this._minColor = minColor || 'FF0000';
+};
+/** @public
+* @param {number} midPoint
+*/
+tr.grid.HeatMapRenderer.prototype.setMidPoint = function(midPoint) {
+	if (midPoint == null || midPoint !== midPoint){
+		midPoint = 0;
+	} else {
+		this._midPoint = midPoint;
+	}
+};
+/** @public
+* @param {boolean=} opt_enabled
+*/
+tr.grid.HeatMapRenderer.prototype.enableTextRenderingMode = function(opt_enabled) {
+	this._textRendering = opt_enabled !== false;
+};
+/** @public
+* @description Static method
+* @param {string} rgbCode
+* @return {string} resultColor
+*/
+tr.grid.HeatMapRenderer.rgb2Hex = function (rgbCode) {
+	var rgb = rgbCode.match(/\d+/g);
+	if(!rgb || rgb.length &lt; 3) {
+		return '';
+	}
+
+	var triplet = [];
+	for(var i = 0; i &lt; 3; i++) {
+		triplet.push(parseInt(rgb[i], 10));
+	}
+	return tr.grid.HeatMapRenderer.num2Hex(triplet);
+};
+/** @public
+* @description Static method
+* @param {Array.&lt;number&gt;} triplet
+* @return {string} resultColor
+*/
+tr.grid.HeatMapRenderer.num2Hex = function (triplet) {
+	var rgb = triplet[2] | (triplet[1] &lt;&lt; 8) | (triplet[0] &lt;&lt; 16);
+	return '#' + (0x1000000 + rgb).toString(16).slice(1);
+};
+//#endregion Public Methods
+
+//#region Private Methods
+/** @private
+* @param {string} baseColor
+* @param {string} maxColor
+* @param {number} ratio [0, 1]
+* @return {Array.&lt;number&gt;} resultColor
+*/
+tr.grid.HeatMapRenderer.prototype._blendColor = function (baseColor, maxColor, ratio) {
+	if (ratio &gt; 1) {
+		ratio = 1;
+	} else if(ratio &lt; 0) {
+		ratio = 0;
+	}
+	
+	var baseColorTriplet = this._hex2Num(baseColor);
+	var maxColorTriplet = this._hex2Num(maxColor);
+	var blendResult = [];
+	for (var i = 0; i &lt; 3; ++i) {
+		var gap = (maxColorTriplet[i] - baseColorTriplet[i]) * ratio;
+		blendResult.push(baseColorTriplet[i] + gap);
+	}
+
+	return blendResult;
+};
+/** @private
+* @param {string} hex
+* @return {Array.&lt;number&gt;} array of size 3 which contains [red, green, blue]
+*/
+tr.grid.HeatMapRenderer.prototype._hex2Num = function (hex) {
+	var hexInt = parseInt(hex.replace(/[^0-9A-F]/gi, ''), 16);
+	var r = (hexInt &gt;&gt; 16) &amp; 255;
+	var g = (hexInt &gt;&gt; 8) &amp; 255;
+	var b = hexInt &amp; 255;
+	return [r, g, b];
+};
+/** @private
+* @param {Array.&lt;number&gt;} triplet
+* @return {string} resultColor
+*/
+tr.grid.HeatMapRenderer.prototype._num2Hex = tr.grid.HeatMapRenderer.num2Hex;
+/** @private
+* @param {Array.&lt;number&gt;} triplet
+* @return {string} resultColor
+*/
+tr.grid.HeatMapRenderer.prototype._blackAndWhite = function (triplet) {
+	var brightness = Math.sqrt(triplet[0] * triplet[0] * 0.241 + triplet[1] * triplet[1] * 0.691 + triplet[2] * triplet[2] * 0.068);
+
+	if (brightness &gt;= 135) { // Brighter color has more impact to human eye than the darker color
+		return 'black';
+	}
+	return 'white';
+};
+//#endregion Private Methods
+
+//#region Private Members
+/** @type {string}
+* @private
+*/
+tr.grid.HeatMapRenderer.prototype._baseBgColor = '#000000';
+/** @type {string}
+* @private
+*/
+tr.grid.HeatMapRenderer.prototype._baseTextColor = '#FFFFFF';
+/** @type {string}
+* @private
+*/
+tr.grid.HeatMapRenderer.prototype._maxColor = '#00FF00';
+/** @type {string}
+* @private
+*/
+tr.grid.HeatMapRenderer.prototype._minColor = '#FF0000';
+
+/** @type {number}
+* @private
+*/
+tr.grid.HeatMapRenderer.prototype._midPoint = 0;
+/** @type {number}
+* @private
+*/
+tr.grid.HeatMapRenderer.prototype._max = 100;
+/** @type {number}
+* @private
+*/
+tr.grid.HeatMapRenderer.prototype._min = -100;
+
+/** @type {boolean}
+* @private
+*/
+tr.grid.HeatMapRenderer.prototype._textRendering = false;
+
+//#endregion Private Members
+
+
+goog.exportSymbol("tr.grid.HeatMapRenderer", tr.grid.HeatMapRenderer);
+tr.grid.HeatMapRenderer._proto = tr.grid.HeatMapRenderer.prototype;
+
+goog.exportProperty(tr.grid.HeatMapRenderer._proto, "render", tr.grid.HeatMapRenderer._proto.render);
+goog.exportProperty(tr.grid.HeatMapRenderer._proto, "calculateStyle", tr.grid.HeatMapRenderer._proto.calculateStyle);
+
+goog.exportProperty(tr.grid.HeatMapRenderer._proto, "getBaseBgColor", tr.grid.HeatMapRenderer._proto.getBaseBgColor);
+goog.exportProperty(tr.grid.HeatMapRenderer._proto, "getBaseTextColor", tr.grid.HeatMapRenderer._proto.getBaseTextColor);
+goog.exportProperty(tr.grid.HeatMapRenderer._proto, "getMaxColor", tr.grid.HeatMapRenderer._proto.getMaxColor);
+goog.exportProperty(tr.grid.HeatMapRenderer._proto, "getMinColor", tr.grid.HeatMapRenderer._proto.getMinColor);
+goog.exportProperty(tr.grid.HeatMapRenderer._proto, "getMidPoint", tr.grid.HeatMapRenderer._proto.getMidPoint);
+goog.exportProperty(tr.grid.HeatMapRenderer._proto, "isTextRenderingMode", tr.grid.HeatMapRenderer._proto.isTextRenderingMode);
+
+goog.exportProperty(tr.grid.HeatMapRenderer._proto, "setBaseBgColor", tr.grid.HeatMapRenderer._proto.setBaseBgColor);
+goog.exportProperty(tr.grid.HeatMapRenderer._proto, "setBaseTextColor", tr.grid.HeatMapRenderer._proto.setBaseTextColor);
+goog.exportProperty(tr.grid.HeatMapRenderer._proto, "setMaxColor", tr.grid.HeatMapRenderer._proto.setMaxColor);
+goog.exportProperty(tr.grid.HeatMapRenderer._proto, "setMinColor", tr.grid.HeatMapRenderer._proto.setMinColor);
+goog.exportProperty(tr.grid.HeatMapRenderer._proto, "setMidPoint", tr.grid.HeatMapRenderer._proto.setMidPoint);
+goog.exportProperty(tr.grid.HeatMapRenderer._proto, "enableTextRenderingMode", tr.grid.HeatMapRenderer._proto.enableTextRenderingMode);
+goog.exportSymbol("tr.grid.HeatMapRenderer.rgb2Hex", tr.grid.HeatMapRenderer.rgb2Hex);
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="AdFin.html">AdFin</a></li><li><a href="DateTime.html">DateTime</a></li><li><a href="Info.html">Info</a></li><li><a href="Logic.html">Logic</a></li><li><a href="Math.html">Math</a></li><li><a href="Realtime.html">Realtime</a></li><li><a href="Statistic.html">Statistic</a></li><li><a href="Text.html">Text</a></li><li><a href="tr.ElementFrameWork.html">ElementFrameWork</a></li><li><a href="tr.PipDefinition.html">PipDefinition</a></li></ul><h3>Classes</h3><ul><li><a href="tr.ADCSubscription.html">ADCSubscription</a></li><li><a href="tr.AdFinSubscription.html">AdFinSubscription</a></li><li><a href="tr.cgrid.editor.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.filter.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.formatter.AsyncFormatter.html">AsyncFormatter</a></li><li><a href="tr.cgrid.formatter.CheckBox.html">CheckBox</a></li><li><a href="tr.cgrid.formatter.UpDownColor.html">UpDownColor</a></li><li><a href="tr.ColumnStats.html">ColumnStats</a></li><li><a href="tr.CompositeGrid.html">CompositeGrid</a></li><li><a href="tr.DataCache.html">DataCache</a></li><li><a href="tr.DataTable.html">DataTable</a></li><li><a href="tr.DataView.html">DataView</a></li><li><a href="tr.DropDown.html">DropDown</a></li><li><a href="tr.ElementControl.html">ElementControl</a></li><li><a href="tr.ElementWrapper.html">ElementWrapper</a></li><li><a href="tr.Event.html">Event</a></li><li><a href="tr.EventDispatcher.html">EventDispatcher</a></li><li><a href="tr.EventDispatcher.extendClass-tempCtor.html">tempCtor</a></li><li><a href="tr.EventManager.html">EventManager</a></li><li><a href="tr.FieldFormatter.html">FieldFormatter</a></li><li><a href="tr.fn.Engine.html">Engine</a></li><li><a href="tr.fn.Formula.html">Formula</a></li><li><a href="tr.fn.VariableToken.html">VariableToken</a></li><li><a href="tr.Grid.html">Grid</a></li><li><a href="tr.grid.BidOfferSpan.html">BidOfferSpan</a></li><li><a href="tr.grid.Blinker.html">Blinker</a></li><li><a href="tr.grid.Cell.html">Cell</a></li><li><a href="tr.grid.CellBlinkingPlugin.html">CellBlinkingPlugin</a></li><li><a href="tr.grid.CellEditingPlugin.html">CellEditingPlugin</a></li><li><a href="tr.grid.CellFloatingPanel.html">CellFloatingPanel</a></li><li><a href="tr.grid.CellPainter.html">CellPainter</a></li><li><a href="tr.grid.CellSpan.html">CellSpan</a></li><li><a href="tr.grid.CellSpans.html">CellSpans</a></li><li><a href="tr.grid.CellWriter.html">CellWriter</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html">CheckboxColumnPlugin</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html">CollapsibleHeaderPlugin</a></li><li><a href="tr.grid.ColumnFilterPlugin.html">ColumnFilterPlugin</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html">ColumnGroupingPlugin</a></li><li><a href="tr.grid.ColumnSelectionPlugin.html">ColumnSelectionPlugin</a></li><li><a href="tr.grid.ColumnStackingPlugin.html">ColumnStackingPlugin</a></li><li><a href="tr.grid.ColumnWidthAdjustingPlugin.html">ColumnWidthAdjustingPlugin</a></li><li><a href="tr.grid.Conflator.html">Conflator</a></li><li><a href="tr.grid.DataSourceTreePlugin.html">DataSourceTreePlugin</a></li><li><a href="tr.grid.DirectContentBindingPlugin.html">DirectContentBindingPlugin</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html">DragAndDropTitlePlugin</a></li><li><a href="tr.grid.DraggableContentPlugin.html">DraggableContentPlugin</a></li><li><a href="tr.grid.FindBar.html">FindBar</a></li><li><a href="tr.grid.FindBarPlugin.html">FindBarPlugin</a></li><li><a href="tr.grid.GroupStatisticsPlugin.html">GroupStatisticsPlugin</a></li><li><a href="tr.grid.HeatMapRenderer.html">HeatMapRenderer</a></li><li><a href="tr.grid.HScrollbar.html">HScrollbar</a></li><li><a href="tr.grid.IndexMarker.html">IndexMarker</a></li><li><a href="tr.grid.MovableHeaderPlugin.html">MovableHeaderPlugin</a></li><li><a href="tr.grid.NumberFormatter.html">NumberFormatter</a></li><li><a href="tr.grid.PercentBar.html">PercentBar</a></li><li><a href="tr.grid.PercentBarRenderer.html">PercentBarRenderer</a></li><li><a href="tr.grid.Plugin.html">Plugin</a></li><li><a href="tr.grid.RangeBar.html">RangeBar</a></li><li><a href="tr.grid.ResizableTitlePlugin.html">ResizableTitlePlugin</a></li><li><a href="tr.grid.Reverter.html">Reverter</a></li><li><a href="tr.grid.RowHeightAdjustingPlugin.html">RowHeightAdjustingPlugin</a></li><li><a href="tr.grid.RowSelectionPlugin.html">RowSelectionPlugin</a></li><li><a href="tr.grid.Scrollbar.html">Scrollbar</a></li><li><a href="tr.grid.SectionSettings.html">SectionSettings</a></li><li><a href="tr.grid.SmartTooltipsPlugin.html">SmartTooltipsPlugin</a></li><li><a href="tr.grid.SortableTitlePlugin.html">SortableTitlePlugin</a></li><li><a href="tr.grid.TreeIndentingPlugin.html">TreeIndentingPlugin</a></li><li><a href="tr.grid.Virtualizer.html">Virtualizer</a></li><li><a href="tr.grid.VScrollbar.html">VScrollbar</a></li><li><a href="tr.grid.ZoomPlugin.html">ZoomPlugin</a></li><li><a href="tr.HttpRequest.html">HttpRequest</a></li><li><a href="tr.IntervalSubscription.html">IntervalSubscription</a></li><li><a href="tr.LayoutGrid.html">LayoutGrid</a></li><li><a href="tr.ListMenu.html">ListMenu</a></li><li><a href="tr.MenuItem.html">MenuItem</a></li><li><a href="tr.MockArchive.html">MockArchive</a></li><li><a href="tr.MockJET.html">MockJET</a></li><li><a href="tr.MockQuotes.html">MockQuotes</a></li><li><a href="tr.MockQuotes2.html">MockQuotes2</a></li><li><a href="tr.MockSubscription.html">MockSubscription</a></li><li><a href="tr.MockSubscriptions.html">MockSubscriptions</a></li><li><a href="tr.Popup.html">Popup</a></li><li><a href="tr.PopupMenu.html">PopupMenu</a></li><li><a href="tr.PrintTrait.html">PrintTrait</a></li><li><a href="tr.RequestQueue.html">RequestQueue</a></li><li><a href="tr.Segment.html">Segment</a></li><li><a href="tr.SegmentCollection.html">SegmentCollection</a></li><li><a href="tr.TSISubscription.html">TSISubscription</a></li></ul><h3>Interfaces</h3><ul><li><a href="tr.cgrid.ICompositeExtension.html">ICompositeExtension</a></li><li><a href="tr.grid.IPlugin.html">IPlugin</a></li><li><a href="tr.IElementControl.html">IElementControl</a></li><li><a href="tr.ILayoutGrid.html">ILayoutGrid</a></li></ul><h3>Events</h3><ul><li><a href="tr.CompositeGrid.html#event:cellClicked">cellClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellDblClicked">cellDblClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellMouseDown">cellMouseDown</a></li><li><a href="tr.CompositeGrid.html#event:cellRightClicked">cellRightClicked</a></li><li><a href="tr.CompositeGrid.html#event:columnSorted">columnSorted</a></li><li><a href="tr.CompositeGrid.html#event:editorAttached">editorAttached</a></li><li><a href="tr.CompositeGrid.html#event:editorDetached">editorDetached</a></li><li><a href="tr.CompositeGrid.html#event:filterAdded">filterAdded</a></li><li><a href="tr.CompositeGrid.html#event:filterCleared">filterCleared</a></li><li><a href="tr.CompositeGrid.html#event:filterModified">filterModified</a></li><li><a href="tr.CompositeGrid.html#event:filterRemoved">filterRemoved</a></li><li><a href="tr.CompositeGrid.html#event:mouseLeaveCell">mouseLeaveCell</a></li><li><a href="tr.CompositeGrid.html#event:mouseOverCell">mouseOverCell</a></li><li><a href="tr.CompositeGrid.html#event:pageChanged">pageChanged</a></li><li><a href="tr.CompositeGrid.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.DataCache.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataCache.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataTable.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataTable.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataView.html#event:beforeFiltering">beforeFiltering</a></li><li><a href="tr.DataView.html#event:beforeGroupAdded">beforeGroupAdded</a></li><li><a href="tr.DataView.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataView.html#event:groupAdded">groupAdded</a></li><li><a href="tr.DataView.html#event:groupCriteriaChanged">groupCriteriaChanged</a></li><li><a href="tr.DataView.html#event:pageCountChanged">pageCountChanged</a></li><li><a href="tr.DataView.html#event:pageIndexChanged">pageIndexChanged</a></li><li><a href="tr.DataView.html#event:preDisposed">preDisposed</a></li><li><a href="tr.Formula.html#event:dataCacheChanged">dataCacheChanged</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:cancelled">cancelled</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:change">change</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:closed">closed</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:editorOpened">editorOpened</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:preEditorOpening">preEditorOpening</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:click">click</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:columnCollapsed">columnCollapsed</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:groupChanged">groupChanged</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:render">render</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:columnMoved">columnMoved</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:drag">drag</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragEnd">dragEnd</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragStart">dragStart</a></li><li><a href="tr.grid.FindBarPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:groupMoved">groupMoved</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:sectionMoved">sectionMoved</a></li><li><a href="tr.grid.RowSelectionPlugin.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:columnSorted">columnSorted</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preClicked">preClicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preDataSorting">preDataSorting</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.Grid.html#event:columnAdded">columnAdded</a></li><li><a href="tr.Grid.html#event:columnAlignmentChanged">columnAlignmentChanged</a></li><li><a href="tr.Grid.html#event:columnRemoved">columnRemoved</a></li><li><a href="tr.Grid.html#event:columnVisibilityChanged">columnVisibilityChanged</a></li><li><a href="tr.Grid.html#event:dataSourceChanged">dataSourceChanged</a></li><li><a href="tr.Grid.html#event:postSectionDataBinding">postSectionDataBinding</a></li><li><a href="tr.Grid.html#event:rowExpansionBinding">rowExpansionBinding</a></li><li><a href="tr.Grid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Grid.html#event:sectionAdded">sectionAdded</a></li><li><a href="tr.Grid.html#event:widthChanged">widthChanged</a></li><li><a href="tr.HttpRequest.html#event:abort">abort</a></li><li><a href="tr.HttpRequest.html#event:error">error</a></li><li><a href="tr.HttpRequest.html#event:load">load</a></li><li><a href="tr.HttpRequest.html#event:loadend">loadend</a></li><li><a href="tr.HttpRequest.html#event:loadstart">loadstart</a></li><li><a href="tr.HttpRequest.html#event:timeout">timeout</a></li><li><a href="tr.IElementControl.html#event:blur">blur</a></li><li><a href="tr.IElementControl.html#event:change">change</a></li><li><a href="tr.IElementControl.html#event:click">click</a></li><li><a href="tr.IElementControl.html#event:contextmenu">contextmenu</a></li><li><a href="tr.IElementControl.html#event:dblclick">dblclick</a></li><li><a href="tr.IElementControl.html#event:drag">drag</a></li><li><a href="tr.IElementControl.html#event:dragend">dragend</a></li><li><a href="tr.IElementControl.html#event:dragenter">dragenter</a></li><li><a href="tr.IElementControl.html#event:dragleave">dragleave</a></li><li><a href="tr.IElementControl.html#event:dragover">dragover</a></li><li><a href="tr.IElementControl.html#event:dragstart">dragstart</a></li><li><a href="tr.IElementControl.html#event:drop">drop</a></li><li><a href="tr.IElementControl.html#event:focus">focus</a></li><li><a href="tr.IElementControl.html#event:formchange">formchange</a></li><li><a href="tr.IElementControl.html#event:forminput">forminput</a></li><li><a href="tr.IElementControl.html#event:input">input</a></li><li><a href="tr.IElementControl.html#event:invalid">invalid</a></li><li><a href="tr.IElementControl.html#event:keydown">keydown</a></li><li><a href="tr.IElementControl.html#event:keypress">keypress</a></li><li><a href="tr.IElementControl.html#event:keyup">keyup</a></li><li><a href="tr.IElementControl.html#event:mousedown">mousedown</a></li><li><a href="tr.IElementControl.html#event:mousemove">mousemove</a></li><li><a href="tr.IElementControl.html#event:mouseout">mouseout</a></li><li><a href="tr.IElementControl.html#event:mouseover">mouseover</a></li><li><a href="tr.IElementControl.html#event:mouseup">mouseup</a></li><li><a href="tr.IElementControl.html#event:mousewheel">mousewheel</a></li><li><a href="tr.IElementControl.html#event:reset">reset</a></li><li><a href="tr.IElementControl.html#event:scroll">scroll</a></li><li><a href="tr.IElementControl.html#event:select">select</a></li><li><a href="tr.IElementControl.html#event:submit">submit</a></li><li><a href="tr.ILayoutGrid.html#event:blur">blur</a></li><li><a href="tr.ILayoutGrid.html#event:change">change</a></li><li><a href="tr.ILayoutGrid.html#event:click">click</a></li><li><a href="tr.ILayoutGrid.html#event:contextmenu">contextmenu</a></li><li><a href="tr.ILayoutGrid.html#event:dblclick">dblclick</a></li><li><a href="tr.ILayoutGrid.html#event:drag">drag</a></li><li><a href="tr.ILayoutGrid.html#event:dragend">dragend</a></li><li><a href="tr.ILayoutGrid.html#event:dragenter">dragenter</a></li><li><a href="tr.ILayoutGrid.html#event:dragleave">dragleave</a></li><li><a href="tr.ILayoutGrid.html#event:dragover">dragover</a></li><li><a href="tr.ILayoutGrid.html#event:dragstart">dragstart</a></li><li><a href="tr.ILayoutGrid.html#event:drop">drop</a></li><li><a href="tr.ILayoutGrid.html#event:focus">focus</a></li><li><a href="tr.ILayoutGrid.html#event:formchange">formchange</a></li><li><a href="tr.ILayoutGrid.html#event:forminput">forminput</a></li><li><a href="tr.ILayoutGrid.html#event:input">input</a></li><li><a href="tr.ILayoutGrid.html#event:invalid">invalid</a></li><li><a href="tr.ILayoutGrid.html#event:keydown">keydown</a></li><li><a href="tr.ILayoutGrid.html#event:keypress">keypress</a></li><li><a href="tr.ILayoutGrid.html#event:keyup">keyup</a></li><li><a href="tr.ILayoutGrid.html#event:mousedown">mousedown</a></li><li><a href="tr.ILayoutGrid.html#event:mousemove">mousemove</a></li><li><a href="tr.ILayoutGrid.html#event:mouseout">mouseout</a></li><li><a href="tr.ILayoutGrid.html#event:mouseover">mouseover</a></li><li><a href="tr.ILayoutGrid.html#event:mouseup">mouseup</a></li><li><a href="tr.ILayoutGrid.html#event:mousewheel">mousewheel</a></li><li><a href="tr.ILayoutGrid.html#event:reset">reset</a></li><li><a href="tr.ILayoutGrid.html#event:scroll">scroll</a></li><li><a href="tr.ILayoutGrid.html#event:select">select</a></li><li><a href="tr.ILayoutGrid.html#event:submit">submit</a></li><li><a href="tr.LayoutGrid.html#event:rowCountChanged">rowCountChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHeightChanged">rowHeightChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Popup.html#event:hidden">hidden</a></li><li><a href="tr.Popup.html#event:shown">shown</a></li><li><a href="tr.PopupMenu.html#event:hidden">hidden</a></li><li><a href="tr.PopupMenu.html#event:shown">shown</a></li><li><a href="tr.PrintTrait.html#event:afterprint">afterprint</a></li><li><a href="tr.PrintTrait.html#event:beforeprint">beforeprint</a></li><li><a href="tr.PrintTrait.html#event:pageCounting">pageCounting</a></li></ul><h3>Global</h3><ul><li><a href="global.html#cellRef%255Bundefined%255D">cellRef[undefined]</a></li><li><a href="global.html#e%255Bundefined%255D">e[undefined]</a></li><li><a href="global.html#.textContent">.textContent</a></li><li><a href="global.html#get">get</a></li><li><a href="global.html#input%255Bundefined%255D">input[undefined]</a></li><li><a href="global.html#q%255Bundefined%255D">q[undefined]</a></li><li><a href="global.html#sortingDef%255B1%255D">sortingDef[1]</a></li></ul>
+</nav>
+
+
+<script src="scripts/linenumber.js"> </script>
+<script src="scripts/prettify.js"> </script>
+<script> prettyPrint(); </script>
+</body>
+</html>

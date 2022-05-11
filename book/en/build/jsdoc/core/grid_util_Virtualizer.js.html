@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: grid/util/Virtualizer.js</title>
+
+    <script src="scripts/prettify.js"> </script>
+    <script src="scripts/lang-css.js"> </script>
+    <!--[if lt IE 9]&gt;
+      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
+    &lt;![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/default.css">
+    <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
+</head>
+
+<body>
+
+<div id="main-template" class="elf-template">
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import Ext from "../../../../node_modules/tr-grid-util/es6/Ext.js";
+import EventDispatcher from "../event/EventDispatcher.js";
+import TrackLayout from "./TrackLayout.js"; // eslint-disable-line
+
+/** @constructor
+* @param {!TrackLayout} trackLayout
+* @extends {EventDispatcher}
+*/
+var Virtualizer = function (trackLayout) {
+	this._layout = trackLayout;
+	this._arg = {};
+	this._addEvent("indexChanged");
+};
+Ext.inherits(Virtualizer, EventDispatcher); // Inherits() will replace prototype of the derived object
+
+/** @private
+* @type {!TrackLayout}
+*/
+Virtualizer.prototype._layout;
+/** @private
+* @type {number}
+*/
+Virtualizer.prototype._viewSize = 0;
+/** @private
+* @type {number}
+*/
+Virtualizer.prototype._viewOffset = 0;
+/** @private
+* @type {number}
+*/
+Virtualizer.prototype._startOffsetCount = 0;
+/** @private
+* @type {number}
+*/
+Virtualizer.prototype._endOffsetCount = 0;
+/** @private
+* @type {number}
+*/
+Virtualizer.prototype._bufferSize = 0;
+
+/** @private
+* @type {Object}
+*/
+Virtualizer.prototype._arg = null; // a cache to event argument
+
+/** @private
+* @type {boolean}
+*/
+Virtualizer.prototype._enabled = true;
+/** @private
+* @type {boolean}
+*/
+Virtualizer.prototype._active = true;
+/** @private
+* @type {boolean}
+*/
+Virtualizer.prototype._virtualizable = false;
+
+/** @private
+* @return {number}
+*/
+Virtualizer.prototype._getMinIndex = function () {
+	return this._startOffsetCount;
+};
+/** @private
+* @return {number}
+*/
+Virtualizer.prototype._getMaxIndex = function () {
+	var index = this._layout.getLaneCount() - this._endOffsetCount;
+	return index &gt; this._startOffsetCount ? index : this._startOffsetCount;
+};
+
+/** @public
+* @param {number} index
+* @return {number}
+*/
+Virtualizer.prototype.getContentStart = function (index) {
+	return this._layout.getLaneStart(index);
+};
+/** @public
+* @return {number}
+*/
+Virtualizer.prototype.getContentInViewCount = function () {
+	var first = this.getFirstIndexInView();
+	var last = this.getLastIndexInView();
+	if (first &gt;= 0 &amp;&amp; first &lt; last) {
+		return last - first + 1;
+	}
+	return 0;
+};
+
+/** @private
+ * @returns {number}
+*/
+Virtualizer.prototype._getContentSizeInBounds = function () {
+	var minIndex = this._getMinIndex();
+	var maxIndex = this._getMaxIndex();
+	return this._layout.getLaneStart(maxIndex) - this._layout.getLaneStart(minIndex);
+};
+
+/** @public
+* @return {number}
+*/
+Virtualizer.prototype.getViewSize = function () {
+	return this._viewSize;
+};
+
+
+/** @public
+* @return {number}
+*/
+Virtualizer.prototype.getViewOffset = function () {
+	var minIndex = this._getMinIndex();
+	return this._viewOffset + this._layout.getLaneStart(minIndex);
+};
+/** @public
+* @return {number}
+*/
+Virtualizer.prototype.getIndexOffset = function () {
+	return this._startOffsetCount;
+};
+
+/** @public
+* @return {boolean}
+*/
+Virtualizer.prototype.isVirtualizable = function () {
+	return this._virtualizable;
+};
+
+/** @public
+* @return {number}
+*/
+Virtualizer.prototype.getFirstIndexInView = function () {
+	if (!this._virtualizable) {
+		return 0;
+	}
+	var vo = this.getViewOffset();
+	var trackSize = this._layout.getTrackSize();
+	if(vo &gt;= trackSize) {
+		vo = trackSize - this._viewSize;  // WARNING: View offset already includes minIndex and this will override that
+	}
+	if(vo &lt; 0) {
+		return 0;
+	}
+
+	return this._layout.hitTest(vo);
+};
+/** @public
+* @return {number} INCLUSIVE last index in view
+*/
+Virtualizer.prototype.getLastIndexInView = function () {
+	if (!this._virtualizable) {
+		return this._layout.getLaneCount() - 1;
+	} else {
+		var viewEnd = this.getViewOffset() + this._viewSize;
+
+		// prevent from invalid-index because of verical buffering
+		var maxIndex = this._getMaxIndex();
+		var endBound = this._layout.getLaneStart(maxIndex);
+		if (viewEnd &gt;= endBound) {
+			return maxIndex - 1; // maxIndex is exclusive
+		}
+
+		return this._layout.hitTest(viewEnd);
+	}
+};
+
+/** @public
+* @return {number}
+*/
+Virtualizer.prototype.getPrevFirstIndexInView = function () {
+	return (this._arg["prevFirstIndex"] != null) ? this._arg["prevFirstIndex"] : -1;
+};
+/** @public
+* @return {number}
+*/
+Virtualizer.prototype.getPrevLastIndexInView = function () {
+	return (this._arg["prevLastIndex"] != null) ? this._arg["prevLastIndex"] : -1;
+};
+
+/** @public
+* @param {boolean=} opt_force
+* @return {boolean}
+*/
+Virtualizer.prototype.update = function (opt_force) {
+	if (opt_force !== true) {
+		if (!(this._enabled &amp;&amp; this._active)) {
+			return false;
+		}
+	}
+
+	if (this._isEventDispatching("indexChanged")) { return false; }
+
+	var fi = this.getFirstIndexInView();
+	var li = this.getLastIndexInView(); // INCLUSIVE
+	var changed = (this._arg["prevFirstIndex"] !== fi) || (this._arg["prevLastIndex"] !== li);
+
+	if (opt_force || changed) {
+		this._arg["firstIndex"] = fi;
+		this._arg["lastIndex"] = li;
+
+		this._dispatch("indexChanged", this._arg);
+
+		this._arg["prevFirstIndex"] = fi;
+		this._arg["prevLastIndex"] = li;
+	}
+	return changed;
+};
+
+/** @public
+* @return {boolean}
+*/
+Virtualizer.prototype.isEnabled = function () {
+	return this._enabled;
+};
+/** @public
+* @param {boolean=} opt_enabled
+*/
+Virtualizer.prototype.enable = function (opt_enabled) {
+	opt_enabled = (opt_enabled !== false);
+	if (this._enabled !== opt_enabled) {
+		this._enabled = opt_enabled;
+		this.validateVirtualization();
+		this.update(true);
+	}
+};
+/** @public
+* @param {boolean=} opt_disabled
+*/
+Virtualizer.prototype.disable = function (opt_disabled) {
+	this.enable(opt_disabled === false);
+};
+
+/** @public
+* @ignore
+* @return {boolean}
+*/
+Virtualizer.prototype.isActive = function () {
+	return this._active;
+};
+/**
+* @public
+* @ignore
+* @param {boolean=} opt_enabled
+*/
+Virtualizer.prototype.activate = function (opt_enabled) {
+	opt_enabled = (opt_enabled !== false);
+	if (this._active !== opt_enabled) {
+		this._active = opt_enabled;
+		this.validateVirtualization();
+		this.update(true);
+	}
+};
+/**
+* @public
+* @ignore
+* @param {boolean=} opt_disabled
+*/
+Virtualizer.prototype.deactivate = function (opt_disabled) {
+	this.activate(opt_disabled === false);
+};
+/** @public
+* @ignore
+* @return {number}
+*/
+Virtualizer.prototype.getBufferSize = function () {
+	return this._bufferSize;
+};
+
+/** @public
+* @param {!TrackLayout} trackLayout
+* @ignore
+*/
+Virtualizer.prototype.setContentLayout = function (trackLayout) {
+	if (this._layout !== trackLayout) {
+		this._layout = trackLayout;
+		this.validateVirtualization();
+	}
+};
+/** @public
+* @ignore
+* @param {number} px
+*/
+Virtualizer.prototype.setViewSize = function (px) {
+	if (px &lt; 0) { px = 0; }
+
+	if (this._viewSize !== px) {
+		this._viewSize = px;
+		this.validateVirtualization();
+	}
+};
+/** @public
+* @ignore
+* @param {number} px
+*/
+Virtualizer.prototype.setViewOffset = function (px) {
+	this._viewOffset = px &gt; 0 ? px : 0;
+	this.update();
+};
+/** @public
+* @ignore
+* @param {number} start
+* @param {number} end
+*/
+Virtualizer.prototype.setViewBounds = function (start, end) {
+	this._startOffsetCount = start &gt; 0 ? start : 0;
+	this._endOffsetCount = end &gt; 0 ? end : 0;
+	this.validateVirtualization(); // Everytime row height is changed
+};
+/** @public
+* @ignore
+* @param {number} px
+*/
+Virtualizer.prototype.setBufferSize = function (px) {
+	if (px &lt; 0) { px = 0; }
+	if (this._bufferSize !== px) {
+		this._bufferSize = px;
+		this.validateVirtualization();
+	}
+};
+
+/** @public
+* @ignore
+*/
+Virtualizer.prototype.validateVirtualization = function () {
+	this._virtualizable = false;
+	if (this._enabled &amp;&amp; this._active) {
+		// If either content or view have no size, or content is smaller than view, entire content is contained within view
+		if (this._viewSize &gt; 0) {
+			if (this._getContentSizeInBounds() &gt; this._viewSize) {
+				this._virtualizable = true;
+			}
+		}
+	}
+};
+
+Virtualizer._proto = Virtualizer.prototype;
+
+export default Virtualizer;
+export { Virtualizer };
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="ElementFrameWork.html">ElementFrameWork</a></li><li><a href="Util.html">Util</a></li></ul><h3>Classes</h3><ul><li><a href="Cell.html">Cell</a></li><li><a href="CellFloatingPanel.html">CellFloatingPanel</a></li><li><a href="CellSpan.html">CellSpan</a></li><li><a href="CellSpans.html">CellSpans</a></li><li><a href="ColumnStats.html">ColumnStats</a></li><li><a href="Conflator.html">Conflator</a></li><li><a href="DataCache.html">DataCache</a></li><li><a href="DataTable.html">DataTable</a></li><li><a href="DataView.html">DataView</a></li><li><a href="DragAndDropTitlePlugin.html">DragAndDropTitlePlugin</a></li><li><a href="ElementWrapper.html">ElementWrapper</a></li><li><a href="EventDispatcher.html">EventDispatcher</a></li><li><a href="EventListeners.html">EventListeners</a></li><li><a href="Grid.html">Grid</a></li><li><a href="HScrollbar.html">HScrollbar</a></li><li><a href="HttpRequest.html">HttpRequest</a></li><li><a href="LayoutGrid.html">LayoutGrid</a></li><li><a href="PercentBar.html">PercentBar</a></li><li><a href="PercentBarRenderer.html">PercentBarRenderer</a></li><li><a href="Plugin.html">Plugin</a></li><li><a href="RangeBar.html">RangeBar</a></li><li><a href="Reverter.html">Reverter</a></li><li><a href="Scrollbar.html">Scrollbar</a></li><li><a href="SectionSettings.html">SectionSettings</a></li><li><a href="Segment.html">Segment</a></li><li><a href="SegmentCollection.html">SegmentCollection</a></li><li><a href="SortableTitlePlugin.html">SortableTitlePlugin</a></li><li><a href="Virtualizer.html">Virtualizer</a></li><li><a href="VScrollbar.html">VScrollbar</a></li></ul><h3>Interfaces</h3><ul><li><a href="ILayoutGrid.html">ILayoutGrid</a></li></ul><h3>Events</h3><ul><li><a href="DataCache.html#event:dataChanged">dataChanged</a></li><li><a href="DataCache.html#event:dataComposed">dataComposed</a></li><li><a href="DataTable.html#event:dataChanged">dataChanged</a></li><li><a href="DataTable.html#event:dataComposed">dataComposed</a></li><li><a href="DataView.html#event:beforeFiltering">beforeFiltering</a></li><li><a href="DataView.html#event:beforeGroupAdded">beforeGroupAdded</a></li><li><a href="DataView.html#event:dataChanged">dataChanged</a></li><li><a href="DataView.html#event:groupAdded">groupAdded</a></li><li><a href="DataView.html#event:groupCriteriaChanged">groupCriteriaChanged</a></li><li><a href="DataView.html#event:pageCountChanged">pageCountChanged</a></li><li><a href="DataView.html#event:pageIndexChanged">pageIndexChanged</a></li><li><a href="DataView.html#event:preDisposed">preDisposed</a></li><li><a href="DragAndDropTitlePlugin.html#event:columnMoved">columnMoved</a></li><li><a href="DragAndDropTitlePlugin.html#event:dragged">dragged</a></li><li><a href="Grid.html#event:columnAdded">columnAdded</a></li><li><a href="Grid.html#event:columnRemoved">columnRemoved</a></li><li><a href="Grid.html#event:columnVisibilityChanged">columnVisibilityChanged</a></li><li><a href="Grid.html#event:dataSourceChanged">dataSourceChanged</a></li><li><a href="Grid.html#event:postSectionDataBinding">postSectionDataBinding</a></li><li><a href="Grid.html#event:rowExpansionBinding">rowExpansionBinding</a></li><li><a href="Grid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="Grid.html#event:sectionAdded">sectionAdded</a></li><li><a href="Grid.html#event:widthChanged">widthChanged</a></li><li><a href="HttpRequest.html#event:abort">abort</a></li><li><a href="HttpRequest.html#event:error">error</a></li><li><a href="HttpRequest.html#event:load">load</a></li><li><a href="HttpRequest.html#event:loadend">loadend</a></li><li><a href="HttpRequest.html#event:loadstart">loadstart</a></li><li><a href="HttpRequest.html#event:timeout">timeout</a></li><li><a href="LayoutGrid.html#event:rowCountChanged">rowCountChanged</a></li><li><a href="LayoutGrid.html#event:rowHeightChanged">rowHeightChanged</a></li><li><a href="LayoutGrid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="SortableTitlePlugin.html#event:clicked">clicked</a></li><li><a href="SortableTitlePlugin.html#event:columnSorted">columnSorted</a></li><li><a href="SortableTitlePlugin.html#event:preClicked">preClicked</a></li><li><a href="SortableTitlePlugin.html#event:preDataSorting">preDataSorting</a></li></ul><h3>Global</h3><ul><li><a href="global.html#get">get</a></li><li><a href="global.html#sortingDef%255B1%255D">sortingDef[1]</a></li></ul>
+</nav>
+
+
+<script src="scripts/linenumber.js"> </script>
+<script src="scripts/prettify.js"> </script>
+<script> prettyPrint(); </script>
+</body>
+</html>
