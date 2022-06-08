@@ -6,9 +6,9 @@
 
     <script src="scripts/prettify.js"> </script>
     <script src="scripts/lang-css.js"> </script>
-    <!--[if lt IE 9]&gt;
-      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
-    &lt;![endif]-->
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
     <link type="text/css" rel="stylesheet" href="styles/default.css">
     <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
 </head>
@@ -34,6 +34,7 @@ goog.require("tr.ILayoutGrid");
 
 goog.require("tr.grid.Cell");
 goog.require("tr.grid.Column");
+goog.require("tr.grid.VirtualItems");
 goog.require("tr.grid.SelectionList");
 goog.require("tr.grid.TrackLayout");
 goog.require("tr.grid.CellSpans");
@@ -79,6 +80,7 @@ tr.LayoutGrid = function (opt_initializer, opt_options) {
 	_t._topNode = new ElementWrapper(opt_initializer);
 	_t._topNode.setClass("tr-lg tr-even-shading");
 
+	_t._ctxRows = new grid.VirtualItems();
 	_t._columns = [];
 	_t._cells = [];
 	_t._highlightedCells = [];
@@ -276,6 +278,12 @@ tr.LayoutGrid.prototype._virOwner = null;
 */
 tr.LayoutGrid.prototype._transformIETimer = 0;
 
+/** @type {!tr.grid.VirtualItems}
+* @description Context rows act as a virtual column storing UI context or metadata for rows
+* @private
+*/
+tr.LayoutGrid.prototype._ctxRows;
+
 
 /**
  * {@link tr.IElementControl#dispose}
@@ -287,6 +295,7 @@ tr.LayoutGrid.prototype.dispose = function () {
 	this.unlistenAll();
 	//this.clearSelectedRows();
 
+	this._ctxRows.dispose();
 	for (var i = this._columns.length; --i &gt;= 0; ) {
 		this._columns[i].dispose();
 	}
@@ -1055,6 +1064,7 @@ tr.LayoutGrid.prototype.setRowCount = function (val, noBinding) {
 	this._trackY.setLaneCount(val); // Need to be set before syncing layout
 	this._rowCount = this._trackY.getLaneCount();
 
+	this._ctxRows.setItemCount(val);
 	for (c = 0; c &lt; this._colCount; ++c) {
 		this._columns[c].setCellCount(val);
 	}
@@ -1548,6 +1558,7 @@ tr.LayoutGrid.prototype.activateRows = function () {
  * @inheritDoc
  */
 tr.LayoutGrid.prototype.moveRowsToTop = function (numRows) {
+	this._ctxRows.moveItemsToTop(numRows);
 	for (var c = 0; c &lt; this._colCount; ++c) {
 		this._columns[c].moveCellsToTop(numRows);
 	}
@@ -2142,17 +2153,13 @@ tr.LayoutGrid.prototype.isColumnActive = function (colIndex) {
  * @inheritDoc
  */
 tr.LayoutGrid.prototype.setRowAttributes = function (rowIndex, func) {
-
 	if (rowIndex &lt; 0 || (rowIndex &gt;= this._rowCount)) {
 		return;
 	}
 
 	for (var c = 0; c &lt; this._colCount; ++c) {
-
 		var result = func(c);
-
 		for (var i = result.length; --i &gt;= 0;) {
-
 			var entry = result[i];
 			var cell = this._columns[c].getCell(rowIndex);
 
@@ -2166,9 +2173,15 @@ tr.LayoutGrid.prototype.setRowAttributes = function (rowIndex, func) {
 				cell.setAttribute(entry["attribute"], entry["value"]);
 			}
 		}
-
 	}
+};
 
+/** @public
+* @param {number} rowIndex
+* @return {Object}
+*/
+tr.LayoutGrid.prototype.getContextRow = function (rowIndex) {
+	return this._ctxRows.getItem(rowIndex);
 };
 
 /**
@@ -2750,7 +2763,8 @@ var methodMap = {
 	"reserveRightSpace": pt.reserveRightSpace,
 	"getReservedSpace": pt.getReservedSpace,
 	"getComputedStyle": pt.getComputedStyle,
-	"isColumnActive": pt.isColumnActive
+	"isColumnActive": pt.isColumnActive,
+	"getContextRow": pt.getContextRow
 };
 // Export methods for Closure's advanced compilation
 for(var methodName in methodMap) {

@@ -6,9 +6,9 @@
 
     <script src="scripts/prettify.js"> </script>
     <script src="scripts/lang-css.js"> </script>
-    <!--[if lt IE 9]&gt;
-      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
-    &lt;![endif]-->
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
     <link type="text/css" rel="stylesheet" href="styles/default.css">
     <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
 </head>
@@ -196,6 +196,10 @@ tr.grid.SortableTitlePlugin.prototype._sortableColumns = true;
 * @type {boolean}
 */
 tr.grid.SortableTitlePlugin.prototype._sortableIndicator = false;
+/** @private
+ * @type {boolean}
+ */
+ tr.grid.SortableTitlePlugin.prototype._solarTheme = false;
 /** Logic map based on field name
 * @private
 * @type {Object.&lt;string, Function&gt;}
@@ -330,8 +334,10 @@ tr.grid.SortableTitlePlugin.prototype.config = function (options) {
 		}
 	}
 	var themeName = options["themeName"];
-	if (themeName &amp;&amp; themeName.indexOf("halo") &gt;= 0) { // only for halo theme
-		t._sortableIndicator = true;
+	if (!themeName || themeName.indexOf("solar") &gt;= 0) {
+		t._solarTheme = true;
+	} else {
+		t._solarTheme = false;
 	}
 
 	t._initialSort = t._initialSortByColumnField(options);
@@ -1545,8 +1551,8 @@ tr.grid.SortableTitlePlugin.prototype._updateSortableIndicator = function (hostI
 
 	var section = host.getSection(tr.res.title);
 	if (section === null) { return; }
-
-	for (var col = section["getColumnCount"](); --col &gt;= 0;) {
+	var sectionCount = section["getColumnCount"]();
+	for (var col = sectionCount; --col &gt;= 0;) {
 
 		var rowCount = section["getRowCount"]();
 		for (var r = 0; r &lt; rowCount; r++) {
@@ -1557,6 +1563,9 @@ tr.grid.SortableTitlePlugin.prototype._updateSortableIndicator = function (hostI
 			// Clear all sorting icons
 			cell["removeClass"]("sorting");
 			cell["removeClass"]("sortable");
+			cell["removeClass"]("asc");
+			cell["removeClass"]("desc");
+			cell["removeClass"]("edge-indicator");
 			cell["removeFloatingIcon"]("sort-symbol");
 			cell["removeFloatingIcon"]("priority-symbol");
 			cell["removeFloatingIcon"]("sortable-indicator");
@@ -1570,8 +1579,7 @@ tr.grid.SortableTitlePlugin.prototype._updateSortableIndicator = function (hostI
 			var state = t._sortStates[priority];
 
 			var isSorting = state &amp;&amp; state["sortOrder"] !== "n";
-			var textContent, icon, symbol;
-
+			var symbol, icon;
 			if (isSorting) {
 				if (!state["targetCells"]) {
 					state["targetCells"] = [];
@@ -1580,24 +1588,35 @@ tr.grid.SortableTitlePlugin.prototype._updateSortableIndicator = function (hostI
 				state["targetCells"][hostIndex] = cell; // NOTE: This can be improved.
 
 				if (state["sortOrder"] === "a") {
-					textContent = CODE_UP;
-					icon = tr.grid.SortableTitlePlugin._icons["ascending"];
+					cell["addClass"]("asc");
 				} else {
-					textContent = CODE_DOWN;
-					icon = tr.grid.SortableTitlePlugin._icons["descending"];
+					cell["addClass"]("desc");
 				}
-
-				symbol = t._createIconElem(icon, textContent);
-				symbol.className = "sort-symbol";
-
 				cell["addClass"]("sorting");
-				cell["insertFloatingIcon"](symbol, 0);
 
-				if (t._sortStates.length &gt; 1) {
-					symbol = document.createElement("span");
-					symbol.className = "priority-symbol";
-					symbol.textContent = priority + 1;
-					cell["insertFloatingIcon"](symbol, 1);
+				if(t._solarTheme) { // Insert icon when use solar theme
+					var textContent;
+
+					if (state["sortOrder"] === "a") {
+						textContent = CODE_UP;
+						icon = tr.grid.SortableTitlePlugin._icons["ascending"];
+					} else {
+						textContent = CODE_DOWN;
+						icon = tr.grid.SortableTitlePlugin._icons["descending"];
+					}
+	
+					symbol = t._createIconElem(icon, textContent);
+					symbol.className = "sort-symbol";
+					cell["insertFloatingIcon"](symbol, 0);
+
+					if (t._sortStates.length &gt; 1) {
+						symbol = document.createElement("span");
+						symbol.className = "priority-symbol";
+						symbol.textContent = priority + 1;
+						cell["insertFloatingIcon"](symbol, 1);
+					}
+				} else {
+					cell["addClass"]("edge-indicator");
 				}
 			} else if (t._sortableIndicator) { // Can sort but currently not sorting
 				icon = tr.grid.SortableTitlePlugin._icons["sortable"];

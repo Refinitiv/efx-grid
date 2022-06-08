@@ -6,9 +6,9 @@
 
     <script src="scripts/prettify.js"> </script>
     <script src="scripts/lang-css.js"> </script>
-    <!--[if lt IE 9]&gt;
-      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
-    &lt;![endif]-->
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
     <link type="text/css" rel="stylesheet" href="styles/default.css">
     <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
 </head>
@@ -219,9 +219,9 @@ tr.DataView.prototype._groupMembers = null; // Map of immediate child data views
 * @type {Array.&lt;string&gt;}
 */
 tr.DataView.prototype._groupList = null; // List of immediate child's ids
-/** Contains all descendant rows
+/** A map object that contains all groups with key is group row id and value is the group DataView
 * @private
-* @type {tr.DataCache}
+* @type {Object.&lt;string, tr.DataView&gt;}
 */
 tr.DataView.prototype._groupRows = null; // Shared between groups
 /** @private
@@ -1162,7 +1162,7 @@ tr.DataView.prototype.groupBy = function (cid, opt_predefinedGroups) {
 		if(!this._groupMembers) {
 			this._groupMembers = {};
 			this._groupList = [];
-			this._groupRows = new DataCache();
+			this._groupRows = {};
 		}
 		if(!this._groupView) {
 			this._groupView = [];
@@ -1172,17 +1172,16 @@ tr.DataView.prototype.groupBy = function (cid, opt_predefinedGroups) {
 		this._groupList = null;
 		this._groupView = null;
 		if(this._groupRows) { // this._groupRows is a shared member
-			if(this._groupLevel &lt;= 0) { // Only the root view can dispose _groupRows
-				this._groupRows.dispose();
+			if(this._groupLevel &lt;= 0) {
 				this._footerRowIds = null;
 			} else {
 				if(this._groupRowId) {
-					this._groupRows.setRowData(this._groupRowId);
+					delete this._groupRows[this._groupRowId];
 				}
 				if(this._footerRowIds) {
 					len = this._footerRowIds.length;
 					for(i = 0; i &lt; len; ++i) {
-						this._groupRows.setRowData(this._footerRowIds[i]);
+						delete this._groupRows[this._footerRowIds[i]];
 					}
 					this._footerRowIds = null;
 				}
@@ -1342,7 +1341,7 @@ tr.DataView.prototype.addFooter = function (opt_num) {
 	for(var i = 0; i &lt; opt_num; ++i) {
 		var footerRowId = this._groupRowId + "_footer" + (this._footerRowIds.length || "");
 		this._footerRowIds.push(footerRowId);
-		this._groupRows.setData(footerRowId, "DataView", this);
+		this._groupRows[footerRowId] = this;
 	}
 
 	if(!this._beingAdded) {
@@ -1356,7 +1355,7 @@ tr.DataView.prototype.removeFooter = function () {
 	if(this._footerRowIds) {
 		var len = this._footerRowIds.length;
 		for(var i = 0; i &lt; len; ++i) {
-			this._groupRows.setRowData(this._footerRowIds[i]);
+			delete this._groupRows[this._footerRowIds[i]];
 		}
 		this._footerRowIds = null;
 
@@ -1374,10 +1373,25 @@ tr.DataView.prototype.removeFooter = function () {
 tr.DataView.prototype.enableMultiGroup = function(enabled) {
 	this._shared.multiGroupRow = enabled !== false;
 };
-/** Get the corresponding data view from the given groupId, rowId or index reference
+/** Get a group DataView by group row id. If content row id is given, null is returned (unlike getGroup method).&lt;br&gt;
+* Nested groups and other groups outside of this group branch will be searched.
 * @public
-* @param {number|string} groupRef Either index, group id, groupRef or row id can be used to retrieve tr.DataView
+* @param {string} rowId Group Id, row Id or group index (for immediate child groups)
 * @return {tr.DataView}
+* @see {@link tr.DataView#getGroup}
+*/
+tr.DataView.prototype.getGroupByRowId = function (rowId) {
+	if(this._groupRows) {
+		return this._groupRows[rowId] || null;
+	}
+	return null;
+};
+/** Get a corresponding DataView by the given group Id, row Id or group index. If row Id of content row is given, a parent group will be returned. &lt;br&gt;
+* Nested groups and other groups outside of this group branch will be searched.
+* @public
+* @param {number|string} groupRef Group Id, row Id or group index (for immediate child groups)
+* @return {tr.DataView}
+* @see {@link tr.DataView#getGroupByRowId}
 */
 tr.DataView.prototype.getGroup = function (groupRef) {
 	if(!this._groupMembers) {
@@ -1386,21 +1400,50 @@ tr.DataView.prototype.getGroup = function (groupRef) {
 	var groupId;
 	if(typeof groupRef === "number") {
 		groupId = this._groupList[groupRef];
-		if(groupId == null) {
+		if(!groupId) {
 			return null;
 		}
 	} else {
 		groupId = groupRef + ""; // Convert to string
 	}
+
+	// Search immediate child groups by group Id
 	var dv = this._groupMembers[groupId];
-	if(!dv) { // When can not get group from level 1 try to find in children group
-		dv = /** @type{tr.DataView} */(this._groupRows.getData(groupId, "DataView"));
+	if(dv) {
+		return dv;
 	}
 
-	if(!dv) { // When can not get group from groupId try to get children
-		dv = /** @type{tr.DataView} */(this._getGroupByRowId(groupId)); // Slow recursive function
+	// A group cannot be found by group Id. It is now assumed to be row id
+	var rowId = groupId;
+	dv = this._groupRows[rowId]; // Groups of any level will be searched
+	if(dv) {
+		return dv;
 	}
-	return dv || null;
+
+	// The given row id is not a group row. Check if it is actually content row of this group
+	return this._getGroupByContentRowId(rowId); // Slow recursive function
+};
+/** Get group of this data view by content row id. Group outside of this group branch is NOT searched
+* @private
+* @param {string} rowId
+* @return {tr.DataView} Group of rowId that given
+*/
+tr.DataView.prototype._getGroupByContentRowId = function (rowId) {
+	if(this._groupMembers) {
+		for (var i = 0; i &lt; this._groupList.length; i++) {
+			var groupId = this._groupList[i];
+			var grp = this._groupMembers[groupId];
+			var childGroup = grp._getGroupByContentRowId(rowId);
+			if(childGroup) {
+				return childGroup;
+			}
+		}
+	} else { // Last childGroup
+		if(this._rids.indexOf(rowId) !== -1) {
+			return this; // return group if match with rowId
+		}
+	}
+	return null;
 };
 /** Get all group descendants
 * @public
@@ -1433,28 +1476,6 @@ tr.DataView.prototype.getGroupList = function () {
 */
 tr.DataView.prototype.getGroupId = function () {
 	return this._groupId;
-};
-/** Get group of this data view from rowId
-* @public
-* @param {string} rowId
-* @return {tr.DataView|null} Group of rowId that given
-*/
-tr.DataView.prototype._getGroupByRowId = function (rowId ) {
-	if(this._groupMembers) {
-		for (var i = 0; i &lt; this._groupList.length; i++) {
-			var groupId = this._groupList[i];
-			var grp = this._groupMembers[groupId];
-			var childGroup = grp._getGroupByRowId(rowId);
-			if(childGroup) {
-				return childGroup;
-			}
-		}
-	} else { // Last childGroup
-		if(this._rids.indexOf(rowId) !== -1) {
-			return this; // return group if match with rowId
-		}
-	}
-	return null;
 };
 /** Get group value (any data type) of this data view. Only exists if this data view is a child data view
 * @public
@@ -1500,12 +1521,13 @@ tr.DataView.prototype.getFooterRowIds = function () {
 tr.DataView.prototype.hasGroup = function () {
 	return (this._groupMembers) ? true : false;
 };
-/** Contains header and footer row data
+/** Deprecated in favor of getGroupByRowId
 * @public
-* @return {tr.DataCache}
+* @return {null}
+* @see {@link DataView#getGroupByRowId}
 */
 tr.DataView.prototype.getGroupRows = function () {
-	return this._groupRows;
+	return null;
 };
 /** Get group level of the corresponding row. If the given index is not specified, header row (the view itself) is used instead. Group level 0 means it is the root data view.
 * @public
@@ -1513,20 +1535,20 @@ tr.DataView.prototype.getGroupRows = function () {
 * @return {number}
 */
 tr.DataView.prototype.getGroupLevel = function (rowRef) {
-	if(rowRef != null) {
-		if(typeof rowRef === 'number'){
+	if(rowRef != null &amp;&amp; this._groupRows) {
+		if(typeof rowRef === 'number'){ // TODO: Change logic to acquire row id from row index instead
 			this._rebuildRowIdsFromChildren();
 			var rids = this._getRids(); // TODO : Should include hidden rows
 			var rid = rids[rowRef];
 			while(rid) {
-				var dv = this._groupRows.getData(rid, "DataView");
+				var dv = this._groupRows[rid];
 				if(dv) {
 					return dv._groupLevel;
 				}
 				rid = rids[--rowRef];
 			}
 		} else {
-			var currentGroup = this.getGroup(rowRef); // Slow becuase recursive 
+			var currentGroup = this.getGroup(rowRef); // Slow becuase recursive
 			if(currentGroup) {
 				return currentGroup._groupLevel;
 			}
@@ -2249,10 +2271,7 @@ tr.DataView.prototype.setSegmentSeparator = function(rowRef, enabled) {
 	if(typeof rowRef === "number") {
 		rowId = this.getRowId(rowRef);
 	} else if(typeof rowRef === "string") {
-		var rowIndex = this._getRowIndex(this._getRids(), rowRef);
-		if(rowIndex &gt;= 0) { // Only visible row can be set as segment separator
-			rowId = rowRef;
-		}
+		rowId = rowRef; // WARNING: Invisible row id can still be set as segment separator as long as it is in the data table
 	}
 
 	if(rowId) {
@@ -2287,7 +2306,14 @@ tr.DataView.prototype.hasSegmentation = function() {
 tr.DataView.prototype.isSegmentSeparator = function(rid) {
 	return this._dt.isSegmentSeparator(rid);
 };
-
+/**
+* @public
+* @param {string} rid
+* @return {string} parent row id of this segmentation. If the parent row id for this segmentation cannot be found, return ""
+*/
+tr.DataView.prototype.getSegmentParentRowId = function(rid) {
+	return this._dt.getSegmentParentRowId(rid);
+};
 /** @public
 * @param {string|number} rowRef Row id or row index
 * @param {boolean=} collapsed
@@ -3520,7 +3546,7 @@ tr.DataView.prototype._addGroup = function (value) {
 
 	this._groupMembers[groupId] = member;
 	this._groupList.push(groupId);
-	this._groupRows.setData(member._groupRowId, "DataView", member);
+	this._groupRows[member._groupRowId] = member;
 
 	if(!this._hidden) {
 		if (member._isHeaderRowShown()) {
@@ -3723,6 +3749,7 @@ var methodMap = {
 	"getFooterRowIndex": pt.getFooterRowIndex,
 
 	"enableMultiGroup": pt.enableMultiGroup,
+	"getGroupByRowId": pt.getGroupByRowId,
 	"getGroup": pt.getGroup,
 	"getAllGroups": pt.getAllGroups,
 	"getGroupList": pt.getGroupList,
@@ -3772,6 +3799,7 @@ var methodMap = {
 	"unsetAllSegmentSeparators": pt.unsetAllSegmentSeparators,
 	"hasSegmentation": pt.hasSegmentation,
 	"isSegmentSeparator": pt.isSegmentSeparator,
+	"getSegmentParentRowId": pt.getSegmentParentRowId,
 
 	"collapseSegment": pt.collapseSegment,
 	"expandSegment": pt.expandSegment,

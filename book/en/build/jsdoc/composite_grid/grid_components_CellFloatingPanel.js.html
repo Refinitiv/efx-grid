@@ -6,9 +6,9 @@
 
     <script src="scripts/prettify.js"> </script>
     <script src="scripts/lang-css.js"> </script>
-    <!--[if lt IE 9]&gt;
-      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
-    &lt;![endif]-->
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
     <link type="text/css" rel="stylesheet" href="styles/default.css">
     <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
 </head>
@@ -33,8 +33,8 @@ goog.require("tr.ElementWrapper");
 * @implements {tr.IElementControl}
 */
 tr.grid.CellFloatingPanel = function () {
-    this._items = [];
-    this._element = null;
+	this._items = [];
+	this._element = null;
 };
 goog.inherits(tr.grid.CellFloatingPanel, tr.ElementWrapper);
 
@@ -47,18 +47,18 @@ tr.grid.CellFloatingPanel.prototype._items = [];
  * @returns {boolean}
 */
 tr.grid.CellFloatingPanel.prototype.hasItem = function () {
-    return !!this._items.length;
+	return !!this._items.length;
 };
 /** @public
 * @param {Element} item
 * @param {number=} opt_order The greater the order, the farther the position to the right
 */
 tr.grid.CellFloatingPanel.prototype.insertItem = function (item, opt_order) {
-    var items = this._items;
+	var items = this._items;
 	if(items.indexOf(item) &gt; -1) {
 		return; // There is no need to insert the same icon
-    }
-    items.push(item);
+	}
+	items.push(item);
 
 	// Ordering icons
 	if(opt_order) {
@@ -66,50 +66,50 @@ tr.grid.CellFloatingPanel.prototype.insertItem = function (item, opt_order) {
 	}
 	if (items.length) {
 		items.sort(tr.grid.CellFloatingPanel._iconComparer);
-    }
-    this._updatePanelItems();
+	}
+	this._updatePanelItems();
 };
 /** @public
 * @param {(Element|string)=} elemRef This can be the element or className (string) of the icon. If not specified, the last item will be remove.
 * @return {Element|null} removed element
 */
 tr.grid.CellFloatingPanel.prototype.removeItem = function (elemRef) {
-    var items = this._items;
-    var targetIndex = -1;
-    if (!elemRef) {
-        targetIndex = items.length - 1;
-    } else {
-        for(var i = items.length; --i &gt;= 0;) {
-            var ch = items[i];
-            if (typeof elemRef === "string") {
-                if(ch.classList.contains(elemRef)) {
-                    targetIndex = i;
-                    break;
-                }
-            } else {
-                if (ch === elemRef) {
-                    targetIndex = i;
-                    break;
-                }
-            }
-        }
-    }
-    var removedItem = null;
-    if (targetIndex &gt; -1) {
-        removedItem = items.splice(targetIndex, 1)[0];
-    }
-    this._updatePanelItems();
-    return removedItem;
+	var items = this._items;
+	var targetIndex = -1;
+	if (!elemRef) {
+		targetIndex = items.length - 1;
+	} else {
+		for(var i = items.length; --i &gt;= 0;) {
+			var ch = items[i];
+			if (typeof elemRef === "string") {
+				if(ch.classList.contains(elemRef)) {
+					targetIndex = i;
+					break;
+				}
+			} else {
+				if (ch === elemRef) {
+					targetIndex = i;
+					break;
+				}
+			}
+		}
+	}
+	var removedItem = null;
+	if (targetIndex &gt; -1) {
+		removedItem = items.splice(targetIndex, 1)[0];
+	}
+	this._updatePanelItems();
+	return removedItem;
 };
 /** @public
 */
 tr.grid.CellFloatingPanel.prototype.clearItems = function () {
-    var items = this._items;
-    if (!items.length) {
-        return;
-    }
-    items.length = 0;
-    this._updatePanelItems();
+	var items = this._items;
+	if (!items.length) {
+		return;
+	}
+	items.length = 0;
+	this._updatePanelItems();
 };
 
 /** @private
@@ -129,37 +129,37 @@ tr.grid.CellFloatingPanel._iconComparer = function(elemA, elemB) {
 /** @private
 */
 tr.grid.CellFloatingPanel.prototype._updatePanelItems = function() {
-    var items = this._items;
-    var elem = this._element;
-    if (!items.length) {
-        return;
-    }
-    if (!this._element) {
-        elem = this._element = document.createElement("div");
-    }
-    while (elem.lastChild) {
-        elem.removeChild(elem.lastChild);
-    }
-    for (var i = 0; i &lt; items.length; i++) {
-        elem.appendChild(items[i]);
-    }
+	var items = this._items;
+	var elem = this._element;
+	if (!items.length) {
+		return;
+	}
+	if (!this._element) {
+		elem = this._element = document.createElement("div");
+	}
+	while (elem.lastChild) {
+		elem.removeChild(elem.lastChild);
+	}
+	for (var i = 0; i &lt; items.length; i++) {
+		elem.appendChild(items[i]);
+	}
 };
 
 goog.exportSymbol("tr.grid.CellFloatingPanel", tr.grid.CellFloatingPanel);
 (function() {
 var pt = tr.grid.CellFloatingPanel.prototype;
 var methodMap = {
-    "hasItem": pt.hasItem,
-    "removeItem": pt.removeItem,
-    "insertItem": pt.insertItem,
-    "clearItems": pt.clearItems
+	"hasItem": pt.hasItem,
+	"removeItem": pt.removeItem,
+	"insertItem": pt.insertItem,
+	"clearItems": pt.clearItems
 };
 // Export methods for Closure's advanced compilation
 for(var methodName in methodMap) {
-    goog.exportProperty(pt, methodName, methodMap[methodName]);
+	goog.exportProperty(pt, methodName, methodMap[methodName]);
 }
 })();
-    </code></pre>
+	</code></pre>
         </article>
     </section>
 

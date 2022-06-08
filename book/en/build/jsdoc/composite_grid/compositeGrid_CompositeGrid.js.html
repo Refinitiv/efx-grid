@@ -6,9 +6,9 @@
 
     <script src="scripts/prettify.js"> </script>
     <script src="scripts/lang-css.js"> </script>
-    <!--[if lt IE 9]&gt;
-      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
-    &lt;![endif]-->
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
     <link type="text/css" rel="stylesheet" href="styles/default.css">
     <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
 </head>
@@ -204,6 +204,11 @@ tr.CompositeGrid.prototype._dataView = null;
  * @type {Object}
  */
 tr.CompositeGrid.prototype._model = null;
+/**
+ * @private
+ * @type {Object}
+ */
+tr.CompositeGrid.prototype._rowExpansionRenderer = null;
 
 /**
  * @private
@@ -2663,6 +2668,14 @@ tr.CompositeGrid.prototype._initialize = function (gridElem, model) {
 
 		this._updateTotalPage();
 	}
+	
+	var rowExpansionModel = this._model["rowExpansion"];
+	if(rowExpansionModel != null) {
+		this._rowExpansionRenderer = rowExpansionModel["renderer"] || null;
+		if(this._rowExpansionRenderer) {
+			this._grid.listen("rowExpansionBinding", this._rowExpansionBindingHandler);
+		}
+	}
 
 	// Initialize all the columns
 
@@ -2854,7 +2867,6 @@ tr.CompositeGrid.prototype._initialize = function (gridElem, model) {
 	this._grid.listen("click", this._mouseClickHandler);
 	this._grid.listen("contextmenu", this._contextMenuHandler);
 	this._grid.listen("columnMoved", this._columnMovedHandler);
-	this._grid.listen("rowExpansionBinding", this._rowExpansionBindingHandler);
 	this._sortPlugIn.listen("columnSorted", this._columnSortedHandler);
 
 	// Process Extension Point
@@ -4296,26 +4308,12 @@ tr.CompositeGrid.prototype._dataChangedHandler = function (e) {
  * @param {Object} e
  */
 tr.CompositeGrid.prototype._rowExpansionBindingHandler = function (e) {
-	var model = this._model["rowExpansion"];
-	if (model) {
-		var renderer = model["renderer"];
-
-		if(renderer) {
-			this._renderRowExpansion(
-				e["rowExpansion"] ? renderer["bind"] : renderer["dispose"],
-				e
-			);
+	var renderer = this._rowExpansionRenderer;
+	if(renderer) {
+		var method = e["rowExpansion"] ? renderer["bind"] : renderer["dispose"];
+		if(method) {
+			method(e["section"], e["originalRowData"], e["dataSource"], e["rowId"], e["rowIndex"], this);
 		}
-	}
-};
-/**
- * @private
- * @param {Function} method
- * @param {Object} e
- */
-tr.CompositeGrid.prototype._renderRowExpansion = function (method, e) {
-	if(method) {
-		method(e["section"], e["originalRowData"], e["dataSource"], e["rowId"], e["rowIndex"], this);
 	}
 };
 

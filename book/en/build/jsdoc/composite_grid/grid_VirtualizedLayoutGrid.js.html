@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: grid/VirtualizedLayoutGrid.js</title>
+
+    <script src="scripts/prettify.js"> </script>
+    <script src="scripts/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/default.css">
+    <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
+</head>
+
+<body>
+
+<div id="main-template" class="elf-template">
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>goog.provide("tr.grid.VirtualizedLayoutGrid");
+
+goog.require("tr.res");
+goog.require("tr.IElementControl");
+goog.require("tr.ElementControl");
+goog.require("tr.ElementWrapper");
+
+goog.require("tr.ILayoutGrid");
+goog.require("tr.LayoutGrid");
+
+goog.require("tr.grid.TrackLayout");
+goog.require("tr.grid.SelectionList");
+goog.require("tr.grid.Reverter");
+
+/** @constructor
+ * @ignore
+ * @param {Element|null=} opt_initializer this can be either element id (string) or DOM element.
+ * @param {string=} opt_className
+ * @implements {tr.ILayoutGrid}
+ * @extends {tr.ElementControl}
+*/
+tr.grid.VirtualizedLayoutGrid = function (opt_initializer, opt_className) {
+	var _t = this;
+	_t._onRestingPosition = _t._onRestingPosition.bind(_t);
+
+	_t._topNode = new ElementWrapper(opt_initializer);
+	_t._topNode.setClass("tr-vlg");
+	if(opt_className) { _t.enableClass(/** @type{string} */(opt_className), true); }
+
+	_t._grid = new LayoutGrid(null, {"owner": this});
+	_t._grid.setParent(_t._topNode);
+
+	_t._layoutY = new grid.TrackLayout();
+	_t._selectionList =  new grid.SelectionList();
+	_t._reverter = new grid.Reverter(_t._onRestingPosition, 200); // WORKAROUND: GRID-402
+
+	_t._addEvent("rowHighlighted");
+	_t._addEvent("rowCountChanged");
+	_t._addEvent("rowHeightChanged");
+	_t._addEvent("rowAvailable");
+};
+goog.inherits(tr.grid.VirtualizedLayoutGrid, tr.ElementControl);
+
+
+/** For virtualization in Y-Axis
+ * @private
+ * @type {number}
+ */
+tr.grid.VirtualizedLayoutGrid.prototype._index = -1;
+
+/**
+ * @private
+ * @type {number}
+ */
+tr.grid.VirtualizedLayoutGrid.prototype._indexOffset = 0;
+
+/**
+ * @private
+ * @type {number}
+ */
+tr.grid.VirtualizedLayoutGrid.prototype._firstIndex = 0;
+
+/** @private
+* @type {!tr.LayoutGrid}
+*/
+tr.grid.VirtualizedLayoutGrid.prototype._grid;
+
+/** @private
+* @type {!tr.grid.TrackLayout}
+*/
+tr.grid.VirtualizedLayoutGrid.prototype._layoutY;
+
+/** @private
+ * @type {tr.grid.SelectionList}
+ */
+tr.grid.VirtualizedLayoutGrid.prototype._selectionList = null;
+
+/** @type {tr.grid.Reverter}
+ * @private
+ */
+tr.grid.VirtualizedLayoutGrid.prototype._reverter = null;
+
+//#region ====== Override ElementControl ======//
+/** @override */
+tr.grid.VirtualizedLayoutGrid.prototype.getWidth = function () {
+	if(this.isVisible()) {
+		return this._grid.getWidth();
+	}
+	return 0;
+};
+/** @override */
+tr.grid.VirtualizedLayoutGrid.prototype.getHeight = function () {
+	if (this.isVisible()) {
+		return this._topNode.getHeight();
+	}
+	return 0;
+};
+/** @override */
+tr.grid.VirtualizedLayoutGrid.prototype.dispose = function () {
+	this.setRowCount(0); // Fire rowCountChanged
+	this.unlistenAll();
+
+	this._grid.dispose();
+	this._topNode.dispose();
+	this._reverter.dispose();
+};
+/** @override */
+tr.grid.VirtualizedLayoutGrid.prototype.setWidth = function (px) {
+	return this._grid.setWidth(px);
+};
+/** @override */
+tr.grid.VirtualizedLayoutGrid.prototype.setHeight = function (px) {
+	console.log(tr.res.unsupported);
+	return false;
+};
+/** {@link tr.IElementControl#show}
+* @override */
+tr.grid.VirtualizedLayoutGrid.prototype.show = function (opt_shown) {
+	this._topNode.show(opt_shown);
+	this._dispatchRowHeightChangedEvent(0, this._layoutY.getLaneCount());
+};
+//#endregion
+
+//#region ====== Implementing ILayoutGrid ======//
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.hitTest = function (x, y) {
+	var e = [];
+	e[tr.res.colIndex] = this._grid.hitTestX(x);
+	e[tr.res.rowIndex] = this._layoutY.hitTest(y);
+	return e;
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.hitTestX = function (x) {
+	return this._grid.hitTestX(x);
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.hitTestY = function (y) {
+	return this._layoutY.hitTest(y);
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getDefaultColumnWidth = function () {
+	return this._grid.getDefaultColumnWidth();
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.setDefaultColumnWidth = function (val) {
+	this._grid.setDefaultColumnWidth(val);
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getDefaultRowHeight = function () {
+	return this._layoutY.getDefaultLaneSize();
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.setDefaultRowHeight = function (val) {
+	var prevVal = this._layoutY.getDefaultLaneSize();
+	if (prevVal !== val) {
+		this._layoutY.setDefaultLaneSize(val);
+		this._topNode.setHeight(this._layoutY.getTrackSize());
+		this._grid.setDefaultRowHeight(val);
+		this._dispatchRowHeightChangedEvent(0, this._layoutY.getLaneCount());
+	}
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getColumnWidth = function (index) {
+	return this._grid.getColumnWidth(index);
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.setColumnWidth = function (index, val) {
+	return this._grid.setColumnWidth(index, val);
+};
+/** @public
+ * @ignore
+ * @param {number} indexX
+ * @param {number} val
+ * @return {boolean}
+ */
+tr.grid.VirtualizedLayoutGrid.prototype._setColumnWidth = function (indexX, val) {
+	return this._grid._setColumnWidth(indexX, val);
+};
+/** @public
+ * @ignore
+ */
+tr.grid.VirtualizedLayoutGrid.prototype._updateColumnLayout = function () {
+	return this._grid._updateColumnLayout();
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getRowHeight = function (index) {
+	return this._layoutY.getLaneSize(index);
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.setRowHeight = function (index, val) {
+	if(this._layoutY.setLaneSize(index, val)) {
+		this._grid.setRowHeight(index - this._firstIndex, val);
+		this._topNode.setHeight(this._layoutY.getTrackSize());
+		return this._dispatchRowHeightChangedEvent(index, index + 1);
+	}
+	return false;
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.isColumnVisible = function (index) {
+	return this._grid.isColumnVisible(index);
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.hideColumn = function (index, val) {
+	return this._grid.hideColumn(index, val);
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.isRowVisible = function (index) {
+	return this._grid.isRowVisible(index - this._firstIndex);
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.hideRow = function (index, val) {
+	return this._grid.hideRow(index - this._firstIndex, val);
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getMinimumColumnWidth = function (index) {
+	return this._grid.getMinimumColumnWidth(index);
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.setMinimumColumnWidth = function (index ,val) {
+	return this._grid.setMinimumColumnWidth(index, val);
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getMinimumRowHeight = function (index) {
+	return this._layoutY.getMinimumLaneSize(index);
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.setMinimumRowHeight = function (index, val) {
+	console.log(tr.res.unsupported);
+	return false;
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getCellLeft = function (indexX) {
+	return this._grid.getCellLeft(indexX);
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getCellTop = function (indexY) {
+	return this._layoutY.getLaneStart(indexY);
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getCellWidth = function (indexX, indexY) {
+	return this._grid.getCellWidth(indexX, 0); //In virtualization, every cell in the same column has the same width
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getCellHeight = function (indexX, indexY) {
+	return this._layoutY.getLaneSize(indexY); //In virtualization, every cell in the same row has the same height
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.hasCellSpan = function () {
+	return this._grid.hasCellSpan();
+};
+//Not support row spanning in virtualization
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getCellRowSpan = function (indexX, indexY) {
+	return this._grid.getCellRowSpan(indexX, indexY - this._firstIndex);
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.setCellRowSpan = function (indexX, indexY, rowSpan) {
+	return this._grid.setCellRowSpan(indexX, indexY - this._firstIndex, rowSpan);
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getCellColSpan = function (indexX, indexY) {
+	return this._grid.getCellColSpan(indexX, indexY - this._firstIndex);
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.setCellColSpan = function (indexX, indexY, colSpan) {
+	return this._grid.setCellColSpan(indexX, indexY - this._firstIndex, colSpan);
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.clearCellSpans = function () {
+	return this._grid.clearCellSpans();
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.clearColumnSpans = function (indexX) {
+	return this._grid.clearColumnSpans(indexX);
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.clearColumnCustomizations = function () {
+	this._grid.clearColumnCustomizations();
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.clearRowCustomizations = function () {
+	this._layoutY.clearLaneCustomizations();
+	this._grid.clearRowCustomizations();
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getColumnScalability = function (indexX) {
+	return this._grid.getColumnScalability(indexX);
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.setColumnScalability = function (indexX, val) {
+	return this._grid.setColumnScalability(indexX, val);
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getRowScalability = function (indexY) {
+	return this._layoutY.getLaneScalability(indexY);
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.setRowScalability = function (index, val) {
+	console.log(tr.res.unsupported);
+	return false;
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getCell = function (indexX, indexY, opt_includeSpan) {
+	return this._grid.getCell(indexX, indexY - this._firstIndex, opt_includeSpan);
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getCellContent = function (indexX, indexY) {
+	return this._grid.getCellContent(indexX, indexY - this._firstIndex);
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.setCellContent = function (indexX, indexY, data) {
+	return this._grid.setCellContent(indexX, indexY - this._firstIndex, data);
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getColumnCount = function () {
+	return this._grid.getColumnCount();
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.setColumnCount = function (val) {
+	this._grid.setColumnCount(val);
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getRowCount = function () {
+	return this._layoutY.getLaneCount();
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.setRowCount = function (val, noBinding) {
+	var prevCount = this._layoutY.getLaneCount();
+	if(prevCount !== val){
+		this._layoutY.setLaneCount(val);
+		this._topNode.setHeight(this._layoutY.getTrackSize());
+		//After rowCountChanged fires, virtualizer will update virtual row count if
+		//the range of virtual layout changed.
+		this._dispatch("rowCountChanged", { "rowCount":val, "prevCount":prevCount, "noBinding": noBinding });
+	}
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getVisibleRowCount = function () {
+	return this.getRowCount();
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.addRow = function (val) {
+	if (val &lt;= 0) { return; }
+	if (this._grid.getColumnCount() &lt;= 0) {
+		console.log("WARNING: Row cannot be added, unless at least one column is added");
+		return;
+	}
+	this.setRowCount(this._layoutY.getLaneCount() + val);
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.removeRow = function (val) {
+	if (val &lt;= 0) { return; }
+	var rowCount = this._layoutY.getLaneCount();
+	if (val &gt; rowCount) { val = rowCount; }
+	this.setRowCount(rowCount - val);
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.setBorders = function (lft, top, rgt, btm) {
+	this._topNode.setBorders(lft, top, rgt, btm);
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getColumnStyle = function (colIndex, styleName) {
+	return this._grid.getColumnStyle(colIndex, styleName);
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.setColumnStyle = function (colIndex, styleName, value) {
+	this._grid.setColumnStyle(colIndex, styleName, value);
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.enableColumnClass = function (colIndex, className, enabled) {
+	this._grid.enableColumnClass(colIndex, className, enabled);
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.hasColumnClass = function (colIndex, className) {
+	return this._grid.hasColumnClass(colIndex, className);
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.enableRowClass = function (rowIndex, className, enabled) {
+	this._grid.enableRowClass(rowIndex - this._firstIndex, className, enabled);
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.setRowStyle = function (rowIndex, styleName, value, enabled) {
+	this._grid.setRowStyle(rowIndex - this._firstIndex, styleName, value, enabled);
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getRelativePosition = function (obj) {
+	// TODO: Adjust the row index from the results
+	return this._topNode.getRelativePosition(obj);
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getContentWidth = function () {
+	return this._grid.getContentWidth();
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getContentHeight = function () {
+	return this._layoutY.getTrackSize();
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getCellsByRowIndex = function(rowIndex) {
+	return this._grid.getCellsByRowIndex(rowIndex - this._firstIndex);
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.disableHorizontalGridLine = function (opt_bool) {
+	this._grid.disableHorizontalGridLine(opt_bool);
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.disableVerticalGridLine = function (opt_bool) {
+	this._grid.disableVerticalGridLine(opt_bool);
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.enableShading = function (enabled) {
+	this._grid.enableShading(enabled);
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.setTransposedShading = function (enabled) {
+	this._grid.setTransposedShading(enabled);
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.enableRowHighlighting = function (opt_bool) {
+	this._grid.enableRowHighlighting(opt_bool);
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getRowHighlight = function () {
+	var index = this._grid.getRowHighlight();
+	if(index &gt;= 0){
+		index += this._firstIndex;
+	}
+	return index;
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.setRowHighlight = function (rowIndex) {
+	var prevIndex = this._grid.getRowHighlight();
+	if (prevIndex &gt;= 0) { prevIndex += this._firstIndex; }
+	this._grid.setRowHighlight(rowIndex - this._firstIndex);
+	//Check row highligh is in view
+	rowIndex = this._grid.getRowHighlight();
+	if (rowIndex &gt;= 0) { rowIndex += this._firstIndex; }
+
+	if (this._hasListener("rowHighlighted")) {
+		var e = {};
+		e[tr.res.prevRowIndex] = prevIndex;
+		e[tr.res.rowIndex] = rowIndex;
+		this._dispatch("rowHighlighted", e);
+	}
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getSelectedRows = function () {
+	if(this.getSelectedRowCount() &gt; 0){
+		return this._selectionList.getAllSelections();
+	}
+	return null;
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getSelectedRowCount = function () {
+	return this._selectionList.getSelectionCount();
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.isSelectedRow = function (at) {
+	return this._selectionList.getSelection(at);
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.setSelectedRow = function (rowIndex, opt_selected) {
+	this._selectionList.setSelection(rowIndex, opt_selected);
+
+	var adjustedIndex = rowIndex - this._firstIndex;
+	this._grid.setSelectedRow(adjustedIndex, this._selectionList.getSelection(rowIndex));
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.selectSingleRow = function (rowIndex) {
+	this.clearSelectedRows();
+	this.setSelectedRow(rowIndex);
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.selectRowRange = function (rowIndex, length) {
+	this._selectionList.selectRange(rowIndex, length);
+	this._updateRowSelection();
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.clearSelectedRows = function () {
+	var count = this._selectionList.clearAllSelections();
+	this._grid.clearSelectedRows();
+	return count;
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getFirstSelectedRow = function () {
+	return this._selectionList.getFirstSelectedIndex();
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getLastSelectedRow = function () {
+	return this._selectionList.getLastSelectedIndex();
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getRowAnchor = function () {
+	return this._selectionList.getSelectionAnchor();
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.setRowAnchor = function (at) {
+	this._selectionList.setSelectionAnchor(at);
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.activateColumn = function (colIndex, opt_bool) {
+	this._grid.activateColumn(colIndex, opt_bool);
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.activateRows = function (from, to, updateRange) {
+	var maxLen = this._layoutY.getLaneCount();
+	if(!from) { from = this._rowOffset; }
+	if(!to &amp;&amp; to !== 0) { to = from + maxLen; }
+
+	from -= this._rowOffset; // Convert to relative index
+	if(from &lt; 0) { from = 0; }
+	to -= this._rowOffset; // Convert to relative index
+	if(to &lt; 0) { to = 0; }
+
+	var prevLen = this._getInnerRowCount();
+	var pfi = this._firstIndex;
+	var fi = 0;
+
+	fi = from - (from &amp; 1); // This is done to maintain zebra background color.
+	if (fi &lt; 0) { fi = 0; }
+	else if (fi &gt; maxLen) { fi = maxLen; }
+
+	var newLen = (to + (to &amp; 1)) - fi;
+	if(newLen + 2 === prevLen) { // To remove unnecessary shrinking during scrolling
+		newLen = prevLen;
+	}
+
+	if(newLen &lt; 0) { newLen = 0; }
+	else if(newLen + fi &gt; maxLen) { newLen = maxLen - fi; }
+
+	this._firstIndex = fi;
+	var ei = fi + newLen;
+
+	// Re-position inner grid
+	var px = this._layoutY.getLaneStart(fi);
+	var gridElem = this._grid.getElement(); // GRID-347 Chrome 86 does not recognize top property of grand children
+	if(gridElem) {
+		gridElem.style.transform = px ? "translateY(" + px + "px)" : ""; // Replacement for this._grid.setTop(px);
+		gridElem.style.top = "";
+		this._reverter.start();
+	}
+	this._grid._onEnterDocument();
+	var force = false; // Forcing flag to update entire range
+
+	if (newLen !== prevLen) {
+		this._grid.setRowCount(newLen);
+		if(newLen &gt; prevLen) { // New row is available. Fire event to render the cells.
+			var e = {};
+			e[tr.res.prevRowIndex] = fi + prevLen;
+			e[tr.res.rowIndex] = fi + newLen;
+			if(updateRange) {
+				e["noDataUpdate"] = true; // Data update will be triggered after this, so we notify grid not to update
+			}
+			this._dispatch("rowAvailable", e);
+		}
+		force = true; // Force update entire range
+	}
+	if(updateRange) { // Find actual update range
+		if(!force) {
+			// TODO: Check where to clearSelectedRows() more properly
+			this._grid.clearSelectedRows(); // Because row will be moving up and down, we need to clear the selection first
+			var pei = pfi + prevLen;
+			if(fi &lt; pfi &amp;&amp; pfi &lt; ei &amp;&amp; pei &gt;= ei) {
+				this.moveRowsToTop(ei - pfi);
+				updateRange[0] = fi;
+				updateRange[1] = pfi;
+			} else if(pfi &lt; fi &amp;&amp; fi &lt; pei &amp;&amp; ei &gt;= pei) {
+				this.moveRowsToTop(fi - pfi);
+				updateRange[0] = pei;
+				updateRange[1] = ei;
+			} else if(fi === pfi &amp;&amp; ei === pei) {
+				updateRange[0] = 0;
+				updateRange[1] = 0;
+			} else {
+				force = true;
+			}
+		}
+
+		if(force) {
+			updateRange[0] = fi;
+			updateRange[1] = ei;
+		}
+	}
+
+	if(!this._layoutY.isHomogeneous()) { // Row heights need to be updated on each scrolling
+		this._grid._updateRowHeights(this._layoutY, fi); // TODO: Set height only for the actual update range
+	}
+
+	this._updateRowSelection();
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.moveRowsToTop = function (numRows) {
+	this._grid.moveRowsToTop(numRows);
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getFirstIndexInView = function () {
+	return this._firstIndex;
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getLastIndexInView = function () {
+	return this._firstIndex + this._getInnerRowCount() - 1;
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.isInCurrentView = function(index){
+	return (this._firstIndex &lt;= index) &amp;&amp; (index &lt; this._firstIndex + this._getInnerRowCount());
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getFrozenLayout = function () {
+	return this._grid.getFrozenLayout();
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.setFrozenLayout = function (bool) {
+	this._grid.setFrozenLayout(bool);
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getColumn = function (index) {
+	return this._grid.getColumn(index);
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.insertColumn = function (index, opt_json) {
+	return this._grid.insertColumn(index, opt_json);
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.removeColumnAt = function (index) {
+	return this._grid.removeColumnAt(index);
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.moveColumn = function (from, to) {
+	this._grid.moveColumn(from, to);
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.enableRowVirtualization = function (bool) { };
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.enableColumnVirtualization = function (bool) {
+	this._grid.enableColumnVirtualization(bool);
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getColumnIndex = function (colElem) {
+	return this._grid.getColumnIndex(colElem);
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getCellIndex = function (colIndex, cellElem) {
+	var at = this._grid.getCellIndex(colIndex, cellElem);
+	if(at &lt; 0) {
+		return -1;
+	}
+	return at + this._firstIndex;
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getIndex = function () {
+	return this._index;
+};
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.setIndex = function (index) {
+	this._index = index;
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.setRowOffset = function(val){
+	this._rowOffset = val;
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getRowOffset = function(){
+	return this._rowOffset;
+};
+
+/** @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.updateLayout = function () {};
+
+/** {@link tr.ILayoutGrid#stretchCell}
+* @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.stretchCell = function (cellRef, rowIndex, opt_stretching, onlyToTheRight) {
+	return this._grid.stretchCell(cellRef, rowIndex - this._firstIndex, opt_stretching, onlyToTheRight);
+};
+/** {@link tr.ILayoutGrid#unstretchCell}
+* @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.unstretchCell = function (cellRef, rowIndex) {
+	return this._grid.unstretchCell(cellRef, rowIndex - this._firstIndex);
+};
+/** {@link tr.ILayoutGrid#getStretchedCells}
+* @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getStretchedCells = function () {
+	return this._grid.getStretchedCells();
+};
+/** {@link tr.ILayoutGrid#updateStretchedCells}
+* @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.updateStretchedCells = function () {
+	return this._grid.updateStretchedCells();
+};
+
+/** {@link tr.ILayoutGrid#getColumnHost}
+* @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getColumnHost = function () {
+	return this._grid.getElement();
+};
+/** {@link tr.ILayoutGrid#setHidingMethod}
+* @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.setHidingMethod = function (method) {
+	this._grid.setHidingMethod(method);
+};
+/** {@link tr.ILayoutGrid#getHidingMethod}
+* @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getHidingMethod = function () {
+	return this._grid.getHidingMethod();
+};
+/** {@link tr.ILayoutGrid#setColumnVisibility}
+* @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.setColumnVisibility = function (colIndex, bool, flag) {
+	return this._grid.setColumnVisibility(colIndex, bool, flag);
+};
+/** {@link tr.ILayoutGrid#setColumnVisibility}
+* @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getRowLayout = function () { return this._layoutY; };
+
+/** {@link tr.ILayoutGrid#reserveRightSpace}
+* @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.reserveRightSpace = function (size) {
+	return this._grid.reserveRightSpace(size);
+};
+/** {@link tr.ILayoutGrid#reserveRightSpace}
+* @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getReservedSpace = function () {
+	return this._grid.getReservedSpace();
+};
+/** {@link tr.ILayoutGrid#getComputedStyle}
+* @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getComputedStyle = function () {
+	return this._grid.getComputedStyle();
+};
+/** {@link tr.ILayoutGrid#isColumnActive}
+* @inheritDoc
+*/
+tr.grid.VirtualizedLayoutGrid.prototype.isColumnActive = function (colIndex) {
+	return this._grid.isColumnActive(colIndex);
+};
+/** {@link tr.ILayoutGrid#setRowAttributes}
+* @inheritDoc
+*/
+tr.grid.VirtualizedLayoutGrid.prototype.setRowAttributes = function (rowIndex, func) {
+	return this._grid.setRowAttributes(rowIndex, func);
+};
+/** @public
+* @param {number} rowIndex
+* @return {Object}
+*/
+tr.grid.VirtualizedLayoutGrid.prototype.getContextRow = function (rowIndex) {
+	return this._grid.getContextRow(rowIndex - this._firstIndex);
+};
+//#endregion public methods
+
+//#region ====== Private methods ======//
+/** @private
+* @return {number}
+*/
+tr.grid.VirtualizedLayoutGrid.prototype._getInnerRowCount = function () {
+	return this._grid.getRowCount();
+};
+
+/** @private */
+tr.grid.VirtualizedLayoutGrid.prototype._updateRowSelection = function () {
+	this._grid.clearSelectedRows();
+	var sl = this._selectionList;
+	var count = sl.getSelectionCount();
+	if(count &lt;= 0) { return; }
+
+	var r;
+	var fi = this._firstIndex;
+	var ei = fi + this._getInnerRowCount();
+	if(count === 1) {
+		r = sl.getFirstSelectedIndex();
+		if (fi &lt;= r &amp;&amp; r &lt; ei) {
+			this._grid.setSelectedRow(r - fi, true);
+		}
+	} else {
+		if(count &gt;= ei - fi) {
+			for(r = fi; r &lt; ei; ++r) {
+				if(sl.getSelection(r)) {
+					this._grid.setSelectedRow(r - fi, true);
+				}
+			}
+		} else {
+			var selections = sl.getAllSelections();
+			for(var i = 0; i &lt; count; ++i){
+				r = selections[i];
+				if (fi &lt;= r &amp;&amp; r &lt; ei) {
+					this._grid.setSelectedRow(r - fi, true);
+				}
+			}
+		}
+	}
+};
+
+/** @private
+ * @param {number} from
+ * @param {number} to
+ * @return {boolean}
+ */
+tr.grid.VirtualizedLayoutGrid.prototype._dispatchRowHeightChangedEvent = function (from, to) {
+	if (from &gt;= to) { return false; }
+
+	var e = {};
+	e[tr.res.rowIndex] = from;
+	e["changeLength"] = to - from;
+	this._dispatch("rowHeightChanged", e);
+	return true;
+};
+/** @private
+ */
+tr.grid.VirtualizedLayoutGrid.prototype._onRestingPosition = function () {
+	var gridElem = this._grid.getElement();
+	if(gridElem) {
+		var px = this._layoutY.getLaneStart(this._firstIndex);
+		gridElem.style.transform = "";
+		gridElem.style.top = px ? px + "px" : ""; // WORKAROUND: GRID-402
+	}
+};
+/** @public
+* @ignore
+* @param {boolean} absolutePos if true, the right space element will be positioned absolutely
+*/
+tr.grid.VirtualizedLayoutGrid.prototype._updateRightSpaceStyle = function(absolutePos) {
+	this._grid._updateRightSpaceStyle(absolutePos);
+};
+/** @public
+* @ignore
+*/
+tr.grid.VirtualizedLayoutGrid.prototype._reinsertRightSpace = function() {
+	this._grid._reinsertRightSpace();
+};
+/** @public
+* @ignore
+* @param {*} ctx
+*/
+tr.grid.VirtualizedLayoutGrid.prototype._setContext = function(ctx) {
+	this._grid._setContext(ctx);
+};
+/** @public
+* @ignore
+* @return {*} ctx
+*/
+tr.grid.VirtualizedLayoutGrid.prototype._getContext = function () {
+	return this._grid._getContext();
+};
+//#endregion
+
+goog.exportSymbol("tr.grid.VirtualizedLayoutGrid", tr.grid.VirtualizedLayoutGrid);
+(function() {
+var pt = tr.grid.VirtualizedLayoutGrid.prototype;
+var methodMap = {
+	"dispose": pt.dispose,
+	"getWidth": pt.getWidth,
+	"setWidth": pt.setWidth,
+	"getHeight": pt.getHeight,
+	"setHeight": pt.setHeight,
+	"show": pt.show,
+
+	"getFirstIndexInView": pt.getFirstIndexInView,
+	"getLastIndexInView": pt.getLastIndexInView,
+	"isInCurrentView": pt.isInCurrentView,
+	"getFrozenLayout": pt.getFrozenLayout,
+	"setFrozenLayout": pt.setFrozenLayout,
+
+	"getCell": pt.getCell,
+	"getCellContent": pt.getCellContent,
+	"setCellContent": pt.setCellContent,
+	"getColumn": pt.getColumn,
+	"getColumnCount": pt.getColumnCount,
+	"setColumnCount": pt.setColumnCount,
+	"getRowCount": pt.getRowCount,
+	"setRowCount": pt.setRowCount,
+	"addRow": pt.addRow,
+	"removeRow": pt.removeRow,
+
+	"getDefaultColumnWidth": pt.getDefaultColumnWidth,
+	"setDefaultColumnWidth": pt.setDefaultColumnWidth,
+	"getDefaultRowHeight": pt.getDefaultRowHeight,
+	"setDefaultRowHeight": pt.setDefaultRowHeight,
+	"getColumnWidth": pt.getColumnWidth,
+	"setColumnWidth": pt.setColumnWidth,
+	"getRowHeight": pt.getRowHeight,
+	"setRowHeight": pt.setRowHeight,
+	"isColumnVisible": pt.isColumnVisible,
+	"hideColumn": pt.hideColumn,
+	"isRowVisible": pt.isRowVisible,
+	"hideRow": pt.hideRow,
+	"getMinimumColumnWidth": pt.getMinimumColumnWidth,
+	"setMinimumColumnWidth": pt.setMinimumColumnWidth,
+	"getMinimumRowHeight": pt.getMinimumRowHeight,
+	"setMinimumRowHeight": pt.setMinimumRowHeight,
+	"getCellLeft": pt.getCellLeft,
+	"getCellTop": pt.getCellTop,
+	"getCellWidth": pt.getCellWidth,
+	"getCellHeight": pt.getCellHeight,
+
+	"hasCellSpan": pt.hasCellSpan,
+	"getCellRowSpan": pt.getCellRowSpan,
+	"setCellRowSpan": pt.setCellRowSpan,
+	"getCellColSpan": pt.getCellColSpan,
+	"setCellColSpan": pt.setCellColSpan,
+	"clearCellSpans": pt.clearCellSpans,
+	"clearColumnSpans": pt.clearColumnSpans,
+
+	"clearColumnCustomizations": pt.clearColumnCustomizations,
+	"clearRowCustomizations": pt.clearRowCustomizations,
+	"getColumnScalability": pt.getColumnScalability,
+	"setColumnScalability": pt.setColumnScalability,
+	"getRowScalability": pt.getRowScalability,
+	"setRowScalability": pt.setRowScalability,
+
+	"setBorders": pt.setBorders,
+	"disableHorizontalGridLine": pt.disableHorizontalGridLine,
+	"disableVerticalGridLine": pt.disableVerticalGridLine,
+
+	"getColumnStyle": pt.getColumnStyle,
+	"setColumnStyle": pt.setColumnStyle,
+
+	"enableColumnClass": pt.enableColumnClass,
+	"hasColumnClass": pt.hasColumnClass,
+	"enableRowClass": pt.enableRowClass,
+	"setRowStyle": pt.setRowStyle,
+
+	"enableShading": pt.enableShading,
+	"setTransposedShading": pt.setTransposedShading,
+
+	"getRelativePosition": pt.getRelativePosition,
+	"getContentWidth": pt.getContentWidth,
+	"getContentHeight": pt.getContentHeight,
+	"getCellsByRowIndex": pt.getCellsByRowIndex,
+
+	"enableRowHighlighting": pt.enableRowHighlighting,
+	"getRowHighlight": pt.getRowHighlight,
+	"setRowHighlight": pt.setRowHighlight,
+
+	"getSelectedRows": pt.getSelectedRows,
+	"getSelectedRowCount": pt.getSelectedRowCount,
+	"isSelectedRow": pt.isSelectedRow,
+	"setSelectedRow": pt.setSelectedRow,
+	"selectSingleRow": pt.selectSingleRow,
+	"selectRowRange": pt.selectRowRange,
+	"clearSelectedRows": pt.clearSelectedRows,
+	"getFirstSelectedRow": pt.getFirstSelectedRow,
+	"getLastSelectedRow": pt.getLastSelectedRow,
+	"getRowAnchor": pt.getRowAnchor,
+	"setRowAnchor": pt.setRowAnchor,
+
+	"getColumnIndex": pt.getColumnIndex,
+	"getCellIndex": pt.getCellIndex,
+	"enableRowVirtualization": pt.enableRowVirtualization,
+
+	//Virtualization
+	"activateRows": pt.activateRows,
+	"getIndex": pt.getIndex,
+	"getRowOffset": pt.getRowOffset,
+
+	"stretchCell": pt.stretchCell,
+	"unstretchCell": pt.unstretchCell,
+	"getStretchedCells": pt.getStretchedCells,
+	"updateStretchedCells": pt.updateStretchedCells,
+	"getColumnHost": pt.getColumnHost,
+	"setHidingMethod": pt.setHidingMethod,
+	"getHidingMethod": pt.getHidingMethod,
+	"setColumnVisibility": pt.setColumnVisibility,
+
+	"reserveRightSpace": pt.reserveRightSpace,
+	"getReservedSpace": pt.getReservedSpace,
+	"getComputedStyle": pt.getComputedStyle,
+	"isColumnActive": pt.isColumnActive,
+	"getContextRow": pt.getContextRow
+};
+// Export methods for Closure's advanced compilation
+for(var methodName in methodMap) {
+	goog.exportProperty(pt, methodName, methodMap[methodName]);
+}
+})();
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="AdFin.html">AdFin</a></li><li><a href="DateTime.html">DateTime</a></li><li><a href="Info.html">Info</a></li><li><a href="Logic.html">Logic</a></li><li><a href="Math.html">Math</a></li><li><a href="Realtime.html">Realtime</a></li><li><a href="Statistic.html">Statistic</a></li><li><a href="Text.html">Text</a></li><li><a href="tr.ElementFrameWork.html">ElementFrameWork</a></li><li><a href="tr.PipDefinition.html">PipDefinition</a></li></ul><h3>Classes</h3><ul><li><a href="tr.ADCSubscription.html">ADCSubscription</a></li><li><a href="tr.AdFinSubscription.html">AdFinSubscription</a></li><li><a href="tr.cgrid.editor.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.filter.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.formatter.AsyncFormatter.html">AsyncFormatter</a></li><li><a href="tr.cgrid.formatter.CheckBox.html">CheckBox</a></li><li><a href="tr.cgrid.formatter.UpDownColor.html">UpDownColor</a></li><li><a href="tr.ColumnStats.html">ColumnStats</a></li><li><a href="tr.CompositeGrid.html">CompositeGrid</a></li><li><a href="tr.DataCache.html">DataCache</a></li><li><a href="tr.DataTable.html">DataTable</a></li><li><a href="tr.DataView.html">DataView</a></li><li><a href="tr.DropDown.html">DropDown</a></li><li><a href="tr.ElementControl.html">ElementControl</a></li><li><a href="tr.ElementWrapper.html">ElementWrapper</a></li><li><a href="tr.Event.html">Event</a></li><li><a href="tr.EventDispatcher.html">EventDispatcher</a></li><li><a href="tr.EventDispatcher.extendClass-tempCtor.html">tempCtor</a></li><li><a href="tr.EventManager.html">EventManager</a></li><li><a href="tr.FieldFormatter.html">FieldFormatter</a></li><li><a href="tr.fn.Engine.html">Engine</a></li><li><a href="tr.fn.Formula.html">Formula</a></li><li><a href="tr.fn.VariableToken.html">VariableToken</a></li><li><a href="tr.Grid.html">Grid</a></li><li><a href="tr.grid.BidOfferSpan.html">BidOfferSpan</a></li><li><a href="tr.grid.Blinker.html">Blinker</a></li><li><a href="tr.grid.Cell.html">Cell</a></li><li><a href="tr.grid.CellBlinkingPlugin.html">CellBlinkingPlugin</a></li><li><a href="tr.grid.CellEditingPlugin.html">CellEditingPlugin</a></li><li><a href="tr.grid.CellFloatingPanel.html">CellFloatingPanel</a></li><li><a href="tr.grid.CellPainter.html">CellPainter</a></li><li><a href="tr.grid.CellSpan.html">CellSpan</a></li><li><a href="tr.grid.CellSpans.html">CellSpans</a></li><li><a href="tr.grid.CellWriter.html">CellWriter</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html">CheckboxColumnPlugin</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html">CollapsibleHeaderPlugin</a></li><li><a href="tr.grid.ColumnFilterPlugin.html">ColumnFilterPlugin</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html">ColumnGroupingPlugin</a></li><li><a href="tr.grid.ColumnSelectionPlugin.html">ColumnSelectionPlugin</a></li><li><a href="tr.grid.ColumnStackingPlugin.html">ColumnStackingPlugin</a></li><li><a href="tr.grid.ColumnWidthAdjustingPlugin.html">ColumnWidthAdjustingPlugin</a></li><li><a href="tr.grid.Conflator.html">Conflator</a></li><li><a href="tr.grid.DataSourceTreePlugin.html">DataSourceTreePlugin</a></li><li><a href="tr.grid.DirectContentBindingPlugin.html">DirectContentBindingPlugin</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html">DragAndDropTitlePlugin</a></li><li><a href="tr.grid.DraggableContentPlugin.html">DraggableContentPlugin</a></li><li><a href="tr.grid.FindBar.html">FindBar</a></li><li><a href="tr.grid.FindBarPlugin.html">FindBarPlugin</a></li><li><a href="tr.grid.GroupStatisticsPlugin.html">GroupStatisticsPlugin</a></li><li><a href="tr.grid.HeatMapRenderer.html">HeatMapRenderer</a></li><li><a href="tr.grid.HScrollbar.html">HScrollbar</a></li><li><a href="tr.grid.IndexMarker.html">IndexMarker</a></li><li><a href="tr.grid.MovableHeaderPlugin.html">MovableHeaderPlugin</a></li><li><a href="tr.grid.NumberFormatter.html">NumberFormatter</a></li><li><a href="tr.grid.PercentBar.html">PercentBar</a></li><li><a href="tr.grid.PercentBarRenderer.html">PercentBarRenderer</a></li><li><a href="tr.grid.Plugin.html">Plugin</a></li><li><a href="tr.grid.RangeBar.html">RangeBar</a></li><li><a href="tr.grid.ResizableTitlePlugin.html">ResizableTitlePlugin</a></li><li><a href="tr.grid.Reverter.html">Reverter</a></li><li><a href="tr.grid.RowHeightAdjustingPlugin.html">RowHeightAdjustingPlugin</a></li><li><a href="tr.grid.RowSelectionPlugin.html">RowSelectionPlugin</a></li><li><a href="tr.grid.Scrollbar.html">Scrollbar</a></li><li><a href="tr.grid.SectionSettings.html">SectionSettings</a></li><li><a href="tr.grid.SmartTooltipsPlugin.html">SmartTooltipsPlugin</a></li><li><a href="tr.grid.SortableTitlePlugin.html">SortableTitlePlugin</a></li><li><a href="tr.grid.TreeIndentingPlugin.html">TreeIndentingPlugin</a></li><li><a href="tr.grid.Virtualizer.html">Virtualizer</a></li><li><a href="tr.grid.VScrollbar.html">VScrollbar</a></li><li><a href="tr.grid.ZoomPlugin.html">ZoomPlugin</a></li><li><a href="tr.HttpRequest.html">HttpRequest</a></li><li><a href="tr.IntervalSubscription.html">IntervalSubscription</a></li><li><a href="tr.LayoutGrid.html">LayoutGrid</a></li><li><a href="tr.ListMenu.html">ListMenu</a></li><li><a href="tr.MenuItem.html">MenuItem</a></li><li><a href="tr.MockArchive.html">MockArchive</a></li><li><a href="tr.MockJET.html">MockJET</a></li><li><a href="tr.MockQuotes.html">MockQuotes</a></li><li><a href="tr.MockQuotes2.html">MockQuotes2</a></li><li><a href="tr.MockSubscription.html">MockSubscription</a></li><li><a href="tr.MockSubscriptions.html">MockSubscriptions</a></li><li><a href="tr.Popup.html">Popup</a></li><li><a href="tr.PopupMenu.html">PopupMenu</a></li><li><a href="tr.PrintTrait.html">PrintTrait</a></li><li><a href="tr.RequestQueue.html">RequestQueue</a></li><li><a href="tr.Segment.html">Segment</a></li><li><a href="tr.SegmentCollection.html">SegmentCollection</a></li><li><a href="tr.TSISubscription.html">TSISubscription</a></li></ul><h3>Interfaces</h3><ul><li><a href="tr.cgrid.ICompositeExtension.html">ICompositeExtension</a></li><li><a href="tr.grid.IPlugin.html">IPlugin</a></li><li><a href="tr.IElementControl.html">IElementControl</a></li><li><a href="tr.ILayoutGrid.html">ILayoutGrid</a></li></ul><h3>Events</h3><ul><li><a href="tr.CompositeGrid.html#event:cellClicked">cellClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellDblClicked">cellDblClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellMouseDown">cellMouseDown</a></li><li><a href="tr.CompositeGrid.html#event:cellRightClicked">cellRightClicked</a></li><li><a href="tr.CompositeGrid.html#event:columnSorted">columnSorted</a></li><li><a href="tr.CompositeGrid.html#event:editorAttached">editorAttached</a></li><li><a href="tr.CompositeGrid.html#event:editorDetached">editorDetached</a></li><li><a href="tr.CompositeGrid.html#event:filterAdded">filterAdded</a></li><li><a href="tr.CompositeGrid.html#event:filterCleared">filterCleared</a></li><li><a href="tr.CompositeGrid.html#event:filterModified">filterModified</a></li><li><a href="tr.CompositeGrid.html#event:filterRemoved">filterRemoved</a></li><li><a href="tr.CompositeGrid.html#event:mouseLeaveCell">mouseLeaveCell</a></li><li><a href="tr.CompositeGrid.html#event:mouseOverCell">mouseOverCell</a></li><li><a href="tr.CompositeGrid.html#event:pageChanged">pageChanged</a></li><li><a href="tr.CompositeGrid.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.DataCache.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataCache.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataTable.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataTable.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataView.html#event:beforeFiltering">beforeFiltering</a></li><li><a href="tr.DataView.html#event:beforeGroupAdded">beforeGroupAdded</a></li><li><a href="tr.DataView.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataView.html#event:groupAdded">groupAdded</a></li><li><a href="tr.DataView.html#event:groupCriteriaChanged">groupCriteriaChanged</a></li><li><a href="tr.DataView.html#event:pageCountChanged">pageCountChanged</a></li><li><a href="tr.DataView.html#event:pageIndexChanged">pageIndexChanged</a></li><li><a href="tr.DataView.html#event:preDisposed">preDisposed</a></li><li><a href="tr.Formula.html#event:dataCacheChanged">dataCacheChanged</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:cancelled">cancelled</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:change">change</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:closed">closed</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:editorOpened">editorOpened</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:preEditorOpening">preEditorOpening</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:click">click</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:columnCollapsed">columnCollapsed</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:groupChanged">groupChanged</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:render">render</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:columnMoved">columnMoved</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:drag">drag</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragEnd">dragEnd</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragStart">dragStart</a></li><li><a href="tr.grid.FindBarPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:groupMoved">groupMoved</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:sectionMoved">sectionMoved</a></li><li><a href="tr.grid.RowSelectionPlugin.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:columnSorted">columnSorted</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preClicked">preClicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preDataSorting">preDataSorting</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.Grid.html#event:columnAdded">columnAdded</a></li><li><a href="tr.Grid.html#event:columnAlignmentChanged">columnAlignmentChanged</a></li><li><a href="tr.Grid.html#event:columnRemoved">columnRemoved</a></li><li><a href="tr.Grid.html#event:columnVisibilityChanged">columnVisibilityChanged</a></li><li><a href="tr.Grid.html#event:dataSourceChanged">dataSourceChanged</a></li><li><a href="tr.Grid.html#event:postSectionDataBinding">postSectionDataBinding</a></li><li><a href="tr.Grid.html#event:rowExpansionBinding">rowExpansionBinding</a></li><li><a href="tr.Grid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Grid.html#event:sectionAdded">sectionAdded</a></li><li><a href="tr.Grid.html#event:widthChanged">widthChanged</a></li><li><a href="tr.HttpRequest.html#event:abort">abort</a></li><li><a href="tr.HttpRequest.html#event:error">error</a></li><li><a href="tr.HttpRequest.html#event:load">load</a></li><li><a href="tr.HttpRequest.html#event:loadend">loadend</a></li><li><a href="tr.HttpRequest.html#event:loadstart">loadstart</a></li><li><a href="tr.HttpRequest.html#event:timeout">timeout</a></li><li><a href="tr.IElementControl.html#event:blur">blur</a></li><li><a href="tr.IElementControl.html#event:change">change</a></li><li><a href="tr.IElementControl.html#event:click">click</a></li><li><a href="tr.IElementControl.html#event:contextmenu">contextmenu</a></li><li><a href="tr.IElementControl.html#event:dblclick">dblclick</a></li><li><a href="tr.IElementControl.html#event:drag">drag</a></li><li><a href="tr.IElementControl.html#event:dragend">dragend</a></li><li><a href="tr.IElementControl.html#event:dragenter">dragenter</a></li><li><a href="tr.IElementControl.html#event:dragleave">dragleave</a></li><li><a href="tr.IElementControl.html#event:dragover">dragover</a></li><li><a href="tr.IElementControl.html#event:dragstart">dragstart</a></li><li><a href="tr.IElementControl.html#event:drop">drop</a></li><li><a href="tr.IElementControl.html#event:focus">focus</a></li><li><a href="tr.IElementControl.html#event:formchange">formchange</a></li><li><a href="tr.IElementControl.html#event:forminput">forminput</a></li><li><a href="tr.IElementControl.html#event:input">input</a></li><li><a href="tr.IElementControl.html#event:invalid">invalid</a></li><li><a href="tr.IElementControl.html#event:keydown">keydown</a></li><li><a href="tr.IElementControl.html#event:keypress">keypress</a></li><li><a href="tr.IElementControl.html#event:keyup">keyup</a></li><li><a href="tr.IElementControl.html#event:mousedown">mousedown</a></li><li><a href="tr.IElementControl.html#event:mousemove">mousemove</a></li><li><a href="tr.IElementControl.html#event:mouseout">mouseout</a></li><li><a href="tr.IElementControl.html#event:mouseover">mouseover</a></li><li><a href="tr.IElementControl.html#event:mouseup">mouseup</a></li><li><a href="tr.IElementControl.html#event:mousewheel">mousewheel</a></li><li><a href="tr.IElementControl.html#event:reset">reset</a></li><li><a href="tr.IElementControl.html#event:scroll">scroll</a></li><li><a href="tr.IElementControl.html#event:select">select</a></li><li><a href="tr.IElementControl.html#event:submit">submit</a></li><li><a href="tr.ILayoutGrid.html#event:blur">blur</a></li><li><a href="tr.ILayoutGrid.html#event:change">change</a></li><li><a href="tr.ILayoutGrid.html#event:click">click</a></li><li><a href="tr.ILayoutGrid.html#event:contextmenu">contextmenu</a></li><li><a href="tr.ILayoutGrid.html#event:dblclick">dblclick</a></li><li><a href="tr.ILayoutGrid.html#event:drag">drag</a></li><li><a href="tr.ILayoutGrid.html#event:dragend">dragend</a></li><li><a href="tr.ILayoutGrid.html#event:dragenter">dragenter</a></li><li><a href="tr.ILayoutGrid.html#event:dragleave">dragleave</a></li><li><a href="tr.ILayoutGrid.html#event:dragover">dragover</a></li><li><a href="tr.ILayoutGrid.html#event:dragstart">dragstart</a></li><li><a href="tr.ILayoutGrid.html#event:drop">drop</a></li><li><a href="tr.ILayoutGrid.html#event:focus">focus</a></li><li><a href="tr.ILayoutGrid.html#event:formchange">formchange</a></li><li><a href="tr.ILayoutGrid.html#event:forminput">forminput</a></li><li><a href="tr.ILayoutGrid.html#event:input">input</a></li><li><a href="tr.ILayoutGrid.html#event:invalid">invalid</a></li><li><a href="tr.ILayoutGrid.html#event:keydown">keydown</a></li><li><a href="tr.ILayoutGrid.html#event:keypress">keypress</a></li><li><a href="tr.ILayoutGrid.html#event:keyup">keyup</a></li><li><a href="tr.ILayoutGrid.html#event:mousedown">mousedown</a></li><li><a href="tr.ILayoutGrid.html#event:mousemove">mousemove</a></li><li><a href="tr.ILayoutGrid.html#event:mouseout">mouseout</a></li><li><a href="tr.ILayoutGrid.html#event:mouseover">mouseover</a></li><li><a href="tr.ILayoutGrid.html#event:mouseup">mouseup</a></li><li><a href="tr.ILayoutGrid.html#event:mousewheel">mousewheel</a></li><li><a href="tr.ILayoutGrid.html#event:reset">reset</a></li><li><a href="tr.ILayoutGrid.html#event:scroll">scroll</a></li><li><a href="tr.ILayoutGrid.html#event:select">select</a></li><li><a href="tr.ILayoutGrid.html#event:submit">submit</a></li><li><a href="tr.LayoutGrid.html#event:rowCountChanged">rowCountChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHeightChanged">rowHeightChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Popup.html#event:hidden">hidden</a></li><li><a href="tr.Popup.html#event:shown">shown</a></li><li><a href="tr.PopupMenu.html#event:hidden">hidden</a></li><li><a href="tr.PopupMenu.html#event:shown">shown</a></li><li><a href="tr.PrintTrait.html#event:afterprint">afterprint</a></li><li><a href="tr.PrintTrait.html#event:beforeprint">beforeprint</a></li><li><a href="tr.PrintTrait.html#event:pageCounting">pageCounting</a></li></ul><h3>Global</h3><ul><li><a href="global.html#cellRef%255Bundefined%255D">cellRef[undefined]</a></li><li><a href="global.html#e%255Bundefined%255D">e[undefined]</a></li><li><a href="global.html#.textContent">.textContent</a></li><li><a href="global.html#get">get</a></li><li><a href="global.html#input%255Bundefined%255D">input[undefined]</a></li><li><a href="global.html#q%255Bundefined%255D">q[undefined]</a></li><li><a href="global.html#sortingDef%255B1%255D">sortingDef[1]</a></li></ul>
+</nav>
+
+
+<script src="scripts/linenumber.js"> </script>
+<script src="scripts/prettify.js"> </script>
+<script> prettyPrint(); </script>
+</body>
+</html>

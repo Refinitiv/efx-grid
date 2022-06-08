@@ -6,9 +6,9 @@
 
     <script src="scripts/prettify.js"> </script>
     <script src="scripts/lang-css.js"> </script>
-    <!--[if lt IE 9]&gt;
-      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
-    &lt;![endif]-->
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
     <link type="text/css" rel="stylesheet" href="styles/default.css">
     <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
 </head>
@@ -28,7 +28,6 @@
 import Grid from "./Grid.js";
 import RowDefinition from "./RowDefinition.js";
 /* eslint-enable */
-import { StyleLoader } from "./StyleLoader.js";
 import { Deferred } from "../../node_modules/tr-grid-util/es6/Deferred.js";
 
 /** @type {string}
@@ -42,61 +41,10 @@ var SYNAPSE_URL =
 
 /** @function
 * @private
-* @param {Grid} grid
-* @param {Event} e
-*/
-function onClickChainArrow(grid, e) {
-	var pos = grid.getRelativePosition(e.currentTarget);
-	// var rowDef = grid.getRowDefinition(pos.rowIndex);
-	grid.toggleChain(pos.rowIndex);
-}
-
-/** @function
-* @private
 * @param {Object} e
 */
 function xRicNameRenderer(e) {
-	var cell = e["cell"];
-	var rowDef = /** @type{RowDefinition} */(e["rowDef"]);
-	var content = cell.getContent();
-	if (!content || !content._ric) {
-		content = document.createElement("div");
-		content.className = "text";
-		content._ric = document.createElement("span");
-		content.appendChild(content._ric);
-	}
-
-	if (rowDef.isChain()) {
-		if (!content._arrow) {
-			if (StyleLoader.chainIcon) {
-				content._arrow = document.createElement('ef-icon');
-				content._arrow.setAttribute('icon', StyleLoader.chainIcon);
-			} else {
-				content._arrow = document.createElement('span');
-				var fallbackArrow = document.createElement('span');
-				fallbackArrow.textContent = '\u25bc';
-				fallbackArrow.className = 'fallback-arrow';
-				content._arrow.appendChild(fallbackArrow);
-			}
-			content._arrow.className = 'chain-icon';
-			content._arrow.addEventListener("click", onClickChainArrow.bind(null, e["grid"]));
-		}
-
-		cell.enableClass("closed", rowDef.isChainCollapsed());
-		cell.updateIcon(content._arrow);
-	} else {
-		cell.removeIcon();
-	}
-
-	if (!content._ric) {
-		content.innerText = "";
-		content._ric = document.createElement("span");
-		content.appendChild(content._ric);
-	} else {
-		content._ric.textContent = rowDef.getDisplayText();
-	}
-
-	cell.setContent(content);
+	e.cell.setContent(e.rowDef.getDisplayText());
 }
 /** @function
 * @private

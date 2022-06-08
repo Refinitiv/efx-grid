@@ -6,9 +6,9 @@
 
     <script src="scripts/prettify.js"> </script>
     <script src="scripts/lang-css.js"> </script>
-    <!--[if lt IE 9]&gt;
-      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
-    &lt;![endif]-->
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
     <link type="text/css" rel="stylesheet" href="styles/default.css">
     <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
 </head>
@@ -3983,19 +3983,23 @@ tr.Grid.prototype._dispatchRowExpansionBinding = function (e) {
 	var toR = /** @type{number} */(e[tr.res.toRowIndex]);
 	var parents = dataView.getExpansionParents(fromR, toR);
 	var rids = dataView.getVisibleRowIds(true);
+	var section = /** @type{tr.ILayoutGrid} */(e["section"]);
 
 	e["rowData"] = undefined;
 	e[tr.res.cell] = undefined;
 	for (var r = fromR; r &lt; toR; ++r) {
 		var parentRid = parents[r];
+		var ctxRow = section.getContextRow(r);
 		if(parentRid) { // Previous row is the row with expansion
 			e["originalRowData"] = dataView.getRowData(parentRid);
 			e["originalRowId"] = parentRid;
-			e["rowExpansion"] = true;
-		} else {
+			e["rowExpansion"] = ctxRow["rowExpansion"] = true;
+		} else if(ctxRow["rowExpansion"]) {
 			e["originalRowData"] = null;
 			e["originalRowId"] = null;
-			e["rowExpansion"] = false;
+			e["rowExpansion"] = ctxRow["rowExpansion"] = false;
+		} else {
+			continue; // There is no need to dispatch the event for normal row
 		}
 		e["rowId"] = rids[r];
 		e[tr.res.rowIndex] = r;

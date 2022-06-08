@@ -6,9 +6,9 @@
 
     <script src="scripts/prettify.js"> </script>
     <script src="scripts/lang-css.js"> </script>
-    <!--[if lt IE 9]&gt;
-      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
-    &lt;![endif]-->
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
     <link type="text/css" rel="stylesheet" href="styles/default.css">
     <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
 </head>
@@ -90,6 +90,13 @@ tr.SegmentCollection.prototype.addSegments = function(rids) {
 */
 tr.SegmentCollection.prototype.containsSegment = function(rid) {
 	return this._segments[rid] ? true : false;
+};
+/** @public
+* @param {string} rid
+* @return {string} parent row id of this segmentation. If the parent row id for this segmentation cannot be found, return ""
+*/
+tr.SegmentCollection.prototype.getParentRowId = function(rid) {
+	return this._childToSegmentId[rid] || "";
 };
 /** @public
 * @param {string} rid
@@ -361,6 +368,7 @@ tr.SegmentCollection.prototype.fillSegment = function(segmentId, rids) {
 };
 /** @public
 * @param {Array.&lt;string&gt;} rids
+* @return {boolean} Return true if the fill segments have changed, otherwise return false
 */
 tr.SegmentCollection.prototype.fillSegments = function(rids) {
 	var rowCount = Array.isArray(rids) ? rids.length : 0;
@@ -368,6 +376,7 @@ tr.SegmentCollection.prototype.fillSegments = function(rids) {
 	var segmentSeparators = this._segments;
 	var childToSegmentId = this._childToSegmentId;
 	var curSegment = null;
+	var change = false;
 	for(var r = 0; r &lt; rowCount; ++r) {
 		var rid = rids[r];
 		var segmentSeparator = segmentSeparators[rid];
@@ -379,8 +388,10 @@ tr.SegmentCollection.prototype.fillSegments = function(rids) {
 			curSegment.removeAllChildren();
 		} else if(curSegment) {
 			curSegment.addChild(rid, childToSegmentId);
+			change = true;
 		}
 	}
+	return change;
 };
 /** @public
 * @param {!Array.&lt;string&gt;} rids Array of row ids

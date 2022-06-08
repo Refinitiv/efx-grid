@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Source: grid/components/CellWriter.js</title>
+    <title>JSDoc: Source: grid/components/VirtualItems.js</title>
 
     <script src="scripts/prettify.js"> </script>
     <script src="scripts/lang-css.js"> </script>
@@ -23,81 +23,75 @@
     
     <section>
         <article>
-            <pre class="prettyprint source linenums"><code>goog.provide("tr.grid.CellWriter");
+            <pre class="prettyprint source linenums"><code>goog.provide("tr.grid.VirtualItems");
 
-goog.require("tr.ElementWrapper");
-
-/**
-* @constructor
-* @extends {tr.ElementWrapper}
-* @implements {tr.IElementControl}
+/** @constructor
+* @ignore
 */
-tr.grid.CellWriter = function () {
+tr.grid.VirtualItems = function () {
+	this._items = [];
 };
-goog.inherits(tr.grid.CellWriter, tr.ElementWrapper);
-
-
-/** {@link tr.IElementControl#setContent}
-* @override
+/** @type {Array.&lt;!Object&gt;}
+* @private
 */
-tr.grid.CellWriter.prototype.setContent = function (content, opt_tooltip) {
-	if(content == null) {
-		return null;
+tr.grid.VirtualItems.prototype._items = null;
+
+/** @public
+*/
+tr.grid.VirtualItems.prototype.dispose = function () {
+	this._items = null;
+};
+
+/** @public
+* @ignore
+* @param {number} count
+*/
+tr.grid.VirtualItems.prototype.setItemCount = function (count) {
+	var ary = this._items;
+	var len = ary.length;
+	if(len !== count) {
+		ary.length = count;
+		while(len &lt; count) {
+			ary[len++] = {};
+		}
 	}
-	if(content["getElement"]) {
-		content = /** @type{Element} */(content["getElement"]());
-	} else if(content.nodeType !== 1) {
-		content = this._createTextContent(content);
+};
+/** @public
+* @ignore
+* @param {number} idx
+* @return {Object}
+*/
+tr.grid.VirtualItems.prototype.getItem = function (idx) {
+	return this._items[idx] || null;
+};
+/** @public
+* @ignore
+* @param {number} numItems Index of the first item to be moved to the top
+*/
+tr.grid.VirtualItems.prototype.moveItemsToTop = function (numItems) {
+	if(numItems &gt; 0) {
+		var ary = this._items;
+		if(numItems &lt; ary.length) {
+			var front = ary.splice(0, numItems);
+			this._items = ary.concat(front);
+		}
 	}
-	
-	this._element.appendChild(/** @type{Node} */(content));
-	return /** @type{Element} */(content);
-};
-/** {@link tr.IElementControl#setTextContent} 
-* @override 
-*/
-tr.grid.CellWriter.prototype.setTextContent = function (str) {
-	var span = this._createTextContent(str);
-	this._element.appendChild(span);
-};
-/** {@link tr.IElementControl#addContent} 
-* @override 
-*/
-tr.grid.CellWriter.prototype.addContent = function (n) {
-	this._element.appendChild(/** @type{Node} */(n));
-	return /** @type{Element} */(n);
-};
-/** @private
-* @return {Element} 
-*/
-tr.grid.CellWriter.prototype._createTextContent = function (str) {
-	var span = document.createElement("span");
-	span.className = "text";
-	if(str != null) {
-		span.textContent = str;
-		this["percentText"] = str;
-	}
-	return span;
 };
 
-/**
-* @public
-* @param {Element} elem 
-*/
-tr.grid.CellWriter.prototype.cloak = function (elem) {
-	elem.className = "cell";
-	this._element = elem;
+goog.exportSymbol("tr.grid.VirtualItems", tr.grid.VirtualItems);
+(function() {
+var pt = tr.grid.VirtualItems.prototype;
+var methodMap = {
+	"dispose": pt.dispose,
+	"setItemCount": pt.setItemCount,
+	"getItem": pt.getItem,
+	"moveItemsToTop": pt.moveItemsToTop
 };
-
-
-goog.exportSymbol("tr.grid.CellWriter", tr.grid.CellWriter);
-tr.grid.CellWriter._proto = tr.grid.CellWriter.prototype;
-
-goog.exportProperty(tr.grid.CellWriter._proto, "setContent", tr.grid.CellWriter._proto.setContent);
-goog.exportProperty(tr.grid.CellWriter._proto, "addContent", tr.grid.CellWriter._proto.addContent);
-goog.exportProperty(tr.grid.CellWriter._proto, "setTextContent", tr.grid.CellWriter._proto.setTextContent);
-goog.exportProperty(tr.grid.CellWriter._proto, "cloak", tr.grid.CellWriter._proto.cloak);
-</code></pre>
+// Export methods for Closure's advanced compilation
+for(var methodName in methodMap) {
+	goog.exportProperty(pt, methodName, methodMap[methodName]);
+}
+})();</code></pre>
         </article>
     </section>
 

@@ -6,9 +6,9 @@
 
     <script src="scripts/prettify.js"> </script>
     <script src="scripts/lang-css.js"> </script>
-    <!--[if lt IE 9]&gt;
-      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
-    &lt;![endif]-->
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
     <link type="text/css" rel="stylesheet" href="styles/default.css">
     <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
 </head>
@@ -914,17 +914,20 @@ tr.DataTable.prototype.setSegmentSeparator = function(rid, enabled) {
 			}
 		}
 	}
-	if(change) {
-		this._autoFillSegments();
-		var rowData = this._rows[rid] || null;
-		if(rowData &amp;&amp; this._needFiring()) {
-			this._dispatchDataChange({
-				"rid": rid,
-				"changes": {},
-				"rowData": rowData,
-				"type": "updated",
-				"segmentChanged": true
-			});
+	if(change &amp;&amp; this._needFiring()) {
+		if(this._autoFillSegments()) {
+			this.dispatchGlobalChange();
+		} else {
+			var rowData = this._rows[rid] || null;
+			if(rowData) {
+				this._dispatchDataChange({
+					"rid": rid,
+					"changes": {},
+					"rowData": rowData,
+					"type": "updated",
+					"segmentChanged": true
+				});
+			}
 		}
 	}
 	
@@ -958,6 +961,17 @@ tr.DataTable.prototype.isSegmentSeparator = function(rid) {
 		return this._segments.containsSegment(rid);
 	}
 	return false;
+};
+/**
+* @public
+* @param {string} rid
+* @return {string} parent row id of this segmentation. If the parent row id for this segmentation cannot be found, return ""
+*/
+tr.DataTable.prototype.getSegmentParentRowId = function(rid) {
+	if(this._segments) {
+		return this._segments.getParentRowId(rid);
+	}
+	return "";
 };
 /** 
 * @public
@@ -1005,11 +1019,13 @@ tr.DataTable.prototype.enableAutoSegmentFilling = function(enabled) {
 	this._autoFillSegments();
 };
 /** @private
+* @return {boolean} Return true if the fill segments have changed, otherwise return false
 */
 tr.DataTable.prototype._autoFillSegments = function() {
 	if(this._autoSegmentFilling) {
-		this.fillSegments();
+		return this.fillSegments();
 	}
+	return false;
 };
 /** Remove existing segment children and fill the segments with all contnet rows before the next segment separator
 * @public
@@ -1022,11 +1038,13 @@ tr.DataTable.prototype.fillSegment = function(segmentId) {
 };
 /** Remove all existing segment children in each segment and fill the segments with all contnet rows before the next segment separator
 * @public
+* @return {boolean} Return true if the fill segments have changed, otherwise return false
 */
 tr.DataTable.prototype.fillSegments = function() {
 	if(this._segments) {
-		this._segments.fillSegments(this._rids);
+		return this._segments.fillSegments(this._rids);
 	}
+	return false;
 };
 /** @public
 * @param {string} segmentId Row id
@@ -1705,6 +1723,8 @@ goog.exportProperty(tr.DataTable._proto, "setSegmentSeparator", tr.DataTable._pr
 goog.exportProperty(tr.DataTable._proto, "unsetAllSegmentSeparators", tr.DataTable._proto.unsetAllSegmentSeparators);
 goog.exportProperty(tr.DataTable._proto, "hasSegmentation", tr.DataTable._proto.hasSegmentation);
 goog.exportProperty(tr.DataTable._proto, "isSegmentSeparator", tr.DataTable._proto.isSegmentSeparator);
+goog.exportProperty(tr.DataTable._proto, "getSegmentParentRowId", tr.DataTable._proto.getSegmentParentRowId);
+
 goog.exportProperty(tr.DataTable._proto, "getSegmentValues", tr.DataTable._proto.getSegmentValues);
 goog.exportProperty(tr.DataTable._proto, "enableAutoSegmentFilling", tr.DataTable._proto.enableAutoSegmentFilling);
 goog.exportProperty(tr.DataTable._proto, "fillSegment", tr.DataTable._proto.fillSegment);

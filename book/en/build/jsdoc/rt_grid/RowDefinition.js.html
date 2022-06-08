@@ -6,9 +6,9 @@
 
     <script src="scripts/prettify.js"> </script>
     <script src="scripts/lang-css.js"> </script>
-    <!--[if lt IE 9]&gt;
-      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
-    &lt;![endif]-->
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
     <link type="text/css" rel="stylesheet" href="styles/default.css">
     <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
 </head>
@@ -23,8 +23,8 @@
     
     <section>
         <article>
-            <pre class="prettyprint source linenums"><code>/* eslint-disable */
-import { arrayToObject } from "../../node_modules/tr-grid-util/es6/Util.js";
+            <pre class="prettyprint source linenums"><code>import { arrayToObject } from "../../node_modules/tr-grid-util/es6/Util.js";
+/* eslint-disable */
 import { DataCache } from "../../node_modules/@grid/core/es6/data/DataCache.js";
 import { DataTable } from "../../node_modules/@grid/core/es6/data/DataTable.js";
 /* eslint-enable */
@@ -478,20 +478,23 @@ RowDefinition.hasChain = function(rowDef) {
 * @return {boolean}
 */
 RowDefinition.prototype.isChainCollapsed = function() {
-	return !this._expanded;
+	if(this._view) {
+		return this._view.isSegmentCollapsed(this._rowId);
+	}
+	return false;
 };
 /** @public
 * @return {boolean}
 */
 RowDefinition.prototype.isChainExpanded = function() {
-	return this._expanded;
+	return !this.isChainCollapsed();
 };
 /** @public
 * @ignore
 * @return {boolean}
 */
 RowDefinition.prototype.isFixedPosition = function() {
-	return this._isChain &amp;&amp; this._expanded;
+	return this._isChain &amp;&amp; this.isChainExpanded();
 };
 /** @public
 * @return {boolean}
@@ -622,6 +625,13 @@ RowDefinition.prototype.registerToView = function(view, rowId) {
 
 	var newRowId = this._view.insertRow(rowId, rowData, this.getRowId());
 	this._rowId = newRowId; // In case there is some duplicate row id.
+
+	if(this._isChain) {
+		view.setSegmentSeparator(this._rowId);
+		if(!this._expanded) {
+			this.collapseChain();
+		}
+	}
 };
 /** @private
 * @param {Array.&lt;string&gt;=} rowIds
@@ -685,11 +695,13 @@ RowDefinition.prototype.addConstituent = function(ric) {
 		});
 	}
 
-	if(this._view &amp;&amp; this._expanded) { // Only chain is expanded and in the view
+	if(this._view) {
 		// WARNING: ChildCount may not be enough to determine proper inserting position
 		// TODO: Handle nested children
-		var rowIndex = this._view.getRowIndex(this.getRowId()) + this.getChildCount(); // Children must be directly under its parent
+		var rowId = this.getRowId();
+		var rowIndex = this._view.getRowIndex(rowId) + this.getChildCount(); // Children must be directly under its parent
 		childDef.registerToView(this._view, this._view.getRowId(rowIndex));
+		this._view.addSegmentChild(rowId, childDef.getRowId());
 	}
 
 	return newChild ? childDef : null;
@@ -698,19 +710,9 @@ RowDefinition.prototype.addConstituent = function(ric) {
 * @return {boolean} Returns true if there is a change in view
 */
 RowDefinition.prototype.collapseChain = function() {
-	if(!this._isChain || !this._expanded) {
-		return false;
-	}
-	this._expanded = false;
-
-	// Remove all descendants from view
-	if(this._view) {
-		var descendants = this.getDescendants();
-		var rowIds = descendants.reduce(RowDefinition.deregisterFromView, []);
-		if(rowIds.length) {
-			this._view.removeRows(rowIds);
-			return true;
-		}
+	if(this._isChain &amp;&amp; this._view) {
+		this._expanded = false;
+		return this._view.collapseSegment(this._rowId, true);
 	}
 	return false;
 	// if(this._children) {
@@ -724,28 +726,25 @@ RowDefinition.prototype.collapseChain = function() {
 * @return {boolean} Returns true if there is a change in view
 */
 RowDefinition.prototype.expandChain = function() {
-	if(!this._isChain || this._expanded) {
-		return false;
-	}
-	this._expanded = true;
-	if(this._view) {
-		var descendants = this.getDescendants(); // TODO: This should be done for immediate children only
-		var len = descendants.length;
-		if(len) {
-			var rowIndex = this._view.getRowIndex(this.getRowId());
-			// TODO: Re-indexing before modifying data table
-			// TODO: Use freeze method before inserting multiple row
-			// TODO: Check if we need to use standard row insertion from the main Grid
-			for(var i = 0; i &lt; len; ++i) {
-				var rowId = this._view.getRowId(rowIndex + i + 1);
-				descendants[i].registerToView(this._view, rowId);
-			}
-			return true;
-		}
+	if(this._isChain &amp;&amp; this._view) {
+		this._expanded = true;
+		return this._view.collapseSegment(this._rowId, false);
 	}
 	return false;
 	// unsub index
 	// resub chain
+};
+
+/** Toggle between chain expanding and collapsing
+* @public
+* @return {boolean} Returns true if there is a change in view
+*/
+RowDefinition.prototype.toggleChain = function() {
+	if(this._expanded) {
+		return this.collapseChain();
+	} else {
+		return this.expandChain();
+	}
 };
 
 /** @public
@@ -868,34 +867,6 @@ RowDefinition.prototype.setGroupOrder = function(num) {
 		}
 	}
 	return false;
-};
-/** @public
-* @ignore
-* @param {RowDefinition} rowDefA
-* @param {RowDefinition} rowDefB
-* @param {number} order
-* @return {number}
-*/
-RowDefinition._chainSortLogic = function(rowDefA, rowDefB, order) {
-	var parentA = rowDefA.getParent();
-	if(!parentA) {
-		return 0;
-	}
-	var parentB = rowDefB.getParent();
-	if(!parentB) {
-		return 0;
-	}
-	if(parentA !== parentB) {
-		return 0;
-	}
-
-	var valA = /** @type{number} */(rowDefA.getData("CHILD_ORDER"));
-	if(valA == null) { return 0; }
-
-	var valB = /** @type{number} */(rowDefB.getData("CHILD_ORDER"));
-	if(valB == null) { return 0; }
-
-	return valA - valB;
 };
 
 /** @public

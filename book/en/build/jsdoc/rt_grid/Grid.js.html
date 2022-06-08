@@ -6,9 +6,9 @@
 
     <script src="scripts/prettify.js"> </script>
     <script src="scripts/lang-css.js"> </script>
-    <!--[if lt IE 9]&gt;
-      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
-    &lt;![endif]-->
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
     <link type="text/css" rel="stylesheet" href="styles/default.css">
     <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
 </head>
@@ -97,6 +97,7 @@ import { ElementWrapper } from "../../node_modules/@grid/core/es6/grid/component
 * @property {Function=} dataComposed Handler for dataComposed event
 * @property {boolean=} autoDateConversion=false If enabled, date-time field with numeric value will be automatically converted to native date object.
 * @property {boolean=} textSelect=false If enabled, user can select text
+* @property {string=} lang laguage for config localization date time, if null the default language is "en"
 */
 
 /** @typedef {number|string|RowDefinition} Grid~RowReference
@@ -306,7 +307,6 @@ var Grid = function(placeholder, config) {
 
 	t._grid.listen("preSectionRender", t._onColumnHeaderBinding);
 	t._grid.listen("postSectionDataBinding", t._onPostSectionDataBinding);
-	t._grid.listen("rowExpansionBinding", t._onRowExpansionBinding);
 
 	t._grid.enableRowHighlighting(true);
 
@@ -451,6 +451,10 @@ Grid.prototype._autoDateConversion = false;
 * @type {boolean}
 */
 Grid.prototype._textSelect = false;
+/** @private
+* @type {string}
+*/
+Grid.prototype._lang = null;
 /**
 * @private
 * @type {boolean}
@@ -741,6 +745,7 @@ Grid.prototype.initialize = function(gridOption) {
 
 	var rowExpansionBinding = gridOption["rowExpansionBinding"];
 	if(typeof rowExpansionBinding === "function") {
+		grid.listen("rowExpansionBinding", t._onRowExpansionBinding); // TODO: Support multi-table feature
 		t.listen("rowExpansionBinding", rowExpansionBinding);
 	}
 
@@ -841,6 +846,12 @@ Grid.prototype.initialize = function(gridOption) {
 			}
 		}
 		t._initializing = false;
+	}
+
+	var lang = gridOption["lang"];
+	if(lang != null) {
+		t._lang = lang;
+		DateTime.setLocale(lang);
 	}
 
 	// Row operations
@@ -986,6 +997,10 @@ Grid.prototype.getConfigObject = function (gridOptions) {
 
 	if (this._textSelect) {
 		obj["textSelect"] = true;
+	}
+
+	if (this._lang) {
+		obj["lang"] = this._lang;
 	}
 
 	// TODO: The following states need to be retrieved
@@ -1710,7 +1725,7 @@ Grid.prototype.insertRow = function(rowOption, rowRef) {
 		this._hasGroup = true; // HACK: This is temporary solution
 	}
 
-	rowDef.registerToView(this._dt, this._getRowId(rowRef));
+	rowDef.registerToView(this._dv, this._getRowId(rowRef));
 	this._connector.addRic(rowDef);
 	return rowDef;
 };
@@ -2287,7 +2302,8 @@ Grid.prototype.getMultipleRowData = function(obj) {
 */
 Grid.prototype.setRicData = function(ric, values) {
 	var rowDefs = this._connector.getRowDefByRic(ric);
-	for (var i = 0; i &lt; rowDefs.length; i++) {
+	var rowCount = rowDefs ? rowDefs.length : 0;
+	for (var i = 0; i &lt; rowCount; ++i) {
 		var rowDef = rowDefs[i];
 		if (rowDef &amp;&amp; rowDef.getRic() === ric) {
 			rowDef.setRowData(values); // TODO: Need conflator to improve performance
@@ -2550,7 +2566,7 @@ Grid.prototype._addMemberOfChain = function(rowData) {
 	}
 
 	var rows = this._chainConflator.popAllData(); // This must have no duplication
-	var len = rows ? rows.length : 1;
+	var len = rows ? rows.length : 0;
 	var i;
 
 	var prevState = false;
@@ -2576,21 +2592,9 @@ Grid.prototype._addMemberOfChain = function(rowData) {
 		for(i = childCount; --i &gt;= 0;) {
 			this._connector.addRic(childDefs[i]); // TODO: JET/RTK should not re-subscribe this
 		}
-
-		this._sortMembersOfChain();
 	}
 	if(len &gt; 1) {
 		this._dt.freeze(prevState);
-	}
-};
-/** @private
-*/
-Grid.prototype._sortMembersOfChain = function() {
-	if(!this.isSorting()) { // Order of the members matters only when there is no sorting
-		this._dt.sortOnce( // TODO: This should be done on data view
-			ROW_DEF, 0,
-			/** @type{(function (*, *, number): number|undefined)} */(RowDefinition._chainSortLogic)
-		);
 	}
 };
 
@@ -2718,24 +2722,14 @@ Grid.prototype.getPageCount = function() {
 	return this._dv.getPageCount();
 };
 
-
 /** @description Toggle between expanded and collapsed chain index
  * @public
  * @param {Grid~RowReference} rowRef
  */
 Grid.prototype.toggleChain = function(rowRef) {
 	var rowDef = this._getRowDefinition(rowRef);
-	if(!rowDef || !rowDef.isChain()) {
-		return;
-	}
-	var dirty = false;
-	if(rowDef.isChainCollapsed()) { // TODO: Add toggleChain() method to rowDef
-		dirty = rowDef.expandChain();
-	} else {
-		dirty = rowDef.collapseChain();
-	}
-	if(!dirty) {
-		this._grid.requestRowRefresh();
+	if(rowDef) {
+		rowDef.toggleChain();
 	}
 };
 /** @description Focus grid element without moving window scrollbar
@@ -2774,11 +2768,22 @@ Grid.prototype._onFormulaDataRequired = function(e) {
 * @param {Object} e
 */
 Grid.prototype._onDataComposed = function(e) {
-	// auto data conversion
 	var values = e["changes"];
-	if(this._autoDateConversion &amp;&amp; values) {
-		var suffix = "_RAW";
-		var rowDef = e["rowData"][ROW_DEF];
+	if(!values) {
+		return; // Cannot do data composition if there is no change in data
+	}
+
+	var rowData = e["rowData"];
+	if(!rowData) {
+		return; // Row could already be removed or global change event is sent
+	}
+
+	var rowDef = rowData[ROW_DEF];
+	if(!rowDef) {
+		return;
+	}
+
+	if(this._autoDateConversion) { // auto data conversion
 		var field, value, dataType, colDef;
 		for(field in values) {
 			colDef = this._getColumnDefinition(field);
@@ -2790,16 +2795,16 @@ Grid.prototype._onDataComposed = function(e) {
 
 			if(dataType === "datetime") {
 				value = values[field];
-				rowDef.setData(field + suffix, value);
+				rowDef.setData(field + "_RAW", value);
 				value = DateTime.toDateObject(value);
-				rowDef.setData(field, value);
+				rowDef.setData(field, value); // TODO: Check if this trigger data change multiple times
 			}
 		}
 	}
 
 	if(this.hasListener("dataComposed")) {
 		e["grid"] = this;
-		e["rowDef"] = e["rowData"][ROW_DEF];
+		e["rowDef"] = rowDef;
 		this._dispatch("dataComposed", e);
 	}
 };
