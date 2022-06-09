@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: grid/components/ElementWrapper.js</title>
+
+    <script src="scripts/prettify.js"> </script>
+    <script src="scripts/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/default.css">
+    <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
+</head>
+
+<body>
+
+<div id="main-template" class="elf-template">
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import Ext from "../../../../node_modules/tr-grid-util/es6/Ext.js";
+import EventDispatcher from "../event/EventDispatcher.js";
+import EventListeners from "../event/EventListeners.js";
+import Util from "../util/util.js";
+
+
+/** A helper class that add access to native HTML element APIs through simple JavaScript
+ * @constructor
+ * @extends {EventDispatcher}
+ * @param {Element=} opt_element If not specified "div" element is instantly created.
+ */
+var ElementWrapper = function (opt_element) {
+	this._element = opt_element ? opt_element : document.createElement("div");
+};
+Ext.inherits(ElementWrapper, EventDispatcher);
+
+/** @protected
+* @ignore
+* @type{Element}
+*/
+ElementWrapper.prototype._element = null;
+/** @protected
+* @ignore
+* @type{Element|NodeList}
+*/
+ElementWrapper.prototype._content = null;
+/** @protected
+* @ignore
+* @type{Element}
+*/
+ElementWrapper.prototype._textSpan = null;
+
+/** @private
+* @type{Object.&lt;string, !EventListeners&gt;}
+*/
+ElementWrapper.prototype._nativeEvents = null;
+/** @private
+* @type {Object}
+*/
+ElementWrapper._passiveEvents = null;
+
+
+//#region Content Manipulation
+/**
+* @public
+* @param {boolean=} opt_allContent If true all children will be returned
+* @return {Element|Node|NodeList} Returns the last child, if there are multiple children. Returns null if there is no child
+*/
+ElementWrapper.prototype.getContent = function (opt_allContent) {
+	if(opt_allContent) {
+		return this._element.children; // WARNING: Returns private member
+	}
+	return /** @type{Element|Node} */(this._element.lastChild);
+};
+/** Replaces all existing child elements with the specified content. This method automatically converts all non-element to string wrapped with &lt;span&gt; for proper display.
+* @public
+* @param {string|Element|ElementWrapper|*} content Use null to clear content. If string is given, &lt;span&gt; tag is automatically added to host the string.
+* @param {string=} opt_tooltip If undefined, content is added without modification. If string is given, it is added to title attribute of the content
+* @return {Element}
+*/
+ElementWrapper.prototype.setContent = function (content, opt_tooltip) {
+	if (content == null || content !== content) {
+		content = null;
+	} else if (content.nodeType !== 1 &amp;&amp; content.nodeType !== 11) { // Element type checking (1 = DOM, 11 = DocumentFragment)
+		if (content["getElement"] == null) {
+			if (!Util.isString(content)) { content = content + ""; }
+
+			if (this._textSpan == null) {
+				this._textSpan = document.createElement("span"); // For fastest speed
+			}
+			this._textSpan.textContent = content;
+
+			content = this._textSpan;
+		} else {
+			content = content["getElement"]();
+		}
+	}
+
+	if (content !== this._content) {
+		this._content = /** @type{Element} */(content);
+		while (this._element.firstChild !== null) {
+			this._element.removeChild(this._element.firstChild);
+		}
+		if (this._content !== null) {
+			this._element.appendChild(this._content);
+		}
+	}
+
+	if (opt_tooltip &amp;&amp; content) {
+		content.setAttribute("title", opt_tooltip);
+	}
+	return /** @type{Element} */(this._content); // Can only be an element at this point
+};
+/** Append the specified content to the existing children list. Note that string is not acceptable
+* Use setParent() if you just want to put an element into the document. This method is specifically designed for user content, but not for element reordering
+* @public
+* @param {Element|Node|ElementWrapper} content will be appended as a child of this element
+* @return {Element}
+*/
+ElementWrapper.prototype.addContent = function (content) {
+	content = Util.getElement(content);
+	if (content == null) { return null; }
+
+	this._content = this._element.children;
+	this._element.appendChild(content);
+	return content;
+};
+/** Removes the specified content from the existing children list
+* @public
+* @param {Element|Node|ElementWrapper} content If null is given, nothing is done
+* @return {boolean} true if the content is removed
+*/
+ElementWrapper.prototype.removeContent = function (content) {
+	content = Util.getElement(content);
+	if (content == null) { return false; }
+
+	this._content = this._element.children;
+	this._element.removeChild(content);
+	return true;
+};
+//#endregion Content Manipulation
+
+//#region Event Related Methods
+/** Add a event listener to either native or custom event provided from the instance.
+* @public
+* @param {string} type All standard HTML element event types are allowed
+* @param {Function} handler Callback method
+* @param {number=} opt_priority The higher the priority, the sooner the listener get executed. Undefined priority listener will be executed last
+*
+* @example
+* var grid = new Grid();
+* grid.listen("click", function(e) { console.log("Grid is clicked"); });
+*/
+ElementWrapper.prototype.listen = function (type, handler, opt_priority) {
+	if(this._customEvents &amp;&amp; this._customEvents[type]) {
+		this._customEvents[type].listen(handler, opt_priority);
+		return;
+	}
+
+	if (!this._nativeEvents) {
+		this._nativeEvents = {};
+	}
+	var e = this._nativeEvents[type];
+	if (!e) {
+		e = new EventListeners();
+		this._nativeEvents[type] = e;
+
+		e.dispatch = e.dispatch.bind(e);
+
+		if (!ElementWrapper._passiveEvents) {
+			// https://github.com/WICG/EventListenerOptions/blob/gh-pages/explainer.md#feature-detection
+			var supportsPassive = false;
+			try {
+				var opts = /** @type{boolean} */(Object.defineProperty({}, 'passive', {
+					/**
+					 * @return {boolean}
+					 */
+					"get": function() {
+						supportsPassive = true;
+						return false;
+					}
+				}));
+				window.addEventListener("testPassive", null, opts);
+				window.removeEventListener("testPassive", null, opts);
+			} catch (err) {}
+
+			if(supportsPassive) {
+				var passiveOption = { "passive": true };
+
+				// "wheel" and "mousewheel" have default behavior that needs to be prevented. We have to exclude them from the list
+				ElementWrapper._passiveEvents = {
+					// "wheel": passiveOption,
+					// "mousewheel": passiveOption,
+					"touchstart": passiveOption,
+					"touchmove": passiveOption
+				};
+			} else {
+				ElementWrapper._passiveEvents = {};
+			}
+		}
+
+		this._element.addEventListener(type, e.dispatch, ElementWrapper._passiveEvents[type] || false);
+	}
+
+	e.listen(handler, opt_priority);
+};
+/** Removes an event listener which was added with listen(). The same function handler must be sent in, or else it will not be removed
+* @public
+* @param {string} type The name of the event without the 'on' prefix.
+* @param {Function} handler The listener function to remove.
+*/
+ElementWrapper.prototype.unlisten = function (type, handler) {
+	if(this._customEvents &amp;&amp; this._customEvents[type]) {
+		this._customEvents[type].unlisten(handler);
+		return;
+	}
+
+	if (this._nativeEvents) {
+		var e = this._nativeEvents[type];
+		if (e) {
+			e.unlisten(handler);
+		}
+	}
+};
+/** Removes all listeners from an object. If no type is specified, it will remove all listeners that have been registered.
+* You can also optionally remove listeners of a particular type.
+* @public
+* @param {string=} opt_type Type of event to, default is all types.
+*/
+ElementWrapper.prototype.unlistenAll = function (opt_type) {
+	if(this._customEvents) {
+		if(opt_type) {
+			if(this._customEvents[opt_type]) {
+				this._customEvents[opt_type].unlistenAll();
+			}
+		} else {
+			for (var customEvt in this._customEvents) {
+				this._customEvents[customEvt].unlistenAll();
+			}
+		}
+	}
+
+	if (this._nativeEvents) {
+		if (opt_type) {
+			if (this._nativeEvents[opt_type]) {
+				this._unlistenAll(opt_type);
+				delete this._nativeEvents[opt_type];
+			}
+		} else {
+			for (var key in this._nativeEvents) {
+				this._unlistenAll(key);
+			}
+			this._nativeEvents = null;
+		}
+	}
+};
+/** @protected
+* @ignore
+* @param {string} type
+*/
+ElementWrapper.prototype._unlistenAll = function (type) {
+	var e = this._nativeEvents[type];
+	this._element.removeEventListener(type, e.dispatch, false);
+	e.unlistenAll();
+};
+/** Calls this method, if it is NO LONGER needed and we want to free up memory.
+* Any usage after disposition will cause exception error
+* @public
+*/
+ElementWrapper.prototype.dispose = function () {
+	this._dispose();
+};
+/** @protected
+* @ignore
+*/
+ElementWrapper.prototype._dispose = function () {
+	this.setParent(null);
+	this.unlistenAll();
+
+	this._element = this._content = this._textSpan = null;
+	this._customEvents = this._nativeEvents = null;
+};
+/** Set Extender method that will be executed before dispatcing an event to provide additional event argument. This only works for custom event
+* @ignore
+* @public
+* @param {string} type
+* @param {Function} func
+*/
+ElementWrapper.prototype.setEventArgExtender = function (type, func) {
+	if(this._customEvents) {
+		var evt = this._customEvents[type];
+		if(evt) {
+			evt.setEventArgExtender(func);
+		}
+	}
+};
+//#endregion Event Related Methods
+
+//#region DOM Manipulation
+/** Gets top element of this control
+* @public
+* @return {Element}
+*/
+ElementWrapper.prototype.getElement = function () {
+	return this._element;
+};
+/**
+* @public
+* @return {Element|Node}
+*/
+ElementWrapper.prototype.getNextSibling = function () {
+	return this._element.nextSibling;
+};
+/**
+* @public
+* @return {Element|Node}
+*/
+ElementWrapper.prototype.getParent = function () {
+	return this._element.parentNode;
+};
+/**
+* @public
+* @param {ElementWrapper|Element|Node} parent Uses null to clear parent
+* @param {boolean=} opt_prepend If false (default), this element is appended to child list of the parent
+*/
+ElementWrapper.prototype.setParent = function (parent, opt_prepend) {
+	this._setParent(parent, opt_prepend);
+};
+/** @protected
+* @ignore
+* @param {Element} parent
+* @param {boolean=} opt_prepend
+*/
+ElementWrapper.prototype._setParent = function (parent, opt_prepend) {
+	parent = Util.getElement(parent);
+	if (parent !== null) {
+		if (opt_prepend) {
+			parent.insertBefore(this._element, parent.firstChild);
+		} else {
+			parent.appendChild(this._element);
+		}
+	} else if (this._element.parentNode !== null) {
+		this._element.parentNode.removeChild(this._element);
+	}
+};
+/** Inserts this element before the specified sibling. Parent of this element will be changed to sibling's parent
+* If sibling parent does not exist, nothing is performed.
+* If nextSibling is null, this element will place itself at the end of its parent child list
+* @public
+* @param {ElementWrapper|Element|Node} nextSibling
+*/
+ElementWrapper.prototype.insertBefore = function (nextSibling) {
+	this._insertBefore(nextSibling);
+};
+/** @protected
+* @ignore
+* @param {Element} nextSibling
+*/
+ElementWrapper.prototype._insertBefore = function (nextSibling) {
+	nextSibling = Util.getElement(nextSibling);
+	if (nextSibling == null) {
+		this.setParent(this.getParent());
+		return;
+	}
+
+	var parent = nextSibling.parentNode;
+	if (parent == null) { return; }
+
+	parent.insertBefore(this._element, nextSibling);
+};
+/** Inserts this element after the specified sibling. Parent of this element will be changed to sibling's parent
+* If sibling parent does not exist, nothing is performed.
+* If previousSibling is null, this element will place itself at the end of its parent child list
+* @public
+* @param {ElementWrapper|Element|Node} previousSibling
+*/
+ElementWrapper.prototype.insertAfter = function (previousSibling) {
+	previousSibling = Util.getElement(previousSibling);
+	if(previousSibling) {
+		if(previousSibling.nextSibling) {
+			this.insertBefore(previousSibling.nextSibling);
+		} else {
+			this.setParent(previousSibling.parentNode);
+		}
+	} else {
+		this.setParent(this.getParent(), true);
+	}
+};
+//#endregion DOM Manipulation
+
+//#region HTML Styling
+/** Checks if the given CSS class is in className of the element
+* @public
+* @param {string} str
+* @return {boolean}
+*/
+ElementWrapper.prototype.hasClass = function (str) {
+	return (this._element) ? this._element.classList.contains(str) : false;
+};
+/** If the given CSS class is already in className, the class is not added twice
+* @public
+* @param {string} str
+*/
+ElementWrapper.prototype.addClass = function (str) {
+	if (this._element) {
+		this._element.classList.add(str);
+	}
+};
+/**
+* @public
+* @param {string} str
+*/
+ElementWrapper.prototype.removeClass = function (str) {
+	if (this._element) {
+		this._element.classList.remove(str);
+	}
+};
+/** Toggles the specified class
+* @public
+* @param {string} cls
+* @param {(boolean|null)=} forcedVal If specified, force CSS class state as the specified value
+*/
+ElementWrapper.prototype.toggleClass = function (cls, forcedVal) {
+	var elem = this._element;
+	if(elem) {
+		if(forcedVal == null) {
+			forcedVal = !elem.classList.contains(cls);
+		}
+		if(forcedVal) {
+			elem.classList.add(cls);
+		} else {
+			elem.classList.remove(cls);
+		}
+	}
+};
+/** Adds or removes CSS class by specifying "enabled" parameter
+* @public
+* @param {string} str
+* @param {boolean=} opt_enabled Default is true
+*/
+ElementWrapper.prototype.enableClass = function (str, opt_enabled) {
+	if (opt_enabled !== false) {
+		this.addClass(str);
+	} else {
+		this.removeClass(str);
+	}
+};
+/**
+* @public
+* @return {string}
+*/
+ElementWrapper.prototype.getClass = function () { return this._element.className; };
+/**
+* @public
+* @param {string} str All existing classes will be placed by this value
+*/
+ElementWrapper.prototype.setClass = function (str) { this._element.className = str; };
+
+/**
+* @public
+* @param {string} str
+* @return {string}
+*/
+ElementWrapper.prototype.getAttribute = function (str) { return this._element.getAttribute(str); };
+/** Sets attribute to DOM element
+* @public
+* @param {string} str
+* @param {string} val Uses empty string ("") to remove the attribute value
+*/
+ElementWrapper.prototype.setAttribute = function (str, val) { this._element.setAttribute(str, val); };
+/** Sets multiple attributes all at once
+* @public
+* @param {Object} json Key is the attribute names and value is string value (i.e. "readonly", "50", "checkbox")
+*/
+ElementWrapper.prototype.setAttributes = function (json) {
+	for (var key in json) {
+		this._element.setAttribute(key, json[key]);
+	}
+};
+/** Completely removes attribute from DOM element for both key and values
+ * @public
+ * @param {string} str
+ */
+ElementWrapper.prototype.removeAttribute = function (str) { this._element.removeAttribute(str); };
+
+/**
+* @public
+* @param {string} str
+* @return {string}
+*/
+ElementWrapper.prototype.getStyle = function (str) { return this._element.style[str]; };
+/**
+* @public
+* @param {string} str
+* @param {string} val
+*/
+ElementWrapper.prototype.setStyle = function (str, val) { this._element.style[str] = val; };
+/** Sets multiple css properties all at once
+* @public
+* @param {Object} json Key is the property names and value is style value (i.e. "center", "#FF00FF", "10px")
+*/
+ElementWrapper.prototype.setStyles = function (json) {
+	var styles = this._element.style;
+	for (var key in json) {
+		styles[key] = json[key];
+	}
+};
+//#endregion HTML Styling
+
+//#region Common HTML Helpers
+/**
+* @public
+* @return {string}
+*/
+ElementWrapper.prototype.getId = function () {
+	return this._element.id;
+};
+/**
+* @public
+* @param {string} val
+*/
+ElementWrapper.prototype.setId = function (val) {
+	this._element.id = val;
+};
+/** Return a string that represents the object mainly for debugging
+* @public
+* @return {string}
+*/
+ElementWrapper.prototype.toString = function () {
+	var outer = this._element.outerHTML;
+	outer = outer.replace(this._element.innerHTML, "");
+	return outer;
+};
+
+/** Gets textContent (IE9+) value from this element
+* @public
+* @return {string}
+*/
+ElementWrapper.prototype.getTextContent = function () {
+	return this._element.textContent;
+};
+/** Sets textContent (IE9+) value this will replace all childNodes with a single TextNode
+* @public
+* @param {string} str
+*/
+ElementWrapper.prototype.setTextContent = function (str) {
+	this._element.textContent = str;
+};
+
+/** Gets the left position that is relative to its parent's client area
+* @public
+* @return {number}
+*/
+ElementWrapper.prototype.getLeft = function () { return this._element.offsetLeft; };
+/**
+* @public
+* @param {number} val in pixel
+* @return {boolean} true if there is any change, otherwise false
+*/
+ElementWrapper.prototype.setLeft = function (val) {
+	this._element.style.left = val + "px";
+	return true;
+};
+
+/** Gets the top position that is relative to its parent's client area
+* @public
+* @return {number}
+*/
+ElementWrapper.prototype.getTop = function () { return this._element.offsetTop; };
+/**
+* @public
+* @param {number} val in pixel
+* @return {boolean} ture if there is any change, otherwise false
+*/
+ElementWrapper.prototype.setTop = function (val) {
+	this._element.style.top = val + "px";
+	return true;
+};
+
+/** Gets offsetWidth
+* @public
+* @return {number}
+*/
+ElementWrapper.prototype.getWidth = function () { return this._element.offsetWidth; };
+/** For complex sizing, use setStyle("width", "-webkit-calc(100% - 10px)") instead.
+* @public
+* @param {number} val in pixel
+* @return {boolean} true if there is any change, otherwise false
+*/
+ElementWrapper.prototype.setWidth = function (val) {
+	this._element.style.width = val + "px";
+	return true;
+};
+
+/** Gets offsetHeight
+* @public
+* @return {number} in pixel
+*/
+ElementWrapper.prototype.getHeight = function () { return this._element.offsetHeight; };
+/** For complex sizing, use setStyle("height", "-webkit-calc(100% - 10px)") instead.
+* @public
+* @param {number} val in pixel
+* @return {boolean} true if there is any change, otherwise false
+*/
+ElementWrapper.prototype.setHeight = function (val) {
+	if (val &lt; 0) { val = 0; }
+	this._element.style.height = val + "px";
+	return true;
+};
+
+/** The returned value is a TextRectangle object, which contains read-only left,
+ * top, right and bottom properties describing the border-box, in pixels, with the top-left
+ * relative to the top-left of the viewport.
+ * @public
+ * @return {Object}
+ */
+ElementWrapper.prototype.getBoundingClientRect = function () {
+	return this._element.getBoundingClientRect();
+};
+
+/** Sets width in percentage corresponding to the parent
+* @public
+* @param {number=} opt_percent If not defined, 100% width is used
+* @return {boolean} true if there is any change, otherwise false
+*/
+ElementWrapper.prototype.fillParentWidth = function (opt_percent) {
+	if (opt_percent == null) { opt_percent = 100; }
+
+	this._element.style.width = opt_percent + "%";
+	return true;
+};
+/** Sets height in percentage corresponding to the parent
+* @public
+* @param {number=} opt_percent If not defined, 100% height is used
+* @return {boolean} true if there is any change, otherwise false
+*/
+ElementWrapper.prototype.fillParentHeight = function (opt_percent) {
+	if (opt_percent == null) { opt_percent = 100; }
+
+	this._element.style.height = opt_percent + "%";
+	return true;
+};
+
+/** Gets tooltip text from "title" attribute
+* @public
+* @return {string}
+*/
+ElementWrapper.prototype.getTooltip = function () { return this.getAttribute("title"); };
+/** Sets tooltip text to "title" attribute
+* @public
+* @param {string} str
+*/
+ElementWrapper.prototype.setTooltip = function(str) {
+	if(str) {
+		this.setAttribute("title", str);
+	} else {
+		this.removeAttribute("title");
+	}
+};
+
+/** Sets display style as inline style to the element with value of empty string
+* @public
+* @param {boolean=} opt_shown If false the element will be hidden
+*/
+ElementWrapper.prototype.show = function (opt_shown) {
+	this._element.style.display = (opt_shown !== false) ? "" : "none";
+};
+/** Sets display style as inline style to the element with value of "none"
+* @public
+* @param {boolean=} opt_hidden If false the element will be shown
+*/
+ElementWrapper.prototype.hide = function (opt_hidden) {
+	this.show(opt_hidden === false);
+};
+/** Check to see if display has "none" as a inline style. Note that any change in visibility and class name may not be reflected by the returned value.
+* @public
+* @return {boolean}
+*/
+ElementWrapper.prototype.isVisible = function () { return this._element.style.display !== "none"; };
+
+/** Enable control element
+* @public
+* @param {boolean=} opt_enabled If false the element will be hidden
+*/
+ElementWrapper.prototype.enable = function (opt_enabled) {
+	opt_enabled = opt_enabled !== false;
+	if (opt_enabled) {
+		this.removeAttribute("disabled");
+	} else {
+		this.setAttribute("disabled", "disabled");
+		this._element.disabled = !opt_enabled;
+	}
+};
+/** Disable control element
+* @public
+* @param {boolean=} opt_disabled If false the element will be shown
+*/
+ElementWrapper.prototype.disable = function (opt_disabled) {
+	this.enable(opt_disabled === false);
+};
+/** Check if control element is enabled
+* @public
+* @return {boolean} true if element is enabled
+*/
+ElementWrapper.prototype.isEnabled = function () {
+	return !this._element.hasAttribute("disabled");
+};
+
+/** Note that if element display style is set to "none" or not in the document, scroll value will automatically reset to zero and will not be restored when it is back to visible state
+* @public
+* @return {number}
+*/
+ElementWrapper.prototype.getScrollLeft = function () { return this._element.scrollLeft; };
+/**
+* @public
+* @return {number}
+*/
+ElementWrapper.prototype.getScrollTop = function () { return this._element.scrollTop; };
+/**
+* @public
+* @return {boolean}
+*/
+ElementWrapper.prototype.isEndOfHorizontalScroll = function () { return this._element.scrollLeft &gt;= this._element.scrollWidth - this.getWidth(); };
+/**
+* @public
+* @return {boolean}
+*/
+ElementWrapper.prototype.isEndOfVerticalScroll = function () { return this._element.scrollTop &gt;= this._element.scrollHeight - this.getHeight(); };
+//#endregion Common HTML Helpers
+
+ElementWrapper._proto = ElementWrapper.prototype;
+
+export default ElementWrapper;
+export { ElementWrapper };
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="ElementFrameWork.html">ElementFrameWork</a></li><li><a href="Util.html">Util</a></li></ul><h3>Classes</h3><ul><li><a href="Cell.html">Cell</a></li><li><a href="CellFloatingPanel.html">CellFloatingPanel</a></li><li><a href="CellSpan.html">CellSpan</a></li><li><a href="CellSpans.html">CellSpans</a></li><li><a href="ColumnStats.html">ColumnStats</a></li><li><a href="Conflator.html">Conflator</a></li><li><a href="DataCache.html">DataCache</a></li><li><a href="DataTable.html">DataTable</a></li><li><a href="DataView.html">DataView</a></li><li><a href="DragAndDropTitlePlugin.html">DragAndDropTitlePlugin</a></li><li><a href="ElementWrapper.html">ElementWrapper</a></li><li><a href="EventDispatcher.html">EventDispatcher</a></li><li><a href="EventListeners.html">EventListeners</a></li><li><a href="Grid.html">Grid</a></li><li><a href="HScrollbar.html">HScrollbar</a></li><li><a href="HttpRequest.html">HttpRequest</a></li><li><a href="LayoutGrid.html">LayoutGrid</a></li><li><a href="PercentBar.html">PercentBar</a></li><li><a href="PercentBarRenderer.html">PercentBarRenderer</a></li><li><a href="Plugin.html">Plugin</a></li><li><a href="RangeBar.html">RangeBar</a></li><li><a href="Reverter.html">Reverter</a></li><li><a href="Scrollbar.html">Scrollbar</a></li><li><a href="SectionSettings.html">SectionSettings</a></li><li><a href="Segment.html">Segment</a></li><li><a href="SegmentCollection.html">SegmentCollection</a></li><li><a href="SortableTitlePlugin.html">SortableTitlePlugin</a></li><li><a href="Virtualizer.html">Virtualizer</a></li><li><a href="VScrollbar.html">VScrollbar</a></li></ul><h3>Interfaces</h3><ul><li><a href="ILayoutGrid.html">ILayoutGrid</a></li></ul><h3>Events</h3><ul><li><a href="DataCache.html#event:dataChanged">dataChanged</a></li><li><a href="DataCache.html#event:dataComposed">dataComposed</a></li><li><a href="DataTable.html#event:dataChanged">dataChanged</a></li><li><a href="DataTable.html#event:dataComposed">dataComposed</a></li><li><a href="DataView.html#event:beforeFiltering">beforeFiltering</a></li><li><a href="DataView.html#event:beforeGroupAdded">beforeGroupAdded</a></li><li><a href="DataView.html#event:dataChanged">dataChanged</a></li><li><a href="DataView.html#event:groupAdded">groupAdded</a></li><li><a href="DataView.html#event:groupCriteriaChanged">groupCriteriaChanged</a></li><li><a href="DataView.html#event:pageCountChanged">pageCountChanged</a></li><li><a href="DataView.html#event:pageIndexChanged">pageIndexChanged</a></li><li><a href="DataView.html#event:preDisposed">preDisposed</a></li><li><a href="DragAndDropTitlePlugin.html#event:columnMoved">columnMoved</a></li><li><a href="DragAndDropTitlePlugin.html#event:dragged">dragged</a></li><li><a href="Grid.html#event:columnAdded">columnAdded</a></li><li><a href="Grid.html#event:columnRemoved">columnRemoved</a></li><li><a href="Grid.html#event:columnVisibilityChanged">columnVisibilityChanged</a></li><li><a href="Grid.html#event:dataSourceChanged">dataSourceChanged</a></li><li><a href="Grid.html#event:postSectionDataBinding">postSectionDataBinding</a></li><li><a href="Grid.html#event:rowExpansionBinding">rowExpansionBinding</a></li><li><a href="Grid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="Grid.html#event:sectionAdded">sectionAdded</a></li><li><a href="Grid.html#event:widthChanged">widthChanged</a></li><li><a href="HttpRequest.html#event:abort">abort</a></li><li><a href="HttpRequest.html#event:error">error</a></li><li><a href="HttpRequest.html#event:load">load</a></li><li><a href="HttpRequest.html#event:loadend">loadend</a></li><li><a href="HttpRequest.html#event:loadstart">loadstart</a></li><li><a href="HttpRequest.html#event:timeout">timeout</a></li><li><a href="LayoutGrid.html#event:rowCountChanged">rowCountChanged</a></li><li><a href="LayoutGrid.html#event:rowHeightChanged">rowHeightChanged</a></li><li><a href="LayoutGrid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="SortableTitlePlugin.html#event:clicked">clicked</a></li><li><a href="SortableTitlePlugin.html#event:columnSorted">columnSorted</a></li><li><a href="SortableTitlePlugin.html#event:preClicked">preClicked</a></li><li><a href="SortableTitlePlugin.html#event:preDataSorting">preDataSorting</a></li></ul><h3>Global</h3><ul><li><a href="global.html#get">get</a></li><li><a href="global.html#sortingDef%255B1%255D">sortingDef[1]</a></li></ul>
+</nav>
+
+
+<script src="scripts/linenumber.js"> </script>
+<script src="scripts/prettify.js"> </script>
+<script> prettyPrint(); </script>
+</body>
+</html>
