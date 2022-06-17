@@ -6,9 +6,9 @@
 
     <script src="scripts/prettify.js"> </script>
     <script src="scripts/lang-css.js"> </script>
-    <!--[if lt IE 9]>
-      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
+    <!--[if lt IE 9]&gt;
+      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
+    &lt;![endif]-->
     <link type="text/css" rel="stylesheet" href="styles/default.css">
     <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
 </head>
@@ -813,11 +813,16 @@ tr.CompositeGrid.prototype.autoResizeAllColumns = function (){
  * @public
  * @param {number|Array.&lt;number&gt;} fromColIndex index or array of indices of the column(s) to be moved.
  * @param {number} toColIndex target column index
+ * @return {boolean} Return true if there is any change, and false otherwise
  */
 tr.CompositeGrid.prototype.moveColumn = function (fromColIndex, toColIndex) {
 	//Wrap single index to array
 	if (!Array.isArray(fromColIndex)) {
 		fromColIndex = [fromColIndex];
+	}
+
+	if (!this._grid.isColumnMoveAllowed(fromColIndex, toColIndex)) {
+		return false;
 	}
 
 	var frozen = this.freezeLayout(true);
@@ -908,6 +913,7 @@ tr.CompositeGrid.prototype.moveColumn = function (fromColIndex, toColIndex) {
 	}
 
 	this.freezeLayout(frozen);
+	return true;
 };
 
 /** Freeze the column at the left side of the table starting from index 0 to the specified colIndex
@@ -2350,6 +2356,12 @@ tr.CompositeGrid.prototype.getScrollTop = function () {
 tr.CompositeGrid.prototype.setScrollTop = function (px) {
 	this._grid.setScrollTop(px);
 };
+/** Request re-rendering of content row by triggering data binding event without any change in data model
+* @public
+*/
+tr.CompositeGrid.prototype.requestRowRefresh = function () {
+	this._grid.requestRowRefresh();
+};
 
 
 /**
@@ -2423,7 +2435,8 @@ tr.CompositeGrid.prototype._initialize = function (gridElem, model) {
 			"filter": checkboxSelector["filter"],
 			"filterBy": checkboxSelector["mappedField"],
 			"emptyColumn": true,
-			"resizable": false
+			"resizable": false,
+			"stationary": true
 		});
 	}
 
@@ -2532,7 +2545,7 @@ tr.CompositeGrid.prototype._initialize = function (gridElem, model) {
 	this._processOptionExtension("columnReorder");
 
 	if (tr.ensureBoolean(this._model["columnReorder"])) {
-		var dndPlugin = new grid.DragAndDropTitlePlugin(null, (checkboxSelector ? [0] : null), [0]);
+		var dndPlugin = new grid.DragAndDropTitlePlugin();
 		var isLock = !this._model["pinnedColumnReorder"];
 
 		this._grid.loadPlugin(dndPlugin);
@@ -4545,6 +4558,7 @@ tr.CompositeGrid.SortingOptions;
  * @property {tr.CompositeGrid.ColumnFormatter=} formatter Formatter specifies how to render data for each cell in the column
  * @property {Object.&lt;string, string&gt;=} styles Key/value pair Object specifying CSS styles
  * @property {Object.&lt;string, string&gt;=} classes Key/value pair Object specifying CSS classes
+ * @property {boolean=} stationary=false If enabled, previous columns up to the column will be locked in position
  * @property {boolean=} sortable=false If enable, the column can be sorted by user click
  * @property {string=} sortBy Field to be used for sorting. If defined, user can click at the header section to sort the column
  * @property {tr.DataTable.SortLogic=} sortLogic=null Custom compare function for sorting
@@ -4721,6 +4735,8 @@ goog.exportSymbol("tr.CompositeGrid", tr.CompositeGrid);
 		"setScrollLeft": pt.setScrollLeft,
 		"getScrollTop": pt.getScrollTop,
 		"setScrollTop": pt.setScrollTop,
+		
+		"requestRowRefresh": pt.requestRowRefresh,
 
 		"update": pt.update,
 		"dispose": pt.dispose

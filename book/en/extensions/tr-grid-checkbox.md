@@ -205,7 +205,7 @@ If you want to select the column based on the checkbox state. just turn on the f
 
 1. `items in view` means only row items that show in view, including the overflowed row, and rows that are hidden in collapsed groups that show in view. It excludes rows in other pages (so when using the pagination plugin), filtered rows, group header rows, and rows in header or footer sections.
 
-2. A checkbox in Atlas-Blotter normally has three states: `checked`, `unchecked`, `partial`.
+2. A checkbox in atlas-blotter and Atlas-Blotter normally has three states: `checked`, `unchecked`, `partial`. But the Composite-Grid has only two: `checked`, `unchecked`. The missing `partial` will be declared as `unchecked`.
 
 3. The top header and group header will automatically change their state according to their group member. See information below under `Top checkbox` and `Group checkbox`.
 

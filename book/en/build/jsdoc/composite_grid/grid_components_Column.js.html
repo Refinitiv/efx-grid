@@ -6,9 +6,9 @@
 
     <script src="scripts/prettify.js"> </script>
     <script src="scripts/lang-css.js"> </script>
-    <!--[if lt IE 9]>
-      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
+    <!--[if lt IE 9]&gt;
+      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
+    &lt;![endif]-->
     <link type="text/css" rel="stylesheet" href="styles/default.css">
     <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
 </head>
@@ -30,6 +30,7 @@ goog.require("tr.ElementControl");
 goog.require("tr.ElementWrapper");
 goog.require("tr.ILayoutGrid");
 goog.require("tr.Event");
+goog.require("tr.grid.util");
 
 /** @constructor
 * @ignore
@@ -486,22 +487,7 @@ tr.grid.Column.prototype.moveCellsToTop = function (numCells) {
 			parent.appendChild(cell.getElement());
 		}
 	}
-	this._cells = this._cycleArray(this._cells, numCells);
-};
-/** @private
-* @param {Array} ary
-* @param {number} index Index of the first cell to be moved to the top
-*/
-tr.grid.Column.prototype._cycleArray = function (ary, index) {
-	if(index &lt; 0) {
-		return ary;
-	}
-	if(index &gt;= ary.length) {
-		return ary;
-	}
-	
-	var front = ary.splice(0, index);
-	return ary.concat(front);
+	this._cells = /** @type{Array.&lt;!tr.grid.Cell&gt;} */(tr.cycleArray(this._cells, numCells));
 };
 /** @public
 * @ignore

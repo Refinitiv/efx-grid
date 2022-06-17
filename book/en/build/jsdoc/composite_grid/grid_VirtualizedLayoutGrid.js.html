@@ -6,9 +6,9 @@
 
     <script src="scripts/prettify.js"> </script>
     <script src="scripts/lang-css.js"> </script>
-    <!--[if lt IE 9]>
-      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
+    <!--[if lt IE 9]&gt;
+      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
+    &lt;![endif]-->
     <link type="text/css" rel="stylesheet" href="styles/default.css">
     <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
 </head>
@@ -740,12 +740,34 @@ tr.grid.VirtualizedLayoutGrid.prototype.updateLayout = function () {};
 /** {@link tr.ILayoutGrid#stretchCell}
 * @inheritDoc */
 tr.grid.VirtualizedLayoutGrid.prototype.stretchCell = function (cellRef, rowIndex, opt_stretching, onlyToTheRight) {
-	return this._grid.stretchCell(cellRef, rowIndex - this._firstIndex, opt_stretching, onlyToTheRight);
+	return this._grid.stretchCell(
+		cellRef,
+		(rowIndex != null) ? rowIndex - this._firstIndex : null,
+		opt_stretching,
+		onlyToTheRight
+	);
 };
 /** {@link tr.ILayoutGrid#unstretchCell}
 * @inheritDoc */
 tr.grid.VirtualizedLayoutGrid.prototype.unstretchCell = function (cellRef, rowIndex) {
-	return this._grid.unstretchCell(cellRef, rowIndex - this._firstIndex);
+	return this._grid.unstretchCell(
+		cellRef,
+		(rowIndex != null) ? rowIndex - this._firstIndex : null
+	);
+};
+/** {@link tr.ILayoutGrid#unstretchAllCells}
+* @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.unstretchAllCells = function () {
+	this._grid.unstretchAllCells();
+};
+
+/** {@link tr.ILayoutGrid#getStretchedCell}
+* @inheritDoc */
+tr.grid.VirtualizedLayoutGrid.prototype.getStretchedCell = function (cellRef, rowIndex) {
+	return this._grid.getStretchedCell(
+		cellRef,
+		(rowIndex != null) ? rowIndex - this._firstIndex : null
+	);
 };
 /** {@link tr.ILayoutGrid#getStretchedCells}
 * @inheritDoc */
@@ -894,8 +916,8 @@ tr.grid.VirtualizedLayoutGrid.prototype._updateRightSpaceStyle = function(absolu
 /** @public
 * @ignore
 */
-tr.grid.VirtualizedLayoutGrid.prototype._reinsertRightSpace = function() {
-	this._grid._reinsertRightSpace();
+tr.grid.VirtualizedLayoutGrid.prototype._updateLayers = function() {
+	this._grid._updateLayers();
 };
 /** @public
 * @ignore
@@ -1024,6 +1046,8 @@ var methodMap = {
 
 	"stretchCell": pt.stretchCell,
 	"unstretchCell": pt.unstretchCell,
+	"unstretchAllCells": pt.unstretchAllCells,
+	"getStretchedCell": pt.getStretchedCell,
 	"getStretchedCells": pt.getStretchedCells,
 	"updateStretchedCells": pt.updateStretchedCells,
 	"getColumnHost": pt.getColumnHost,

@@ -6,9 +6,9 @@
 
     <script src="scripts/prettify.js"> </script>
     <script src="scripts/lang-css.js"> </script>
-    <!--[if lt IE 9]>
-      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
+    <!--[if lt IE 9]&gt;
+      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
+    &lt;![endif]-->
     <link type="text/css" rel="stylesheet" href="styles/default.css">
     <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
 </head>
@@ -262,7 +262,7 @@ tr.pushArrayItems = function(ary, items) {
 * @param {number} at Zero or positive number
 * @param {number} chunkSize
 * @example
-* insertEmptyItems(["a", "b"], 1, 2); // ["a", , , "b"];
+* insertEmptyItems(["a", "b"], 1, 2); // ["a", , , "b"]
 */
 tr.insertEmptyItems = function (ary, at, chunkSize) {
 	if(chunkSize &gt; 0) {
@@ -275,6 +275,24 @@ tr.insertEmptyItems = function (ary, at, chunkSize) {
 			ary.splice(at, 0, null);
 		}
 	}
+};
+/** Move all items from the specify index to the front/top of the array
+* @public
+* @function
+* @param {Array} ary
+* @param {number} numItems Index of the first item to be moved to the top
+* @return {Array}
+* @example
+* cycleArray(["a", "b", "c"], 2); // ["c", "a", "b"]
+*/
+tr.cycleArray = function (ary, numItems) {
+	if(numItems &gt; 0 &amp;&amp; ary) {
+		if(numItems &lt; ary.length) {
+			var front = ary.splice(0, numItems);
+			return ary.concat(front);
+		}
+	}
+	return ary || null;
 };
 
 /** Correct the index when associated item is moved by the specified indices

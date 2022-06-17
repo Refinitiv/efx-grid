@@ -6,9 +6,9 @@
 
     <script src="scripts/prettify.js"> </script>
     <script src="scripts/lang-css.js"> </script>
-    <!--[if lt IE 9]>
-      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
+    <!--[if lt IE 9]&gt;
+      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
+    &lt;![endif]-->
     <link type="text/css" rel="stylesheet" href="styles/default.css">
     <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
 </head>
@@ -86,6 +86,8 @@ tr.grid.HScrollbar.prototype.setScrollContent = function (grid, sections, startC
 		var paneElem = pane.getElement();
 		var sliderElem = paneSlider.getElement();
 
+		paneElem.classList.toggle("right-pinning", this._pinnedRightColumnCount ? true : false);
+
 		var c;
 		var column;
 		for (c = 0; c &lt; startColIndex; ++c) {
@@ -112,11 +114,11 @@ tr.grid.HScrollbar.prototype.setScrollContent = function (grid, sections, startC
 			if(!this._pinnedRightColumnCount) {
 				paneSlider.addContent(rs);
 				content.push(rs);	
-			} else {
-				section._reinsertRightSpace();
 			}
 			section._updateRightSpaceStyle(this.isActive() &amp;&amp; !this._pinnedRightColumnCount);
 		}
+		section._updateLayers(); // Order of the layers may be changed due to change in rightspace and/or column pinning
+		paneSlider._titleSection = section.getElement().classList.contains("title"); // To cache virtualized title section
 		paneSlider._columns = columns; // To cache virtualized columns
 		paneSlider._content = content; // To cache virtualized columns
 	}

@@ -66,7 +66,6 @@ grid.config = {
 	var records = DataGenerator.generateRecords(fields, { numRows: 200 });
 	var configObj = {
 		freezeColumn: 0,
-		rowHighlight: true,
 		columns: [
 			{title: "Company", field: fields[0], width: 300},
 			{title: "Market", field: fields[1], width: 150},

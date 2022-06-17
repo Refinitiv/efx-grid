@@ -6,9 +6,9 @@
 
     <script src="scripts/prettify.js"> </script>
     <script src="scripts/lang-css.js"> </script>
-    <!--[if lt IE 9]>
-      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
+    <!--[if lt IE 9]&gt;
+      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
+    &lt;![endif]-->
     <link type="text/css" rel="stylesheet" href="styles/default.css">
     <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
 </head>
@@ -1082,9 +1082,14 @@ tr.grid.Scrollbar.prototype._setSliderPosition = function (scrollVal, resting) {
 		}
 	}
 	for (var i = this._paneSliders.length; --i &gt;= 0; ) {
-		var paneSliderStyle = this._paneSliders[i].getElement().style;
-		paneSliderStyle.transform = translateStr;
-		paneSliderStyle[direction] = relativeStr; // WORKAROUND: GRID-402
+		var paneSlider = this._paneSliders[i];
+		var paneSliderStyle = paneSlider.getElement().style;
+		if(paneSlider._titleSection) {
+			paneSliderStyle[direction] = scrollVal + "px";
+		} else {
+			paneSliderStyle.transform = translateStr;
+			paneSliderStyle[direction] = relativeStr; // WORKAROUND: GRID-402
+		}
 	}
 	if(resting) {
 		this._dispatch("scrollEnd", {});

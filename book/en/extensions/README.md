@@ -54,7 +54,7 @@ grid.config = {
   ],
 
   extensions: [
-    new AutoTooltipExtension()
+    new AutoTooltip()
   ],
 
   // extension option
@@ -73,14 +73,14 @@ For details on how to install and use the EF-element see the [Refinitiv UI Insta
 
 The Checkbox Extension supports both the native checkbox and the [ef-checkbox](https://ui.refinitiv.com/elements/checkbox). To use with the ef-checkbox, the following dependency is also required:
 
-```bash
+```sh
 npm install @refinitiv-ui/elements
 npm install @refinitiv-ui/halo-theme
 ```
 
 Then import to your project `index.js`.
 
-```jsx
+```js
 // import element
 import '@refinitiv-ui/elements/checkbox';
 

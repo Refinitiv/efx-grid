@@ -6,9 +6,9 @@
 
     <script src="scripts/prettify.js"> </script>
     <script src="scripts/lang-css.js"> </script>
-    <!--[if lt IE 9]>
-      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
+    <!--[if lt IE 9]&gt;
+      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
+    &lt;![endif]-->
     <link type="text/css" rel="stylesheet" href="styles/default.css">
     <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
 </head>
@@ -621,6 +621,9 @@ tr.Grid.prototype.getConfigObject = function (gridOptions) {
 		var columnDef = this._getColumnDef(colIndex);
 		if (columnDef["styles"]) {
 			column["styles"] = columnDef["styles"];
+		}
+		if (columnDef["stationary"] != null) {
+			column["stationary"] = columnDef["stationary"];
 		}
 	}
 
@@ -1476,8 +1479,54 @@ tr.Grid.prototype.removeAllColumns = function () {
 };
 
 /** @public
+* @return {number}
+*/
+tr.Grid.prototype.getStationaryColumnIndex = function () {
+	var colCount = this.getColumnCount();
+	for (var i = colCount - 1; i &gt;= 0; i--) {
+		if (this._getColumnDef(i)["stationary"]) {
+			return i;
+		}
+	}
+	return -1;
+};
+
+/** Moving columns from or to steady area marked by stationary flag is not allowed. This method is used for checking ability of move.
+* @public
+* @param {number|Array.&lt;number&gt;} fromColIndex index or array of indices of the column(s) to be moved.
+* @param {number} toColIndex target column index
+* @return {boolean} Return true if the moving is doable, and false otherwise
+*/
+tr.Grid.prototype.isColumnMoveAllowed = function (fromColIndex, toColIndex) {
+	if (!Array.isArray(fromColIndex)) {
+		fromColIndex = [fromColIndex];
+	}
+
+	if (fromColIndex.length === 0 || toColIndex == null) {
+		return false;
+	}
+
+	var stationaryIndex = this.getStationaryColumnIndex();
+
+	if (stationaryIndex &gt; -1) {
+		if (toColIndex &lt;= stationaryIndex) {
+			return false;
+		}
+
+		for (var i = 0; i &lt; fromColIndex.length; i++) {
+			if (fromColIndex[i] &lt;= stationaryIndex) {
+				return false;
+			}
+		}
+	}
+
+	return true;
+};
+
+/** @public
 * @param {number} fromCol INCLUSIVE
 * @param {number} destCol INCLUSIVE
+* @return {boolean} Return true if there is any change, and false otherwise
 * @fires tr.Grid#columnMoved
 */
 tr.Grid.prototype.moveColumn = function (fromCol, destCol) {
@@ -1486,7 +1535,11 @@ tr.Grid.prototype.moveColumn = function (fromCol, destCol) {
 	else if (fromCol &gt;= colCount) { fromCol = colCount - 1; }
 	if (destCol &lt; 0) { destCol = 0; }
 	else if (destCol &gt;= colCount) { destCol = colCount - 1; }
-	if (fromCol === destCol) { return; }
+	if (fromCol === destCol) { return false; }
+
+	if (!this.isColumnMoveAllowed(fromCol, destCol)) {
+		return false;
+	}
 
 	var vEnd = -1;
 	if(this._colVirtualizer.isVirtualizable()) {
@@ -1558,6 +1611,7 @@ tr.Grid.prototype.moveColumn = function (fromCol, destCol) {
 			this._colVirtualizer.update();
 		}
 	}
+	return true;
 };
 
 /** @public
@@ -1607,17 +1661,23 @@ tr.Grid.prototype._deserializeColumn = function (index, jsonObj) {
 	}
 	// TODO: Load specific styles for each column type (e.g. "content", "title", "header")
 
-	var dataColumnName = jsonObj[tr.res.dataColumnName];
-	if (dataColumnName != null) {
-		this._getColumnDef(index)[tr.res.dataColumnName] = dataColumnName;
+	var colDef = this._getColumnDef(index);
+	var value = jsonObj[tr.res.dataColumnName];
+	if (value != null) {
+		colDef[tr.res.dataColumnName] = value;
+	}
+
+	value = jsonObj["stationary"];
+	if (value != null) {
+		colDef["stationary"] = value;
 	}
 
 	this.setColumnRenderingHandler(index, jsonObj["renderingHandler"]);
 	this.setColumnDataBindingHandler(index, jsonObj["dataBindingHandler"]);
 
-	var colData = jsonObj[tr.res.columnData];
-	if(colData) {
-		this.setColumnData(index, colData);
+	value = jsonObj[tr.res.columnData];
+	if (value) {
+		this.setColumnData(index, value);
 	}
 
 	var formatter = jsonObj["formatter"] || jsonObj["binding"]; // support both composite and real-time grid
@@ -2569,11 +2629,6 @@ tr.Grid.prototype.freezeColumn = function (frozenColIndex, numRightColumn) {
 
 	this._onColumnCountChanged(); // Activate horizontal scrollbar and column virtualization
 	this._updateScrollbarWidth(true, true);
-
-	var len = this._settings.length;
-	for(var i = 0; i &lt; len; ++i) {
-		this._settings[i].getSection().updateStretchedCells();
-	}
 };
 /** @private
 * @param {number} numRightColumn Number of columns on the right side to be fixed/pinned on the right side
@@ -2989,26 +3044,38 @@ tr.Grid.prototype.getRelativePosition = function (obj, context) {
 		ret_obj["y"] /= this._zoomFactor;
 	}
 
-	// Find closest element with "column" class
-	var colElement = (targetEl) ? tr.closestElement(targetEl, "column") : null;
-
-	if (!colElement) {
-		return ret_obj;
-	}
 	ret_obj["hit"] = false;
-	ret_obj["columnElement"] = colElement;
 	ret_obj["grid"] = this;
 	ret_obj["clientX"] = obj["clientX"];
 	ret_obj["clientY"] = obj["clientY"];
 	ret_obj["zoomFactor"] = this._zoomFactor;
 
-	var sectionElement = tr.closestElement(colElement, "tr-lg");
-	if(!sectionElement) { // Column element is not in the document (the column is hidden)
+	// Find cell element
+	var cellElement = tr.closestElement(targetEl, "cell");
+	if(!cellElement) {
 		return ret_obj;
 	}
-	ret_obj[tr.res.sectionName] = sectionElement["id"] || tr.closestElement(colElement, "tr-vlg")["id"];
+	ret_obj["cellElement"] = cellElement;
 
-	// Find section
+	// Find column element
+	var colElement = tr.closestElement(cellElement, "column");
+	ret_obj["columnElement"] = colElement;
+
+	// Find section element
+	var sectionElement = null;
+	if (colElement) {
+		// Column element may not be in the document (the column could be hidden)
+		sectionElement = tr.closestElement(colElement, "tr-lg");
+	} else {
+		// Floating cell does have the column
+		sectionElement = tr.closestElement(cellElement, "tr-lg");
+	}
+
+	if(!sectionElement) {
+		return ret_obj;
+	}
+	ret_obj["sectionName"] = sectionElement["id"] || tr.closestElement(sectionElement, "tr-vlg")["id"];
+
 	var sectionSettings = this.getSectionSettings(ret_obj[tr.res.sectionName]);
 	if (!sectionSettings) {
 		return ret_obj; // Cannot find a section from the given id
@@ -3017,24 +3084,22 @@ tr.Grid.prototype.getRelativePosition = function (obj, context) {
 
 	// Find column index
 	var section = sectionSettings.getSection();
-	var colIndex = section.getColumnIndex(ret_obj["columnElement"]);
+	var colIndex = section.getColumnIndex(colElement || cellElement);
 	if (colIndex &lt; 0) {
 		return ret_obj; // The given columnElement does not resolve in any column index
 	}
 	ret_obj[tr.res.colIndex] = colIndex;
-
-	var cellElement = tr.closestElement(targetEl, "cell");
-	if(!cellElement) {
-		return ret_obj;
-	}
-	ret_obj["cellElement"] = cellElement;
 
 	// Find row index
 	if (this._hitTestY(-1, ret_obj) === false) { // hitTestY requires only sectionSettings, colIndex, and cellElement
 		return ret_obj;
 	}
 
-	ret_obj["cell"] = section.getCell(colIndex, ret_obj["rowIndex"]);
+	if(cellElement["stretched"]) {
+		ret_obj["cell"] = section.getStretchedCell(colIndex, ret_obj["rowIndex"]);
+	} else {
+		ret_obj["cell"] = section.getCell(colIndex, ret_obj["rowIndex"]);
+	}
 	ret_obj["hit"] = true;
 	return ret_obj;
 };
@@ -4914,6 +4979,8 @@ var methodMap = {
 	"insertColumn": pt.insertColumn,
 	"insertColumns": pt.insertColumns,
 	"moveColumn": pt.moveColumn,
+	"getStationaryColumnIndex": pt.getStationaryColumnIndex,
+	"isColumnMoveAllowed": pt.isColumnMoveAllowed,
 
 	"addRow": pt.addRow,
 	"removeRow": pt.removeRow,

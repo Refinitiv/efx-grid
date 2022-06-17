@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Class: tempCtor</title>
+    <title>JSDoc: Source: grid/components/StretchedCells.js</title>
 
     <script src="scripts/prettify.js"> </script>
     <script src="scripts/lang-css.js"> </script>
@@ -20,127 +20,370 @@
 
 
 
-
-<section>
-
-<header>
     
-        <h1 class="subsection-title"><span class="attribs"><span class="type-signature"></span></span>
-            <span class="ancestors"><a href="tr.EventDispatcher.html">.EventDispatcher</a><a href="tr.EventDispatcher.html#.extendClass">.extendClass</a>~</span>tr.EventDispatcher.extendClass~tempCtor<span class="signature">()</span><span class="type-signature"></span></h1>
-        
-    
-</header>
-
-<article>
-    <div class="container-overview">
-    
-        
-<div class="item">
-    
-        
-
-        
-            <div class="item-type">class</div>
-        
-
-        
-        <h4 class="name" id="tempCtor"><span class="type-signature"></span>new tempCtor<span class="signature">()</span><span class="type-signature"></span></h4>
-        
-
-        
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>goog.provide("tr.grid.StretchedCells");
+goog.require("tr.grid.util");
+goog.require("tr.grid.TrackLayout");
+goog.require("tr.ILayoutGrid");
+goog.require("tr.grid.Cell");
 
 
-<div class="details">
+/** @constructor
+* @ignore
+* @param {!tr.grid.TrackLayout} trackX
+* @param {!tr.grid.TrackLayout} trackY
+* @param {!tr.ILayoutGrid} section
+*/
+tr.grid.StretchedCells = function (trackX, trackY, section) {
+	this._trackX = trackX;
+	this._trackY = trackY;
+	this._section = section;
+	this._cells = [];
+};
+/** @type {!tr.grid.TrackLayout}
+* @private
+*/
+tr.grid.StretchedCells.prototype._trackX;
+/** @type {!tr.grid.TrackLayout}
+* @private
+*/
+tr.grid.StretchedCells.prototype._trackY;
+/** @type {!tr.ILayoutGrid}
+* @private
+*/
+tr.grid.StretchedCells.prototype._section;
+/** @type {!Array.&lt;tr.grid.Cell&gt;}
+* @private
+*/
+tr.grid.StretchedCells.prototype._cells;
+/** @type {number}
+* @private
+*/
+tr.grid.StretchedCells.prototype._activeCount = 0;
+/** @type {number}
+* @private
+*/
+tr.grid.StretchedCells.prototype._stretchSize = 0;
 
-    
 
-    
+/** Update cell's top and height
+* @private
+* @param {tr.grid.Cell} cell
+* @param {tr.grid.TrackLayout} trackY
+* @param {number} rowIndex
+*/
+tr.grid.StretchedCells._updateYAxis = function (cell, trackY, rowIndex) {
+	cell.setTop(trackY.getLaneStart(rowIndex));
+	cell.setHeight(trackY.getLaneSize(rowIndex));
+};
+/** Update cell's left and width
+* @private
+* @param {tr.grid.Cell} cell
+* @param {tr.grid.TrackLayout} trackX
+* @param {number} colIndex
+* @param {number} width
+*/
+tr.grid.StretchedCells._updateXAxis = function (cell, trackX, colIndex, width) {
+	if(colIndex) {
+		var leftStart = trackX.getLaneStart(colIndex);
+		cell.setLeft(leftStart);
+		cell.setWidth(width - leftStart);
+	} else {
+		cell.setStyle("left", "");
+		cell.setWidth(width); // Cell width is always modified (colSpan styling will be reset)
+	}
+};
 
-    
+/** @public
+*/
+tr.grid.StretchedCells.prototype.dispose = function () {
+	var cells = this._cells;
+	if(this._activeCount) {
+		this._activeCount = 0;
+		for(var i = cells.length; --i &gt;= 0;) {
+			var cell = cells[i];
+			if(cell) {
+				cell.dispose();
+			}
+		}
+	}
+	cells.length = 0;
+};
 
-    
+/** @public
+* @ignore
+* @param {number} num
+*/
+tr.grid.StretchedCells.prototype.setStretchSize = function(num) {
+	this._stretchSize = num;
+};
+/** @public
+* @ignore
+* @return {number}
+*/
+tr.grid.StretchedCells.prototype.getStretchSize = function() {
+	return this._stretchSize;
+};
 
-    
+/** @public
+* @ignore
+* @param {number} count
+*/
+tr.grid.StretchedCells.prototype.setCellCount = function (count) {
+	var cells = this._cells;
+	var len = cells.length;
+	if(len &lt; count) {
+		cells.length = count;
+		while(len &lt; count) {
+			cells[len++] = null;
+		}
+	} else if(len &gt; count) {
+		while(--len &gt;= count) {
+			var cell = cells[len];
+			if(cell) {
+				cell.dispose();
+			}
+		}
+		cells.length = count;
+	}
+};
+/** @public
+* @ignore
+* @param {number} rowIndex
+* @return {tr.grid.Cell}
+*/
+tr.grid.StretchedCells.prototype.getCell = function (rowIndex) {
+	return this._cells[rowIndex] || null;
+};
+/** @public
+* @ignore
+* @return {Array.&lt;tr.grid.Cell&gt;}
+*/
+tr.grid.StretchedCells.prototype.getCells = function () {
+	var outAry = [];
+	if(this._activeCount) {
+		var cells = this._cells;
+		var rowCount = cells.length;
+		for(var r = 0; r &lt; rowCount; ++r) {
+			var cell = cells[r];
+			if(cell &amp;&amp; cell.getParent()) {
+				outAry.push(cell);
+			}
+		}
+		this._activeCount = outAry.length;
+	}
+	return outAry;
+};
+/** @public
+* @ignore
+* @param {tr.grid.Cell|Element|Node} cellRef
+* @return {number}
+*/
+tr.grid.StretchedCells.prototype.getColumnIndex = function (cellRef) {
+	if(cellRef) {
+		if(cellRef["getElement"]) {
+			var cellElement = cellRef["getElement"]();
+			if(cellElement) {
+				return cellElement._colIndex || 0;
+			}
+		} else {
+			return cellRef._colIndex || 0;
+		}
+	}
+	return -1;
+};
+/** @public
+* @ignore
+* @param {tr.grid.Cell|Element|Node} cellRef
+* @return {number}
+*/
+tr.grid.StretchedCells.prototype.getRowIndex = function (cellRef) {
+	if(cellRef) {
+		if(cellRef["getElement"]) {
+			return this._cells.indexOf(/** @type{tr.grid.Cell} */(cellRef));
+		} else {
+			var cells = this._cells;
+			var rowCount = cells.length;
+			for(var r = 0; r &lt; rowCount; ++r) {
+				var cell = cells[r];
+				if(cell &amp;&amp; cell["getElement"]() === cellRef) {
+					return r;
+				}
+			}
+		}
+	}
+	return -1;
+};
 
-    
+/** @public
+* @ignore
+* @param {number} rowIndex
+* @param {number=} colIndex Column index indicates the position of the cell. If not defined, the cell will always position at the left most
+* @return {tr.grid.Cell}
+*/
+tr.grid.StretchedCells.prototype.stretchCell = function (rowIndex, colIndex) {
+	// Increase the active count regardless of redundancy. This acts as a dirty flag. It does not needed to be accurate
+	++this._activeCount;
+	if(!colIndex || colIndex &lt; 0) {
+		colIndex = 0;
+	}
 
-    
+	var cell = this._cells[rowIndex] || null;
+	if(!cell) {
+		cell = new grid.Cell(null, this._section);
+		cell.addClass("tr-stretched");
+		cell["stretched"] = true;
+		this._cells[rowIndex] = cell;
+	}
+	var cellElem = cell["getElement"]();
+	cellElem["stretched"] = true;
+	cellElem._colIndex = colIndex;
 
-    
+	var width = this._stretchSize || this._trackX.getTrackSize();
+	tr.grid.StretchedCells._updateXAxis(cell, this._trackX, colIndex, width);
+	tr.grid.StretchedCells._updateYAxis(cell, this._trackY, rowIndex);
 
-    
+	return cell;
+};
+/** @public
+* @ignore
+* @param {number} rowIndex
+* @return {tr.grid.Cell}
+*/
+tr.grid.StretchedCells.prototype.unstretchCell = function(rowIndex) {
+	var cell = this._cells[rowIndex] || null;
+	if(cell) {
+		cell.setParent(null);
+	}
+	return cell;
+};
+/** @public
+*/
+tr.grid.StretchedCells.prototype.unstretchAllCells = function () {
+	if(this._activeCount) {
+		this._activeCount = 0;
+		var cells = this._cells;
+		for(var i = cells.length; --i &gt;= 0;) {
+			var cell = cells[i];
+			if(cell) {
+				cell.setParent(null);
+			}
+		}
+	}
+};
 
-    
+/** Update cell's left, top, width and height for all active cells
+* @public
+* @ignore
+*/
+tr.grid.StretchedCells.prototype.updateCells = function() {
+	if(this._activeCount) {
+		var activeCount = 0;
+		var cells = this._cells;
+		var rowCount = cells.length;
+		var trackX = this._trackX;
+		var trackY = this._trackY;
+		var width = this._stretchSize || trackX.getTrackSize();
+		var _updateXAxis = tr.grid.StretchedCells._updateXAxis;
+		var _updateYAxis = tr.grid.StretchedCells._updateYAxis;
+		for(var r = 0; r &lt; rowCount; ++r) {
+			var cell = cells[r];
+			if(cell &amp;&amp; cell.getParent()) {
+				++activeCount;
+				_updateXAxis(cell, trackX, cell.getElement()._colIndex, width);
+				_updateYAxis(cell, trackY, r);
+			}
+		}
+		this._activeCount = activeCount;
+	}
+};
+/** Update cell's left, top, width and height for all active cells
+* @public
+* @ignore
+*/
+tr.grid.StretchedCells.prototype.updateXAxis = function() {
+	if(this._activeCount) {
+		var activeCount = 0;
+		var cells = this._cells;
+		var rowCount = cells.length;
+		var trackX = this._trackX;
+		var width = this._stretchSize || trackX.getTrackSize();
+		var _updateXAxis = tr.grid.StretchedCells._updateXAxis;
+		for(var r = 0; r &lt; rowCount; ++r) {
+			var cell = cells[r];
+			if(cell &amp;&amp; cell.getParent()) {
+				++activeCount;
+				_updateXAxis(cell, trackX, cell.getElement()._colIndex, width);
+			}
+		}
+		this._activeCount = activeCount;
+	}
+};
+/** Update cell's top and height for all active cells
+* @public
+* @ignore
+*/
+tr.grid.StretchedCells.prototype.updateYAxis = function () {
+	if(this._activeCount) {
+		var activeCount = 0;
+		var cells = this._cells;
+		var rowCount = cells.length;
+		var trackY = this._trackY;
+		var _updateYAxis = tr.grid.StretchedCells._updateYAxis;
+		for(var r = 0; r &lt; rowCount; ++r) {
+			var cell = cells[r];
+			if(cell &amp;&amp; cell.getParent()) {
+				++activeCount;
+				_updateYAxis(cell, trackY, r);
+			}
+		}
+		this._activeCount = activeCount;
+	}
+};
 
-    
+/** @public
+* @ignore
+* @param {number} numCells Index of the first item to be moved to the top
+*/
+tr.grid.StretchedCells.prototype.moveCellsToTop = function (numCells) {
+	if(this._activeCount) {
+		this._cells = /** @type{!Array.&lt;tr.grid.Cell&gt;} */(tr.cycleArray(
+			this._cells, numCells
+		));
+		this.updateYAxis(); // Reposition cells due to moving row index
+	}
+};
 
-    
 
-    
-
-    
-
-    
-</div>
-
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-</div>
-
-    
-    </div>
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-        
-
-    
-
-    
-</article>
-
-</section>
+goog.exportSymbol("tr.grid.StretchedCells", tr.grid.StretchedCells);
+(function() {
+var pt = tr.grid.StretchedCells.prototype;
+var methodMap = {
+	"dispose": pt.dispose,
+	"setStretchSize": pt.setStretchSize,
+	"getStretchSize": pt.getStretchSize,
+	"setCellCount": pt.setCellCount,
+	"getCell": pt.getCell,
+	"getCells": pt.getCells,
+	"getColumnIndex": pt.getColumnIndex,
+	"getRowIndex": pt.getRowIndex,
+	"stretchCell": pt.stretchCell,
+	"unstretchCell": pt.unstretchCell,
+	"unstretchAllCells": pt.unstretchAllCells,
+	"updateCells": pt.updateCells,
+	"updateXAxis": pt.updateXAxis,
+	"updateYAxis": pt.updateYAxis,
+	"moveCellsToTop": pt.moveCellsToTop
+};
+// Export methods for Closure's advanced compilation
+for(var methodName in methodMap) {
+	goog.exportProperty(pt, methodName, methodMap[methodName]);
+}
+})();</code></pre>
+        </article>
+    </section>
 
 
 

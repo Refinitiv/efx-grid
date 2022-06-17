@@ -23,8 +23,8 @@ To define how the grid renders its layout and content use the `columns` property
 ```js
 var configObj = {
 	columns: [
-		{title: "Header Text", field: "For Mapping Data"},
-		{title: "Column 2", field: "Field 2"}
+		{name: "Header Text", field: "For Mapping Data"},
+		{name: "Column 2", field: "Field 2"}
 	] // Two columns will be shown
 };
 ```
@@ -54,12 +54,12 @@ var records = [
 	{"intCol": 5, "strCol": "Sample data", "floatCol": 5.5, "dateCol": new Date("2014-10-05")}
 ];
 var configObj = {
-	rowHighlight: true, // Grid level option
+	rowHeight: 40, // Grid level option
 	columns: [
-		{title: "Column 1", field: fields[0]},
-		{title: "Column 2", field: fields[1]},
-		{title: "Column 3", field: fields[2]},
-		{title: "Column 4", field: fields[3]}
+		{name: "Column 1", field: fields[0]},
+		{name: "Column 2", field: fields[1]},
+		{name: "Column 3", field: fields[2]},
+		{name: "Column 4", field: fields[3]}
 	],
 	staticDataRows: records
 };
@@ -84,13 +84,12 @@ var configObj = {
 		{"intCol": 5, "strCol": "Sample data", "floatCol": 5.5, "dateCol": new Date("2014-10-05")}
 	];
 	var configObj = {
-		rowHighlight: true,
-		rowSelection: true,
+		rowHeight: 40,
 		columns: [
-			{title: "Column 1", field: fields[0]},
-			{title: "Column 2", field: fields[1]},
-			{title: "Column 3", field: fields[2]},
-			{title: "Column 4", field: fields[3]}
+			{name: "Column 1", field: fields[0]},
+			{name: "Column 2", field: fields[1]},
+			{name: "Column 3", field: fields[2]},
+			{name: "Column 4", field: fields[3]}
 		],
 		staticDataRows: records
 	};

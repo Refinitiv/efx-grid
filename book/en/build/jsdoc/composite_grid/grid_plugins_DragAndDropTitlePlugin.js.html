@@ -6,9 +6,9 @@
 
     <script src="scripts/prettify.js"> </script>
     <script src="scripts/lang-css.js"> </script>
-    <!--[if lt IE 9]>
-      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
+    <!--[if lt IE 9]&gt;
+      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
+    &lt;![endif]-->
     <link type="text/css" rel="stylesheet" href="styles/default.css">
     <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
 </head>
@@ -28,7 +28,6 @@
 goog.require("tr.res");
 goog.require("tr.Grid");
 goog.require("tr.ILayoutGrid");
-goog.require("tr.grid.IndexMarker");
 
 goog.require("tr.grid.IPlugin");
 goog.require("tr.grid.Plugin");
@@ -45,13 +44,10 @@ goog.require("tr.grid.Plugin");
 */
 
 /** @constructor
- * @param {Array.&lt;number|boolean&gt;|null=} opt_restrictions By default all columns will be processed by this plugin
- * @param {Array.&lt;number|boolean&gt;|null=} opt_exclusions By default no column will be excluded by this plugin
- * @param {Array.&lt;number&gt;=} opt_targetSection Array of section index that can be dragged. By default all section type 'title' can be dragged
  * @extends {tr.grid.Plugin}
  * @implements {tr.grid.IPlugin}
  */
-tr.grid.DragAndDropTitlePlugin = function (opt_restrictions, opt_exclusions, opt_targetSection) {
+tr.grid.DragAndDropTitlePlugin = function () {
 	var _t = this;
 
 	_t._onColumnAdded = _t._onColumnAdded.bind(_t);
@@ -72,14 +68,6 @@ tr.grid.DragAndDropTitlePlugin = function (opt_restrictions, opt_exclusions, opt
 	_t._guideline.className = "tr-guideline";
 	_t._dragbox = document.createElement("svg");
 	_t._dragbox.className = "tr-dragbox";
-
-	_t._marker = new grid.IndexMarker(opt_restrictions, opt_exclusions);
-
-	if (opt_targetSection) {
-		_t._targetSections = opt_targetSection;
-	} else {
-		_t._targetSections = null;
-	}
 
 	_t._addEvent("dragged"); // drag
 	_t._addEvent("dragStart");
@@ -161,10 +149,6 @@ tr.grid.DragAndDropTitlePlugin.prototype._isDragging = false;
 */
 tr.grid.DragAndDropTitlePlugin.prototype._lockFrozen = false;
 /** @private
-* @type {Array.&lt;number&gt;}
-*/
-tr.grid.DragAndDropTitlePlugin.prototype._targetSections = null;
-/** @private
 * @type {boolean}
 */
 tr.grid.DragAndDropTitlePlugin.prototype._disabled = false;
@@ -209,10 +193,10 @@ tr.grid.DragAndDropTitlePlugin.prototype.unload = function (host) {
 
 /** Specify column to be processed by this plugin
 * @public
-* @return {tr.grid.IndexMarker}
+* @return {Object}
 */
 tr.grid.DragAndDropTitlePlugin.prototype.getMarker = function () {
-	return this._marker;
+	return {};
 };
 
 /**
@@ -247,6 +231,23 @@ tr.grid.DragAndDropTitlePlugin.prototype.disableDragBox = function(opt_disabled)
 };
 
 /** @private
+* @param {number} colIndex
+* @return {boolean}
+*/
+tr.grid.DragAndDropTitlePlugin.prototype._isAllowed = function(colIndex) {
+	var host = this._clickedGrid || this._hosts[0];
+	if (host) {
+		var stationaryIndex = host.getStationaryColumnIndex();
+		if (stationaryIndex &lt; 0) {
+			return true;
+		}
+		if (colIndex &lt;= stationaryIndex) {
+			return false
+		}
+	}
+	return true;
+};
+/** @private
 * @param {Event} e
 */
 tr.grid.DragAndDropTitlePlugin.prototype._onMouseDown = function (e) {
@@ -274,14 +275,14 @@ tr.grid.DragAndDropTitlePlugin.prototype._onMouseDown = function (e) {
 	}
 
 	var section = /** @type{tr.ILayoutGrid} */(this._pos[tr.res.section]);
-	if(!section || (this._targetSections &amp;&amp; this._targetSections.indexOf(section.getIndex()) &lt; 0)) {
+	if(!section) {
 		return; // The section that is not in the target section list cannot be dragged
 	} else if(this._pos[tr.res.sectionType] !== tr.res.title) {
 		return; // Sections other than title section cannot be dragged by default
 	}
 
 	var colIndex = this._pos[tr.res.colIndex];
-	if(!this._marker.isAllowed(colIndex)) {
+	if(!this._isAllowed(colIndex)) {
 		return; // The column cannot be dragged
 	}
 	if(this._lockFrozen &amp;&amp; host.isPinnedColumn(colIndex)) {
@@ -389,6 +390,7 @@ tr.grid.DragAndDropTitlePlugin.prototype._onDrag = function (e) {
 	var colIndex = this._pos[tr.res.colIndex];
 	if ((colIndex &gt;= this._leftMovableBorder) &amp;&amp;
 		(colIndex &lt;= this._rightMovableBorder) &amp;&amp;
+		this._isAllowed(colIndex) &amp;&amp;
 		!(this._lockFrozen &amp;&amp; host.isPinnedColumn(colIndex))) {
 		this._renderGuideline();
 		this._dispatch("dragged", /** @type{!Object} */(e));
@@ -436,7 +438,7 @@ tr.grid.DragAndDropTitlePlugin.prototype._onDragEnd = function (e) {
 	//Cancel moving if the destination column is the current column or not allowed column
 	if ((!this._destColumn &amp;&amp; this._destColumn !== 0) || // undefined, NaN, null
 		this._destColumn &lt; 0 ||
-		!this._marker.isAllowed(this._destColumn) ||
+		!this._isAllowed(this._destColumn) ||
 		(this._destColumn &gt;= this._startColumn &amp;&amp; this._destColumn &lt;= this._endColumn)) {
 		this._clearCache();
 		return;

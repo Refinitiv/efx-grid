@@ -6,9 +6,9 @@
 
     <script src="scripts/prettify.js"> </script>
     <script src="scripts/lang-css.js"> </script>
-    <!--[if lt IE 9]>
-      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
+    <!--[if lt IE 9]&gt;
+      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
+    &lt;![endif]-->
     <link type="text/css" rel="stylesheet" href="styles/default.css">
     <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
 </head>
@@ -478,7 +478,8 @@ tr.grid.TreeIndentingPlugin.prototype._updateHeader = function (settings, firstI
 		if(groupView) {
 			var footerIndex = groupView.getFooterRowIndex(rowId);
 			arg["footerIndex"] = footerIndex;
-			this._addHeaderStyle(section, this._displayColumn, r, colCount, footerIndex);
+			cell = this._addHeaderStyle(section, this._displayColumn, r, colCount, footerIndex);
+			arg[tr.res.cell] = cell;
 			cell.enableClass("closed", groupView.isCollapsed());
 			
 			var groupId = groupView.getGroupId();
@@ -497,7 +498,8 @@ tr.grid.TreeIndentingPlugin.prototype._updateHeader = function (settings, firstI
 				cell.setContent(groupId);
 			}
 		} else {
-			this._removeHeaderStyle(section, this._displayColumn, r, colCount);
+			cell = this._removeHeaderStyle(section, this._displayColumn, r, colCount);
+			arg[tr.res.cell] = cell;
 			
 			if(contentListener) {
 				arg["rowData"] = dataSource.getRowData(rowId);
@@ -548,15 +550,16 @@ tr.grid.TreeIndentingPlugin.prototype._clearSectionStyles = function (colIndex, 
 * @param {number} r
 * @param {number} colCount
 * @param {number} footerIndex
+* @return {tr.IElementControl}
 */
 tr.grid.TreeIndentingPlugin.prototype._addHeaderStyle = function (section, c, r, colCount, footerIndex) {
 	var cell = section.getCell(c, r, false);
-	if(!cell) { return; }
+	if(!cell) { return null; }
 	
 	if(this._headerSpanning &amp;&amp; footerIndex &lt; 0) {
-		section.stretchCell(c, r, true, true); // No left stretching
+		cell = section.stretchCell(c, r, true, true); // No left stretching
 	} else if(this._footerSpanning &amp;&amp; footerIndex &gt;= 0) {
-		section.stretchCell(c, r, true, true); // No left stretching
+		cell = section.stretchCell(c, r, true, true); // No left stretching =
 	} else {
 		for(var j = colCount; --j &gt;= c;) {
 			section.getCell(j, r, false).addClass("header");
@@ -573,6 +576,7 @@ tr.grid.TreeIndentingPlugin.prototype._addHeaderStyle = function (section, c, r,
 			cell.listen("click", this._onCellClicked);
 		}
 	}
+	return cell;
 };
 /**
 * @private
@@ -580,18 +584,23 @@ tr.grid.TreeIndentingPlugin.prototype._addHeaderStyle = function (section, c, r,
 * @param {number} c
 * @param {number} r
 * @param {number} colCount
+* @return {tr.IElementControl}
 */
 tr.grid.TreeIndentingPlugin.prototype._removeHeaderStyle = function (section, c, r, colCount) {
 	var cell = section.getCell(c, r, false);
-	if(!cell) { return; }
+	if(!cell) { return null; }
 	
-	section.unstretchCell(c, r);
+	var sCell = section.unstretchCell(c, r);
+	if(sCell) {
+		cell = sCell;
+	}
 	for(var j = colCount; --j &gt;= 0;) {
 		section.getCell(j, r, false).removeClass("header"); // Very slow
 	}
 	cell.removeClass("folder");
 	cell.removeClass("closed");
 	cell.setStyle("paddingLeft", "");
+	return cell;
 };
 
 /**

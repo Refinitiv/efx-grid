@@ -6,9 +6,9 @@
 
     <script src="scripts/prettify.js"> </script>
     <script src="scripts/lang-css.js"> </script>
-    <!--[if lt IE 9]>
-      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
+    <!--[if lt IE 9]&gt;
+      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
+    &lt;![endif]-->
     <link type="text/css" rel="stylesheet" href="styles/default.css">
     <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
 </head>
@@ -566,7 +566,7 @@ tr.ILayoutGrid.prototype.updateLayout = function () { };
 * This is different from cell colSpan, which the cell remain in the same position. tr-stretched class will also be added to the cell
 * @public
 * @param {number|tr.grid.Cell} cellRef Either column index or cell reference is acceptable
-* @param {number=} rowIndex If the cell instance is given as the first parameter, this parameter will be ignored.
+* @param {(number|null)=} rowIndex If the cell instance is given as the first parameter, this parameter will be ignored.
 * @param {boolean=} opt_stretching Default is true
 * @param {boolean=} onlyToTheRight=false By default, cell will be stretched to both left and right directions, covering entire row. Set to true to expand only to the right
 * @return {tr.grid.Cell} The cell being stretched
@@ -578,17 +578,30 @@ tr.ILayoutGrid.prototype.stretchCell = function (cellRef, rowIndex, opt_stretchi
 /** 
 * @public
 * @param {number|tr.grid.Cell} cellRef
-* @param {number=} rowIndex
+* @param {(number|null)=} rowIndex
 * @return {tr.grid.Cell} The cell being un-stretched
 * @see {@link tr.ILayoutGrid#stretchCell}
 */
 tr.ILayoutGrid.prototype.unstretchCell = function (cellRef, rowIndex) {};
 /**
 * @public
+*/
+tr.ILayoutGrid.prototype.unstretchAllCells = function () {};
+
+/**
+* @public
+* @param {number|tr.grid.Cell} cellRef
+* @param {(number|null)=} rowIndex
+* @return {tr.grid.Cell}
+*/
+tr.ILayoutGrid.prototype.getStretchedCell = function (cellRef, rowIndex) {};
+/**
+* @public
 * @return {!Array.&lt;tr.grid.Cell&gt;} The cells that are stretched
 * @see {@link tr.ILayoutGrid#stretchCell}
 */
 tr.ILayoutGrid.prototype.getStretchedCells = function () {};
+
 /**
 * @public
 * @see {@link tr.ILayoutGrid#stretchCell}

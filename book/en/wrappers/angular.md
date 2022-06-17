@@ -61,7 +61,6 @@ export class ExampleComponent {
   config = {
     // other configs...
     columnReorder: true,
-    rowHighlight: true,
     rowSelection: true,
   };
 }
@@ -149,7 +148,6 @@ export class BasicPageComponent {
   ];
   config: RealtimeGrid.GridOptions = {
     columnReorder: true,
-    rowHighlight: true,
     rowSelection: true,
   };
   someAction = () => {

@@ -6,9 +6,9 @@
 
     <script src="scripts/prettify.js"> </script>
     <script src="scripts/lang-css.js"> </script>
-    <!--[if lt IE 9]>
-      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
+    <!--[if lt IE 9]&gt;
+      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
+    &lt;![endif]-->
     <link type="text/css" rel="stylesheet" href="styles/default.css">
     <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
 </head>
@@ -1412,6 +1412,7 @@ Grid.prototype.removeAllColumns = function() {
  * @public
  * @param {number|Array.&lt;number&gt;} fromColIndex index or array of indices of the column(s) to be moved.
  * @param {number} toColIndex target column index
+ * @return {boolean} Return true if there is any change, and false otherwise
  */
 Grid.prototype.moveColumn = function (fromColIndex, toColIndex) {
 	//Wrap single index to array
@@ -1424,8 +1425,8 @@ Grid.prototype.moveColumn = function (fromColIndex, toColIndex) {
 	fromColIndex.sort(ascNumberSorter);
 	fromColIndex = fromColIndex.filter(inRangeFilter.bind(null, 0, lastColIndex));
 
-	if (fromColIndex.length === 0) {
-		return;
+	if (!this._grid.isColumnMoveAllowed(fromColIndex, toColIndex)) {
+		return false;
 	}
 
 	var frozen = this._grid.isLayoutFrozen();
@@ -1485,6 +1486,7 @@ Grid.prototype.moveColumn = function (fromColIndex, toColIndex) {
 	}
 
 	this._grid.freezeLayout(frozen);
+	return true;
 };
 
 /** The hidden column still occupies the same index.
@@ -2737,6 +2739,12 @@ Grid.prototype.toggleChain = function(rowRef) {
  */
 Grid.prototype.focus = function() {
 	this._grid.focus();
+};
+/** Request re-rendering of content row by triggering data binding event without any change in data model
+ * @public
+ */
+Grid.prototype.requestRowRefresh = function() {
+	this._grid.requestRowRefresh();
 };
 
 /** @private

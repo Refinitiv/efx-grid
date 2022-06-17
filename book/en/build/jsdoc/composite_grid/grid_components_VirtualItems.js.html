@@ -6,9 +6,9 @@
 
     <script src="scripts/prettify.js"> </script>
     <script src="scripts/lang-css.js"> </script>
-    <!--[if lt IE 9]>
-      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
+    <!--[if lt IE 9]&gt;
+      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
+    &lt;![endif]-->
     <link type="text/css" rel="stylesheet" href="styles/default.css">
     <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
 </head>
@@ -24,6 +24,7 @@
     <section>
         <article>
             <pre class="prettyprint source linenums"><code>goog.provide("tr.grid.VirtualItems");
+goog.require("tr.grid.util");
 
 /** @constructor
 * @ignore
@@ -69,13 +70,7 @@ tr.grid.VirtualItems.prototype.getItem = function (idx) {
 * @param {number} numItems Index of the first item to be moved to the top
 */
 tr.grid.VirtualItems.prototype.moveItemsToTop = function (numItems) {
-	if(numItems &gt; 0) {
-		var ary = this._items;
-		if(numItems &lt; ary.length) {
-			var front = ary.splice(0, numItems);
-			this._items = ary.concat(front);
-		}
-	}
+	this._items = /** @type{Array.&lt;!Object&gt;} */(tr.cycleArray(this._items, numItems));
 };
 
 goog.exportSymbol("tr.grid.VirtualItems", tr.grid.VirtualItems);

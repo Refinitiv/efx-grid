@@ -6,9 +6,9 @@
 
     <script src="scripts/prettify.js"> </script>
     <script src="scripts/lang-css.js"> </script>
-    <!--[if lt IE 9]>
-      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
+    <!--[if lt IE 9]&gt;
+      &lt;script src="//html5shiv.googlecode.com/svn/trunk/html5.js"&gt;&lt;/script&gt;
+    &lt;![endif]-->
     <link type="text/css" rel="stylesheet" href="styles/default.css">
     <link type="text/css" rel="stylesheet" href="styles/elf-template.css">
 </head>
@@ -35,6 +35,7 @@ goog.require("tr.ILayoutGrid");
 goog.require("tr.grid.Cell");
 goog.require("tr.grid.Column");
 goog.require("tr.grid.VirtualItems");
+goog.require("tr.grid.StretchedCells");
 goog.require("tr.grid.SelectionList");
 goog.require("tr.grid.TrackLayout");
 goog.require("tr.grid.CellSpans");
@@ -84,12 +85,12 @@ tr.LayoutGrid = function (opt_initializer, opt_options) {
 	_t._columns = [];
 	_t._cells = [];
 	_t._highlightedCells = [];
-	_t._stretchedCells = {};
+	_t._stretchedCells = new grid.StretchedCells(_t._trackX, _t._trackY, _t);
 	_t._selectionList = new grid.SelectionList();
 	_t._onResetTransformIE = _t._onResetTransformIE.bind(_t);
 
 	if (opt_options) {
-		this._virOwner = opt_options["owner"] || null;
+		_t._virOwner = opt_options["owner"] || null;
 	}
 
 	_t._addEvent("rowHighlighted");
@@ -224,20 +225,15 @@ tr.LayoutGrid.prototype._rowHighlightIndex = -1;
 tr.LayoutGrid.prototype._highlightedCells;
 
 /**
- * @type {Object.&lt;string, tr.grid.Cell&gt;}
+ * @type {Element}
+ * @private
+ */
+tr.LayoutGrid.prototype._coverLayer = null;
+/**
+ * @type {tr.grid.StretchedCells}
  * @private
  */
 tr.LayoutGrid.prototype._stretchedCells = null;
-/**
- * @type {number}
- * @private
- */
-tr.LayoutGrid.prototype._stretchedCount = 0;
-/**
- * @type {number}
- * @private
- */
-tr.LayoutGrid.prototype._stretchedSize = 0;
 /**
  * @type {*}
  * @private
@@ -296,6 +292,7 @@ tr.LayoutGrid.prototype.dispose = function () {
 	//this.clearSelectedRows();
 
 	this._ctxRows.dispose();
+	this._stretchedCells.dispose();
 	for (var i = this._columns.length; --i &gt;= 0; ) {
 		this._columns[i].dispose();
 	}
@@ -303,8 +300,7 @@ tr.LayoutGrid.prototype.dispose = function () {
 	this._colCount = this._rowCount = this._activeRowEnd = this._availableRowCount = 0;
 
 	this._highlightedCells.length = 0;
-	this._stretchedCells = this._ctx = null;
-	this._stretchedCount = 0;
+	this._ctx = null;
 
 	this._topNode.dispose();
 };
@@ -1065,6 +1061,7 @@ tr.LayoutGrid.prototype.setRowCount = function (val, noBinding) {
 	this._rowCount = this._trackY.getLaneCount();
 
 	this._ctxRows.setItemCount(val);
+	this._stretchedCells.setCellCount(val);
 	for (c = 0; c &lt; this._colCount; ++c) {
 		this._columns[c].setCellCount(val);
 	}
@@ -1559,6 +1556,7 @@ tr.LayoutGrid.prototype.activateRows = function () {
  */
 tr.LayoutGrid.prototype.moveRowsToTop = function (numRows) {
 	this._ctxRows.moveItemsToTop(numRows);
+	this._stretchedCells.moveCellsToTop(numRows);
 	for (var c = 0; c &lt; this._colCount; ++c) {
 		this._columns[c].moveCellsToTop(numRows);
 	}
@@ -1654,6 +1652,8 @@ tr.LayoutGrid.prototype.insertColumn = function (index, opt_json) {
 	}
 
 	this._updateCellSpans(cellSpans, true); // Restore all styling
+	this._calculateStretchSize(true);
+	this._stretchedCells.updateXAxis();
 	// this._syncLayoutToColumns(index); // Core grid will guarantee updating width to each section
 
 	// Select the newly added cell, if there is a row selection
@@ -1788,6 +1788,9 @@ tr.LayoutGrid.prototype.enableColumnVirtualization = function (bool) {
  */
 tr.LayoutGrid.prototype.getColumnIndex = function (colElem) {
 	if (colElem) {
+		if(colElem["stretched"]) {
+			return this._stretchedCells.getColumnIndex(colElem);
+		}
 		var len = this._columns.length;
 
 		for (var i = 0; i &lt; len; ++i) {
@@ -1806,13 +1809,17 @@ tr.LayoutGrid.prototype.getColumnIndex = function (colElem) {
  * @inheritDoc
  */
 tr.LayoutGrid.prototype.getCellIndex = function (colIndex, cellElem) {
-	var column = this._columns[colIndex];
+	if (cellElem) {
+		if(cellElem["stretched"]) {
+			return this._stretchedCells.getRowIndex(cellElem);
+		}
 
-	if (!column) {
-		return -1;
+		var column = this._columns[colIndex];
+		if(column) {
+			return column.getCellIndex(cellElem);
+		}
 	}
-
-	return column.getCellIndex(cellElem);
+	return -1;
 };
 
 /**
@@ -1863,70 +1870,42 @@ tr.LayoutGrid.prototype.updateLayout = function () {};
  */
 tr.LayoutGrid.prototype.stretchCell = function (cellRef, rowIndex, opt_stretching, onlyToTheRight) {
 	var colIndex = -1;
-	var cell = null;
-	var column = null;
-
 	if (typeof cellRef === "number") {
 		colIndex = cellRef;
-		column = this._columns[colIndex];
-
-		if (!column) {
-			return null;
+		if(rowIndex == null) {
+			rowIndex = 0;
 		}
-
-		cell = column.getCell(rowIndex || 0);
-		if (!cell) {
-			return null;
+	} else if (cellRef) {
+		if(cellRef["stretched"]) {
+			colIndex = this._stretchedCells.getColumnIndex(cellRef);
+			if(rowIndex == null) {
+				rowIndex = this._stretchedCells.getRowIndex(cellRef);
+			}
+		} else if(cellRef["getParent"]) {
+			colIndex = this.getColumnIndex(cellRef["getParent"]());
 		}
-	} else {
-		cell = /** @type{tr.grid.Cell} */(cellRef);
-		if (cell &amp;&amp; cell.getParent) {
-			colIndex = this.getColumnIndex(cell.getParent());
-		}
-		column = this._columns[colIndex];
-
-		if (!column) {
-			return null;
-		}
+	}
+	if(colIndex &lt; 0 || rowIndex &lt; 0 || rowIndex == null) {
+		return null;
 	}
 
 	var stretching = (opt_stretching !== false);
-	var cellId = cell.getCellId() + "";
+	var cell = null;
 
 	if (stretching) {
-		cell.addClass("tr-stretched");
-
-		this._updateStretchedCell(cell, colIndex, !onlyToTheRight);
-
-		column.disableDeactivation(); // HACK: If the cell is stretched, the column cannot be virtualized
-
-		if (!this._stretchedCells) {
-			this._stretchedCells = {};
-		}
-		if (!this._stretchedCells[cellId]) {
-			this._stretchedCells[cellId] = cell;
-			this._stretchedCount++;
-		}
-	} else if (cell._stretched) {
-		cell.removeClass("tr-stretched");
-
-		if (cell._leftStretching) {
-			cell.setStyle("left", "");
-			cell._leftStretching = false;
+		var coverLayer = this._coverLayer;
+		if(!coverLayer) {
+			coverLayer = this._coverLayer = document.createElement("div");
+			coverLayer.className = "cover-layer";
+			this._updateLayers();
 		}
 
-		cell.setWidth(-1);
-
-		if (this._stretchedCount) {
-			if (this._stretchedCells[cellId]) {
-				this._stretchedCells[cellId] = null; // Faster then delete
-				this._stretchedCount--;
-			}
-		}
+		this._calculateStretchSize();
+		cell = this._stretchedCells.stretchCell(rowIndex, onlyToTheRight ? colIndex : 0);
+		cell.setParent(coverLayer);
+	} else {
+		cell = this._stretchedCells.unstretchCell(rowIndex);
 	}
-
-	cell._stretched = stretching;
-
 	return cell;
 };
 
@@ -1937,79 +1916,62 @@ tr.LayoutGrid.prototype.stretchCell = function (cellRef, rowIndex, opt_stretchin
 tr.LayoutGrid.prototype.unstretchCell = function (cellRef, rowIndex) {
 	return this.stretchCell(cellRef, rowIndex, false);
 };
+/**
+ * {@link tr.ILayoutGrid#unstretchAllCells}
+ * @inheritDoc
+ */
+tr.LayoutGrid.prototype.unstretchAllCells = function () {
+	this._stretchedCells.unstretchAllCells();
+};
 
+/**
+ * {@link tr.ILayoutGrid#getStretchedCell}
+ * @inheritDoc
+ */
+tr.LayoutGrid.prototype.getStretchedCell = function (cellRef, rowIndex) {
+	if(rowIndex == null) {
+		rowIndex = this._stretchedCells.getRowIndex(/** @type{tr.grid.Cell} */(cellRef));
+	}
+
+	return (typeof rowIndex === "number") ? this._stretchedCells.getCell(rowIndex) : null;
+};
 /**
  * {@link tr.ILayoutGrid#getStretchedCells}
  * @inheritDoc
  */
 tr.LayoutGrid.prototype.getStretchedCells = function () { // TODO: Deprecate this method
-	var ary = [];
-	if (this._stretchedCount) {
-		var obj = this._stretchedCells;
-		for (var key in obj) {
-			var cell = this._stretchedCells[key];
-			if (cell) {
-				ary.push(cell);
-			}
-		}
-	}
-	return ary;
+	return this._stretchedCells.getCells() || [];
 };
 
 /** {@link tr.ILayoutGrid#updateStretchedCells}
 * @inheritDoc */
 tr.LayoutGrid.prototype.updateStretchedCells = function () {
-	this._stretchedSize = 0;
-	if (this._stretchedCount &lt;= 0) {
+	this._updateLayers();
+	var childCount = this._coverLayer ? this._coverLayer.children.length : 0; // TODO: Currently assume only stretched cells exists
+	if (childCount &lt;= 0) {
 		return false;
 	}
-	var obj = this._stretchedCells;
-	for (var cellId in obj) {
-		var cell = this._stretchedCells[cellId];
-		if (cell) {
-			if (cell.getElement()) {
-				var colIndex = this.getColumnIndex(cell.getParent());
-				this._updateStretchedCell(cell, colIndex, cell._leftStretching);
-			} else {
-				this._stretchedCells[cellId] = null; // Faster then delete
-				this._stretchedCount--;
-			}
-		}
-	}
-	if (this._stretchedCount &lt;= 0) {
-		this._stretchedCells = null;
-		this._stretchedCount = 0;
-	}
-	return this._stretchedCount ? true : false;
+	this._calculateStretchSize(true);
+
+	this._stretchedCells.updateCells();
+	return childCount ? true : false;
 };
 
 /** @private
-* @param {tr.grid.Cell} cell
-* @param {number} colIndex
-* @param {boolean} leftStretching
+* @param {boolean=} forceRecal
 */
-tr.LayoutGrid.prototype._updateStretchedCell = function(cell, colIndex, leftStretching) {
+tr.LayoutGrid.prototype._calculateStretchSize = function (forceRecal) {
 	var ctx = this._ctx;
-	if(!this._stretchedSize &amp;&amp; ctx) {
-		if(ctx["getWidth"] &amp;&amp; (this._columns[colIndex].getParent() === this._topNode.getElement())) {
-			this._stretchedSize = ctx["getWidth"]();
-			var contentWidth = this.getContentWidth();
-			if(contentWidth &lt; this._stretchedSize) { // If view width is larger than actual content
-				this._stretchedSize = contentWidth;
+	var stretchSize = forceRecal ? 0 : this._stretchedCells.getStretchSize();
+	if(!stretchSize &amp;&amp; ctx) {
+		if(ctx["getWidth"]) {
+			stretchSize = ctx["getWidth"]();
+			var contentWidth = this.getContentWidth(); // TODO: Subtract 1px for border
+			if(contentWidth &lt; stretchSize) { // If view width is larger than actual content
+				stretchSize = contentWidth;
 			}
+			this._stretchedCells.setStretchSize(stretchSize);
 		}
-	}
-
-	var stretchedSize = this._stretchedSize || this.getContentWidth();
-	var leftStart = this._trackX.getLaneStart(colIndex);
-	if (leftStretching) {
-		cell._leftStretching = true;
-		cell.setLeft(-leftStart);
-		cell.setWidth(stretchedSize); // Cell width is always modified (colSpan styling will be reset)
-	} else {
-		cell._leftStretching = false;
-		cell.setStyle("left", "");
-		cell.setWidth(stretchedSize - leftStart);
 	}
 };
 
@@ -2073,7 +2035,7 @@ tr.LayoutGrid.prototype.reserveRightSpace = function (size) {
 			// warning: The element's style is not completed by this function
 			// so this method should not be called directly in the application level.
 
-			this._topNode.addContent(this._rightSpace);
+			this._updateLayers();
 		}
 
 		this._rightSpace.style.width = size + "px";
@@ -2114,9 +2076,17 @@ tr.LayoutGrid.prototype._updateRightSpaceStyle = function(absolutePos) {
 /** @public
 * @ignore
 */
-tr.LayoutGrid.prototype._reinsertRightSpace = function() {
+tr.LayoutGrid.prototype._updateLayers = function() {
 	if(this._rightSpace) {
-		this._topNode.addContent(this._rightSpace);
+		var pn = this._rightSpace.parentNode; // rightSpace can be located in two places: layout grid and pane slider
+		if(pn) {
+			pn.appendChild(this._rightSpace);
+		} else {
+			this._topNode.getElement().appendChild(this._rightSpace);
+		}
+	}
+	if(this._coverLayer) {
+		this._topNode.getElement().appendChild(this._coverLayer); // The layer should always on top
 	}
 };
 
@@ -2282,8 +2252,9 @@ tr.LayoutGrid.prototype._updateViewWidth = function () { // This method is also 
 		return;
 	}
 
+	this._calculateStretchSize(true);
+	this._stretchedCells.updateXAxis();
 	var contentWidth = this.getContentWidth();
-	this.updateStretchedCells();
 
 	if (this._rightSpace) {
 		contentWidth += this._rightSpace.offsetWidth;
@@ -2394,7 +2365,12 @@ tr.LayoutGrid.prototype._syncLayoutToRows = function (indexY, toY) {
 		}
 	}
 
-	this._updateCellSpanLayout(this._cellSpans.getAllSpans());
+	this._stretchedCells.updateYAxis();
+	if(indexY) {
+		this._updateCellSpanLayout(this._cellSpans.getAllSpans());
+	} else {
+		this._updateCellSpans(this._cellSpans.getAllSpans(), true); // Re-collapsing cells when spans are set before setting row count
+	}
 	this._updateViewHeight();
 };
 
@@ -2753,6 +2729,8 @@ var methodMap = {
 
 	"stretchCell": pt.stretchCell,
 	"unstretchCell": pt.unstretchCell,
+	"unstretchAllCells": pt.unstretchAllCells,
+	"getStretchedCell": pt.getStretchedCell,
 	"getStretchedCells": pt.getStretchedCells,
 	"updateStretchedCells": pt.updateStretchedCells,
 	"getColumnHost": pt.getColumnHost,
