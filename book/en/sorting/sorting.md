@@ -80,7 +80,6 @@ For all available sorting options and APIs, please visit [SortableTitlePlugin](.
 		sorting: {
 			sortableColumns: true,
 		},
-		rowHighlight: true,
 		columns: [
 			{name: "Company", field: fields[0]},
 			{name: "Market", field: fields[1], width: 120},

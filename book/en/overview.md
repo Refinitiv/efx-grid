@@ -15,7 +15,7 @@ EFX Grid is a [custom element](https://developer.mozilla.org/en-US/docs/Web/Web_
 </body>
 ```
 
-> For more available properties in EFX Grid element, see [this page](./data/columns-and-data.html).
+> For more available properties in EFX Grid element, see [Columns and Data Properties](./data/columns-and-data.html).
 
 ## Grid APIs
 
@@ -82,7 +82,7 @@ grid.config = {
 			{title: "Industry", field: fields[5], width: 250}
 		],
 		staticDataRows: records,
-		extensions: [new TextFormattingExtension()]
+		extensions: [new TextFormatting()]
 	};
 
 	var grid = document.getElementById("grid");

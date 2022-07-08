@@ -17,7 +17,6 @@ The Column Resizing Extension provides drag-to-resize for columns and double-cli
 	var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 5 });
 	var configObj = {
-		rowHighlight: true,
 		columns: [
 			{title: "Company", field: fields[0]},
 			{title: "Market", field: fields[1], width: 120},

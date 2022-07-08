@@ -28,7 +28,6 @@ In the examples below, the RIC name is used as the row ID. You can then keep upd
 	document.getElementById('insert_jpy').addEventListener("click", insertRic.bind(null, "JPY="));
 
 	var configObj = {
-		rowHighlight: true,
 		rowSelection: true,
 		columns: [
 			{

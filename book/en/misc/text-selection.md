@@ -35,7 +35,6 @@ If you use Safari, try clicking the button in column `Market` from the sample be
 
 	var configObj = {
 		rowVirtualRendering: false,
-		rowHighlight: true,
 		textSelect : true,
 		columns: [
 			{title: "Company", field: fields[0]},

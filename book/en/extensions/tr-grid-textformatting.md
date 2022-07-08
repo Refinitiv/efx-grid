@@ -16,7 +16,6 @@ The Text Formatting Extension provides special formatting for presenting actual 
 	var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "volume", "date1"];
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 10 });
 	var configObj = {
-		rowHighlight: true,
 		columns: [
 			{
 				title: "Company",
@@ -117,7 +116,6 @@ The first way is to use `formatLogic`. You can specify a function on how to appl
 	var fields = ["companyName", "date1"];
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 10 });
 	var configObj = {
-		rowHighlight: true,
 		columns: [
 			{
 				title: "Company",
@@ -177,7 +175,6 @@ The second way is to apply the format within your custom rendering/formatter by 
 	var fields = ["companyName", "date1"];
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 10 });
 	var configObj = {
-		rowHighlight: true,
 		columns: [
 			{
 				title: "Company",

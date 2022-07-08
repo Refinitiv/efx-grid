@@ -22,7 +22,6 @@ The Row Dragging Extension allows the user to drag and reorder selected rows.
 	var fields = ["id", "companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 10 });
 	var configObj = {
-		rowHighlight: true,
 		columns: [
 			{ field: fields[0], width: 30, alignment: "center" },
 			{ title: "Company", field: fields[1] },
@@ -121,7 +120,6 @@ The Row Dragging Extension can be used together with the `RowSelectionPlugin` to
 	var fields = ["id", "companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 10 });
 	var configObj = {
-		rowHighlight: true,
 		columns: [
 			{ field: fields[0], width: 30, alignment: "center" },
 			{ title: "Company", field: fields[1] },

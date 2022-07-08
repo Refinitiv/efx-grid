@@ -29,7 +29,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="c8167eaa-e984-4b25-bd88-4588485b2a3e">
+        <pandora-nav id="e1dd53df-b101-44ed-bf42-82fcb0995ef9">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -274,7 +274,7 @@
             <h2 id="row-coloring"><a href="https://refinitiv.github.io/efx-grid/book/en/extensions/tr-grid-rowcoloring.html" target="_top" class="link-icon"></a> Row Coloring</h2>
             <p>The Row Coloring Extension provides a way to set text color and background color in each row.</p>
 
-            <div class="pandora-code-viewer" id="pid-56">
+            <div class="pandora-code-viewer" id="pid-57">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -291,11 +291,10 @@
 
 Row Index: &lt;input id="row_inp" type="number" value="0"&gt; Color: &lt;input id="color_inp" type="color" value="#cbaacb"&gt;
 &lt;efx-grid id="grid"&gt;&lt;/efx-grid&gt;</pre>
-                  <pre class="pandora-tab-view tab-js">var rowColoringExt = new RowColoringExtension();
+                  <pre class="pandora-tab-view tab-js">var rowColoringExt = new RowColoring();
 var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
 var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 5 });
 var configObj = {
-  rowHighlight: true,
   columns: [
     { title: "Company", field: fields[0] },
     { title: "Market", field: fields[1], width: 120 },
@@ -372,7 +371,7 @@ input[type=color] {
             <h3 id="user-fields">User fields</h3>
             <p>The extension supports text color and background color from the <code>dataTable</code>. To do this you need to set the <code>bgColorField</code> and <code>textColorField</code> properties in the <code>rowColoring</code> options with your specified field names.</p>
 
-            <div class="pandora-code-viewer" id="pid-57">
+            <div class="pandora-code-viewer" id="pid-58">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -388,7 +387,7 @@ input[type=color] {
                   <pre class="pandora-tab-view tab-html">&lt;efx-grid id="grid"&gt;
 
 &lt;/efx-grid&gt;</pre>
-                  <pre class="pandora-tab-view tab-js">var rowColoringExt = new RowColoringExtension();
+                  <pre class="pandora-tab-view tab-js">var rowColoringExt = new RowColoring();
 DataGenerator.addFieldInfo("color", {
   type: "set",
   members: ["#c6dbda", "#fee1e8", "#fed7c3", "#f6eac2", "#ecd5e3", "", "", "", "", "", "", "", "", ""]
@@ -396,7 +395,6 @@ DataGenerator.addFieldInfo("color", {
 var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry", "color"];
 var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 5 });
 var configObj = {
-  rowHighlight: true,
   columns: [
     { title: "Company", field: fields[0] },
     { title: "Market", field: fields[1], width: 120 },
@@ -454,7 +452,7 @@ grid.config = configObj;</pre>
             <h3 id="predefined-color-mode">Predefined color mode</h3>
             <p>The extension also supports text color and background color from the predefined colors. To do this you need to assign predefined class object to the <code>predefinedColors</code> property then set <code>predefinedColoring</code> properties to true and specify field name of the <code>cssField</code> property.</p>
 
-            <div class="pandora-code-viewer" id="pid-58">
+            <div class="pandora-code-viewer" id="pid-59">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -548,8 +546,8 @@ function updateButtons() {
   }
 }
 
-var rowColoringExt = new RowColoringExtension();
-var conditionalColoringExt = new ConditionalColoringExtension();
+var rowColoringExt = new RowColoring();
+var conditionalColoringExt = new ConditionalColoring();
 DataGenerator.addFieldInfo("coloringClass", {
   type: "set",
   members: ["c-yellow", "c-blue", "c-green", "c-red", "", "", "", "", "", ""]
@@ -559,7 +557,6 @@ var randBetween = DataGenerator.randBetween;
 var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry", "id", "coloringClass"];
 var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 10 });
 var configObj = {
-  rowHighlight: true,
   columns: [{
       title: "Index",
       field: fields[5],
@@ -917,6 +914,21 @@ input[type="number"] {
                       <h5>Returns:</h5>
                       <div class="sub-content"> <span class="param-type">string</span> </div>
                       <div class="sub-content-desc"> bgColor</div>
+                    </div>
+                    <div class="item">
+                      <div class="item-type">function</div>
+                      <h4 class="name" id="getRowConfigObject"><span class="type-signature"></span>getRowConfigObject<span class="signature">(rowId)</span><span class="type-signature"> → {Object|null}</span></h4>
+                      <h5>Parameters:</h5>
+                      <div class="params">
+                        <div class="param">
+                          <div class="name">rowId</div>
+                          <div class="type"> <span class="param-type">string</span> </div>
+                        </div>
+                      </div>
+                      <div class="details"> </div>
+                      <h5>Returns:</h5>
+                      <div class="sub-content"> <span class="param-type">Object</span> | <span class="param-type">null</span> </div>
+                      <div class="sub-content-desc"> If this row doesn't contain a config object, return null.</div>
                     </div>
                     <div class="item">
                       <div class="item-type">function</div>

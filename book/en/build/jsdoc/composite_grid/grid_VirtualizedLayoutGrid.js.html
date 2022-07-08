@@ -36,28 +36,36 @@ goog.require("tr.LayoutGrid");
 goog.require("tr.grid.TrackLayout");
 goog.require("tr.grid.SelectionList");
 goog.require("tr.grid.Reverter");
+goog.require("tr.grid.HScrollbar");
 
 /** @constructor
  * @ignore
- * @param {Element|null=} opt_initializer this can be either element id (string) or DOM element.
- * @param {string=} opt_className
+ * @param {Object=} options
  * @implements {tr.ILayoutGrid}
  * @extends {tr.ElementControl}
 */
-tr.grid.VirtualizedLayoutGrid = function (opt_initializer, opt_className) {
+tr.grid.VirtualizedLayoutGrid = function (options) {
 	var _t = this;
 	_t._onRestingPosition = _t._onRestingPosition.bind(_t);
+	_t._updateRowBounds = _t._updateRowBounds.bind(_t);
 
-	_t._topNode = new ElementWrapper(opt_initializer);
-	_t._topNode.setClass("tr-vlg");
-	if(opt_className) { _t.enableClass(/** @type{string} */(opt_className), true); }
+	_t._topNode = new tr.ElementWrapper();
+	_t._topNode.setClass("tr-vlg section");
 
-	_t._grid = new LayoutGrid(null, {"owner": this});
+	if(!options) {
+		options = {};
+	}
+	if(options["horizontalScrollbar"]) {
+		_t._hscrollbar = /** @type{tr.grid.HScrollbar} */(options["horizontalScrollbar"]);
+	}
+	options["owner"] = this;
+	
+	_t._grid = new tr.LayoutGrid(options);
 	_t._grid.setParent(_t._topNode);
 
-	_t._layoutY = new grid.TrackLayout();
-	_t._selectionList =  new grid.SelectionList();
-	_t._reverter = new grid.Reverter(_t._onRestingPosition, 200); // WORKAROUND: GRID-402
+	_t._layoutY = new tr.grid.TrackLayout();
+	_t._selectionList =  new tr.grid.SelectionList();
+	_t._reverter = new tr.grid.Reverter(_t._onRestingPosition, 200); // WORKAROUND: GRID-402
 
 	_t._addEvent("rowHighlighted");
 	_t._addEvent("rowCountChanged");
@@ -67,19 +75,13 @@ tr.grid.VirtualizedLayoutGrid = function (opt_initializer, opt_className) {
 goog.inherits(tr.grid.VirtualizedLayoutGrid, tr.ElementControl);
 
 
-/** For virtualization in Y-Axis
+/**
  * @private
  * @type {number}
  */
 tr.grid.VirtualizedLayoutGrid.prototype._index = -1;
 
-/**
- * @private
- * @type {number}
- */
-tr.grid.VirtualizedLayoutGrid.prototype._indexOffset = 0;
-
-/**
+/** For virtualization in Y-Axis
  * @private
  * @type {number}
  */
@@ -104,6 +106,42 @@ tr.grid.VirtualizedLayoutGrid.prototype._selectionList = null;
  * @private
  */
 tr.grid.VirtualizedLayoutGrid.prototype._reverter = null;
+/** @type {Element}
+* @private
+*/
+tr.grid.VirtualizedLayoutGrid.prototype._rowBound = null;
+/** @type {Element}
+* @private
+*/
+tr.grid.VirtualizedLayoutGrid.prototype._cellBound = null;
+/** @type {number}
+* @private
+*/
+tr.grid.VirtualizedLayoutGrid.prototype._cbLftIdx = 0;
+/** @type {number}
+* @private
+*/
+tr.grid.VirtualizedLayoutGrid.prototype._cbRgtIdx = 0;
+/** @type {number}
+* @private
+*/
+tr.grid.VirtualizedLayoutGrid.prototype._cbTopIdx = 0;
+/** @type {number}
+* @private
+*/
+tr.grid.VirtualizedLayoutGrid.prototype._cbBtmIdx = 0;
+/** @type {number}
+* @private
+*/
+tr.grid.VirtualizedLayoutGrid.prototype._rowBoundTimer = 0;
+/** @type {Element}
+* @private
+*/
+tr.grid.VirtualizedLayoutGrid.prototype._boundLayer = null;
+/** @type {tr.grid.HScrollbar}
+* @private
+*/
+tr.grid.VirtualizedLayoutGrid.prototype._hscrollbar = null;
 
 //#region ====== Override ElementControl ======//
 /** @override */
@@ -125,9 +163,14 @@ tr.grid.VirtualizedLayoutGrid.prototype.dispose = function () {
 	this.setRowCount(0); // Fire rowCountChanged
 	this.unlistenAll();
 
+	this._hscrollbar = null;
 	this._grid.dispose();
 	this._topNode.dispose();
 	this._reverter.dispose();
+	if(this._rowBoundTimer) {
+		clearTimeout(this._rowBoundTimer);
+		this._rowBoundTimer = 0;
+	}
 };
 /** @override */
 tr.grid.VirtualizedLayoutGrid.prototype.setWidth = function (px) {
@@ -220,6 +263,7 @@ tr.grid.VirtualizedLayoutGrid.prototype.setRowHeight = function (index, val) {
 	if(this._layoutY.setLaneSize(index, val)) {
 		this._grid.setRowHeight(index - this._firstIndex, val);
 		this._topNode.setHeight(this._layoutY.getTrackSize());
+		this._requestUpdatingRowBounds();
 		return this._dispatchRowHeightChangedEvent(index, index + 1);
 	}
 	return false;
@@ -370,6 +414,7 @@ tr.grid.VirtualizedLayoutGrid.prototype.setRowCount = function (val, noBinding) 
 	if(prevCount !== val){
 		this._layoutY.setLaneCount(val);
 		this._topNode.setHeight(this._layoutY.getTrackSize());
+		this._requestUpdatingRowBounds();
 		//After rowCountChanged fires, virtualizer will update virtual row count if
 		//the range of virtual layout changed.
 		this._dispatch("rowCountChanged", { "rowCount":val, "prevCount":prevCount, "noBinding": noBinding });
@@ -517,24 +562,33 @@ tr.grid.VirtualizedLayoutGrid.prototype.isSelectedRow = function (at) {
 tr.grid.VirtualizedLayoutGrid.prototype.setSelectedRow = function (rowIndex, opt_selected) {
 	this._selectionList.setSelection(rowIndex, opt_selected);
 
-	var adjustedIndex = rowIndex - this._firstIndex;
-	this._grid.setSelectedRow(adjustedIndex, this._selectionList.getSelection(rowIndex));
+	var selected = this._selectionList.getSelection(rowIndex);
+	this._grid.setSelectedRow(rowIndex - this._firstIndex, selected);
+
+	if(selected) {
+		this._initRowBounds();
+	}
+	this._updateRowBounds();
 };
 
 /** @inheritDoc */
 tr.grid.VirtualizedLayoutGrid.prototype.selectSingleRow = function (rowIndex) {
-	this.clearSelectedRows();
+	this._selectionList.clearAllSelections();
+	this._grid.clearSelectedRows();
 	this.setSelectedRow(rowIndex);
 };
 /** @inheritDoc */
 tr.grid.VirtualizedLayoutGrid.prototype.selectRowRange = function (rowIndex, length) {
 	this._selectionList.selectRange(rowIndex, length);
 	this._updateRowSelection();
+	this._initRowBounds();
+	this._updateRowBounds();
 };
 /** @inheritDoc */
 tr.grid.VirtualizedLayoutGrid.prototype.clearSelectedRows = function () {
 	var count = this._selectionList.clearAllSelections();
 	this._grid.clearSelectedRows();
+	this._updateRowBounds();
 	return count;
 };
 /** @inheritDoc */
@@ -734,8 +788,12 @@ tr.grid.VirtualizedLayoutGrid.prototype.getRowOffset = function(){
 	return this._rowOffset;
 };
 
-/** @inheritDoc */
-tr.grid.VirtualizedLayoutGrid.prototype.updateLayout = function () {};
+/** @public
+* @ignore
+*/
+tr.grid.VirtualizedLayoutGrid.prototype.updateLayout = function () {
+	this._grid.updateLayout();
+};
 
 /** {@link tr.ILayoutGrid#stretchCell}
 * @inheritDoc */
@@ -838,6 +896,236 @@ tr.grid.VirtualizedLayoutGrid.prototype.setRowAttributes = function (rowIndex, f
 tr.grid.VirtualizedLayoutGrid.prototype.getContextRow = function (rowIndex) {
 	return this._grid.getContextRow(rowIndex - this._firstIndex);
 };
+
+/** @public
+* @param {number} colIndex
+* @param {boolean=} selected
+*/
+tr.grid.VirtualizedLayoutGrid.prototype.selectColumn = function (colIndex, selected) {
+	this._grid.selectColumn(colIndex, selected);
+};
+/** @public
+* @param {number} colIndex
+* @return {boolean}
+*/
+tr.grid.VirtualizedLayoutGrid.prototype.isSelectedColumn = function (colIndex) {
+	return this._grid.isSelectedColumn(colIndex);
+};
+/** @public
+* @param {number} colIndex
+* @param {number} rowIndex
+* @param {boolean=} selected
+*/
+tr.grid.VirtualizedLayoutGrid.prototype.selectCell = function (colIndex, rowIndex, selected) {
+	this._grid.selectCell(colIndex, rowIndex - this._firstIndex, selected);
+};
+
+/** @private
+* @function
+* @param {number} idx
+* @param {number} limit
+* @return {number}
+*/
+tr.grid.VirtualizedLayoutGrid._validateIndex = function(idx, limit) {
+	if(idx &gt; limit) {
+		return limit;
+	} else if(idx &lt; 0) {
+		return 0;
+	}
+	return idx;
+};
+/** @public
+* @param {number} colIndex
+* @param {number} rowIndex
+* @param {number} width
+* @param {number} height
+*/
+tr.grid.VirtualizedLayoutGrid.prototype.setCellBounds = function (colIndex, rowIndex, width, height) {
+	var cellBound = this._cellBound;
+	if(!cellBound) {
+		cellBound = this._cellBound = document.createElement("div");
+		cellBound.className = "selection-bound";
+	}
+	this._initBoundLayer();
+
+	// Validate inputs
+	var rgtIndex = colIndex + width; // Exclusive
+	var btmIndex = rowIndex + height; // Exclusive
+
+	var colCount = this.getColumnCount();
+	var rowCount = this._layoutY.getLaneCount();
+	var _validateIndex = tr.grid.VirtualizedLayoutGrid._validateIndex;
+
+	this._cbLftIdx = _validateIndex(colIndex, colCount);
+	this._cbRgtIdx = _validateIndex(rgtIndex, colCount);
+	this._cbTopIdx = _validateIndex(rowIndex, rowCount);
+	this._cbBtmIdx = _validateIndex(btmIndex, rowCount);
+
+	this._updateCellBounds();
+};
+/** @public
+* @ignore
+* @return {!tr.grid.TrackLayout}
+*/
+tr.grid.VirtualizedLayoutGrid.prototype.getHorizontalLayout = function () {
+	return this._grid.getHorizontalLayout();
+};
+/** @public
+* @ignore
+* @param {number} lftIdx
+* @param {number} rgtIdx Inclusive index
+* @param {!Array.&lt;number&gt;} outPositions
+* @param {!Array.&lt;boolean&gt;} outNoBorders
+*/
+tr.grid.VirtualizedLayoutGrid.prototype.calculateColumnBounds = function (lftIdx, rgtIdx, outPositions, outNoBorders) {
+	this._grid.calculateColumnBounds(lftIdx, rgtIdx, outPositions, outNoBorders);
+};
+/** @private
+*/
+tr.grid.VirtualizedLayoutGrid.prototype._updateCellBounds = function () {
+	var cellBound = this._cellBound;
+	if(!cellBound) {
+		return;
+	}
+
+	var layoutX = this.getHorizontalLayout();
+	var layoutY = this._layoutY;
+	var lftIdx = this._cbLftIdx;
+	var rgtIdx = this._cbRgtIdx; // Exclusive
+	var topIdx = this._cbTopIdx;
+	var btmIdx = this._cbBtmIdx; // Exclusive
+	var lftPx, rgtPx, topPx, btmPx;
+	lftPx = rgtPx = topPx = btmPx = 0;
+	if(lftIdx &lt; rgtIdx &amp;&amp; topIdx &lt; btmIdx) {
+		lftPx = layoutX.getLaneStart(lftIdx);
+		rgtPx = layoutX.getLaneEnd(rgtIdx - 1);
+		topPx = layoutY.getLaneStart(topIdx);
+		btmPx = layoutY.getLaneEnd(btmIdx - 1);
+	}
+
+	var width = rgtPx - lftPx;
+	var height = btmPx - topPx;
+	var noBorders = [false, false];
+	if(width &gt; 0 &amp;&amp; height &gt; 0 &amp;&amp; this._hscrollbar) {
+		var positions = [0, 0];
+		this.calculateColumnBounds(lftIdx, rgtIdx - 1, positions, noBorders);
+		lftPx = positions[0];
+		rgtPx = positions[1];
+		width = rgtPx - lftPx;
+	}
+
+	if(width &gt; 0) {
+		cellBound.style.left = lftPx + "px";
+		cellBound.style.top = topPx + "px";
+		cellBound.style.width = width + "px";
+		cellBound.style.height = height + "px";
+
+		cellBound.classList.toggle("no-left-bound", noBorders[0]);
+		cellBound.classList.toggle("no-right-bound", noBorders[1]);
+
+		if(this._boundLayer) {
+			this._boundLayer.appendChild(cellBound);
+		}
+	} else {
+		var pn = cellBound.parentNode;
+		if(pn) {
+			pn.removeChild(cellBound);
+		}
+	}
+};
+/** @public
+* @ignore
+* @param {!Array.&lt;number&gt;} positions Left and right bound positions in pixel
+* @param {!Array.&lt;boolean&gt;} noBorders Boolean values indicating existence of left and right CSS borders
+*/
+tr.grid.VirtualizedLayoutGrid.prototype.updateColumnBounds = function (positions, noBorders) {
+	this._grid.updateColumnBounds(positions, noBorders);
+	this._updateRowBounds();
+};
+/** @private
+*/
+tr.grid.VirtualizedLayoutGrid.prototype._initBoundLayer = function () {
+	var boundLayer = this._boundLayer;
+	if(!boundLayer) {
+		boundLayer = this._boundLayer = document.createElement("div");
+		boundLayer.className = "cover-layer";
+		this._topNode.getElement().appendChild(boundLayer);
+	}
+};
+/** @private
+*/
+tr.grid.VirtualizedLayoutGrid.prototype._initRowBounds = function () {
+	var rowBound = this._rowBound;
+	if(!rowBound) {
+		rowBound = this._rowBound = document.createElement("div");
+		rowBound.className = "selection-bound";
+	}
+	this._initBoundLayer();
+};
+/** @private
+*/
+tr.grid.VirtualizedLayoutGrid.prototype._requestUpdatingRowBounds = function () {
+	if(!this._rowBoundTimer) {
+		this._rowBoundTimer = setTimeout(this._updateRowBounds, 10);
+	}
+};
+/** @private
+*/
+tr.grid.VirtualizedLayoutGrid.prototype._updateRowBounds = function () {
+	this._rowBoundTimer = 0;
+	this._updateCellBounds();
+
+	var rowBound = this._rowBound;
+	if(!rowBound) {
+		return;
+	}
+	var topIdx = this.getFirstSelectedRow();
+	var btmIdx = -1; // Inclusive
+	var topPx = 0;
+	var btmPx = 0;
+	var rowCount = this._layoutY.getLaneCount();
+	if(topIdx &gt;= rowCount) {
+		topIdx = rowCount - 1;
+	}
+	if(topIdx &gt;= 0) {
+		btmIdx = this.getLastSelectedRow();
+		if(btmIdx &gt;= rowCount) {
+			btmIdx = rowCount - 1;
+		}
+		topPx = this._layoutY.getLaneStart(topIdx);
+		btmPx = this._layoutY.getLaneEnd(btmIdx);
+	}
+
+	if(topPx &gt;= btmPx) {
+		var pn = rowBound.parentNode;
+		if(pn) {
+			pn.removeChild(rowBound);
+		}
+	} else {
+		rowBound.style.top = topPx + "px";
+		rowBound.style.height = (btmPx - topPx) + "px";
+
+		var boundWidth = this._grid._getViewSize();
+		rowBound.style.width = boundWidth + "px";
+
+		var scrollLeft = 0;
+		var pinnedLftCount = 0;
+		var pinnedRgtCount = 0;
+		var endOfScroll = false;
+		if(this._hscrollbar) {
+			scrollLeft = this._hscrollbar.getScrollLeft();
+			pinnedLftCount = this._hscrollbar.getPinnedLeftColumnCount();
+			pinnedRgtCount = this._hscrollbar.getPinnedRightColumnCount();
+			endOfScroll = this._hscrollbar.isEndOfHorizontalScroll();
+		}
+		rowBound.classList.toggle("no-left-bound", !pinnedLftCount &amp;&amp; scrollLeft &gt; 0);
+		rowBound.classList.toggle("no-right-bound", !pinnedRgtCount &amp;&amp; !endOfScroll);
+
+		if(this._boundLayer) {
+			this._boundLayer.appendChild(rowBound);
+		}
+	}
+};
 //#endregion public methods
 
 //#region ====== Private methods ======//
@@ -908,10 +1196,9 @@ tr.grid.VirtualizedLayoutGrid.prototype._onRestingPosition = function () {
 };
 /** @public
 * @ignore
-* @param {boolean} absolutePos if true, the right space element will be positioned absolutely
 */
-tr.grid.VirtualizedLayoutGrid.prototype._updateRightSpaceStyle = function(absolutePos) {
-	this._grid._updateRightSpaceStyle(absolutePos);
+tr.grid.VirtualizedLayoutGrid.prototype._updateRightSpaceStyle = function() {
+	this._grid._updateRightSpaceStyle();
 };
 /** @public
 * @ignore
@@ -1059,7 +1346,11 @@ var methodMap = {
 	"getReservedSpace": pt.getReservedSpace,
 	"getComputedStyle": pt.getComputedStyle,
 	"isColumnActive": pt.isColumnActive,
-	"getContextRow": pt.getContextRow
+	"getContextRow": pt.getContextRow,
+	"selectColumn": pt.selectColumn,
+	"isSelectedColumn": pt.isSelectedColumn,
+	"selectCell": pt.selectCell,
+	"setCellBounds": pt.setCellBounds
 };
 // Export methods for Closure's advanced compilation
 for(var methodName in methodMap) {
@@ -1076,7 +1367,7 @@ for(var methodName in methodMap) {
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="AdFin.html">AdFin</a></li><li><a href="DateTime.html">DateTime</a></li><li><a href="Info.html">Info</a></li><li><a href="Logic.html">Logic</a></li><li><a href="Math.html">Math</a></li><li><a href="Realtime.html">Realtime</a></li><li><a href="Statistic.html">Statistic</a></li><li><a href="Text.html">Text</a></li><li><a href="tr.ElementFrameWork.html">ElementFrameWork</a></li><li><a href="tr.PipDefinition.html">PipDefinition</a></li></ul><h3>Classes</h3><ul><li><a href="tr.ADCSubscription.html">ADCSubscription</a></li><li><a href="tr.AdFinSubscription.html">AdFinSubscription</a></li><li><a href="tr.cgrid.editor.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.filter.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.formatter.AsyncFormatter.html">AsyncFormatter</a></li><li><a href="tr.cgrid.formatter.CheckBox.html">CheckBox</a></li><li><a href="tr.cgrid.formatter.UpDownColor.html">UpDownColor</a></li><li><a href="tr.ColumnStats.html">ColumnStats</a></li><li><a href="tr.CompositeGrid.html">CompositeGrid</a></li><li><a href="tr.DataCache.html">DataCache</a></li><li><a href="tr.DataTable.html">DataTable</a></li><li><a href="tr.DataView.html">DataView</a></li><li><a href="tr.DropDown.html">DropDown</a></li><li><a href="tr.ElementControl.html">ElementControl</a></li><li><a href="tr.ElementWrapper.html">ElementWrapper</a></li><li><a href="tr.Event.html">Event</a></li><li><a href="tr.EventDispatcher.html">EventDispatcher</a></li><li><a href="tr.EventDispatcher.extendClass-tempCtor.html">tempCtor</a></li><li><a href="tr.EventManager.html">EventManager</a></li><li><a href="tr.FieldFormatter.html">FieldFormatter</a></li><li><a href="tr.fn.Engine.html">Engine</a></li><li><a href="tr.fn.Formula.html">Formula</a></li><li><a href="tr.fn.VariableToken.html">VariableToken</a></li><li><a href="tr.Grid.html">Grid</a></li><li><a href="tr.grid.BidOfferSpan.html">BidOfferSpan</a></li><li><a href="tr.grid.Blinker.html">Blinker</a></li><li><a href="tr.grid.Cell.html">Cell</a></li><li><a href="tr.grid.CellBlinkingPlugin.html">CellBlinkingPlugin</a></li><li><a href="tr.grid.CellEditingPlugin.html">CellEditingPlugin</a></li><li><a href="tr.grid.CellFloatingPanel.html">CellFloatingPanel</a></li><li><a href="tr.grid.CellPainter.html">CellPainter</a></li><li><a href="tr.grid.CellSpan.html">CellSpan</a></li><li><a href="tr.grid.CellSpans.html">CellSpans</a></li><li><a href="tr.grid.CellWriter.html">CellWriter</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html">CheckboxColumnPlugin</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html">CollapsibleHeaderPlugin</a></li><li><a href="tr.grid.ColumnFilterPlugin.html">ColumnFilterPlugin</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html">ColumnGroupingPlugin</a></li><li><a href="tr.grid.ColumnSelectionPlugin.html">ColumnSelectionPlugin</a></li><li><a href="tr.grid.ColumnStackingPlugin.html">ColumnStackingPlugin</a></li><li><a href="tr.grid.ColumnWidthAdjustingPlugin.html">ColumnWidthAdjustingPlugin</a></li><li><a href="tr.grid.Conflator.html">Conflator</a></li><li><a href="tr.grid.DataSourceTreePlugin.html">DataSourceTreePlugin</a></li><li><a href="tr.grid.DirectContentBindingPlugin.html">DirectContentBindingPlugin</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html">DragAndDropTitlePlugin</a></li><li><a href="tr.grid.DraggableContentPlugin.html">DraggableContentPlugin</a></li><li><a href="tr.grid.FindBar.html">FindBar</a></li><li><a href="tr.grid.FindBarPlugin.html">FindBarPlugin</a></li><li><a href="tr.grid.GroupStatisticsPlugin.html">GroupStatisticsPlugin</a></li><li><a href="tr.grid.HeatMapRenderer.html">HeatMapRenderer</a></li><li><a href="tr.grid.HScrollbar.html">HScrollbar</a></li><li><a href="tr.grid.IndexMarker.html">IndexMarker</a></li><li><a href="tr.grid.MovableHeaderPlugin.html">MovableHeaderPlugin</a></li><li><a href="tr.grid.NumberFormatter.html">NumberFormatter</a></li><li><a href="tr.grid.PercentBar.html">PercentBar</a></li><li><a href="tr.grid.PercentBarRenderer.html">PercentBarRenderer</a></li><li><a href="tr.grid.Plugin.html">Plugin</a></li><li><a href="tr.grid.RangeBar.html">RangeBar</a></li><li><a href="tr.grid.ResizableTitlePlugin.html">ResizableTitlePlugin</a></li><li><a href="tr.grid.Reverter.html">Reverter</a></li><li><a href="tr.grid.RowHeightAdjustingPlugin.html">RowHeightAdjustingPlugin</a></li><li><a href="tr.grid.RowSelectionPlugin.html">RowSelectionPlugin</a></li><li><a href="tr.grid.Scrollbar.html">Scrollbar</a></li><li><a href="tr.grid.SectionSettings.html">SectionSettings</a></li><li><a href="tr.grid.SmartTooltipsPlugin.html">SmartTooltipsPlugin</a></li><li><a href="tr.grid.SortableTitlePlugin.html">SortableTitlePlugin</a></li><li><a href="tr.grid.TreeIndentingPlugin.html">TreeIndentingPlugin</a></li><li><a href="tr.grid.Virtualizer.html">Virtualizer</a></li><li><a href="tr.grid.VScrollbar.html">VScrollbar</a></li><li><a href="tr.grid.ZoomPlugin.html">ZoomPlugin</a></li><li><a href="tr.HttpRequest.html">HttpRequest</a></li><li><a href="tr.IntervalSubscription.html">IntervalSubscription</a></li><li><a href="tr.LayoutGrid.html">LayoutGrid</a></li><li><a href="tr.ListMenu.html">ListMenu</a></li><li><a href="tr.MenuItem.html">MenuItem</a></li><li><a href="tr.MockArchive.html">MockArchive</a></li><li><a href="tr.MockJET.html">MockJET</a></li><li><a href="tr.MockQuotes.html">MockQuotes</a></li><li><a href="tr.MockQuotes2.html">MockQuotes2</a></li><li><a href="tr.MockSubscription.html">MockSubscription</a></li><li><a href="tr.MockSubscriptions.html">MockSubscriptions</a></li><li><a href="tr.Popup.html">Popup</a></li><li><a href="tr.PopupMenu.html">PopupMenu</a></li><li><a href="tr.PrintTrait.html">PrintTrait</a></li><li><a href="tr.RequestQueue.html">RequestQueue</a></li><li><a href="tr.Segment.html">Segment</a></li><li><a href="tr.SegmentCollection.html">SegmentCollection</a></li><li><a href="tr.TSISubscription.html">TSISubscription</a></li></ul><h3>Interfaces</h3><ul><li><a href="tr.cgrid.ICompositeExtension.html">ICompositeExtension</a></li><li><a href="tr.grid.IPlugin.html">IPlugin</a></li><li><a href="tr.IElementControl.html">IElementControl</a></li><li><a href="tr.ILayoutGrid.html">ILayoutGrid</a></li></ul><h3>Events</h3><ul><li><a href="tr.CompositeGrid.html#event:cellClicked">cellClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellDblClicked">cellDblClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellMouseDown">cellMouseDown</a></li><li><a href="tr.CompositeGrid.html#event:cellRightClicked">cellRightClicked</a></li><li><a href="tr.CompositeGrid.html#event:columnSorted">columnSorted</a></li><li><a href="tr.CompositeGrid.html#event:editorAttached">editorAttached</a></li><li><a href="tr.CompositeGrid.html#event:editorDetached">editorDetached</a></li><li><a href="tr.CompositeGrid.html#event:filterAdded">filterAdded</a></li><li><a href="tr.CompositeGrid.html#event:filterCleared">filterCleared</a></li><li><a href="tr.CompositeGrid.html#event:filterModified">filterModified</a></li><li><a href="tr.CompositeGrid.html#event:filterRemoved">filterRemoved</a></li><li><a href="tr.CompositeGrid.html#event:mouseLeaveCell">mouseLeaveCell</a></li><li><a href="tr.CompositeGrid.html#event:mouseOverCell">mouseOverCell</a></li><li><a href="tr.CompositeGrid.html#event:pageChanged">pageChanged</a></li><li><a href="tr.CompositeGrid.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.DataCache.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataCache.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataTable.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataTable.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataView.html#event:beforeFiltering">beforeFiltering</a></li><li><a href="tr.DataView.html#event:beforeGroupAdded">beforeGroupAdded</a></li><li><a href="tr.DataView.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataView.html#event:groupAdded">groupAdded</a></li><li><a href="tr.DataView.html#event:groupCriteriaChanged">groupCriteriaChanged</a></li><li><a href="tr.DataView.html#event:pageCountChanged">pageCountChanged</a></li><li><a href="tr.DataView.html#event:pageIndexChanged">pageIndexChanged</a></li><li><a href="tr.DataView.html#event:preDisposed">preDisposed</a></li><li><a href="tr.Formula.html#event:dataCacheChanged">dataCacheChanged</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:cancelled">cancelled</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:change">change</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:closed">closed</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:editorOpened">editorOpened</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:preEditorOpening">preEditorOpening</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:click">click</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:columnCollapsed">columnCollapsed</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:groupChanged">groupChanged</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:render">render</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:columnMoved">columnMoved</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:drag">drag</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragEnd">dragEnd</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragStart">dragStart</a></li><li><a href="tr.grid.FindBarPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:groupMoved">groupMoved</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:sectionMoved">sectionMoved</a></li><li><a href="tr.grid.RowSelectionPlugin.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:columnSorted">columnSorted</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preClicked">preClicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preDataSorting">preDataSorting</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.Grid.html#event:columnAdded">columnAdded</a></li><li><a href="tr.Grid.html#event:columnAlignmentChanged">columnAlignmentChanged</a></li><li><a href="tr.Grid.html#event:columnRemoved">columnRemoved</a></li><li><a href="tr.Grid.html#event:columnVisibilityChanged">columnVisibilityChanged</a></li><li><a href="tr.Grid.html#event:dataSourceChanged">dataSourceChanged</a></li><li><a href="tr.Grid.html#event:postSectionDataBinding">postSectionDataBinding</a></li><li><a href="tr.Grid.html#event:rowExpansionBinding">rowExpansionBinding</a></li><li><a href="tr.Grid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Grid.html#event:sectionAdded">sectionAdded</a></li><li><a href="tr.Grid.html#event:widthChanged">widthChanged</a></li><li><a href="tr.HttpRequest.html#event:abort">abort</a></li><li><a href="tr.HttpRequest.html#event:error">error</a></li><li><a href="tr.HttpRequest.html#event:load">load</a></li><li><a href="tr.HttpRequest.html#event:loadend">loadend</a></li><li><a href="tr.HttpRequest.html#event:loadstart">loadstart</a></li><li><a href="tr.HttpRequest.html#event:timeout">timeout</a></li><li><a href="tr.IElementControl.html#event:blur">blur</a></li><li><a href="tr.IElementControl.html#event:change">change</a></li><li><a href="tr.IElementControl.html#event:click">click</a></li><li><a href="tr.IElementControl.html#event:contextmenu">contextmenu</a></li><li><a href="tr.IElementControl.html#event:dblclick">dblclick</a></li><li><a href="tr.IElementControl.html#event:drag">drag</a></li><li><a href="tr.IElementControl.html#event:dragend">dragend</a></li><li><a href="tr.IElementControl.html#event:dragenter">dragenter</a></li><li><a href="tr.IElementControl.html#event:dragleave">dragleave</a></li><li><a href="tr.IElementControl.html#event:dragover">dragover</a></li><li><a href="tr.IElementControl.html#event:dragstart">dragstart</a></li><li><a href="tr.IElementControl.html#event:drop">drop</a></li><li><a href="tr.IElementControl.html#event:focus">focus</a></li><li><a href="tr.IElementControl.html#event:formchange">formchange</a></li><li><a href="tr.IElementControl.html#event:forminput">forminput</a></li><li><a href="tr.IElementControl.html#event:input">input</a></li><li><a href="tr.IElementControl.html#event:invalid">invalid</a></li><li><a href="tr.IElementControl.html#event:keydown">keydown</a></li><li><a href="tr.IElementControl.html#event:keypress">keypress</a></li><li><a href="tr.IElementControl.html#event:keyup">keyup</a></li><li><a href="tr.IElementControl.html#event:mousedown">mousedown</a></li><li><a href="tr.IElementControl.html#event:mousemove">mousemove</a></li><li><a href="tr.IElementControl.html#event:mouseout">mouseout</a></li><li><a href="tr.IElementControl.html#event:mouseover">mouseover</a></li><li><a href="tr.IElementControl.html#event:mouseup">mouseup</a></li><li><a href="tr.IElementControl.html#event:mousewheel">mousewheel</a></li><li><a href="tr.IElementControl.html#event:reset">reset</a></li><li><a href="tr.IElementControl.html#event:scroll">scroll</a></li><li><a href="tr.IElementControl.html#event:select">select</a></li><li><a href="tr.IElementControl.html#event:submit">submit</a></li><li><a href="tr.ILayoutGrid.html#event:blur">blur</a></li><li><a href="tr.ILayoutGrid.html#event:change">change</a></li><li><a href="tr.ILayoutGrid.html#event:click">click</a></li><li><a href="tr.ILayoutGrid.html#event:contextmenu">contextmenu</a></li><li><a href="tr.ILayoutGrid.html#event:dblclick">dblclick</a></li><li><a href="tr.ILayoutGrid.html#event:drag">drag</a></li><li><a href="tr.ILayoutGrid.html#event:dragend">dragend</a></li><li><a href="tr.ILayoutGrid.html#event:dragenter">dragenter</a></li><li><a href="tr.ILayoutGrid.html#event:dragleave">dragleave</a></li><li><a href="tr.ILayoutGrid.html#event:dragover">dragover</a></li><li><a href="tr.ILayoutGrid.html#event:dragstart">dragstart</a></li><li><a href="tr.ILayoutGrid.html#event:drop">drop</a></li><li><a href="tr.ILayoutGrid.html#event:focus">focus</a></li><li><a href="tr.ILayoutGrid.html#event:formchange">formchange</a></li><li><a href="tr.ILayoutGrid.html#event:forminput">forminput</a></li><li><a href="tr.ILayoutGrid.html#event:input">input</a></li><li><a href="tr.ILayoutGrid.html#event:invalid">invalid</a></li><li><a href="tr.ILayoutGrid.html#event:keydown">keydown</a></li><li><a href="tr.ILayoutGrid.html#event:keypress">keypress</a></li><li><a href="tr.ILayoutGrid.html#event:keyup">keyup</a></li><li><a href="tr.ILayoutGrid.html#event:mousedown">mousedown</a></li><li><a href="tr.ILayoutGrid.html#event:mousemove">mousemove</a></li><li><a href="tr.ILayoutGrid.html#event:mouseout">mouseout</a></li><li><a href="tr.ILayoutGrid.html#event:mouseover">mouseover</a></li><li><a href="tr.ILayoutGrid.html#event:mouseup">mouseup</a></li><li><a href="tr.ILayoutGrid.html#event:mousewheel">mousewheel</a></li><li><a href="tr.ILayoutGrid.html#event:reset">reset</a></li><li><a href="tr.ILayoutGrid.html#event:scroll">scroll</a></li><li><a href="tr.ILayoutGrid.html#event:select">select</a></li><li><a href="tr.ILayoutGrid.html#event:submit">submit</a></li><li><a href="tr.LayoutGrid.html#event:rowCountChanged">rowCountChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHeightChanged">rowHeightChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Popup.html#event:hidden">hidden</a></li><li><a href="tr.Popup.html#event:shown">shown</a></li><li><a href="tr.PopupMenu.html#event:hidden">hidden</a></li><li><a href="tr.PopupMenu.html#event:shown">shown</a></li><li><a href="tr.PrintTrait.html#event:afterprint">afterprint</a></li><li><a href="tr.PrintTrait.html#event:beforeprint">beforeprint</a></li><li><a href="tr.PrintTrait.html#event:pageCounting">pageCounting</a></li></ul><h3>Global</h3><ul><li><a href="global.html#cellRef%255Bundefined%255D">cellRef[undefined]</a></li><li><a href="global.html#e%255Bundefined%255D">e[undefined]</a></li><li><a href="global.html#.textContent">.textContent</a></li><li><a href="global.html#get">get</a></li><li><a href="global.html#input%255Bundefined%255D">input[undefined]</a></li><li><a href="global.html#q%255Bundefined%255D">q[undefined]</a></li><li><a href="global.html#sortingDef%255B1%255D">sortingDef[1]</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Namespaces</h3><ul><li><a href="AdFin.html">AdFin</a></li><li><a href="DateTime.html">DateTime</a></li><li><a href="Info.html">Info</a></li><li><a href="Logic.html">Logic</a></li><li><a href="Math.html">Math</a></li><li><a href="Realtime.html">Realtime</a></li><li><a href="Statistic.html">Statistic</a></li><li><a href="Text.html">Text</a></li><li><a href="tr.ElementFrameWork.html">ElementFrameWork</a></li><li><a href="tr.PipDefinition.html">PipDefinition</a></li></ul><h3>Classes</h3><ul><li><a href="tr.ADCSubscription.html">ADCSubscription</a></li><li><a href="tr.AdFinSubscription.html">AdFinSubscription</a></li><li><a href="tr.cgrid.editor.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.filter.TextBox.html">TextBox</a></li><li><a href="tr.cgrid.formatter.AsyncFormatter.html">AsyncFormatter</a></li><li><a href="tr.cgrid.formatter.CheckBox.html">CheckBox</a></li><li><a href="tr.cgrid.formatter.UpDownColor.html">UpDownColor</a></li><li><a href="tr.ColumnStats.html">ColumnStats</a></li><li><a href="tr.CompositeGrid.html">CompositeGrid</a></li><li><a href="tr.DataCache.html">DataCache</a></li><li><a href="tr.DataTable.html">DataTable</a></li><li><a href="tr.DataView.html">DataView</a></li><li><a href="tr.DropDown.html">DropDown</a></li><li><a href="tr.ElementControl.html">ElementControl</a></li><li><a href="tr.ElementWrapper.html">ElementWrapper</a></li><li><a href="tr.Event.html">Event</a></li><li><a href="tr.EventDispatcher.html">EventDispatcher</a></li><li><a href="tr.EventDispatcher.extendClass-tempCtor.html">tempCtor</a></li><li><a href="tr.EventManager.html">EventManager</a></li><li><a href="tr.FieldFormatter.html">FieldFormatter</a></li><li><a href="tr.fn.Engine.html">Engine</a></li><li><a href="tr.fn.Formula.html">Formula</a></li><li><a href="tr.fn.VariableToken.html">VariableToken</a></li><li><a href="tr.Grid.html">Grid</a></li><li><a href="tr.grid.BidOfferSpan.html">BidOfferSpan</a></li><li><a href="tr.grid.Blinker.html">Blinker</a></li><li><a href="tr.grid.Cell.html">Cell</a></li><li><a href="tr.grid.CellBlinkingPlugin.html">CellBlinkingPlugin</a></li><li><a href="tr.grid.CellEditingPlugin.html">CellEditingPlugin</a></li><li><a href="tr.grid.CellFloatingPanel.html">CellFloatingPanel</a></li><li><a href="tr.grid.CellPainter.html">CellPainter</a></li><li><a href="tr.grid.CellSpan.html">CellSpan</a></li><li><a href="tr.grid.CellSpans.html">CellSpans</a></li><li><a href="tr.grid.CellWriter.html">CellWriter</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html">CheckboxColumnPlugin</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html">CollapsibleHeaderPlugin</a></li><li><a href="tr.grid.ColumnFilterPlugin.html">ColumnFilterPlugin</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html">ColumnGroupingPlugin</a></li><li><a href="tr.grid.ColumnSelectionPlugin.html">ColumnSelectionPlugin</a></li><li><a href="tr.grid.ColumnStackingPlugin.html">ColumnStackingPlugin</a></li><li><a href="tr.grid.ColumnWidthAdjustingPlugin.html">ColumnWidthAdjustingPlugin</a></li><li><a href="tr.grid.Conflator.html">Conflator</a></li><li><a href="tr.grid.DataSourceTreePlugin.html">DataSourceTreePlugin</a></li><li><a href="tr.grid.DirectContentBindingPlugin.html">DirectContentBindingPlugin</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html">DragAndDropTitlePlugin</a></li><li><a href="tr.grid.DraggableContentPlugin.html">DraggableContentPlugin</a></li><li><a href="tr.grid.FindBar.html">FindBar</a></li><li><a href="tr.grid.FindBarPlugin.html">FindBarPlugin</a></li><li><a href="tr.grid.GroupStatisticsPlugin.html">GroupStatisticsPlugin</a></li><li><a href="tr.grid.HeatMapRenderer.html">HeatMapRenderer</a></li><li><a href="tr.grid.HScrollbar.html">HScrollbar</a></li><li><a href="tr.grid.IndexMarker.html">IndexMarker</a></li><li><a href="tr.grid.MovableHeaderPlugin.html">MovableHeaderPlugin</a></li><li><a href="tr.grid.NumberFormatter.html">NumberFormatter</a></li><li><a href="tr.grid.PercentBar.html">PercentBar</a></li><li><a href="tr.grid.PercentBarRenderer.html">PercentBarRenderer</a></li><li><a href="tr.grid.Plugin.html">Plugin</a></li><li><a href="tr.grid.RangeBar.html">RangeBar</a></li><li><a href="tr.grid.ResizableTitlePlugin.html">ResizableTitlePlugin</a></li><li><a href="tr.grid.Reverter.html">Reverter</a></li><li><a href="tr.grid.RowHeightAdjustingPlugin.html">RowHeightAdjustingPlugin</a></li><li><a href="tr.grid.RowSelectionPlugin.html">RowSelectionPlugin</a></li><li><a href="tr.grid.Scrollbar.html">Scrollbar</a></li><li><a href="tr.grid.SectionSettings.html">SectionSettings</a></li><li><a href="tr.grid.SmartTooltipsPlugin.html">SmartTooltipsPlugin</a></li><li><a href="tr.grid.SortableTitlePlugin.html">SortableTitlePlugin</a></li><li><a href="tr.grid.TreeIndentingPlugin.html">TreeIndentingPlugin</a></li><li><a href="tr.grid.Virtualizer.html">Virtualizer</a></li><li><a href="tr.grid.VScrollbar.html">VScrollbar</a></li><li><a href="tr.grid.ZoomPlugin.html">ZoomPlugin</a></li><li><a href="tr.HttpRequest.html">HttpRequest</a></li><li><a href="tr.IntervalSubscription.html">IntervalSubscription</a></li><li><a href="tr.LayoutGrid.html">LayoutGrid</a></li><li><a href="tr.ListMenu.html">ListMenu</a></li><li><a href="tr.MenuItem.html">MenuItem</a></li><li><a href="tr.MockArchive.html">MockArchive</a></li><li><a href="tr.MockJET.html">MockJET</a></li><li><a href="tr.MockQuotes.html">MockQuotes</a></li><li><a href="tr.MockQuotes2.html">MockQuotes2</a></li><li><a href="tr.MockSubscription.html">MockSubscription</a></li><li><a href="tr.MockSubscriptions.html">MockSubscriptions</a></li><li><a href="tr.Popup.html">Popup</a></li><li><a href="tr.PopupMenu.html">PopupMenu</a></li><li><a href="tr.PrintTrait.html">PrintTrait</a></li><li><a href="tr.RequestQueue.html">RequestQueue</a></li><li><a href="tr.Segment.html">Segment</a></li><li><a href="tr.SegmentCollection.html">SegmentCollection</a></li><li><a href="tr.TSISubscription.html">TSISubscription</a></li><li><a href="tr.WrappedView.html">WrappedView</a></li></ul><h3>Interfaces</h3><ul><li><a href="tr.cgrid.ICompositeExtension.html">ICompositeExtension</a></li><li><a href="tr.grid.IPlugin.html">IPlugin</a></li><li><a href="tr.IElementControl.html">IElementControl</a></li><li><a href="tr.ILayoutGrid.html">ILayoutGrid</a></li></ul><h3>Events</h3><ul><li><a href="tr.CompositeGrid.html#event:cellClicked">cellClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellDblClicked">cellDblClicked</a></li><li><a href="tr.CompositeGrid.html#event:cellMouseDown">cellMouseDown</a></li><li><a href="tr.CompositeGrid.html#event:cellRightClicked">cellRightClicked</a></li><li><a href="tr.CompositeGrid.html#event:columnSorted">columnSorted</a></li><li><a href="tr.CompositeGrid.html#event:editorAttached">editorAttached</a></li><li><a href="tr.CompositeGrid.html#event:editorDetached">editorDetached</a></li><li><a href="tr.CompositeGrid.html#event:filterAdded">filterAdded</a></li><li><a href="tr.CompositeGrid.html#event:filterCleared">filterCleared</a></li><li><a href="tr.CompositeGrid.html#event:filterModified">filterModified</a></li><li><a href="tr.CompositeGrid.html#event:filterRemoved">filterRemoved</a></li><li><a href="tr.CompositeGrid.html#event:mouseLeaveCell">mouseLeaveCell</a></li><li><a href="tr.CompositeGrid.html#event:mouseOverCell">mouseOverCell</a></li><li><a href="tr.CompositeGrid.html#event:pageChanged">pageChanged</a></li><li><a href="tr.CompositeGrid.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.DataCache.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataCache.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataTable.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataTable.html#event:dataComposed">dataComposed</a></li><li><a href="tr.DataView.html#event:beforeFiltering">beforeFiltering</a></li><li><a href="tr.DataView.html#event:beforeGroupAdded">beforeGroupAdded</a></li><li><a href="tr.DataView.html#event:dataChanged">dataChanged</a></li><li><a href="tr.DataView.html#event:groupAdded">groupAdded</a></li><li><a href="tr.DataView.html#event:groupCriteriaChanged">groupCriteriaChanged</a></li><li><a href="tr.DataView.html#event:pageCountChanged">pageCountChanged</a></li><li><a href="tr.DataView.html#event:pageIndexChanged">pageIndexChanged</a></li><li><a href="tr.DataView.html#event:preDisposed">preDisposed</a></li><li><a href="tr.DataView.html#event:wrapCountChanged">wrapCountChanged</a></li><li><a href="tr.DataView.html#event:wrapSizeChanged">wrapSizeChanged</a></li><li><a href="tr.Formula.html#event:dataCacheChanged">dataCacheChanged</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:cancelled">cancelled</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:change">change</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:closed">closed</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:editorOpened">editorOpened</a></li><li><a href="tr.grid.CellEditingPlugin.html#event:preEditorOpening">preEditorOpening</a></li><li><a href="tr.grid.CheckboxColumnPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.CollapsibleHeaderPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:click">click</a></li><li><a href="tr.grid.ColumnFilterPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:columnCollapsed">columnCollapsed</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:groupChanged">groupChanged</a></li><li><a href="tr.grid.ColumnGroupingPlugin.html#event:render">render</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.ColumnStackingPlugin.html#event:iconCreated">iconCreated</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:columnMoved">columnMoved</a></li><li><a href="tr.grid.DragAndDropTitlePlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:drag">drag</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragEnd">dragEnd</a></li><li><a href="tr.grid.DraggableContentPlugin.html#event:dragStart">dragStart</a></li><li><a href="tr.grid.FindBarPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:dragged">dragged</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:groupMoved">groupMoved</a></li><li><a href="tr.grid.MovableHeaderPlugin.html#event:sectionMoved">sectionMoved</a></li><li><a href="tr.grid.RowSelectionPlugin.html#event:selectionChanged">selectionChanged</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:columnSorted">columnSorted</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preClicked">preClicked</a></li><li><a href="tr.grid.SortableTitlePlugin.html#event:preDataSorting">preDataSorting</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:clicked">clicked</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:contentBindinig">contentBindinig</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:footerBinding">footerBinding</a></li><li><a href="tr.grid.TreeIndentingPlugin.html#event:headerBinding">headerBinding</a></li><li><a href="tr.Grid.html#event:columnAdded">columnAdded</a></li><li><a href="tr.Grid.html#event:columnAlignmentChanged">columnAlignmentChanged</a></li><li><a href="tr.Grid.html#event:columnRemoved">columnRemoved</a></li><li><a href="tr.Grid.html#event:columnVisibilityChanged">columnVisibilityChanged</a></li><li><a href="tr.Grid.html#event:dataSourceChanged">dataSourceChanged</a></li><li><a href="tr.Grid.html#event:postSectionDataBinding">postSectionDataBinding</a></li><li><a href="tr.Grid.html#event:rowExpansionBinding">rowExpansionBinding</a></li><li><a href="tr.Grid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Grid.html#event:sectionAdded">sectionAdded</a></li><li><a href="tr.Grid.html#event:widthChanged">widthChanged</a></li><li><a href="tr.HttpRequest.html#event:abort">abort</a></li><li><a href="tr.HttpRequest.html#event:error">error</a></li><li><a href="tr.HttpRequest.html#event:load">load</a></li><li><a href="tr.HttpRequest.html#event:loadend">loadend</a></li><li><a href="tr.HttpRequest.html#event:loadstart">loadstart</a></li><li><a href="tr.HttpRequest.html#event:timeout">timeout</a></li><li><a href="tr.IElementControl.html#event:blur">blur</a></li><li><a href="tr.IElementControl.html#event:change">change</a></li><li><a href="tr.IElementControl.html#event:click">click</a></li><li><a href="tr.IElementControl.html#event:contextmenu">contextmenu</a></li><li><a href="tr.IElementControl.html#event:dblclick">dblclick</a></li><li><a href="tr.IElementControl.html#event:drag">drag</a></li><li><a href="tr.IElementControl.html#event:dragend">dragend</a></li><li><a href="tr.IElementControl.html#event:dragenter">dragenter</a></li><li><a href="tr.IElementControl.html#event:dragleave">dragleave</a></li><li><a href="tr.IElementControl.html#event:dragover">dragover</a></li><li><a href="tr.IElementControl.html#event:dragstart">dragstart</a></li><li><a href="tr.IElementControl.html#event:drop">drop</a></li><li><a href="tr.IElementControl.html#event:focus">focus</a></li><li><a href="tr.IElementControl.html#event:formchange">formchange</a></li><li><a href="tr.IElementControl.html#event:forminput">forminput</a></li><li><a href="tr.IElementControl.html#event:input">input</a></li><li><a href="tr.IElementControl.html#event:invalid">invalid</a></li><li><a href="tr.IElementControl.html#event:keydown">keydown</a></li><li><a href="tr.IElementControl.html#event:keypress">keypress</a></li><li><a href="tr.IElementControl.html#event:keyup">keyup</a></li><li><a href="tr.IElementControl.html#event:mousedown">mousedown</a></li><li><a href="tr.IElementControl.html#event:mousemove">mousemove</a></li><li><a href="tr.IElementControl.html#event:mouseout">mouseout</a></li><li><a href="tr.IElementControl.html#event:mouseover">mouseover</a></li><li><a href="tr.IElementControl.html#event:mouseup">mouseup</a></li><li><a href="tr.IElementControl.html#event:mousewheel">mousewheel</a></li><li><a href="tr.IElementControl.html#event:reset">reset</a></li><li><a href="tr.IElementControl.html#event:scroll">scroll</a></li><li><a href="tr.IElementControl.html#event:select">select</a></li><li><a href="tr.IElementControl.html#event:submit">submit</a></li><li><a href="tr.ILayoutGrid.html#event:blur">blur</a></li><li><a href="tr.ILayoutGrid.html#event:change">change</a></li><li><a href="tr.ILayoutGrid.html#event:click">click</a></li><li><a href="tr.ILayoutGrid.html#event:contextmenu">contextmenu</a></li><li><a href="tr.ILayoutGrid.html#event:dblclick">dblclick</a></li><li><a href="tr.ILayoutGrid.html#event:drag">drag</a></li><li><a href="tr.ILayoutGrid.html#event:dragend">dragend</a></li><li><a href="tr.ILayoutGrid.html#event:dragenter">dragenter</a></li><li><a href="tr.ILayoutGrid.html#event:dragleave">dragleave</a></li><li><a href="tr.ILayoutGrid.html#event:dragover">dragover</a></li><li><a href="tr.ILayoutGrid.html#event:dragstart">dragstart</a></li><li><a href="tr.ILayoutGrid.html#event:drop">drop</a></li><li><a href="tr.ILayoutGrid.html#event:focus">focus</a></li><li><a href="tr.ILayoutGrid.html#event:formchange">formchange</a></li><li><a href="tr.ILayoutGrid.html#event:forminput">forminput</a></li><li><a href="tr.ILayoutGrid.html#event:input">input</a></li><li><a href="tr.ILayoutGrid.html#event:invalid">invalid</a></li><li><a href="tr.ILayoutGrid.html#event:keydown">keydown</a></li><li><a href="tr.ILayoutGrid.html#event:keypress">keypress</a></li><li><a href="tr.ILayoutGrid.html#event:keyup">keyup</a></li><li><a href="tr.ILayoutGrid.html#event:mousedown">mousedown</a></li><li><a href="tr.ILayoutGrid.html#event:mousemove">mousemove</a></li><li><a href="tr.ILayoutGrid.html#event:mouseout">mouseout</a></li><li><a href="tr.ILayoutGrid.html#event:mouseover">mouseover</a></li><li><a href="tr.ILayoutGrid.html#event:mouseup">mouseup</a></li><li><a href="tr.ILayoutGrid.html#event:mousewheel">mousewheel</a></li><li><a href="tr.ILayoutGrid.html#event:reset">reset</a></li><li><a href="tr.ILayoutGrid.html#event:scroll">scroll</a></li><li><a href="tr.ILayoutGrid.html#event:select">select</a></li><li><a href="tr.ILayoutGrid.html#event:submit">submit</a></li><li><a href="tr.LayoutGrid.html#event:rowCountChanged">rowCountChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHeightChanged">rowHeightChanged</a></li><li><a href="tr.LayoutGrid.html#event:rowHighlighted">rowHighlighted</a></li><li><a href="tr.Popup.html#event:hidden">hidden</a></li><li><a href="tr.Popup.html#event:shown">shown</a></li><li><a href="tr.PopupMenu.html#event:hidden">hidden</a></li><li><a href="tr.PopupMenu.html#event:shown">shown</a></li><li><a href="tr.PrintTrait.html#event:afterprint">afterprint</a></li><li><a href="tr.PrintTrait.html#event:beforeprint">beforeprint</a></li><li><a href="tr.PrintTrait.html#event:pageCounting">pageCounting</a></li><li><a href="tr.WrappedView.html#event:dataChanged">dataChanged</a></li></ul><h3>Global</h3><ul><li><a href="global.html#cellRef%255Bundefined%255D">cellRef[undefined]</a></li><li><a href="global.html#e%255Bundefined%255D">e[undefined]</a></li><li><a href="global.html#.textContent">.textContent</a></li><li><a href="global.html#get">get</a></li><li><a href="global.html#input%255Bundefined%255D">input[undefined]</a></li><li><a href="global.html#q%255Bundefined%255D">q[undefined]</a></li><li><a href="global.html#sortingDef%255B1%255D">sortingDef[1]</a></li></ul>
 </nav>
 
 

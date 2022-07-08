@@ -29,7 +29,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="c8167eaa-e984-4b25-bd88-4588485b2a3e">
+        <pandora-nav id="e1dd53df-b101-44ed-bf42-82fcb0995ef9">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -274,7 +274,7 @@
             <h2 id="text-formatting"><a href="https://refinitiv.github.io/efx-grid/book/en/extensions/tr-grid-textformatting.html" target="_top" class="link-icon"></a> Text Formatting</h2>
             <p>The Text Formatting Extension provides special formatting for presenting actual data. By default, the possible formats are number, scaled, percent, and datetime. However, the custom formatting can also be created to handle particular cases.</p>
 
-            <div class="pandora-code-viewer" id="pid-60">
+            <div class="pandora-code-viewer" id="pid-61">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -296,7 +296,6 @@
 var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "volume", "date1"];
 var records = DataGenerator.generateRecords(fields, { numRows: 10 });
 var configObj = {
-  rowHighlight: true,
   columns: [{
       title: "Company",
       field: fields[0]
@@ -335,7 +334,7 @@ var configObj = {
   ],
   staticDataRows: records,
   extensions: [
-    new TextFormattingExtension()
+    new TextFormatting()
   ]
 };
 
@@ -387,7 +386,7 @@ grid.config = configObj;</pre>
             <h4 id="formatting-custom-content-by-using-formatlogic">Formatting custom content by using <code>formatLogic</code></h4>
             <p>The first way is to use <code>formatLogic</code>. You can specify a function on how to apply formatted text to your custom content. <code>formattedText</code> and <code>cell</code> will be provided through the event argument when <code>formatLogic</code> is executed. Inside the function, you can then put formatted text in your custom content at the appropriate place, as illustrated below:</p>
 
-            <div class="pandora-code-viewer" id="pid-61">
+            <div class="pandora-code-viewer" id="pid-62">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -431,7 +430,6 @@ var formatLogic1 = function(e) {
 var fields = ["companyName", "date1"];
 var records = DataGenerator.generateRecords(fields, { numRows: 10 });
 var configObj = {
-  rowHighlight: true,
   columns: [{
       title: "Company",
       field: fields[0]
@@ -448,7 +446,7 @@ var configObj = {
   ],
   staticDataRows: records,
   extensions: [
-    new TextFormattingExtension()
+    new TextFormatting()
   ]
 };
 
@@ -491,7 +489,7 @@ grid.config = configObj;</pre>
             <h4 id="formatting-custom-content-by-manual-formatting">Formatting custom content by manual formatting</h4>
             <p>The second way is to apply the format within your custom rendering/formatter by using the extension's <code>formatText</code> method. This second method requires modification to custom rendering/formatter. First, you have to disable automatic text formatting by setting <code>autoTextFormatting</code> to <code>false</code>, so that your custom content is not overwritten. Secondly, you need to keep reference to the extension instance, so that it will be available within your custom rendering. Lastly, use the extension's <code>formatText</code> to obtain formatted text. The example below shows the same result as the example above, but without using <code>formatLogic</code>: </p>
 
-            <div class="pandora-code-viewer" id="pid-62">
+            <div class="pandora-code-viewer" id="pid-63">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -505,7 +503,7 @@ grid.config = configObj;</pre>
                 </div>
                 <div class="pandora-tab-container">
                   <pre class="pandora-tab-view tab-html">&lt;efx-grid id="grid"&gt;&lt;/efx-grid&gt;</pre>
-                  <pre class="pandora-tab-view tab-js">var tfExt = new TextFormattingExtension(); // for quick referencing
+                  <pre class="pandora-tab-view tab-js">var tfExt = new TextFormatting(); // for quick referencing
 var customRenderer1 = function(e) {
   var cell = e.cell;
   var content = cell.getContent();
@@ -530,7 +528,6 @@ var customRenderer1 = function(e) {
 var fields = ["companyName", "date1"];
 var records = DataGenerator.generateRecords(fields, { numRows: 10 });
 var configObj = {
-  rowHighlight: true,
   columns: [{
       title: "Company",
       field: fields[0]

@@ -26,7 +26,6 @@ The Column Formatting Extension incorporates all features from the [Conditional 
 	var fields = ["companyName", "market", "CF_VOLUME", "CF_NETCHNG", "PCTCHNG2", "TR.IPODate"];
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 5 });
 	var configObj = {
-		rowHighlight: true,
 		columns: [
 			{
 				title: "Company",

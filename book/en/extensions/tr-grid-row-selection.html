@@ -29,7 +29,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="c8167eaa-e984-4b25-bd88-4588485b2a3e">
+        <pandora-nav id="e1dd53df-b101-44ed-bf42-82fcb0995ef9">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -274,7 +274,7 @@
             <h2 id="row-selection"><a href="https://refinitiv.github.io/efx-grid/book/en/extensions/tr-grid-row-selection.html" target="_top" class="link-icon"></a> Row Selection</h2>
             <p>The Row Selection Extension will add the ability to select a single row or multiple rows on Grid. </p>
 
-            <div class="pandora-code-viewer" id="pid-53">
+            <div class="pandora-code-viewer" id="pid-54">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -296,7 +296,6 @@ var configObj = {
   sorting: {
     sortableColumns: true
   },
-  rowHighlight: true,
   columns: [
     { title: "Company", field: fields[0] },
     { title: "Market", field: fields[1], width: 120 },
@@ -306,7 +305,7 @@ var configObj = {
   ],
   staticDataRows: records,
   extensions: [
-    new RowSelectionExtension()
+    new RowSelection()
   ]
 };
 
@@ -352,7 +351,7 @@ grid.config = configObj;</pre>
             <p>Normally, when content is sorted and a row changes position, row selection will not change position like the content does (<code>try example above</code>). But if you do want the row selection to relocate itself with the content, you can turn on basedOnContent mode.</p>
             <p>For actual result, try to select one or more rows, then click the column header to sort data and see what happens with row selection.</p>
 
-            <div class="pandora-code-viewer" id="pid-54">
+            <div class="pandora-code-viewer" id="pid-55">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -374,7 +373,6 @@ var configObj = {
   sorting: {
     sortableColumns: true
   },
-  rowHighlight: true,
   columns: [
     { title: "Company", field: fields[0] },
     { title: "Market", field: fields[1], width: 120 },
@@ -384,7 +382,7 @@ var configObj = {
   ],
   staticDataRows: records,
   extensions: [
-    new RowSelectionExtension()
+    new RowSelection()
   ],
   rowSelection: {
     basedOnContent: true
@@ -432,7 +430,7 @@ grid.config = configObj;</pre>
             <h3 id="copy-text-content-from-seletected-rows">Copy text content from seletected rows</h3>
             <p>You can directly hook <a href="https://developer.mozilla.org/en-US/docs/Web/API/Element/copy_event" target="_blank">native copy event</a> on Grid element to retrieve data and put it on system clipboard. Use the extension's APIs to get currently selected rows. </p>
 
-            <div class="pandora-code-viewer" id="pid-55">
+            <div class="pandora-code-viewer" id="pid-56">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -471,14 +469,13 @@ grid.config = configObj;</pre>
   e.preventDefault();
 }
 
-var rowSelExt = new RowSelectionExtension();
+var rowSelExt = new RowSelection();
 var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
 var records = DataGenerator.generateRecords(fields, { numRows: 5 });
 var configObj = {
   sorting: {
     sortableColumns: true
   },
-  rowHighlight: true,
   columns: [
     { title: "Company", field: fields[0] },
     { title: "Market", field: fields[1], width: 120 },
@@ -605,6 +602,20 @@ textarea {
                               <td class="attributes"> &lt;optional&gt;<br> </td>
                               <td class="default"> SELECTED_ROW </td>
                               <td class="description last">Normally basedOnContent will set selection state in row data with field name "SELECTED_ROW" but you can change field name here.</td>
+                            </tr>
+                            <tr>
+                              <td class="name"><code>menuClicked</code></td>
+                              <td class="type"> <span class="param-type">function</span> </td>
+                              <td class="attributes"> &lt;optional&gt;<br> </td>
+                              <td class="default"> null </td>
+                              <td class="description last">Event Handler when user clicks on menu icon.</td>
+                            </tr>
+                            <tr>
+                              <td class="name"><code>menuPosition</code></td>
+                              <td class="type"> <span class="param-type">string</span> </td>
+                              <td class="attributes"> &lt;optional&gt;<br> </td>
+                              <td class="default"> "outside" </td>
+                              <td class="description last">show icon in column grid that have style outside and non-outside</td>
                             </tr>
                           </tbody>
                         </table>

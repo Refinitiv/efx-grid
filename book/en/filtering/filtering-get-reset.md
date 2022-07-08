@@ -29,7 +29,6 @@ For more details see the [Row Filter Extension API documentation](../extensions/
 	}
 
 	var configObj = {
-		rowHighlight: true,
 		columns: [
 			{ title: "Date", field: "date", sortBy: "date", filterInput: { type: "date" }, binding: dateFormatter, alignment: "c" },
 			{ title: "Country", field: "country", sortBy: "country", width: 200, alignment: "c" },

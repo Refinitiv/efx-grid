@@ -23,7 +23,6 @@ The Column Fitter provides an automatically adjusting column width that fits a c
 	var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
 	var records = tr.DataGenerator.generateRecords(fields, { seed: 0, numRows: 5 });
 	var configObj = {
-		rowHighlight: true,
 		columns: [
 			{title: "Company", field: fields[0]},
 			{title: "Market", field: fields[1], width: 120},
@@ -86,7 +85,6 @@ grid.config = {
 	var generateRecord = tr.DataGenerator.generateRecord;
 	var randInt = tr.DataGenerator.randInt;
 	var configObj = {
-		rowHighlight: true,
 		columns: [
 			{title: "Company", field: fields[0]},
 			{title: "Market", field: fields[1], width: 120},
@@ -177,7 +175,6 @@ grid.config = {
 	};
 
 	var configObj = {
-		rowHighlight: true,
 		columns: [
 			{title: "Company", field: fields[0], binding: onRenderStars, contentFitting: true},
 			{title: "Market", field: fields[1], width: 120},

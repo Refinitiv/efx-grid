@@ -40,7 +40,6 @@ The Filter Input Extension provides many types of input UIs. The available UIs a
 	}
 
 	var configObj = {
-		rowHighlight: true,
 		columns: [
 			{ title: "Date", field: "date", sortBy: "date", filterInput: { type: "date" }, binding: dateFormatter, alignment: "c" },
 			{ title: "Country", field: "country", sortBy: "country", width: 200, alignment: "c" },
@@ -110,7 +109,6 @@ In several use cases, we may need more than a default string search which we can
 	}
 
 	var configObj = {
-		rowHighlight: true,
 		columns: [
 			{ title: "Date", field: "date", sortBy: "date", filterInput: { type: "date" }, binding: dateFormatter, alignment: "c" },
 			{ title: "Country", field: "country", sortBy: "country", width: 200, alignment: "c" },

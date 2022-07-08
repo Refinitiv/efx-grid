@@ -101,7 +101,6 @@ The Filter Input Extension provides an `inputCreated` event callback passed thro
 	}
 
 	var configObj = {
-		rowHighlight: true,
 		columns: [
 			{
 				title: "Rate",

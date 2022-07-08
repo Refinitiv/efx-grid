@@ -29,7 +29,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="c8167eaa-e984-4b25-bd88-4588485b2a3e">
+        <pandora-nav id="e1dd53df-b101-44ed-bf42-82fcb0995ef9">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -274,7 +274,7 @@
             <h2 id="zoom"><a href="https://refinitiv.github.io/efx-grid/book/en/extensions/zoom.html" target="_top" class="link-icon"></a> Zoom</h2>
             <p>The Zoom Extension adds Grid's ability to zoom in or zoom out.</p>
 
-            <div class="pandora-code-viewer" id="pid-67">
+            <div class="pandora-code-viewer" id="pid-68">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -291,13 +291,12 @@
 
 &lt;hr&gt;
 &lt;efx-grid id="grid"&gt;&lt;/efx-grid&gt;</pre>
-                  <pre class="pandora-tab-view tab-js">var zoomExt = new ZoomExtension();
+                  <pre class="pandora-tab-view tab-js">var zoomExt = new Zoom();
 var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
 var records = DataGenerator.generateRecords(fields, { numRows: 10 });
 var configObj = {
   freezeColumn: 0,
   pinnedRightColumns: 1,
-  rowHighlight: true,
   columns: [
     { title: "Company", field: fields[0], width: 250 },
     { title: "Market", field: fields[1], width: 160 },
@@ -415,6 +414,13 @@ efx-grid {
                               <td class="attributes"> &lt;optional&gt;<br> </td>
                               <td class="default"> 0.5 </td>
                               <td class="description last">Minimum zoom factor level</td>
+                            </tr>
+                            <tr>
+                              <td class="name"><code>zoomChanged</code></td>
+                              <td class="type"> <span class="param-type">function</span> </td>
+                              <td class="attributes"> &lt;optional&gt;<br> </td>
+                              <td class="default"> null </td>
+                              <td class="description last">Event handler when zoom factor is changed through the APIs or mouse wheel.</td>
                             </tr>
                           </tbody>
                         </table>
@@ -600,6 +606,30 @@ efx-grid {
                       <h4 class="name" id="event:zoomChanged">zoomChanged</h4>
                       <div class="description"> Fired when zoom changed </div>
                       <h5>Type:</h5> <span class="param-type">Object</span>
+                      <h5>Properties:</h5>
+                      <div class="props">
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>Name</th>
+                              <th>Type</th>
+                              <th class="last">Description</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td class="name"><code>zoomFactor</code></td>
+                              <td class="type"> <span class="param-type">number</span> </td>
+                              <td class="description last">Current zoom factor</td>
+                            </tr>
+                            <tr>
+                              <td class="name"><code>prevZoomFactor</code></td>
+                              <td class="type"> <span class="param-type">number</span> </td>
+                              <td class="description last">Previous zoom factor</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
                       <div class="details"> </div>
                     </div>
                   </article>

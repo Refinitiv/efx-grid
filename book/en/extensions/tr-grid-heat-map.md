@@ -21,7 +21,6 @@ The Heat Map Extension provides heat map coloring for column fields, which will 
 	var fields = ["companyName", "market", "CF_LAST", "volume", "PCTCHNG2"];
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 20 });
 	var configObj = {
-		rowHighlight: true,
 		columns: [
 			{
 				title: "Company",

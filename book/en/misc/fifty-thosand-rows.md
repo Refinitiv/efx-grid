@@ -26,7 +26,6 @@ Grid utilizes a virtual rendering technique that renders a range of visible rows
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 5000 });
 	var configObj = {
 		linearWheelScrolling: true,
-		rowHighlight: true,
 		columns: [
 			{name: "ID", field: fields[5], alignment: "center", width: 80},
 			{name: "Company", field: fields[0]},

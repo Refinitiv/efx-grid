@@ -19,10 +19,10 @@ import '@refinitiv-ui/efx-grid/themes/halo/dark';
 import '@refinitiv-ui/halo-theme/dark/imports/native-elements';
 ```
 
-Then import `RealtimeGrid` and other types to your file. Please note that `RealtimeGrid` is an engine that runs within `efx-grid`.
+Then import `Grid`, `RealtimeGrid` and other types to your file. Please note that `RealtimeGrid` is an engine that runs within `efx-grid`.
 
 ```js
-import { RealtimeGrid, ColumnDefinition, CoreGrid, DataView } from "@refinitiv-ui/efx-grid";
+import { Grid, RealtimeGrid, ColumnDefinition, CoreGrid, DataView } from "@refinitiv-ui/efx-grid";
 ```
 
 Optionally import [extensions](../extensions/README.md) to your app. 
@@ -70,7 +70,7 @@ let configObj = {
 Finally assign configuration to `efx-grid` element.
 
 ```js
-let grid: any = document.getElementsByTagName("efx-grid")[0];
+let grid: Grid = document.getElementsByTagName("efx-grid")[0] as Grid;
 grid.config = configObj;
 ```
 

@@ -29,7 +29,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="c8167eaa-e984-4b25-bd88-4588485b2a3e">
+        <pandora-nav id="e1dd53df-b101-44ed-bf42-82fcb0995ef9">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -270,10 +270,151 @@
         <div class="reader">
           <pandora-page>
             <h1 id="column-moving"><a href="https://refinitiv.github.io/efx-grid/book/en/columns/column-moving.html" target="_top" class="link-icon"></a> Column Moving</h1>
-            <p>Columns can be moved using the <code>grid.api.moveColumn(from, to)</code> API, which allows you to specify a column index or an array of column indices to be moved, and the target index position.</p>
-            <h2 id="example">Example</h2>
+            <h2 id="drag-and-drop">Drag and drop</h2>
+            <p>The ability of drag and drop column is enabled by default. But it can be turned off by setting <code>noColumnDragging</code> to <em>true</em>. The default value is <em>false</em>. </p>
+            <h3 id="example">Example</h3>
+            <h4 id="enabled-default-">Enabled (default)</h4>
+
+            <div class="pandora-code-viewer" id="pid-111">
+              <div class="pandora-viewer">
+                <button>&lt;/&gt;</button>
+              </div>
+              <div class="pandora-code-view">
+                <div class="pandora-toolbar">
+                  <ul>
+                    <li class="pandora-tab-selected" data-toggle="tab-html">HTML</li>
+                    <li data-toggle="tab-js">JS</li>
+                    <li data-toggle="tab-css">CSS</li>
+                  </ul>
+                </div>
+                <div class="pandora-tab-container">
+                  <pre class="pandora-tab-view tab-html">&lt;efx-grid id="grid"&gt;
+&lt;/efx-grid&gt;</pre>
+                  <pre class="pandora-tab-view tab-js">var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
+var records = DataGenerator.generateRecords(fields, { numRows: 10 });
+var configObj = {
+  columns: [
+    { title: "Company", field: fields[0] },
+    { title: "Market", field: fields[1], width: 100 },
+    { title: "Last", field: fields[2], width: 80 },
+    { title: "Net. Chng", field: fields[3], width: 80 },
+    { title: "Industry", field: fields[4] }
+  ],
+  staticDataRows: records
+};
+
+var grid = document.getElementById("grid");
+grid.config = configObj;</pre>
+                  <pre class="pandora-tab-view tab-css">efx-grid {
+  height: 200px;
+}</pre>
+                  <div class="pandora-console"></div>
+                </div>
+              </div>
+              <link rel="prefetch" href="../node_modules/tr-grid-test-resource-v6/dist/elf-halo-light.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-auto-tooltip/dist/tr-grid-auto-tooltip.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-cell-selection/dist/tr-grid-cell-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-checkbox/dist/tr-grid-checkbox.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-fitter/dist/tr-grid-column-fitter.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-formatting/dist/tr-grid-column-formatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-grouping/dist/tr-grid-column-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-resizing/dist/tr-grid-column-resizing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-selection/dist/tr-grid-column-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-stack/dist/tr-grid-column-stack.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-conditional-coloring/dist/tr-grid-conditional-coloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-content-wrap/dist/tr-grid-content-wrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-contextmenu/dist/tr-grid-contextmenu.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-filter-input/dist/tr-grid-filter-input.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-heat-map/dist/tr-grid-heat-map.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-in-cell-editing/dist/tr-grid-in-cell-editing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-pagination/dist/tr-grid-pagination.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-percent-bar/dist/tr-grid-percent-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-range-bar/dist/tr-grid-range-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-dragging/dist/tr-grid-row-dragging.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-filtering/dist/tr-grid-row-filtering.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-grouping/dist/tr-grid-row-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/row-segmenting/dist/row-segmenting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-selection/dist/tr-grid-row-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-rowcoloring/dist/tr-grid-rowcoloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/statistics-row/dist/statistics-row.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-textformatting/dist/tr-grid-textformatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-titlewrap/dist/tr-grid-titlewrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
+            </div>
+            <h4 id="disabled">Disabled</h4>
 
             <div class="pandora-code-viewer" id="pid-112">
+              <div class="pandora-viewer">
+                <button>&lt;/&gt;</button>
+              </div>
+              <div class="pandora-code-view">
+                <div class="pandora-toolbar">
+                  <ul>
+                    <li class="pandora-tab-selected" data-toggle="tab-html">HTML</li>
+                    <li data-toggle="tab-js">JS</li>
+                    <li data-toggle="tab-css">CSS</li>
+                  </ul>
+                </div>
+                <div class="pandora-tab-container">
+                  <pre class="pandora-tab-view tab-html">&lt;efx-grid id="grid"&gt;
+&lt;/efx-grid&gt;</pre>
+                  <pre class="pandora-tab-view tab-js">var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
+var records = DataGenerator.generateRecords(fields, { numRows: 10 });
+var configObj = {
+  noColumnDragging: true, // disabled column re-order
+  columns: [
+    { title: "Company", field: fields[0] },
+    { title: "Market", field: fields[1], width: 100 },
+    { title: "Last", field: fields[2], width: 80 },
+    { title: "Net. Chng", field: fields[3], width: 80 },
+    { title: "Industry", field: fields[4] }
+  ],
+  staticDataRows: records
+};
+
+var grid = document.getElementById("grid");
+grid.config = configObj;</pre>
+                  <pre class="pandora-tab-view tab-css">efx-grid {
+  height: 200px;
+}</pre>
+                  <div class="pandora-console"></div>
+                </div>
+              </div>
+              <link rel="prefetch" href="../node_modules/tr-grid-test-resource-v6/dist/elf-halo-light.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-auto-tooltip/dist/tr-grid-auto-tooltip.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-cell-selection/dist/tr-grid-cell-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-checkbox/dist/tr-grid-checkbox.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-fitter/dist/tr-grid-column-fitter.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-formatting/dist/tr-grid-column-formatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-grouping/dist/tr-grid-column-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-resizing/dist/tr-grid-column-resizing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-selection/dist/tr-grid-column-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-stack/dist/tr-grid-column-stack.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-conditional-coloring/dist/tr-grid-conditional-coloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-content-wrap/dist/tr-grid-content-wrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-contextmenu/dist/tr-grid-contextmenu.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-filter-input/dist/tr-grid-filter-input.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-heat-map/dist/tr-grid-heat-map.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-in-cell-editing/dist/tr-grid-in-cell-editing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-pagination/dist/tr-grid-pagination.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-percent-bar/dist/tr-grid-percent-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-range-bar/dist/tr-grid-range-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-dragging/dist/tr-grid-row-dragging.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-filtering/dist/tr-grid-row-filtering.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-grouping/dist/tr-grid-row-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/row-segmenting/dist/row-segmenting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-selection/dist/tr-grid-row-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-rowcoloring/dist/tr-grid-rowcoloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/statistics-row/dist/statistics-row.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-textformatting/dist/tr-grid-textformatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-titlewrap/dist/tr-grid-titlewrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
+            </div>
+            <h2 id="api">API</h2>
+            <p>Columns can be moved using the <code>grid.api.moveColumn(from, to)</code> API, which allows you to specify a column index or an array of column indices to be moved, and the target index position. See <a href="../apis/rt_grid/Grid.html">APIs</a> for more details of <code>moveColumn</code> API.</p>
+            <h3 id="example">Example</h3>
+
+            <div class="pandora-code-viewer" id="pid-113">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -293,7 +434,6 @@
                   <pre class="pandora-tab-view tab-js">var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
 var records = DataGenerator.generateRecords(fields, { numRows: 5 });
 var configObj = {
-  rowHighlight: true,
   columns: [
     { name: "Company", field: fields[0] },
     { name: "Market", field: fields[1], width: 100 },
@@ -316,6 +456,77 @@ document.getElementById('move_1').addEventListener('click', function() {
 document.getElementById('move_2').addEventListener('click', function() {
   grid.api.moveColumn([3, 4], 1);
 });</pre>
+                  <pre class="pandora-tab-view tab-css">efx-grid {
+  height: 200px;
+}</pre>
+                  <div class="pandora-console"></div>
+                </div>
+              </div>
+              <link rel="prefetch" href="../node_modules/tr-grid-test-resource-v6/dist/elf-halo-light.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-auto-tooltip/dist/tr-grid-auto-tooltip.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-cell-selection/dist/tr-grid-cell-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-checkbox/dist/tr-grid-checkbox.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-fitter/dist/tr-grid-column-fitter.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-formatting/dist/tr-grid-column-formatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-grouping/dist/tr-grid-column-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-resizing/dist/tr-grid-column-resizing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-selection/dist/tr-grid-column-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-stack/dist/tr-grid-column-stack.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-conditional-coloring/dist/tr-grid-conditional-coloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-content-wrap/dist/tr-grid-content-wrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-contextmenu/dist/tr-grid-contextmenu.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-filter-input/dist/tr-grid-filter-input.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-heat-map/dist/tr-grid-heat-map.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-in-cell-editing/dist/tr-grid-in-cell-editing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-pagination/dist/tr-grid-pagination.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-percent-bar/dist/tr-grid-percent-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-range-bar/dist/tr-grid-range-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-dragging/dist/tr-grid-row-dragging.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-filtering/dist/tr-grid-row-filtering.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-grouping/dist/tr-grid-row-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/row-segmenting/dist/row-segmenting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-selection/dist/tr-grid-row-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-rowcoloring/dist/tr-grid-rowcoloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/statistics-row/dist/statistics-row.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-textformatting/dist/tr-grid-textformatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-titlewrap/dist/tr-grid-titlewrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
+            </div>
+            <h2 id="colum-move-prevention">Colum move prevention</h2>
+            <p>By setting a column to be a stationary column, all previous columns on the left (up to the stationary column) will be locked in position. A column can be added to or removed from the locked panel but still not be able to switch positions. All columns will be able to change their position only when the stationary column is unmarked. See <a href="../apis/rt_grid/ColumnDefinition.html">Column Definition</a> for more details of column options.</p>
+            <h3 id="example">Example</h3>
+
+            <div class="pandora-code-viewer" id="pid-114">
+              <div class="pandora-viewer">
+                <button>&lt;/&gt;</button>
+              </div>
+              <div class="pandora-code-view">
+                <div class="pandora-toolbar">
+                  <ul>
+                    <li class="pandora-tab-selected" data-toggle="tab-html">HTML</li>
+                    <li data-toggle="tab-js">JS</li>
+                    <li data-toggle="tab-css">CSS</li>
+                  </ul>
+                </div>
+                <div class="pandora-tab-container">
+                  <pre class="pandora-tab-view tab-html">&lt;efx-grid id="grid"&gt;
+&lt;/efx-grid&gt;</pre>
+                  <pre class="pandora-tab-view tab-js">var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
+var records = DataGenerator.generateRecords(fields, { numRows: 10 });
+var configObj = {
+  columns: [
+    { title: "Company (stationary)", field: fields[0], stationary: true },
+    { title: "Market", field: fields[1], width: 100 },
+    { title: "Last", field: fields[2], width: 80 },
+    { title: "Net. Chng", field: fields[3], width: 80 },
+    { title: "Industry", field: fields[4] }
+  ],
+  staticDataRows: records,
+  extensions: [new Checkbox()]
+};
+
+var grid = document.getElementById("grid");
+grid.config = configObj;</pre>
                   <pre class="pandora-tab-view tab-css">efx-grid {
   height: 200px;
 }</pre>

@@ -44,7 +44,6 @@ rowFilterExt.setColumnFilter(1, function(rowData, rowId, ctx) {
 	var rowFilterExt = new tr.RowFilteringExtension();
 	var textFormatExt = new tr.TextFormattingExtension();
 	var configObj = {
-		rowHighlight: true,
 		columns: [
 			{ title: "Rank", field: "rank", sortBy: "rank" },
 			{ title: "Country", field: "country", sortBy: "country" },

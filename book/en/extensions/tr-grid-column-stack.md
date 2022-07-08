@@ -19,7 +19,6 @@ The Column Stack Extension is an extension that provides a single representative
 	var fields = ["companyName", "CF_LAST", "CF_NETCHNG", "PCTCHNG2", "CF_VOLUME", "market", "industry", "TR.IPODate"];
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 5 });
 	var configObj = {
-		rowHighlight: true,
 		columns: [
 			{
 				title: "Company",

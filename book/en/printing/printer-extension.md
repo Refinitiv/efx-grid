@@ -74,7 +74,6 @@ Basically, the utility creates a new grid DOM dynamically and copies its data in
 	var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 20 });
 	var configObj = {
-		rowHighlight: true,
 		columns: [
 			{title: "Company", field: fields[0]},
 			{title: "Market", field: fields[1], width: 100},

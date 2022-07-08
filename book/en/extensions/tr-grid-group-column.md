@@ -17,7 +17,6 @@ var records = [
 var grid = document.getElementById('grid');
 grid.config = {
 	columnReorder: true,
-	rowHighlight: true,
 	sorting: {
 		sortableColumns: true
 	},

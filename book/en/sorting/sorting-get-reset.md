@@ -40,7 +40,6 @@ sort.clearSortState(); // Reset all sorting states to neutral
 			multiColumn: true,
 			threeStatesSorting: true
 		},
-		rowHighlight: true,
 		columns: [
 			{title: "Company", field: fields[0]},
 			{title: "Market", field: fields[1], width: 120},

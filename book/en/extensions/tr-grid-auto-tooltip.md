@@ -17,7 +17,6 @@ The Auto Tooltip Extension displays clipped information when the user hovers the
 	var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
 	var records = tr.DataGenerator.generateRecords(fields, { seed: 2, numRows: 5 });
 	var configObj = {
-		rowHighlight: true,
 		columns: [
 			{title: "Company", field: fields[0], width: 100},
 			{title: "Market", field: fields[1]},
@@ -64,7 +63,6 @@ To enable `Auto Tooltip` in a specific column only:
 	var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
 	var records = tr.DataGenerator.generateRecords(fields, { seed: 2, numRows: 5 });
 	var configObj = {
-		rowHighlight: true,
 		columns: [
 			{title: "Company", field: fields[0], width: 100},
 			{title: "Market", field: fields[1]},
@@ -122,7 +120,6 @@ Adding custom tooltip doesn't require auto-tooltip extension. Therefore, The mec
  var fields = ["industry"];
  var records = tr.DataGenerator.generateRecords(fields, { seed: 2, numRows: 5 });
  var configObj = {
-  rowHighlight: true,
   columns: [
    {title: "Auto Tooltip", field: fields[0], width: 120, autoTooltip: true},
    {title: "Custom Tooltip", field: fields[0], width: 120, binding: customRenderer},

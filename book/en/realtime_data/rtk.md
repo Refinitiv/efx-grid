@@ -29,7 +29,6 @@ You can find more information on [Refinitiv Web Toolkit](https://api.doccloud.in
     document.getElementById('insert_jpy').addEventListener("click", insertRic.bind(null, "JPY="));
 
     var configObj = {
-      rowHighlight: true,
       rowSelection: true,
       columns: [
         {

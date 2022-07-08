@@ -102,7 +102,6 @@ The example below shows how to create row expansion when clicking on a normal ro
 	});
 
 	var configObj = {
-		rowHighlight: false,
 		sorting: {
 			sortableColumns: true
 		},
@@ -199,7 +198,6 @@ Since row expansion has no row data to hold its state, the data has to be stored
 	};
 
 	var configObj = {
-		rowHighlight: false,
 		columns: [
 			{
 				name: "Buttons",
@@ -361,7 +359,6 @@ The example below shows how to render custom content with asynchronous data. The
 	
 	var configObj = {
 		columnReorder: true,
-		rowHighlight: false,
 		sorting: {
 			sortableColumns: true
 		},

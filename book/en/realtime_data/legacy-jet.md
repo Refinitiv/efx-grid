@@ -46,7 +46,6 @@
     };
 
     var configObj = {
-        rowHighlight: true,
         rowSelection: true,
         sorting: {
             sortLogic: {

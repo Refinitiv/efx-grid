@@ -11,7 +11,6 @@ The Title Wrap Extension wraps column headers into multiple lines if the text is
 	var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 5 });
 	var configObj = {
-		rowHighlight: true,
 		columns: [
 			{ title: "Company", field: fields[0] },
 			{ title: "Very Long Column Header Name", field: fields[1], width: 120 },
@@ -43,7 +42,6 @@ Installation examples and details of how to import the extension to a project ar
 	var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 5 });
 	var configObj = {
-		rowHighlight: true,
 		columns: [
 			{ title: "Company", field: fields[0] },
 			{ title: "Very Long Column Header Name", field: fields[1], width: 120 },
@@ -74,7 +72,6 @@ Installation examples and details of how to import the extension to a project ar
 	var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 5 });
 	var configObj = {
-		rowHighlight: true,
 		columns: [
 			{ id: "c1", title: "Company", field: fields[0] },
 			{ id: "c2", title: "Long Column Header Name", field: fields[1], width: 120 },
@@ -114,7 +111,6 @@ Installation examples and details of how to import the extension to a project ar
 	var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 5 });
 	var configObj = {
-		rowHighlight: true,
 		columns: [
 			{ id: "c1", title: "Company", field: fields[0] },
 			{ id: "c2", title: "Very Long Column Header Name", field: fields[1], width: 120 },

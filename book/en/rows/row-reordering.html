@@ -29,7 +29,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="c8167eaa-e984-4b25-bd88-4588485b2a3e">
+        <pandora-nav id="e1dd53df-b101-44ed-bf42-82fcb0995ef9">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -270,13 +270,10 @@
         <div class="reader">
           <pandora-page>
             <h1 id="row-reordering"><a href="https://refinitiv.github.io/efx-grid/book/en/rows/row-reordering.html" target="_top" class="link-icon"></a> Row - Reordering</h1>
-            <blockquote>
-              <p><strong>Note:</strong> Built-in row reordering is deprecated in favor of the <a href="../extensions/README.html">Row Dragging Extension</a>. In terms of both functionalities and UIs, the extension provides more control and flexibility over the current APIs.</p>
-            </blockquote>
-            <p>To allow the user to drag and reorder selected rows, turn on the <code>rowReorder</code> property. The possible values are a boolean <em>true</em> or an object that provides more options. The visual content of the dragged row can be rendered using the renderer function provided in the property <code>dragBoxRenderer</code> of the options object.</p>
+            <p>To allow the user to drag and reorder selected rows, add Row Dragging Extension instance to <code>extensions</code> property. The visual content of the dragged row can be rendered using the renderer function provided in the property <code>dragBoxRenderer</code> of the <code>rowDragging</code> option object. For more details, see <a href="../extensions/tr-grid-row-dragging.html">Row Dragging Extension</a>.</p>
             <h2 id="example">Example</h2>
 
-            <div class="pandora-code-viewer" id="pid-119">
+            <div class="pandora-code-viewer" id="pid-121">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -289,40 +286,30 @@
                   </ul>
                 </div>
                 <div class="pandora-tab-container">
-                  <pre class="pandora-tab-view tab-html">&lt;emerald-grid id="grid"&gt;
-&lt;/emerald-grid&gt;</pre>
+                  <pre class="pandora-tab-view tab-html">&lt;efx-grid id="grid"&gt;
+&lt;/efx-grid&gt;</pre>
                   <pre class="pandora-tab-view tab-js">var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
 var records = DataGenerator.generateRecords(fields, { numRows: 6 });
 var configObj = {
-  rowSelection: true,
-  rowReorder: {
-    dragBoxRenderer: function(dragEvent, dragBox, dataRows) {
-      var content = document.createElement("div");
-      var value;
-      for (var i = 0; i &lt; dataRows.length; i++) {
-        value = dataRows[i][fields[0]];
-        content.append(value);
-        content.appendChild(document.createElement("br"));
-      }
-
-      dragBox.setContent(content);
+  rowDragging: {
+    dragBoxRenderer: function(e) {
+      e.dragBox.textContent = e.dataRow[fields[0]];
     }
   },
   columns: [
-    { title: "Company", field: fields[0] },
-    { title: "Market", field: fields[1], width: 100 },
-    { title: "Last", field: fields[2], width: 80 },
-    { title: "Net. Chng", field: fields[3], width: 80 },
-    { title: "Industry", field: fields[4] }
+    { name: "Company", field: fields[0] },
+    { name: "Market", field: fields[1], width: 100 },
+    { name: "Last", field: fields[2], width: 80 },
+    { name: "Net. Chng", field: fields[3], width: 80 },
+    { name: "Industry", field: fields[4] }
   ],
-  dataModel: {
-    data: records
-  }
+  staticDataRows: records,
+  extensions: [new RowDragging()]
 };
 
 var grid = document.getElementById("grid");
 grid.config = configObj;</pre>
-                  <pre class="pandora-tab-view tab-css">emerald-grid {
+                  <pre class="pandora-tab-view tab-css">efx-grid {
   height: 200px;
 }</pre>
                   <div class="pandora-console"></div>

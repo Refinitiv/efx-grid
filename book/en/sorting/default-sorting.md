@@ -43,7 +43,6 @@ var config = {
 				sortOrder: "d"
 			}
 		},
-		rowHighlight: true,
 		columns: [
 			{title: "Company", field: fields[0]},
 			{title: "Market", field: fields[1], width: 120},

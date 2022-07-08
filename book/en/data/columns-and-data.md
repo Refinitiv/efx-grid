@@ -45,7 +45,7 @@ You can keep the current set of columns and change the current settings by leavi
 ```js
 grid.columns = newColumns;
 grid.config = {
-	rowHighlighting: true
+
 }; // current columns are kept
 ```
 

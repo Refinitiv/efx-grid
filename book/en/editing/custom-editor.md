@@ -59,7 +59,6 @@ In this situation, you need to specify options for the user to select. There are
 	var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry", "boolean"];
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 6 });
 	var configObj = {
-		rowHighlight: true,
 		columns: [
 			{title: "Company", field: fields[0]},
 			{title: "Market (editable)", field: fields[1], width: 150, editableContent: true},

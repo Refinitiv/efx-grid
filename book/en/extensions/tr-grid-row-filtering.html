@@ -29,7 +29,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="c8167eaa-e984-4b25-bd88-4588485b2a3e">
+        <pandora-nav id="e1dd53df-b101-44ed-bf42-82fcb0995ef9">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -295,11 +295,10 @@
 &lt;button id="filter_btn5"&gt;Clear Filter&lt;/button&gt;
 &lt;hr&gt;
 &lt;efx-grid id="grid"&gt;&lt;/efx-grid&gt;</pre>
-                  <pre class="pandora-tab-view tab-js">var rowFilterExt = new RowFilteringExtension();
+                  <pre class="pandora-tab-view tab-js">var rowFilterExt = new RowFiltering();
 var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
 var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 50 });
 var configObj = {
-  rowHighlight: true,
   columns: [
     { title: "Company", field: fields[0] },
     { title: "Market", field: fields[1], width: 120 },
@@ -433,11 +432,10 @@ filterExt.addGridFilter(filterFunc);</code></pre>
 
 &lt;hr&gt;
 &lt;efx-grid id="grid"&gt;&lt;/efx-grid&gt;</pre>
-                  <pre class="pandora-tab-view tab-js">var rowFilterExt = new RowFilteringExtension();
+                  <pre class="pandora-tab-view tab-js">var rowFilterExt = new RowFiltering();
 var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
 var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 50 });
 var configObj = {
-  rowHighlight: true,
   columns: [
     { title: "Company", field: fields[0] },
     { title: "Market", field: fields[1], width: 120 },
@@ -547,6 +545,153 @@ searchInput.addEventListener(<span class="hljs-string">"keyup"</span>, <span cla
     <span class="hljs-attr">input</span>: searchInput
 };
 filterExt.addGridFilter(filterFunc, context);</code></pre>
+            <h3 id="filter-icon-activation-modes">Filter icon activation modes</h3>
+            <p>Filter icon activation controls the behavior on how to render filter icon in header cells of the grid.</p>
+            <table>
+              <thead>
+                <tr>
+                  <th>Mode</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>"always"</td>
+                  <td>Always show filter icon.</td>
+                </tr>
+                <tr>
+                  <td>"onHover"</td>
+                  <td>Show filter icon when mouse cursor is hovered over the header cell or the column has an active filter.</td>
+                </tr>
+                <tr>
+                  <td>"onActiveFilter"</td>
+                  <td>Show filter icon when the column has an active filter.</td>
+                </tr>
+                <tr>
+                  <td>"none"</td>
+                  <td>No filter icon is shown at all times.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="pandora-code-viewer" id="pid-43">
+              <div class="pandora-viewer">
+                <button>&lt;/&gt;</button>
+              </div>
+              <div class="pandora-code-view">
+                <div class="pandora-toolbar">
+                  <ul>
+                    <li class="pandora-tab-selected" data-toggle="tab-html">HTML</li>
+                    <li data-toggle="tab-js">JS</li>
+                    <li data-toggle="tab-css">CSS</li>
+                  </ul>
+                </div>
+                <div class="pandora-tab-container">
+                  <pre class="pandora-tab-view tab-html">&lt;button id="mode_always"&gt; always &lt;/button&gt;
+
+&lt;button id="mode_hover"&gt; onHover &lt;/button&gt;
+&lt;button id="mode_active"&gt; onActiveFilter &lt;/button&gt;
+&lt;button id="mode_none"&gt; none &lt;/button&gt;
+&lt;hr&gt;
+&lt;efx-grid id="grid"&gt;&lt;/efx-grid&gt;</pre>
+                  <pre class="pandora-tab-view tab-js">var rowFilterExt = new RowFiltering();
+var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 50 });
+var configObj = {
+  columns: [
+    { title: "Company", field: fields[0] },
+    { title: "Market", field: fields[1], width: 120 },
+    { title: "Last", field: fields[2], width: 100 },
+    { title: "Net. Chng", field: fields[3], width: 100 },
+    { title: "Industry", field: fields[4] }
+  ],
+  staticDataRows: records,
+  rowFiltering: {
+    iconActivation: null
+  },
+  extensions: [
+    rowFilterExt
+  ]
+};
+
+var grid = document.getElementById("grid");
+grid.config = configObj;
+
+document.getElementById("mode_always").addEventListener("click", function(e) {
+  configObj["rowFiltering"]["iconActivation"] = "always";
+  rowFilterExt.config(configObj);
+  rowFilterExt._updateAllColumnIcons();
+});
+document.getElementById("mode_hover").addEventListener("click", function(e) {
+  configObj["rowFiltering"]["iconActivation"] = "onHover";
+  rowFilterExt.config(configObj);
+  rowFilterExt._updateAllColumnIcons();
+});
+document.getElementById("mode_active").addEventListener("click", function(e) {
+  configObj["rowFiltering"]["iconActivation"] = "onActiveFilter";
+  rowFilterExt.config(configObj);
+  rowFilterExt._updateAllColumnIcons();
+});
+document.getElementById("mode_none").addEventListener("click", function(e) {
+  configObj["rowFiltering"]["iconActivation"] = "none";
+  rowFilterExt.config(configObj);
+  rowFilterExt._updateAllColumnIcons();
+});</pre>
+                  <pre class="pandora-tab-view tab-css">html hr {
+  margin: 5px;
+}
+
+efx-grid {
+  height: 500px;
+}</pre>
+                  <div class="pandora-console"></div>
+                </div>
+              </div>
+              <link rel="prefetch" href="../node_modules/tr-grid-test-resource-v6/dist/elf-halo-light.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-auto-tooltip/dist/tr-grid-auto-tooltip.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-cell-selection/dist/tr-grid-cell-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-checkbox/dist/tr-grid-checkbox.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-fitter/dist/tr-grid-column-fitter.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-formatting/dist/tr-grid-column-formatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-grouping/dist/tr-grid-column-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-resizing/dist/tr-grid-column-resizing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-selection/dist/tr-grid-column-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-stack/dist/tr-grid-column-stack.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-conditional-coloring/dist/tr-grid-conditional-coloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-content-wrap/dist/tr-grid-content-wrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-contextmenu/dist/tr-grid-contextmenu.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-filter-input/dist/tr-grid-filter-input.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-heat-map/dist/tr-grid-heat-map.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-in-cell-editing/dist/tr-grid-in-cell-editing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-pagination/dist/tr-grid-pagination.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-percent-bar/dist/tr-grid-percent-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-range-bar/dist/tr-grid-range-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-dragging/dist/tr-grid-row-dragging.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-filtering/dist/tr-grid-row-filtering.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-grouping/dist/tr-grid-row-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/row-segmenting/dist/row-segmenting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-selection/dist/tr-grid-row-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-rowcoloring/dist/tr-grid-rowcoloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/statistics-row/dist/statistics-row.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-textformatting/dist/tr-grid-textformatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-titlewrap/dist/tr-grid-titlewrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
+            </div>
+            <p>For applying the filter icon activation, it can be done by add <code>iconActivation</code> field to <code>rowFiltering</code> config object.</p>
+            <pre><code><span class="hljs-keyword">var</span> filterExt = <span class="hljs-keyword">new</span> tr.RowFilteringExtension();
+<span class="hljs-keyword">var</span> config = {
+    <span class="hljs-comment">// ... other config</span>
+    <span class="hljs-attr">rowFiltering</span>: {
+        <span class="hljs-attr">iconActivation</span>: <span class="hljs-string">"onHover"</span>
+    },
+    <span class="hljs-attr">extensions</span>: [
+        filterExt
+    ]
+}
+grid.config = config;</code></pre>
+            <blockquote>
+              <p>Note: If there is no specified <code>iconActivation</code> value within <code>rowFiltering</code> option, the default mode (onActiveFilter) would be applied to the grid.</p>
+            </blockquote>
             <div></div>
 
             <div id="elf-api-container">
@@ -746,6 +891,13 @@ filterExt.addGridFilter(filterFunc, context);</code></pre>
                               <td class="attributes"> &lt;optional&gt;<br> </td>
                               <td class="default"> false </td>
                               <td class="description last">If enabled, filter icon will not be created/shown.</td>
+                            </tr>
+                            <tr>
+                              <td class="name"><code>iconActivation</code></td>
+                              <td class="type"> <span class="param-type">string</span> </td>
+                              <td class="attributes"> &lt;optional&gt;<br> </td>
+                              <td class="default"> onActiveFilter </td>
+                              <td class="description last">Filter icon redering behavior, can be set to `always`,`onHover`,`onActiveFilter`,or `none`</td>
                             </tr>
                             <tr>
                               <td class="name"><code>click</code></td>

@@ -34,7 +34,6 @@ Loading mask is not part of Grid. To follow the standard theme, the UI and funct
 	var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry", "rowNumber"];
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 10 });
 	var configObj = {
-		rowHighlight: true,
 		columns: [
 			{name: "ID", field: fields[5], alignment: "center", width: 80},
 			{name: "Company", field: fields[0]},
@@ -138,7 +137,6 @@ Loading mask is not part of Grid. To follow the standard theme, the UI and funct
 	}
 
 	var configObj = {
-		rowHighlight: true,
 		columns: [
 			{name: "ID", field: fields[5], alignment: "center", width: 80},
 			{name: "Company", field: fields[0]},

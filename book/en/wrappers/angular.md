@@ -132,7 +132,7 @@ The `@grid/angular-grid` wrapper plays well with TypeScript.
 
 ```js
 import { Component } from '@angular/core';
-import { RealtimeGrid, ColumnDefinition } from '@grid/all-components/types';
+import { RealtimeGrid, ColumnDefinition } from '@refinitiv-ui/efx-grid';
 
 @Component({
   template: `
@@ -164,7 +164,7 @@ export class BasicPageComponent {
 The following is an example of how to use `getExtension` in TypeScript:
 
 ```js
-import { RowSelectionExtension } from '@grid/all-components';
+import { RowSelection } from '@refinitiv-ui/efx-grid/extensions';
 import { Component, ViewChild } from '@angular/core';
 
 @Component({
@@ -176,7 +176,7 @@ export class BasicPageComponent {
   @ViewChild('grid') grid: any;
 
   someAction() {
-    const rowSelection: RowSelectionExtension = this.grid.getExtension('RowSelection');
+    const rowSelection: RowSelection = this.grid.getExtension('RowSelection');
     rowSelection.getSelectedRows();
   }
 }

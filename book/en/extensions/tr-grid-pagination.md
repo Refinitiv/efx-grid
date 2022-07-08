@@ -27,7 +27,6 @@ The Pagination Extension provides behaviors that allow you to split a huge amoun
 	var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry", "rowNumber"];
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 20 });
 	var configObj = {
-		rowHighlight: true,
 		columns: [
 			{title: "ID", field: fields[5], alignment: "center", width: 40},
 			{title: "Company", field: fields[0]},

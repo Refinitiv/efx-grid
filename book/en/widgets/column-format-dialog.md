@@ -39,8 +39,8 @@ Language:
 <hr>
 <efx-grid id="grid"></efx-grid>
 <script>
-  var columnFormattingExt = new ColumnFormattingExtension();
-  var contextMenuExt = new ContextMenuExtension();
+  var columnFormattingExt = new ColumnFormatting();
+  var contextMenuExt = new ContextMenu();
 
   var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "CF_VOLUME", "TR.IPODate"];
   var records = DataGenerator.generateRecords(fields, { numRows: 10 });
@@ -110,7 +110,7 @@ import '@refinitiv-ui/efx-grid/column-format-dialog/themes/halo/light';
 Create a new Column Formatting Extension instance and push it to an `extensions` configuration.
 
 ```js
-var cfe = new ColumnFormattingExtension();
+var cfe = new ColumnFormatting();
 
 var configObj = {
   extensions: [
@@ -193,7 +193,7 @@ import {
   ConditionalColoring
 } from '@refinitiv-ui/efx-grid/extensions';
 
-var cfe = new ColumnFormattingExtension();
+var cfe = new ColumnFormatting();
 
 var configObj = {
   extensions: [

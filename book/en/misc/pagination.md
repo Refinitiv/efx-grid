@@ -105,7 +105,6 @@ See more details about data setting at [Columns and Data Properties](../data/col
 
 	// Initializing UIs
 	var configObj = {
-		rowHighlight: true,
 		columns: [
 			{name: "ID", field: fields[5], alignment: "center", width: 40},
 			{name: "Company", field: fields[0]},
@@ -157,7 +156,6 @@ If you have all the data available on the client side and want to show data in p
 	var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry", "rowNumber"];
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 100 });
 	var configObj = {
-		rowHighlight: true,
 		columns: [
 			{name: "ID", field: fields[5], alignment: "center", width: 40},
 			{name: "Company", field: fields[0]},

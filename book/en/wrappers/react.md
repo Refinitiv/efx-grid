@@ -19,8 +19,8 @@ For basic usage, import the `efx-grid` to your project:
 
 ```js
 // index.js
-import '@refinitiv-ui/efxgrid'; // efx-grid
-import '@refinitiv-ui/efxgrid/themes/halo/light'; // can be any theme
+import '@refinitiv-ui/efx-grid'; // efx-grid
+import '@refinitiv-ui/efx-grid/themes/halo/light'; // can be any theme
 import '@refinitiv-ui/halo-theme/light/imports/native-elements'; // can be any theme
 ```
 
@@ -137,7 +137,7 @@ const App = () => {
 The `@grid/react-grid` wrapper can easily integrated with TypeScript.
 
 ```js
-import { RealtimeGrid, ColumnDefinition } from '@refinitiv-ui/efxgrid/types';
+import { RealtimeGrid, ColumnDefinition } from '@refinitiv-ui/efx-grid';
 
 const data: any[] = [
   //... some data
@@ -179,10 +179,10 @@ const App = () => {
 The following is an example of how to use `getExtension` in TypeScript.
 
 ```js
-import { RowSelectionExtension } from '@refinitiv-ui/efxgrid/extensions';
+import { RowSelection } from '@refinitiv-ui/efxgrid/extensions';
 
 const someAction = () => {
-  const rowSelection: RowSelectionExtension = grid.current?.getExtension('RowSelection');
+  const rowSelection: RowSelection = grid.current?.getExtension('RowSelection');
   rowSelection.getSelectedRows();
 }
 ```

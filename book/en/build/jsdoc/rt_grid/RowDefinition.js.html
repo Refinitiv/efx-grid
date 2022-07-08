@@ -38,6 +38,7 @@ import { DataTable } from "../../node_modules/@grid/core/es6/data/DataTable.js";
 * @property {string=} chainRic="" RIC to be used for chain request (overiding ric property)
 * @property {boolean=} collapsed=false Chain is expanded by default
 * @property {(string|null)=} label=null
+* @property {boolean=} hidden=true When this row is hidden
 */
 
 /** @type {string}
@@ -305,6 +306,55 @@ RowDefinition.prototype.setContent = function(userInput) {
 RowDefinition.prototype.getRowId = function() {
 	return this._rowId;
 };
+/** @public
+* @param {RowDefinition~Options=} rowOptions
+* @return {RowDefinition~Options}
+*/
+RowDefinition.prototype.getConfigObject = function(rowOptions) {
+	var obj = rowOptions || {};
+	var val = this._ric;
+	if(val) {
+		obj["ric"] = val;
+	}
+
+	val = this._staticValues;
+	if(val) {
+		obj["values"] = val;
+	}
+
+	val = this._chainRic;
+	if(val) {
+		obj["chainRic"] = val;
+	}
+
+	val = this._label;
+	if(val) {
+		obj["label"] = val;
+	}
+
+	val = this._userModel;
+	if(val) {
+		obj["keepModel"] = obj;
+	}
+
+	val = this._isChain;
+	if(val) {
+		obj["asChain"] = val;
+	}
+
+	val = this._expanded;
+	if(val) {
+		obj["collapsed"] = !val;
+	}
+
+	// check row hidden
+	val = this._view.isHiddenRow(this._rowId);
+	if(val) {
+		obj["hidden"] = val;
+	}
+
+	return obj;
+};
 /** Since an index chain (e.g. .FTSE) can automatically produce rows for its constituent, we need to separate rowId and dataId, so that the constituents still use the same data Id as that of its parent.
 * @public
 * @return {string} Data Id will never be empty string unless the row has been removed
@@ -343,14 +393,14 @@ RowDefinition.prototype.setDataSource = function(dataSource) {
 * @return {Object} rowData
 */
 RowDefinition.prototype.getRowData = function() {
-	return this._dc.getRowData(this._dataId);
+	return this._dc ? this._dc.getRowData(this._dataId) : {};
 };
 /** @public
 * @param {string} field
 * @return {*} data
 */
 RowDefinition.prototype.getData = function(field) {
-	return this._dc.getData(this._dataId, field);
+	return this._dc ? this._dc.getData(this._dataId, field) : null;
 };
 
 /** @public

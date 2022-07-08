@@ -37,8 +37,8 @@ Language:
 <hr>
 <efx-grid id="grid"></efx-grid>
 <script>
-	var rowFilteringExt = new RowFilteringExtension();
-	var contextMenuExt = new ContextMenuExtension();
+	var rowFilteringExt = new RowFiltering();
+	var contextMenuExt = new ContextMenu();
 
 	var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "ISODate"];
 	var records = DataGenerator.generateRecords(fields, { numRows: 10 });

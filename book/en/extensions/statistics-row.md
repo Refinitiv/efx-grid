@@ -14,7 +14,6 @@ The Statistics Row Extension provides special rows to show various statistics fo
 		sorting: {
 			sortableColumns: true
 		},
-		rowHighlight: true,
 		columns: [
 			{
 				title: "Company",

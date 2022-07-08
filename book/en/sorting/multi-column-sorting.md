@@ -75,7 +75,6 @@ For all available options and APIs, please visit [SortableTitlePlugin](../apis/c
 			multiColumn: true,
 			threeStatesSorting: true
 		},
-		rowHighlight: true,
 		columns: [
 			{title: "Company", field: fields[0]},
 			{title: "Market", field: fields[1], width: 100},
