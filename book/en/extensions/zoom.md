@@ -23,14 +23,12 @@ The Zoom Extension adds Grid's ability to zoom in or zoom out.
 	var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 10 });
 	var configObj = {
-		freezeColumn: 0,
-		pinnedRightColumns: 1,
 		columns: [
-			{ title: "Company", field: fields[0], width: 250 },
+			{ title: "Company", field: fields[0], width: 250, leftPinned: true },
 			{ title: "Market", field: fields[1], width: 160 },
 			{ title: "Last", field: fields[2], width: 160 },
 			{ title: "Net. Chng", field: fields[3], width: 160 },
-			{ title: "Industry", field: fields[4], width: 200 }
+			{ title: "Industry", field: fields[4], width: 200, rightPinned: true }
 		],
 		staticDataRows: records,
 		extensions: [

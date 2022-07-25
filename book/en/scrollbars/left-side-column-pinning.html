@@ -29,7 +29,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="e1dd53df-b101-44ed-bf42-82fcb0995ef9">
+        <pandora-nav id="0701231f-8dbb-4bdf-ad0f-06b4bd5d4a0d">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -270,7 +270,8 @@
         <div class="reader">
           <pandora-page>
             <h1 id="left-side-column-pinning-freezing"><a href="https://refinitiv.github.io/efx-grid/book/en/scrollbars/left-side-column-pinning.html" target="_top" class="link-icon"></a> Left Side Column Pinning/Freezing</h1>
-            <p>Sometimes Grid can contain a large number of columns and when scrolled to the right, without the row header, users might lose track of what kind of data is in the row.<br>To solve this, you can freeze or pin columns on the left side to act like a row indicator. To do this, use the <code>freezeColumn</code> property to specify the "index" of the last column on the left side you want to be frozen/pinned.</p>
+            <p>Sometimes Grid can contain a large number of columns and when scrolled to the right, without the row header, users might lose track of what kind of data is in the row.<br>To solve this, you can freeze or pin columns on the left side to act like a row indicator. To do this, set the <code>leftPinned</code> property to true on the column configuration object for the column you want to be frozen/pinned.</p>
+            <p>Similarly, <code>rightPinned</code> property can be used to pin the columns on the right side. </p>
             <h2 id="example">Example</h2>
 
             <div class="pandora-code-viewer" id="pid-132">
@@ -290,14 +291,13 @@
                   <pre class="pandora-tab-view tab-js">var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
 var records = DataGenerator.generateRecords(fields, { numRows: 10 });
 var configObj = {
-  freezeColumn: 1, // Index of the last column to be frozen/pinned. In this case, 1 is the second column
   columns: [
-    { width: 20 },
-    { title: "Company", field: fields[0], width: 250 },
-    { title: "Market", field: fields[1], width: 150 },
-    { title: "Last", field: fields[2], width: 150 },
-    { title: "Net. Chng", field: fields[3], width: 150 },
-    { title: "Industry", field: fields[4], width: 300 }
+    { name: " ", width: 24 },
+    { name: "Company", field: fields[0], width: 250, leftPinned: true },
+    { name: "Market", field: fields[1], width: 150 },
+    { name: "Last", field: fields[2], width: 150 },
+    { name: "Net. Chng", field: fields[3], width: 150 },
+    { name: "Industry", field: fields[4], width: 300 }
   ],
   staticDataRows: records
 };

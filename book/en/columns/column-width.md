@@ -156,13 +156,12 @@ After column resizing if the total columns' width is less than Grid' size, there
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 5 });
 	var configObj = {
 		autoHideScrollbar: false,
-		pinnedRightColumns: 1,
 		columns: [
 			{title: "Company", field: fields[0], width: 200},
 			{title: "Market", field: fields[1], width: 100},
 			{title: "Last", field: fields[2], width: 80},
 			{title: "Net. Chng", field: fields[3], width: 80},
-			{title: "Industry", field: fields[4], width: 150}
+			{title: "Industry", field: fields[4], width: 150, rightPinned: true }
 		],
 		staticDataRows: records
 	};
@@ -186,14 +185,12 @@ After column resizing if the total columns' width is less than Grid' size, there
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 5 });
 	var configObj = {
 		autoHideScrollbar: false,
-		freezeColumn: 0,
-		pinnedRightColumns: 1,
 		columns: [
-			{title: "Company", field: fields[0], width: 200},
+			{title: "Company", field: fields[0], width: 200, leftPinned: true },
 			{title: "Market", field: fields[1], width: 100},
 			{title: "Last", field: fields[2], width: 80},
 			{title: "Net. Chng", field: fields[3], width: 80},
-			{title: "Industry", field: fields[4], width: 150}
+			{title: "Industry", field: fields[4], width: 150, rightPinned: true }
 		],
 		staticDataRows: records
 	};
@@ -219,14 +216,12 @@ After column resizing if the total columns' width is less than Grid' size, there
 	var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 5 });
 	var configObj = {
-		freezeColumn: 0,
-		pinnedRightColumns: 1,
 		columns: [
-			{title: "Company", field: fields[0], width: 200},
+			{title: "Company", field: fields[0], width: 200, leftPinned: true },
 			{title: "Market", field: fields[1], width: 100},
 			{title: "Last", field: fields[2], width: 80},
 			{title: "Net. Chng", field: fields[3], width: 80},
-			{title: "Industry", field: fields[4], width: 150}
+			{title: "Industry", field: fields[4], width: 150, rightPinned: true }
 		],
 		staticDataRows: records
 	};
