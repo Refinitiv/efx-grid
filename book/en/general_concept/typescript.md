@@ -70,7 +70,7 @@ let configObj = {
 Finally assign configuration to `efx-grid` element.
 
 ```js
-let grid: Grid = document.getElementsByTagName("efx-grid")[0] as Grid;
+let grid: Grid = document.getElementsByTagName("efx-grid")[0];
 grid.config = configObj;
 ```
 
