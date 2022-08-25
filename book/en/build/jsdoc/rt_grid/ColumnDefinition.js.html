@@ -130,16 +130,12 @@ var _toAlignment = function(str) {
 var ColumnDefinition = function(columnOption, hostGrid) {
 	this._defaultRenderer = this._defaultRenderer.bind(this);
 	this._customRenderer = this._customRenderer.bind(this);
-	this._defaultSorter = this._defaultSorter.bind(this);
-	this._dataSorter = this._dataSorter.bind(this);
-	this._rowDefSorter = this._rowDefSorter.bind(this);
 
 	this._id = "" + ColumnDefinition._runningId++;
 	this._internalRenderer = this._defaultRenderer;
 	this._internalSorter = this._defaultSorter;
 
 	this._eventArg = {"colDef": this}; // WARNING: Circular reference
-	this._sortContext = {"colDef": this};
 	if(hostGrid) {
 		this._updateContext("grid", hostGrid);
 		this._updateContext("core", hostGrid["getCoreGrid"]()); // TODO: Handle multiple core grids
@@ -208,15 +204,6 @@ ColumnDefinition.prototype._activatedRenderer = null;
 * @private
 */
 ColumnDefinition.prototype._rendererMap = null;
-/** @type {!Function}
-* @private
-*/
-ColumnDefinition.prototype._internalSorter;
-/** Workaround to provide user a context during the sorting process
-* @type {Object}
-* @private
-*/
-ColumnDefinition.prototype._sortContext = null;
 /** @type {Function}
 * @private
 */
@@ -461,25 +448,6 @@ ColumnDefinition.prototype.getRenderer = function() {
 */
 ColumnDefinition.prototype.getHeaderRenderer = function() {
 	return this._headerRenderer;
-};
-/** @public
-* @return {!Function}
-*/
-ColumnDefinition.prototype.getSorter = function() {
-	return this._internalSorter;
-};
-/** Internal method for preparing sort context
-* @public
-* @ignore
-* @param {number} colIndex
-* @return {!Function}
-*/
-ColumnDefinition.prototype._prepareSortContext = function(colIndex) {
-	// TODO: Context does not get updated when column is moved or removed
-	this._sortContext["colIndex"] = colIndex;
-	this._sortContext["field"] = this._field;
-
-	return this._internalSorter;
 };
 
 /** @public
@@ -878,21 +846,27 @@ ColumnDefinition.prototype.activateRenderer = function(id, func) {
 	this.setRenderer(renderer);
 	return this._activatedRenderer ? true : false;
 };
+
+/** @public
+* @return {Function}
+*/
+ColumnDefinition.prototype.getSorter = function() {
+	return this._userSorter;
+};
 /** @public
 * @param {ColumnDefinition~SortLogic=} func
 */
 ColumnDefinition.prototype.setSorter = function(func) {
-	if(typeof func === "function") {
-		this._userSorter = func;
-		if(this._rowSorting == null) {
-			this._internalSorter = this._realTimeField ? this._dataSorter : this._rowDefSorter;
-		} else {
-			this._internalSorter = !this._rowSorting ? this._dataSorter : this._rowDefSorter;
-		}
-	} else {
-		this._userSorter = null;
-		this._internalSorter = this._defaultSorter;
+	this._userSorter = (typeof func === "function") ? func : null;
+};
+/** @public
+* @return {boolean}
+*/
+ColumnDefinition.prototype.isRowSorting = function() {
+	if(this._rowSorting == null) {
+		return !this._realTimeField;
 	}
+	return this._rowSorting ? true : false;
 };
 
 /** To allow user change column name in run-time (language change or localization)
@@ -1011,78 +985,13 @@ ColumnDefinition.prototype._customRenderer = function(e) {
 		}
 	}
 };
-/** @private
-* @param {RowDefinition} rowDefA
-* @param {RowDefinition} rowDefB
-* @param {number} order
-* @return {number}
-*/
-ColumnDefinition.prototype._defaultSorter = function(rowDefA, rowDefB, order) {
-	var orderA = rowDefA.getGroupOrder();
-	var orderB = rowDefB.getGroupOrder();
-	if(orderA !== orderB) {
-		return orderA - orderB; // Regardless of sort order
-	}
 
-	var a = rowDefA.getData(this._field);
-	var b = rowDefB.getData(this._field);
-
-	if(a == null || a !== a) {
-		if(b == null || b !== b) {
-			return 0;
-		}
-		return 1;
-	}
-	if(b == null || b !== b) {
-		return -1;
-	}
-
-	if(a &lt; b) {
-		return -order;
-	}
-	if(b &lt; a) {
-		return order;
-	}
-	return 0;
-};
-/** @private
-* @param {RowDefinition} rowDefA
-* @param {RowDefinition} rowDefB
-* @param {number} order
-* @return {number}
-*/
-ColumnDefinition.prototype._dataSorter = function(rowDefA, rowDefB, order) {
-	var orderA = rowDefA.getGroupOrder();
-	var orderB = rowDefB.getGroupOrder();
-	if(orderA !== orderB) {
-		return orderA - orderB; // Regardless of sort order
-	}
-
-	var a = rowDefA.getData(this._field);
-	var b = rowDefB.getData(this._field);
-	return this._userSorter(a, b, order, this._sortContext);
-};
-/** @private
-* @param {RowDefinition} rowDefA
-* @param {RowDefinition} rowDefB
-* @param {number} order
-* @return {number}
-*/
-ColumnDefinition.prototype._rowDefSorter = function(rowDefA, rowDefB, order) {
-	var orderA = rowDefA.getGroupOrder();
-	var orderB = rowDefB.getGroupOrder();
-	if(orderA !== orderB) {
-		return orderA - orderB; // Regardless of sort order
-	}
-
-	return this._userSorter(rowDefA, rowDefB, order, this._sortContext);
-};
 /** @private
 * @param {string} propName
 * @param {*} val
 */
 ColumnDefinition.prototype._updateContext = function(propName, val) {
-	this._eventArg[propName] = this._sortContext[propName] = val;
+	this._eventArg[propName] = val;
 };
 
 /** @public
@@ -1110,7 +1019,7 @@ export default ColumnDefinition;
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="ColumnDefinition.html">ColumnDefinition</a></li><li><a href="DataConnector.html">DataConnector</a></li><li><a href="Grid.html">Grid</a></li><li><a href="ReferenceCounter.html">ReferenceCounter</a></li><li><a href="RowDefinition.html">RowDefinition</a></li><li><a href="SnapshotFiller.html">SnapshotFiller</a></li><li><a href="StyleLoader.html">StyleLoader</a></li></ul><h3>Events</h3><ul><li><a href="Grid.html#event:adcDataReceived">adcDataReceived</a></li><li><a href="Grid.html#event:beforeRowRemoved">beforeRowRemoved</a></li><li><a href="Grid.html#event:dataComposed">dataComposed</a></li><li><a href="Grid.html#event:fieldAdded">fieldAdded</a></li><li><a href="Grid.html#event:fieldRemoved">fieldRemoved</a></li><li><a href="Grid.html#event:pageCountChanged">pageCountChanged</a></li><li><a href="Grid.html#event:pageIndexChanged">pageIndexChanged</a></li><li><a href="Grid.html#event:ricAdded">ricAdded</a></li><li><a href="Grid.html#event:ricRemoved">ricRemoved</a></li></ul><h3>Global</h3><ul><li><a href="global.html#COL_DEF">COL_DEF</a></li><li><a href="global.html#ROW_DEF">ROW_DEF</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="ColumnDefinition.html">ColumnDefinition</a></li><li><a href="DataConnector.html">DataConnector</a></li><li><a href="Grid.html">Grid</a></li><li><a href="ReferenceCounter.html">ReferenceCounter</a></li><li><a href="RowDefinition.html">RowDefinition</a></li><li><a href="RowDefSorter.html">RowDefSorter</a></li><li><a href="SnapshotFiller.html">SnapshotFiller</a></li><li><a href="StyleLoader.html">StyleLoader</a></li></ul><h3>Events</h3><ul><li><a href="Grid.html#event:adcDataReceived">adcDataReceived</a></li><li><a href="Grid.html#event:beforeRowRemoved">beforeRowRemoved</a></li><li><a href="Grid.html#event:dataComposed">dataComposed</a></li><li><a href="Grid.html#event:fieldAdded">fieldAdded</a></li><li><a href="Grid.html#event:fieldRemoved">fieldRemoved</a></li><li><a href="Grid.html#event:pageCountChanged">pageCountChanged</a></li><li><a href="Grid.html#event:pageIndexChanged">pageIndexChanged</a></li><li><a href="Grid.html#event:ricAdded">ricAdded</a></li><li><a href="Grid.html#event:ricRemoved">ricRemoved</a></li></ul><h3>Global</h3><ul><li><a href="global.html#COL_DEF">COL_DEF</a></li><li><a href="global.html#ROW_DEF">ROW_DEF</a></li></ul>
 </nav>
 
 

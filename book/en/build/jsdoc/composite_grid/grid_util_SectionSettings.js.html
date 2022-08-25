@@ -558,6 +558,11 @@ tr.grid.SectionSettings.prototype._dispatchDataChanged = function (firstUpdate, 
 */
 tr.grid.SectionSettings.prototype.updateRowData = function (fromRowIndex, lastRowIndex, e) {
 	if(this.isDataBindable()) { // Prevent dispatching dataChanged event without the data view
+		if(this._grid._getTempRowHeights()){
+			fromRowIndex = this._grid.getFirstIndexInView();
+			lastRowIndex = this._grid.getLastIndexInView() + 1;
+		}
+
 		e = this.extendDataEventArg(e, fromRowIndex, lastRowIndex);
 		if(e[tr.res.fromRowIndex] &lt; e[tr.res.toRowIndex]) {
 			this._dispatch("dataChanged", e);

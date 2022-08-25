@@ -668,31 +668,18 @@ tr.grid.SortableTitlePlugin.prototype.getSortOrder = function (colIndex) {
 * @return {number} Return negative value if there is no sorted column
 */
 tr.grid.SortableTitlePlugin.prototype.getSortedColumnIndex = function (priority) {
-	var state = this._sortStates[priority || 0];
-	if (state) {
-		var host = this._hosts[0];
-		var colCount = host ? host.getColumnCount() : 0;
-		for (var c = 0; c &lt; colCount; ++c) {
-			var sortOptions = this._getSortOptions(c);
-			if (sortOptions === state) {
-				return c;
-			}
-		}
-	}
-	return -1;
+	return this._getColumnIndexByOptions(this._sortStates[priority || 0]);
 };
-/** @public
+/** Start with 0 (the first column that is being sorted). The highest number will be sorted last. Negative value means the specified column is not sorted
+* @public
 * @param {number} colIndex
-* @return {number} Start with 0 (first column to be sorted) and end in the highest number. Negative means the specified column is not sorted
+* @return {number}
 */
 tr.grid.SortableTitlePlugin.prototype.getSortPriority = function (colIndex) {
-	var sortOptions = this._getSortOptions(colIndex);
-	if (sortOptions &amp;&amp; sortOptions["sortOrder"]) {
-		var len = this._sortStates.length;
-		for (var i = 0; i &lt; len; ++i) {
-			if (this._sortStates[i] === sortOptions) {
-				return i;
-			}
+	var len = this._sortStates.length;
+	for (var i = 0; i &lt; len; ++i) {
+		if (this._sortStates[i] === this._getSortOptions(colIndex)) {
+			return i;
 		}
 	}
 	return -1;
@@ -704,7 +691,7 @@ tr.grid.SortableTitlePlugin.prototype.isColumnSorted = function (colIndex) {
 	return this.getSortPriority(colIndex) &gt;= 0;
 };
 /** @public
-* @return {Array.&lt;Object&gt; | null} Array of object with "colIndex" and "sortOrder"
+* @return {Array.&lt;Object&gt;} Array of object with "colIndex" and "sortOrder"
 */
 tr.grid.SortableTitlePlugin.prototype.getSortedColumns = function () {
 	var len = this._sortStates.length;
@@ -713,28 +700,33 @@ tr.grid.SortableTitlePlugin.prototype.getSortedColumns = function () {
 	var arr = new Array(len);
 	for (var i = 0; i &lt; len; ++i) {
 		var colIndex = this.getSortedColumnIndex(i);
+		var state = this._sortStates[i];
 		arr[i] = {
 			"colIndex": colIndex,
-			"sortOrder": this._sortStates[i]["sortOrder"] || "n"
+			"field": state["field"] || "",
+			"sortOrder": state["sortOrder"] || "n"
 		};
 	}
 	return arr;
 };
+/** @public
+* @return {boolean}
+*/
+tr.grid.SortableTitlePlugin.prototype.isSorting = function () {
+	return this._sortStates.length ? true : false;
+};
 
 /** @public
-* @param {number} colIndex
+* @param {number|string} colRef Column index or field
 * @param {string=} sortOrder "a" for ascending, "d" for descending, and "n" for no sorting
 * @param {Object=} opt_arg Event argument to be sent with preDataSorting event
 * @fires tr.grid.SortableTitlePlugin#preDataSorting
 * @fires tr.grid.SortableTitlePlugin#columnSorted
 */
-tr.grid.SortableTitlePlugin.prototype.sortColumn = function (colIndex, sortOrder, opt_arg) {
-	if (colIndex &gt;= 0) { // ColIndex can be greater than the host column count, to allow default sorting
-
-		var state = this._preSortColumn(colIndex, sortOrder);
-		if (state) {
-			this._sortColumn([state], opt_arg);
-		}
+tr.grid.SortableTitlePlugin.prototype.sortColumn = function (colRef, sortOrder, opt_arg) {
+	var state = this._prepareSorting(colRef, sortOrder);
+	if (state) {
+		this._sortColumn([state], opt_arg);
 	}
 };
 
@@ -750,7 +742,14 @@ tr.grid.SortableTitlePlugin.prototype.sortColumns = function (sortOptions, opt_a
 		var states = [];
 		for (var i = 0; i &lt; sortOptions.length; i++) {
 			var opt = sortOptions[i];
-			var state = this._preSortColumn(opt["colIndex"], opt["sortOrder"] || opt["order"]);
+			var colRef = opt["colIndex"];
+			if(colRef &lt; 0 || colRef == null) {
+				colRef = opt["field"];
+			}
+			var state = this._prepareSorting(
+				colRef,
+				opt["sortOrder"] || opt["order"]
+			);
 			if (state) {
 				states[i] = state;
 			}
@@ -848,20 +847,24 @@ tr.grid.SortableTitlePlugin.prototype.setDataColumnNames = tr.grid.SortableTitle
 * @return {string} field A field used for sorting
 */
 tr.grid.SortableTitlePlugin.prototype.getColumnSortingField = function (colIndex) {
-	var options = this._getSortOptions(colIndex);
+	var sortOptions = this._getSortOptions(colIndex);
 	// options["field"] is already consolidated from field, sortBy, and sortable properties.
-	var field = (options) ? options["field"] : null;
+	var field = (sortOptions) ? sortOptions["field"] : null;
 
-	if (field == null &amp;&amp; !this._rowDefMode) { // Old CompositeGrid may stored sorting field in DataColumnName
+	if (field == null &amp;&amp; !this._rowDefMode) { // Old CompositeGrid may store sorting field in DataColumnName
 		var host = this._hosts[0];
 		if (host) {
 			field = host.getDataColumnName(colIndex);
+			if(field &amp;&amp; sortOptions) {
+				sortOptions["field"] = field; // Cache for later use
+			}
 		}
 	}
 
 	return field || "";
 };
-/** @public
+/** This is equivalent to setting sortBy in the configuration object.
+* @public
 * @param {number} colIndex
 * @param {string|null} field A field used for sorting
 * @param {Function=} sortLogic
@@ -882,21 +885,26 @@ tr.grid.SortableTitlePlugin.prototype.setColumnSortingField = function (colIndex
 		}
 	}
 };
-/** @public
+/** Return array of the fields from the currently sorted columns
+* @public
 * @return {!Array.&lt;string&gt;} fields of each sorting states
 */
 tr.grid.SortableTitlePlugin.prototype.getColumnSortingFields = function () {
-	var ary = [];
+	var len = this._sortStates.length;
+	var ary = new Array(len);
 	var host = this._hosts[0];
-	var colCount = host ? host.getColumnCount() : 0;
-	for (var c = 0; c &lt; colCount; ++c) {
-		var sortOptions = this._getSortOptions(c);
-		if (sortOptions &amp;&amp; sortOptions["sortOrder"]) {
-			var priority = this._sortStates.indexOf(sortOptions);
-			if (priority &gt;= 0) {
-				ary[priority] = this.getColumnSortingField(c);
+
+	for(var i = 0; i &lt; len; ++i) {
+		var sortOptions = this._sortStates[i];
+		var field = sortOptions["field"];
+		if(!field &amp;&amp; !this._rowDefMode) {
+			var colIndex = this._getColumnIndexByOptions(sortOptions); // Slow
+			field = host.getDataColumnName(colIndex);
+			if(field) {
+				sortOptions["field"] = field; // Cache for later use
 			}
 		}
+		ary[i] = field || "";
 	}
 	return ary;
 };
@@ -1219,7 +1227,7 @@ tr.grid.SortableTitlePlugin.prototype._proceedSorting = function (hitObj) {
 	if (this._canClickToSort(hitObj)) {
 		var colIndex = hitObj[tr.res.colIndex];
 		// _proceedSorting() method is always produced by user clicking at the header // Thus, this operation is guaranteed to be a user action
-		var state = this._preSortColumn(colIndex);
+		var state = this._prepareSorting(colIndex);
 		if (state) {
 			this._sortColumn([state], { "isUserAction": true });
 		}
@@ -1311,28 +1319,42 @@ tr.grid.SortableTitlePlugin.prototype._popSortState = function (toIndex, opt_arg
 };
 
 /** @private
-* @param {number} colIndex
+* @param {number|string} colRef Column index or field
 * @param {string=} sortOrder "a" for ascending, "d" for descending, and "n" for no sorting
 * @returns {Object} state Returns null, if nothing is changed
 */
-tr.grid.SortableTitlePlugin.prototype._preSortColumn = function (colIndex, sortOrder) {
-	if (!this._maxCount) { return null; }
+tr.grid.SortableTitlePlugin.prototype._prepareSorting = function (colRef, sortOrder) {
+	if (!this._maxCount) {
+		return null;
+	}
 
-	var priority = this.getSortPriority(colIndex);
+	var colIndex = -1;
+	var field = "";
+	var priority = -1;
+	if(typeof colRef === "number") {
+		colIndex = colRef;
+		field = this.getColumnSortingField(colIndex);
+		priority = this.getSortPriority(colIndex);
+	} else if(typeof colRef === "string") {
+		field = colRef;
+		colIndex = this._getColumnIndexByField(field);
+		var fields = this.getColumnSortingFields();
+		priority = fields.indexOf(field);
+	}
+
 	var curState = (priority &gt;= 0) ? this._sortStates[priority] : null;
 	var curOrder = curState ? curState["sortOrder"] : "n";
-	
+
 	// Getting next sort order
 	var nextOrder = "n";
-	var sortingField = this.getColumnSortingField(colIndex);
 	if (sortOrder == null) { // Auto order switch
-		var sortingSequence = this.getSortingSequence(sortingField);
+		var sortingSequence = this.getSortingSequence(field);
 
 		var sequenceIndex = sortingSequence.indexOf(curOrder);
 		if (sequenceIndex &lt; 0) {
 			sequenceIndex = 0;
 		} else {
-			sequenceIndex = (sequenceIndex + 1) % sortingSequence.length;	
+			sequenceIndex = (sequenceIndex + 1) % sortingSequence.length;
 		}
 		nextOrder = sortingSequence[sequenceIndex];
 	} else {
@@ -1351,14 +1373,20 @@ tr.grid.SortableTitlePlugin.prototype._preSortColumn = function (colIndex, sortO
 	}
 
 	if (nextOrder === "a" || nextOrder === "d") { // Reorder sort states
+		if(colIndex &lt; 0 &amp;&amp; !field) {
+			return null;
+		}
 		if (!curState) {
 			// TODO: Sort state object should not be sortOptions
 			curState = this._newSortOptions(colIndex); // This may come with sortLogic
 		}
-		
+		if(colIndex &lt; 0) {
+			curState["field"] = field;
+		}
+
 		this._sortStates.push(curState); // Latest sorting have lowest priority (multiColumn sorting)
 	}
-	
+
 	if (curState) { // Update current state
 		if(curOrder !== "n") {
 			curState["prevOrder"] = curOrder; // For backward compatibility
@@ -1381,7 +1409,7 @@ tr.grid.SortableTitlePlugin.prototype._preSortColumn = function (colIndex, sortO
 
 	return { // TODO: Refactor this code as it is only used by "columnSorted" event (unnecessarily complex).
 		"colIndex": colIndex,
-		"sortedField": sortingField,
+		"sortedField": field,
 		"sortOrder": nextOrder || "n",
 		"prevOrder": curOrder,
 		"clearedSortColIndexes": clearedSortColIndexes
@@ -1389,7 +1417,7 @@ tr.grid.SortableTitlePlugin.prototype._preSortColumn = function (colIndex, sortO
 };
 
 /** @private
-* @param {Array.&lt;Object&gt;} states States from _preSortColumn for dispatching columnSorted event.
+* @param {Array.&lt;Object&gt;} states States from _prepareSorting for dispatching columnSorted event.
 * @param {Object=} opt_arg Event argument to be sent with preDataSorting event
 * @fires tr.grid.SortableTitlePlugin#preDataSorting
 * @fires tr.grid.SortableTitlePlugin#columnSorted
@@ -1493,7 +1521,7 @@ tr.grid.SortableTitlePlugin.prototype._sortDataView = function (opt_action) {
 		sortLogics = new Array(sortCount);
 		for (var i = 0; i &lt; sortCount; ++i) {
 			orders[i] = this._sortStates[i]["sortOrder"];
-			sortLogics[i] = this._sortStates[i]["sortLogic"];
+			sortLogics[i] = this._sortStates[i]["sortLogic"]; // sortLogic can be null
 		}
 		if(this._rowDefMode) { // DataView in real-time grid has only ROW_DEF column
 			c_ref = this._sortStates.map(tr.grid.SortableTitlePlugin._toRowDefField);
@@ -1575,7 +1603,7 @@ tr.grid.SortableTitlePlugin.prototype._updateSortableIndicator = function (hostI
 
 			cell["addClass"]("sortable");
 
-			var priority = t._getColumnSortingStatePriority(col);
+			var priority = t.getSortPriority(col);
 			var state = t._sortStates[priority];
 
 			var isSorting = state &amp;&amp; state["sortOrder"] !== "n";
@@ -1646,14 +1674,37 @@ tr.grid.SortableTitlePlugin.prototype._createIconElem = function (icon, fallback
 };
 
 /** @private
- * @param {number} colIndex
-* @return {number} -1 means not found
+* @param {Object} sortOptions
+* @return {number}
 */
-tr.grid.SortableTitlePlugin.prototype._getColumnSortingStatePriority = function (colIndex) {
-	var t = this;
-	for (var i = t._sortStates.length; --i &gt;= 0;) {
-		var col = t.getSortedColumnIndex(i);
-		if (col === colIndex) return i;
+tr.grid.SortableTitlePlugin.prototype._getColumnIndexByOptions = function (sortOptions) {
+	if(sortOptions) {
+		var host = this._hosts[0];
+		var colCount = host ? host.getColumnCount() : 0;
+		for (var c = 0; c &lt; colCount; ++c) {
+			var colData = host.getColumnData(c); // Equivalent to _getSortOptions() method
+			if (colData) {
+				if(sortOptions === colData["sortableTitle"]) {
+					return c;
+				}
+			}
+		}
+	}
+	return -1;
+};
+/** @private
+* @param {string} field
+* @return {number}
+*/
+tr.grid.SortableTitlePlugin.prototype._getColumnIndexByField = function (field) {
+	if(field) {
+		var host = this._hosts[0];
+		var colCount = host ? host.getColumnCount() : 0;
+		for (var c = 0; c &lt; colCount; ++c) {
+			if(field === this.getColumnSortingField(c)) {
+				return c;
+			}
+		}
 	}
 	return -1;
 };
@@ -1680,10 +1731,7 @@ tr.grid.SortableTitlePlugin.prototype._newSortOptions = function (colIndex) {
 	var host = this._hosts[0];
 	var sortOptions = null;
 	if (host &amp;&amp; colIndex &gt;= 0) {
-		var colData = host.getColumnData(colIndex);
-		if (!colData) {
-			colData = host.setColumnData(colIndex, {});
-		}
+		var colData = host.getColumnData(colIndex); // colData is guaranteed to exist
 		sortOptions = colData["sortableTitle"];
 		if (!sortOptions) {
 			sortOptions = colData["sortableTitle"] = {};
@@ -1756,6 +1804,7 @@ goog.exportSymbol("tr.grid.SortableTitlePlugin", tr.grid.SortableTitlePlugin);
 		"isColumnSorted": pt.isColumnSorted,
 		"getSortPriority": pt.getSortPriority,
 		"getSortedColumns": pt.getSortedColumns,
+		"isSorting": pt.isSorting,
 		"getSortingStates": pt.getSortingStates,
 		"updateSortSymbols": pt.updateSortSymbols,
 

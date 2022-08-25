@@ -56,6 +56,7 @@
 	- [Auto Tooltip](extensions/tr-grid-auto-tooltip.md)
 	- [Cell Selection](extensions/tr-grid-cell-selection.md)
 	- [Checkbox Column](extensions/tr-grid-checkbox.md)
+	- [Column Dragging](extensions/column-dragging.md)
 	- [Column Fitter](extensions/tr-grid-column-fitter.md)
 	- [Column Formatting](extensions/tr-grid-column-formatting.md)
 	- [Column Grouping](extensions/tr-grid-column-grouping.md)

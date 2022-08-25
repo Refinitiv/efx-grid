@@ -429,6 +429,33 @@ tr.grid.TrackLayout.prototype.setLaneSize = function (index, val) {
 
 /** @public
 * @param {number} index
+* @param {string} propName
+* @param {*} val
+* @return {boolean}
+*/
+tr.grid.TrackLayout.prototype.setLaneProperty = function (index, propName, val) {
+	if (index &lt; 0 || index &gt;= this._laneCount) { return false; }
+
+	var col = this._cols[index];
+	if (col == null || col[propName] !== val) {
+		col = this._newColumn(index);
+		col[propName] = val;
+		return true;
+	}
+
+	return false;
+};
+/** @public
+* @param {number} index
+* @param {string} propName
+* @return {*}
+*/
+tr.grid.TrackLayout.prototype.getLaneProperty = function (index, propName) {
+	var col = this._cols[index];
+	return (col &amp;&amp; col[propName] != null) ? col[propName] : null;
+};
+/** @public
+* @param {number} index
 * @return {number}
 */
 tr.grid.TrackLayout.prototype.getMinimumLaneSize = function (index) {

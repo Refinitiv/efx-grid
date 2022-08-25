@@ -281,16 +281,19 @@ tr.DataTable.prototype.setRowData = function(rid, values, eventArg) { // Data ch
 	}
 
 	if(dirty &amp;&amp; this._needFiring()) {
-		this._autoFillSegments();
-		var e = eventArg || {};
-		e["rid"] = rid;
-		e["changes"] = values; // WARNING: External user data is passed along
-		e["rowData"] = row;
-		e["type"] = type;
-		if(segmentChanged) {
-			e["segmentChanged"] = true;
+		if(this._autoFillSegments()) {
+			this.dispatchGlobalChange();
+		} else {
+			var e = eventArg || {};
+			e["rid"] = rid;
+			e["changes"] = values; // WARNING: External user data is passed along
+			e["rowData"] = row;
+			e["type"] = type;
+			if(segmentChanged) {
+				e["segmentChanged"] = true;
+			}
+			this._dispatchDataChange(e);
 		}
-		this._dispatchDataChange(e);
 	}
 	return dirty;
 };
@@ -897,6 +900,7 @@ tr.DataTable.prototype.isFrozen = function() {
 */
 tr.DataTable.prototype.setSegmentSeparator = function(rid, enabled) {
 	var change = false;
+	var memberCount = 0;
 	if(typeof rid === "string") {
 		if(enabled !== false) {
 			if(!this._segments) {
@@ -906,16 +910,20 @@ tr.DataTable.prototype.setSegmentSeparator = function(rid, enabled) {
 				change = true;
 			}
 		} else if(this._segments) {
-			if(this._segments.removeSegment(rid)) {
-				change = true;
-				if(!this._segments.getSegmentCount()) {
-					this._segments = null;
+			var segment = this._segments.getSegment(rid);
+			if(segment) {
+				memberCount = segment.getChildCount();
+				if(this._segments.removeSegment(rid)) {
+					change = true;
+					if(!this._segments.getSegmentCount()) {
+						this._segments = null;
+					}
 				}
 			}
 		}
 	}
 	if(change &amp;&amp; this._needFiring()) {
-		if(this._autoFillSegments()) {
+		if(this._autoFillSegments() || memberCount) {
 			this.dispatchGlobalChange();
 		} else {
 			var rowData = this._rows[rid] || null;
@@ -1027,13 +1035,14 @@ tr.DataTable.prototype._autoFillSegments = function() {
 	}
 	return false;
 };
-/** Remove existing segment children and fill the segments with all contnet rows before the next segment separator
+/** Remove existing segment children and fill the segments with all content rows before the next segment separator
 * @public
 * @param {string} segmentId Row id
 */
 tr.DataTable.prototype.fillSegment = function(segmentId) {
 	if(this._segments) {
 		this._segments.fillSegment(segmentId, this._rids);
+		this.dispatchGlobalChange();
 	}
 };
 /** Remove all existing segment children in each segment and fill the segments with all contnet rows before the next segment separator
@@ -1042,7 +1051,11 @@ tr.DataTable.prototype.fillSegment = function(segmentId) {
 */
 tr.DataTable.prototype.fillSegments = function() {
 	if(this._segments) {
-		return this._segments.fillSegments(this._rids);
+		var dirty = this._segments.fillSegments(this._rids);
+		if(dirty) {
+			this.dispatchGlobalChange();
+		}
+		return dirty;
 	}
 	return false;
 };
@@ -1087,7 +1100,11 @@ tr.DataTable.prototype.addSegmentChildren = function(segmentId, rids) {
 */
 tr.DataTable.prototype.removeSegmentChild = function(segmentId, rid) {
 	if(this._segments) {
-		return this._segments.removeSegmentChild(segmentId, rid);
+		var dirty = this._segments.removeSegmentChild(segmentId, rid);
+		if(dirty) {
+			this.dispatchGlobalChange();
+		}
+		return dirty;
 	}
 	return false;
 };
@@ -1098,7 +1115,11 @@ tr.DataTable.prototype.removeSegmentChild = function(segmentId, rid) {
 */
 tr.DataTable.prototype.removeSegmentChildren = function(segmentId, rids) {
 	if(this._segments) {
-		return this._segments.removeSegmentChildren(segmentId, rids);
+		var dirty = this._segments.removeSegmentChildren(segmentId, rids);
+		if(dirty) {
+			this.dispatchGlobalChange();
+		}
+		return dirty;
 	}
 	return false;
 };
@@ -1107,7 +1128,11 @@ tr.DataTable.prototype.removeSegmentChildren = function(segmentId, rids) {
 */
 tr.DataTable.prototype.removeAllSegmentChildren = function() {
 	if(this._segments) {
-		return this._segments.removeAllSegmentChildren();
+		var dirty = this._segments.removeAllSegmentChildren();
+		if (dirty) {
+			this.dispatchGlobalChange();
+		}
+		return dirty;
 	}
 	return false;
 };

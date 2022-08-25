@@ -561,6 +561,22 @@ tr.LayoutGrid.prototype._setColumnWidth = function (indexX, val) {
 tr.LayoutGrid.prototype._updateColumnLayout = function () {
 	this._syncLayoutToColumns(0);
 };
+/** @public
+ * @ignore
+ * @param {boolean} enabled
+ * @param {number=} fromR
+ * @param {number=} toR
+ */
+tr.LayoutGrid.prototype._startBindingSession = function (enabled, fromR, toR) {
+	// Prevent error when calling _startBindingSession in LayoutGrid
+};
+/** @public
+ * @ignore
+ * @return {Array&lt;boolean&gt;}
+ */
+tr.LayoutGrid.prototype._getTempRowHeights = function () {
+	return null;
+};
 
 /**
  * {@link tr.ILayoutGrid#getRowHeight}
@@ -1401,6 +1417,11 @@ tr.LayoutGrid.prototype.setRowHighlight = function (rowIndex) {
 			this._highlightedCells[c] = cell;
 			cell.addClass("highlighted-row");
 		}
+		var stretchEl = this.getStretchedCell(rowIndex); // check stretched cell
+		if(stretchEl) {
+			this._highlightedCells.push(stretchEl);
+			stretchEl.addClass("highlighted-row");
+		}
 	} else {
 		this._highlightedCells.length = 0;
 	}
@@ -1686,6 +1707,7 @@ tr.LayoutGrid.prototype.insertColumn = function (index, opt_json) {
 				cell.addClass("selected-row");
 			}
 		}
+		// TODO: Check if it can insert column with stretch cell
 	}
 
 	column.activate(atTheMiddle || !this._colVir);
@@ -1917,6 +1939,10 @@ tr.LayoutGrid.prototype.stretchCell = function (cellRef, rowIndex, opt_stretchin
 	} else {
 		cell = this._stretchedCells.unstretchCell(rowIndex);
 	}
+	if(cell) {
+		var selected = this._selectionList.getSelection(rowIndex);
+		cell.enableClass("selected-row", selected); // It's can enable class without get stretch cell again.
+	}
 	return cell;
 };
 
@@ -1995,6 +2021,19 @@ tr.LayoutGrid.prototype._calculateViewSize = function (forceRecal) {
 	}
 	return stretchSize;
 };
+/**
+* @private
+* @param {number} rowIndex
+* @param {string} className
+* @param {boolean} enabled
+*/
+tr.LayoutGrid.prototype._enableStretchCellClass = function (rowIndex, className, enabled ) {
+	var stretchEl = this.getStretchedCell(rowIndex); // check stretched cell
+	if(stretchEl) {
+		stretchEl.enableClass(className, enabled);
+	}
+};
+
 /** View size is width of container (Grid's pane) or content (LayoutGrid's columns), whichever is smaller.
 * @public
 * @ignore
@@ -2676,11 +2715,15 @@ tr.LayoutGrid.prototype._updateCellSpans = function (cellSpans, adding) {
  */
 tr.LayoutGrid.prototype._onMouseMove = function (e) {
 	var target = e["target"];
-	var colElement = tr.closestElement(target, "column");
-	var colIndex = this.getColumnIndex(colElement);
-	var cellElement = (colIndex &gt;= 0) ? tr.closestElement(target, "cell") : null;
+	var cellElement = tr.closestElement(target, "cell");
+	var colIndex = this._stretchedCells.getColumnIndex(cellElement);
+	if(colIndex &lt; 0) { // Not found colIndex in stretching cell, then get from normal row
+		var colElement = tr.closestElement(target, "column");
+		colIndex =	this.getColumnIndex(colElement);
+	}
+	var rowIndex = this.getCellIndex(colIndex, cellElement);
 
-	this.setRowHighlight(this.getCellIndex(colIndex, cellElement));
+	this.setRowHighlight(rowIndex);
 };
 
 /**
@@ -2711,27 +2754,16 @@ tr.LayoutGrid.prototype._onMouseOut = function (e) {
  */
 tr.LayoutGrid.prototype._updateSelectionUI = function (rowIndex) { // Update UI of the specified row index
 	var selected = this._selectionList.getSelection(rowIndex);
-
-	for (var c = 0; c &lt; this._colCount; ++c) {
-		var cell = this._columns[c].getCell(rowIndex);
-
-		if (cell) {
-			cell.enableClass("selected-row", selected);
-		}
-	}
+	this._enableStretchCellClass(rowIndex, "selected-row", selected);
+	this.enableRowClass(rowIndex, "selected-row", selected);
 };
 
 /** @private
 * @param {number} rowIndex
 */
 tr.LayoutGrid.prototype._addSelectionUI = function (rowIndex) {
-	for (var c = 0; c &lt; this._colCount; ++c) {
-		var cell = this._columns[c].getCell(rowIndex);
-
-		if (cell) {
-			cell.addClass("selected-row");
-		}
-	}
+	this._enableStretchCellClass(rowIndex, "selected-row", true);
+	this.enableRowClass(rowIndex, "selected-row", true);
 };
 
 /**
@@ -2739,13 +2771,8 @@ tr.LayoutGrid.prototype._addSelectionUI = function (rowIndex) {
  * @param {number} rowIndex
  */
 tr.LayoutGrid.prototype._removeSelectionUI = function (rowIndex) {
-	for (var c = 0; c &lt; this._colCount; ++c) {
-		var cell = this._columns[c].getCell(rowIndex);
-
-		if (cell) {
-			cell.removeClass("selected-row");
-		}
-	}
+	this._enableStretchCellClass(rowIndex, "selected-row", false);
+	this.enableRowClass(rowIndex, "selected-row", false);
 };
 
 /**

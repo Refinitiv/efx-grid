@@ -29,7 +29,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="f318f4d5-7a19-495a-9b0f-3f42f68f519a">
+        <pandora-nav id="5be4613e-279d-410b-9f39-618828e433f8">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -100,6 +100,7 @@
                 <li><a href="../extensions/tr-grid-auto-tooltip.html">Auto Tooltip</a></li>
                 <li><a href="../extensions/tr-grid-cell-selection.html">Cell Selection</a></li>
                 <li><a href="../extensions/tr-grid-checkbox.html">Checkbox Column</a></li>
+                <li><a href="../extensions/column-dragging.html">Column Dragging</a></li>
                 <li><a href="../extensions/tr-grid-column-fitter.html">Column Fitter</a></li>
                 <li><a href="../extensions/tr-grid-column-formatting.html">Column Formatting</a></li>
                 <li><a href="../extensions/tr-grid-column-grouping.html">Column Grouping</a></li>
@@ -274,7 +275,7 @@
             <h2 id="column-stack"><a href="https://refinitiv.github.io/efx-grid/book/en/extensions/tr-grid-column-stack.html" target="_top" class="link-icon"></a> Column Stack</h2>
             <p>The Column Stack Extension is an extension that provides a single representative column that can switch to another stacked column.</p>
 
-            <div class="pandora-code-viewer" id="pid-23">
+            <div class="pandora-code-viewer" id="pid-25">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -384,6 +385,7 @@ popupMenu.addEventListener("item-trigger", function(e) {
               <link rel="prefetch" href="../node_modules/tr-grid-auto-tooltip/dist/tr-grid-auto-tooltip.min.js" type="script">
               <link rel="prefetch" href="../node_modules/tr-grid-cell-selection/dist/tr-grid-cell-selection.min.js" type="script">
               <link rel="prefetch" href="../node_modules/tr-grid-checkbox/dist/tr-grid-checkbox.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/column-dragging/dist/column-dragging.min.js" type="script">
               <link rel="prefetch" href="../node_modules/tr-grid-column-fitter/dist/tr-grid-column-fitter.min.js" type="script">
               <link rel="prefetch" href="../node_modules/tr-grid-column-formatting/dist/tr-grid-column-formatting.min.js" type="script">
               <link rel="prefetch" href="../node_modules/tr-grid-column-grouping/dist/tr-grid-column-grouping.min.js" type="script">
@@ -497,6 +499,32 @@ popupMenu.addEventListener("item-trigger", function(e) {
                               <td class="type"> <span class="param-type">string</span> | <span class="param-type">StackOptions</span> </td>
                               <td class="attributes"> &lt;optional&gt;<br> </td>
                               <td class="description last">Group ID or StackOptions object</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div class="details"> </div>
+                    </div>
+                    <div class="item">
+                      <div class="item-type">typedef</div>
+                      <h4 class="name" id="~Options">Options</h4>
+                      <div class="description"> Available options describing `columnStack` object specified in grid's option</div>
+                      <h5>Type:</h5> <span class="param-type">Object</span>
+                      <h5>Properties:</h5>
+                      <div class="props">
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>Name</th>
+                              <th>Type</th>
+                              <th class="last">Description</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td class="name"><code>fields</code></td>
+                              <td class="type"> <span class="param-type">Array.&lt;string&gt;</span> </td>
+                              <td class="description last">Fields for stacking. The minimum is 2 fields.</td>
                             </tr>
                           </tbody>
                         </table>
@@ -837,7 +865,7 @@ popupMenu.addEventListener("item-trigger", function(e) {
                     <div class="item">
                       <div class="item-type">function</div>
                       <h4 class="name" id="setStack"><span class="type-signature"></span>setStack<span class="signature">(colRefs)</span><span class="type-signature"> → {boolean}</span></h4>
-                      <div class="description"> Remove all stacking from the grid and replace it with a new one </div>
+                      <div class="description"> Remove all stacking from the grid and replace it with a new one. The stacked fields are kept persistently in Grid. While adding columns Grid will try to restore stacking if there are at least 2 visible columns which are corresponding to the kept fields. </div>
                       <h5>Parameters:</h5>
                       <div class="params">
                         <div class="param">
@@ -853,14 +881,14 @@ popupMenu.addEventListener("item-trigger", function(e) {
                     </div>
                     <div class="item">
                       <div class="item-type">function</div>
-                      <h4 class="name" id="stackColumns"><span class="type-signature"></span>stackColumns<span class="signature">(colIndices<span class="signature-attributes">opt</span>, stackId<span class="signature-attributes">opt</span>, options<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {boolean}</span></h4>
+                      <h4 class="name" id="stackColumns"><span class="type-signature"></span>stackColumns<span class="signature">(colRefs<span class="signature-attributes">opt</span>, stackId<span class="signature-attributes">opt</span>, options<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {boolean}</span></h4>
                       <h5>Parameters:</h5>
                       <div class="params">
                         <div class="param">
-                          <div class="name">colIndices</div>
-                          <div class="type"> <span class="param-type">Array.&lt;number&gt;</span> </div>
+                          <div class="name">colRefs</div>
+                          <div class="type"> <span class="param-type">Array.&lt;(number|string)&gt;</span> </div>
                           <div class="attributes"> &lt;optional&gt; </div>
-                          <div class="description"> Selected columns will be used, if it is not given </div>
+                          <div class="description"> Names of fields or column indices. If not specified, selected columns will be used. </div>
                         </div>
                         <div class="param">
                           <div class="name">stackId</div>

@@ -38,10 +38,10 @@ import SnapshotFiller from "./SnapshotFiller.js";
 import StyleLoader from "./StyleLoader.js";
 import FieldDefinition from "./FieldDefinition.js";
 import DataConnector from "./DataConnector.js";
+import RowDefSorter from "./RowDefSorter.js";
 
 import { Core } from "../../node_modules/@grid/core/es6/grid/Core.js";
 import { SortableTitlePlugin } from "../../node_modules/@grid/core/es6/grid/plugins/SortableTitlePlugin.js";
-import { DragAndDropTitlePlugin } from "../../node_modules/@grid/core/es6/grid/plugins/DragAndDropTitlePlugin.js";
 import { DataCache } from "../../node_modules/@grid/core/es6/data/DataCache.js";
 import { DataTable } from "../../node_modules/@grid/core/es6/data/DataTable.js";
 import { DataView } from "../../node_modules/@grid/core/es6/data/DataView.js";
@@ -96,9 +96,11 @@ import { ElementWrapper } from "../../node_modules/@grid/core/es6/grid/component
 * @property {number=} dataConflationRate=0 set delay for data to avoid to much sorting operation when data changed
 * @property {Function=} dataComposed Handler for dataComposed event
 * @property {boolean=} autoDateConversion=false If enabled, date-time field with numeric value will be automatically converted to native date object.
-* @property {boolean=} textSelect=false If enabled, user can select text
+* @property {boolean=} textSelect=false If enabled, user can select content text by using mouse drag.
 * @property {string=} lang laguage for config localization date time, if null the default language is "en"
 * @property {Element=} scrollbarParent=null Element to be attached by grid's scrollbars, allowing them to move outside and avoid overlapping with the content.
+* @property {boolean=} formulaEngine=false If enabled, field with leading equal sign will be treated as a formula and rows will be filled with the calculated values.
+* @property {number=} adcPollingInterval=0 Length of polling interval for refreshing ADC data in milliseconds. The default value (0) means no polling.
 */
 
 /** @typedef {number|string|RowDefinition} Grid~RowReference
@@ -284,6 +286,7 @@ var Grid = function(placeholder, config) {
 	t._onFieldLoadedError = t._onFieldLoadedError.bind(t);
 
 	t._snapshotFillerDataChanged = t._snapshotFillerDataChanged.bind(t);
+	t._onPollingInterval = t._onPollingInterval.bind(t);
 
 	t._streamingConflator = new Conflator(50, t._updateStreamingData);
 	t._formulaConflator = new Conflator(300, t._onFormulaDataChanged);
@@ -297,6 +300,12 @@ var Grid = function(placeholder, config) {
 	t._grid = new Core();
 	t._grid._wrapper = this; // For back referencing
 
+	t._sorter = new RowDefSorter();
+	t._sorter.setContext("grid", this);
+	t._sorter.setContext("core", t._grid); // TODO: Handle multiple core grids
+
+	t._dateTimeUtil = DateTime;
+
 	t._grid.listen("columnAdded", t._onColumnAdded); // Columns could be added by some plugins
 
 	if(config) {
@@ -308,20 +317,15 @@ var Grid = function(placeholder, config) {
 
 			var core = t._mainGrid.getCoreGrid();
 			t._stp = core.getPlugin("SortableTitlePlugin");
-			t._dtp = core.getPlugin("DragAndDropTitlePlugin");
 		}
 		if(config["SortableTitle"]) { // Exception for built-in plugin
 			t._stp = config["SortableTitle"];
-		}
-		if(config["DragAndDropTitle"]) { // Exception for built-in plugin
-			t._dtp = config["DragAndDropTitle"];
 		}
 	}
 	if(!t._sharedDataSource) {
 		t._dc = new DataCache();
 		t._dc.listen("dataChanged", t._onDataChanged);
 		t._dc.listen("dataComposed", t._onDataComposed);
-		t._dc.listen("dataComposed", t._recalculateFormulas); // This will be called after _onDataComposed
 
 		t._dt = new DataTable();
 		t._dt.setSortingLogic(/** @type{Function} */(t._mainSorter));
@@ -329,8 +333,11 @@ var Grid = function(placeholder, config) {
 		t._dv.listen("pageIndexChanged", t._dispatch.bind(t, "pageIndexChanged"));
 		t._dv.listen("pageCountChanged", t._dispatch.bind(t, "pageCountChanged")); // TODO: When implementing filtered row, it may need to implement the conflator
 	}
+	t._grid.setDataSource(t._dv); // Avoid triggering sorting
+
 	if(t._stp) {
-		this._sharedSorter = true;
+		t._sharedSorter = true;
+		t._stp.listen("preDataSorting", t._onPreDataSorting);
 		t._grid.loadPlugin(t._stp); // The plugin instance is shared and don't need to be reconfigured.
 	} else { // Create built-in plugin
 		t._stp = new SortableTitlePlugin({
@@ -346,10 +353,6 @@ var Grid = function(placeholder, config) {
 		// beforeInit is not called.
 		t._grid.loadPlugin(t._stp, config);
 	}
-	if(!t._dtp) { // Create built-in plugin
-		t._dtp = new DragAndDropTitlePlugin();
-	}
-	t._grid.loadPlugin(t._dtp);
 
 	t._grid.listen("preSectionRender", t._onColumnHeaderBinding);
 	t._grid.listen("postSectionDataBinding", t._onPostSectionDataBinding);
@@ -357,7 +360,6 @@ var Grid = function(placeholder, config) {
 	t._grid.enableRowHighlighting(true);
 
 	t._addGridSections();
-	t._grid.setDataSource(t._dv);
 	t._grid.setParent(t._topNode);
 
 	t._snapshot = new SnapshotFiller();
@@ -369,10 +371,6 @@ var Grid = function(placeholder, config) {
 	t._connector.addEventListener("ricRemoved", t._onRicRemoved.bind(t));
 	t._connector.addEventListener("fieldAdded", t._onFieldAdded.bind(t));
 	t._connector.addEventListener("fieldRemoved", t._onFieldRemoved.bind(t));
-
-	t._fnEngine = new Engine();
-	t._fnEngine.addEventListener("dataChanged", t._onFormulaDataChanged);
-	t._fnEngine.addEventListener("dataRequired", t._onFormulaDataRequired);
 
 	t.initialize(config);
 	t.initSubscription();
@@ -427,10 +425,6 @@ Grid.prototype._subs = null;
  * @private
  */
 Grid.prototype._stp = null;
-/** @type {DragAndDropTitlePlugin}
-* @private
-*/
-Grid.prototype._dtp = null;
 /** @type {Function}
  * @private
  */
@@ -448,6 +442,10 @@ Grid.prototype._snapshot = null;
 * @type {DataConnector}
 */
 Grid.prototype._connector = null;
+/** @private
+* @type {RowDefSorter}
+*/
+Grid.prototype._sorter = null;
 
 /** @private
 * @type {Engine}
@@ -466,10 +464,6 @@ Grid.prototype._chainMembers = null;
 * @type {Conflator}
 */
 Grid.prototype._chainConflator = null;
-/** @private
-* @type {boolean}
-*/
-Grid.prototype._hasGroup = false;
 /** @private
 * @type {number}
 */
@@ -499,15 +493,34 @@ Grid.prototype._autoDateConversion = false;
 * @type {boolean}
 */
 Grid.prototype._textSelect = false;
-/** @private
-* @type {string}
+/** @type {string}
+* @private
 */
 Grid.prototype._lang = null;
-/**
+/** @type {Object}
 * @private
-* @type {boolean}
+*/
+Grid.prototype._dateTimeUtil = null;
+/** @type {boolean}
+* @private
 */
 Grid.prototype._initializing = false;
+/** @type {number}
+* @private
+*/
+Grid.prototype._pollingInterval = 0;
+/** @type {number}
+* @private
+*/
+Grid.prototype._pollingTimerId = 0;
+/** @type {number}
+* @private
+*/
+Grid.prototype._lastPollingRequest = 0;
+/** @type {boolean}
+* @private
+*/
+Grid.prototype._pollingEnabled = true;
 
 
 /** @public
@@ -518,8 +531,13 @@ Grid.prototype.dispose = function() {
 		clearInterval(this._autoLayoutTimer);
 		this._autoLayoutTimer = 0;
 	}
+	if(this._pollingTimerId) {
+		clearTimeout(this._pollingTimerId);
+		this._pollingTimerId = 0;
+	}
 	this.removeAllColumns(); // Some conflators are reset
 	this.removeAllRows(); // Some conflators are reset
+	this._sorter.dispose();
 	this._grid.dispose();
 	this._connector.reset();
 
@@ -745,6 +763,12 @@ Grid.prototype.initialize = function(gridOption) {
 		StyleLoader.chainIcon = gridOption["icons"]["rowGrouping"]["expander"];
 	}
 
+	if(gridOption["formulaEngine"]) {
+		t._fnEngine = new Engine();
+		t._fnEngine.addEventListener("dataChanged", t._onFormulaDataChanged);
+		t._fnEngine.addEventListener("dataRequired", t._onFormulaDataRequired);
+	}
+
 	var borders = gridOption["borders"];
 	if (borders != null) {
 		grid.toggleBorders(borders);
@@ -773,14 +797,6 @@ Grid.prototype.initialize = function(gridOption) {
 	var hRowHeight = +gridOption["headerRowHeight"];
 	if(hRowHeight) { // Non empty or zero
 		grid.getSection("title").setDefaultRowHeight(hRowHeight);
-	}
-
-	var noColumnDragging = gridOption["noColumnDragging"];
-	if (noColumnDragging == null &amp;&amp; gridOption["columnReorder"] != null) {
-		noColumnDragging = !gridOption["columnReorder"];
-	}
-	if (noColumnDragging) {
-		t._dtp.disable();
 	}
 
 	var val = gridOption["autoLayoutUpdate"];
@@ -821,6 +837,10 @@ Grid.prototype.initialize = function(gridOption) {
 	}
 	if(gridOption["scrollbarParent"] != null) {
 		t._setScrollbarParent(gridOption["scrollbarParent"]);
+	}
+	var pollingInterval = gridOption["adcPollingInterval"];
+	if(pollingInterval != null) {
+		t._pollingInterval = pollingInterval ? +pollingInterval : 0;
 	}
 
 	// Column operations
@@ -896,7 +916,7 @@ Grid.prototype.initialize = function(gridOption) {
 	var lang = gridOption["lang"];
 	if(lang != null) {
 		t._lang = lang;
-		DateTime.setLocale(lang);
+		t._dateTimeUtil.setLocale(lang);
 	}
 
 	// Row operations
@@ -1036,12 +1056,18 @@ Grid.prototype.getConfigObject = function (gridOptions) {
 		obj["autoDateConversion"] = true;
 	}
 
-	if (this._textSelect) {
+	if(this._textSelect) {
 		obj["textSelect"] = true;
 	}
 
-	if (this._lang) {
+	if(this._lang) {
 		obj["lang"] = this._lang;
+	}
+	if(this._fnEngine) {
+		obj["formulaEngine"] = true;
+	}
+	if(this._pollingInterval) {
+		obj["adcPollingInterval"] = this._pollingInterval;
 	}
 
 	// get all rows config
@@ -1078,7 +1104,6 @@ Grid.prototype.getConfigObject = function (gridOptions) {
 	}
 
 	// TODO: The following states need to be retrieved
-	// noColumnDragging
 	// rowHighlighting
 	// columnVirtualization
 	// topFreezingCount, bottomFreezingCount
@@ -1087,6 +1112,27 @@ Grid.prototype.getConfigObject = function (gridOptions) {
 	// NOTE: no need to export synapseApiKey and RTK
 
 	return obj;
+};
+
+/** @public
+* @ignore
+* @param {Object} dateTimeUtil
+*/
+Grid.prototype.setDateTimeUtil = function(dateTimeUtil) {
+	if(this._dateTimeUtil !== dateTimeUtil) {
+		this._dateTimeUtil = dateTimeUtil;
+		this._dateTimeUtil.setLocale(this._lang);
+	}
+};
+/** @public
+* @param {string} lang
+*/
+Grid.prototype.setLocale = function(lang) {
+	if(lang &amp;&amp; this._lang !== lang) {
+		this._lang = lang;
+		this._dateTimeUtil.setLocale(lang);
+		this._grid.requestRowRefresh();
+	}
 };
 
 /** @private
@@ -1194,10 +1240,6 @@ Grid.prototype._onFieldRemoved = function(e) {
 * @param {number=} idx
 */
 Grid.prototype.insertColumn = function (columnOption, idx) {
-	if (typeof columnOption === "string") {
-		columnOption = { field: columnOption };
-	}
-
 	var colCount = this.getColumnCount();
 	if(idx == null || idx &gt; colCount) {
 		idx = colCount;
@@ -1205,16 +1247,26 @@ Grid.prototype.insertColumn = function (columnOption, idx) {
 
 	// no need to merge defaultColumn during initialize process
 	// because columnOption already mutate by initialize function
-	var userOptions = (this._initializing) ? {} : cloneObject(this._defaultColumnOptions);
-	Grid._objectAssign(userOptions, columnOption);
-	userOptions["formulaEngine"] = this._fnEngine; // Adding extra option
+	var configObj = (this._initializing) ? {} : cloneObject(this._defaultColumnOptions);
 
-	var colDef = new ColumnDefinition(userOptions, this);
-	userOptions[COL_DEF] = colDef;
+	if (typeof columnOption === "string") {
+		configObj["field"] = columnOption;
+	} else { // columnOption is assumed to be an object
+		for (var key in columnOption) {
+			configObj[key] = columnOption[key];
+		}
+	}
+
+	if(this._fnEngine) {
+		configObj["formulaEngine"] = this._fnEngine; // Adding extra option
+	}
+
+	var colDef = new ColumnDefinition(configObj, this);
+	configObj[COL_DEF] = colDef;
 
 	// WARNING: width is processed twice by tr-grid and rt-grid
 	// Inserting column also initializes prefined formatter
-	this._grid.insertColumn(idx, userOptions); // columnAdded is fired
+	this._grid.insertColumn(idx, configObj); // columnAdded is fired
 };
 
 
@@ -1682,6 +1734,11 @@ Grid.prototype.removeDataFields = function(fieldRef, referrer) {
 * @param {string=} opt_order This can be "ascending", "descending", "none", "noOrder", or "originalOrder"
 */
 Grid.prototype.sortColumn = function(colRef, opt_order) {
+	if(typeof colRef === "string") {
+		this._stp.sortColumn(colRef, opt_order); // Allow sorting by field
+		return;
+	}
+
 	var colIndex = this.getColumnIndex(colRef);
 	if(colIndex &lt; 0) {
 		this._stp.sortColumn(this.getSortedColumnIndex(), "n"); // reset current sorting
@@ -1782,9 +1839,9 @@ Grid.prototype.setColumnSorter = function(colRef, func) {
 	if(colDef) {
 		colDef.setSorter(func);
 
-		var sortedColumn = this.getSortedColumnIndex();
+		var sortedColumn = this.getSortedColumnIndex(); // TODO: Support multi-column sorting
 		if(sortedColumn === colIndex) {
-			this._columnSorter = colDef.getSorter();
+			this._stp.refresh();
 		}
 	}
 };
@@ -1826,9 +1883,6 @@ Grid.prototype.insertRow = function(rowOption, rowRef) {
 	var rowDef = new RowDefinition(rowOption);
 	rowDef.setDataSource(this._dc); // This could also subscribe chain index/ric to JET/RTK
 	this._initDuplicateRicData(rowDef);
-	if(rowDef.isFixedPosition()) {
-		this._hasGroup = true; // HACK: This is temporary solution
-	}
 
 	rowDef.registerToView(this._dv, this._getRowId(rowRef));
 	if(rowOption &amp;&amp; rowOption["hidden"]) {
@@ -1873,7 +1927,6 @@ Grid.prototype.insertRows = function(rowOptions, rowRef, opt_fields) {
 		}
 		this.insertRow(rowOption, rowId); // Note that data view is being frozen, so only using row id will work properly
 	}
-	this._updateGroupOrder(); // TODO: Update group order for all scenarios
 	this._dt.freeze(prevState);
 };
 /** Add multiple rows without `ric` property in {@link RowDefinition}
@@ -2646,7 +2699,7 @@ Grid.prototype.updateColumnTitle = function() {
 * @return {boolean}
 */
 Grid.prototype.isSorting = function() {
-	return this.getSortedColumnIndex() &gt;= 0;
+	return this._stp.isSorting();
 };
 /** @public
 * @return {number}
@@ -2663,7 +2716,7 @@ Grid.prototype.getSortOrder = function() {
 /** @public
 */
 Grid.prototype.clearSort = function() {
-	this._stp.clearSortState();
+	this._stp.clearSortState(); // WARNING: No event is dispatched
 };
 
 /** @private
@@ -2761,43 +2814,38 @@ Grid.prototype._updateStreamingData = function() {
 		this._dt.dispatchGlobalChange();
 	}
 };
-/** @private
-*/
-Grid.prototype._updateGroupOrder = function() {
-	if(!this._hasGroup) { return; }
-	// TODO: Perform re-indexing of the data table, so that both data table and data view has the same index
-	// if(this.isSorting()) {
-	// this._dt.sortOnce(ROW_DEF, this.getSortOrder());
-	// }
-	var rowCount = this._dt.getRowCount();
-	var groupOrder = 0;
-	var dirty = 0;
-	var prevParent = null;
-	var prevFixedState = false;
-	for(var i = 0; i &lt; rowCount; ++i) {
-		var rowDef = this._dt.getDataAt(i, ROW_DEF);
-		var curParent = rowDef.getParent();
-		var curFixedState = rowDef.isFixedPosition();
-		if(curFixedState || curFixedState !== prevFixedState || curParent !== prevParent) {
-			++groupOrder;
-		}
-		prevParent = curParent;
-		prevFixedState = curFixedState;
-		dirty |= rowDef.setGroupOrder(groupOrder);
-	}
-	if(dirty &amp;&amp; this.isSorting()){
-		this._stp.refresh();
-	}
-};
 
 /** @private
 * @param {Object} e
 */
 Grid.prototype._onPreDataSorting = function (e) {
-	// TODO: Support multi-column sorting
-	var colIndex = this._stp.getSortedColumnIndex();
-	var colDef = (colIndex &gt;= 0) ? this.getColumnDefinition(colIndex) : null;
-	this._columnSorter = (colDef) ? colDef._prepareSortContext(colIndex) : null;
+	var field = "";
+	var rowSorting = false;
+	var sortLogic = null;
+
+	var states = this._stp.getSortingStates(); // WARNING: Use of deprecated function
+	var state = states ? states[0] : null; // TODO: Support multi-column sorting
+
+	if(state) {
+		field = state["field"] || "";
+		var colIndex = this._stp.getSortedColumnIndex(0);
+		var colDef = (colIndex &gt;= 0) ? this.getColumnDefinition(colIndex) : null;
+		this._sorter.setContext("colIndex", colIndex);
+		this._sorter.setContext("colDef", colDef);
+
+		if(colDef) {
+			field = colDef.getField(); // WARNING: Field and logic could be out of sync
+			sortLogic = colDef.getSorter();
+			rowSorting = colDef.isRowSorting();
+		}
+	}
+	if(!sortLogic &amp;&amp; field) {
+		sortLogic = state["sortLogic"];
+	}
+
+	this._sorter.setField(field);
+	this._sorter.setSortLogic(sortLogic);
+	this._columnSorter = this._sorter.getSorter(rowSorting);
 };
 /** @private
 * @param {RowDefinition} rowDefA
@@ -2957,6 +3005,9 @@ Grid.prototype._onDataComposed = function(e) {
 	if(!rowDef) {
 		return;
 	}
+	if(!rowDef.getDataSource()) {
+		return; // Somehow, rowDef is invalid and doesn't have data source
+	}
 
 	if(this._autoDateConversion) { // auto data conversion
 		var field, value, dataType, colDef;
@@ -2982,13 +3033,17 @@ Grid.prototype._onDataComposed = function(e) {
 		e["rowDef"] = rowDef;
 		this._dispatch("dataComposed", e);
 	}
+
+	this._recalculateFormulas(e);
 };
 
 /** @private
 * @param {Object=} e
 */
 Grid.prototype._recalculateFormulas = function(e) {
-	if(this._fnEngine.getFormulaCount() &lt;= 0) { return; }
+	if(!this._fnEngine || this._fnEngine.getFormulaCount() &lt;= 0) {
+		return;
+	}
 
 	if(e &amp;&amp; e["rid"]) {
 		this._fnEngine.calculate(/** @type{Object.&lt;string, *&gt;} */ (e["rowData"]), /** @type{Object.&lt;string, *&gt;} */ (e["changes"]));
@@ -3012,6 +3067,64 @@ Grid.prototype._snapshotFillerDataChanged = function (e) {
 	for (var ric in data) {
 		this.setRicData(ric, data[ric]);
 	}
+	if(!this._lastPollingRequest) { // This is the first time we receive successful ADC response
+		this._lastPollingRequest = 1; // Allow polling to be started
+	}
+	this._startPolling();
+};
+/** @private
+*/
+Grid.prototype._startPolling = function () {
+	if(this._pollingEnabled &amp;&amp; this._pollingInterval) {
+		if(this._lastPollingRequest &amp;&amp; !this._pollingTimerId) {
+			var now = new Date();
+			this._lastPollingRequest = now.getTime();
+			this._pollingTimerId = setTimeout(this._onPollingInterval, this._pollingInterval);
+		}
+	}
+};
+/** @private
+*/
+Grid.prototype._onPollingInterval = function () {
+	this._pollingTimerId = 0;
+	if(this._pollingEnabled &amp;&amp; this._pollingInterval) {
+		this.refreshADCData();
+		this._startPolling();
+	}
+};
+/** @public
+* @param {boolean=} activated=true
+*/
+Grid.prototype.activateADCPolling = function (activated) {
+	if(activated !== false) {
+		this._pollingEnabled = true;
+		// Make immediate request after re-activation if it has been a long time
+		var now = new Date();
+		if(this._lastPollingRequest) {
+			var diff = now.getTime() - this._lastPollingRequest;
+			if(diff &gt; this._pollingInterval) {
+				this.refreshADCData();
+			}
+		}
+		this._startPolling();
+	} else {
+		this._pollingEnabled = false;
+	}
+};
+/** Force re-requesting ADC data to immediately update the data
+* @public
+* @return {boolean} Return true, if a request has been made
+*/
+Grid.prototype.refreshADCData = function () {
+	var dirty = this._snapshot.addFields(this._connector.getAllFields());
+	if(dirty) {
+		dirty = this._snapshot.addRics(this._connector.getAllRics());
+		if(dirty) {
+			return true;
+		}
+	}
+	this._lastPollingRequest = 0; // No ADC field or RIC detected. Prevent polling from continuing
+	return false;
 };
 
 /** @private
@@ -3070,17 +3183,6 @@ Grid.prototype._logData = function(rowDefs, options) {
 	console.table(tbl); // eslint-disable-line
 };
 
-/** @private
- * @function
- * @param {Object} to
- * @param {Object} from
- */
-Grid._objectAssign = function (to, from) {
-	for (var key in from) {
-		to[key] = from[key];
-	}
-};
-
 export { Grid };
 export default Grid;
 </code></pre>
@@ -3093,7 +3195,7 @@ export default Grid;
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="ColumnDefinition.html">ColumnDefinition</a></li><li><a href="DataConnector.html">DataConnector</a></li><li><a href="Grid.html">Grid</a></li><li><a href="ReferenceCounter.html">ReferenceCounter</a></li><li><a href="RowDefinition.html">RowDefinition</a></li><li><a href="SnapshotFiller.html">SnapshotFiller</a></li><li><a href="StyleLoader.html">StyleLoader</a></li></ul><h3>Events</h3><ul><li><a href="Grid.html#event:adcDataReceived">adcDataReceived</a></li><li><a href="Grid.html#event:beforeRowRemoved">beforeRowRemoved</a></li><li><a href="Grid.html#event:dataComposed">dataComposed</a></li><li><a href="Grid.html#event:fieldAdded">fieldAdded</a></li><li><a href="Grid.html#event:fieldRemoved">fieldRemoved</a></li><li><a href="Grid.html#event:pageCountChanged">pageCountChanged</a></li><li><a href="Grid.html#event:pageIndexChanged">pageIndexChanged</a></li><li><a href="Grid.html#event:ricAdded">ricAdded</a></li><li><a href="Grid.html#event:ricRemoved">ricRemoved</a></li></ul><h3>Global</h3><ul><li><a href="global.html#COL_DEF">COL_DEF</a></li><li><a href="global.html#ROW_DEF">ROW_DEF</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="ColumnDefinition.html">ColumnDefinition</a></li><li><a href="DataConnector.html">DataConnector</a></li><li><a href="Grid.html">Grid</a></li><li><a href="ReferenceCounter.html">ReferenceCounter</a></li><li><a href="RowDefinition.html">RowDefinition</a></li><li><a href="RowDefSorter.html">RowDefSorter</a></li><li><a href="SnapshotFiller.html">SnapshotFiller</a></li><li><a href="StyleLoader.html">StyleLoader</a></li></ul><h3>Events</h3><ul><li><a href="Grid.html#event:adcDataReceived">adcDataReceived</a></li><li><a href="Grid.html#event:beforeRowRemoved">beforeRowRemoved</a></li><li><a href="Grid.html#event:dataComposed">dataComposed</a></li><li><a href="Grid.html#event:fieldAdded">fieldAdded</a></li><li><a href="Grid.html#event:fieldRemoved">fieldRemoved</a></li><li><a href="Grid.html#event:pageCountChanged">pageCountChanged</a></li><li><a href="Grid.html#event:pageIndexChanged">pageIndexChanged</a></li><li><a href="Grid.html#event:ricAdded">ricAdded</a></li><li><a href="Grid.html#event:ricRemoved">ricRemoved</a></li></ul><h3>Global</h3><ul><li><a href="global.html#COL_DEF">COL_DEF</a></li><li><a href="global.html#ROW_DEF">ROW_DEF</a></li></ul>
 </nav>
 
 

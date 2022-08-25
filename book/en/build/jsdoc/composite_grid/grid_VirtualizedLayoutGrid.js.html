@@ -81,6 +81,11 @@ goog.inherits(tr.grid.VirtualizedLayoutGrid, tr.ElementControl);
  */
 tr.grid.VirtualizedLayoutGrid.prototype._index = -1;
 
+/** Number of rows offsetting from the first section
+ * @private
+ * @type {number}
+ */
+tr.grid.VirtualizedLayoutGrid.prototype._rowOffset = 0;
 /** For virtualization in Y-Axis
  * @private
  * @type {number}
@@ -142,6 +147,14 @@ tr.grid.VirtualizedLayoutGrid.prototype._boundLayer = null;
 * @private
 */
 tr.grid.VirtualizedLayoutGrid.prototype._hscrollbar = null;
+/** @type {string}
+* @private
+*/
+tr.grid.VirtualizedLayoutGrid.prototype._session = "A";
+/** @type {Array&lt;boolean&gt;}
+* @private
+*/
+tr.grid.VirtualizedLayoutGrid.prototype._tempRowHeights = null;
 
 //#region ====== Override ElementControl ======//
 /** @override */
@@ -253,13 +266,69 @@ tr.grid.VirtualizedLayoutGrid.prototype._setColumnWidth = function (indexX, val)
 tr.grid.VirtualizedLayoutGrid.prototype._updateColumnLayout = function () {
 	return this._grid._updateColumnLayout();
 };
+/** @public
+ * @ignore
+ * @param {boolean} enabled
+ * @return {boolean}
+ */
+ tr.grid.VirtualizedLayoutGrid.prototype._startBindingSession = function (enabled) {
+	this._isBinding = enabled;
+	if(!enabled){
+		// Clear old session
+		if(this._tempRowHeights){
+			var defaultRowHeight = this.getDefaultRowHeight();
+			var hasSession = true;
+			var removedIndices = [];
 
+			for(var key in this._tempRowHeights){
+				var index = +key;
+				var rowSession = this._layoutY.getLaneProperty(index, "sizeSession");
+				if(rowSession) {
+					if(rowSession != this._session){
+						this.setRowHeight(index, defaultRowHeight);
+						this._layoutY.setLaneProperty(index, "sizeSession", null);
+						removedIndices.push(index);
+					}
+				}
+			}
+			var removedCount = removedIndices.length;
+			for(var i = 0; i &lt; removedCount; i++){
+				delete this._tempRowHeights[removedIndices[i]];
+			}
+			if(removedCount){
+				for(var remainingKey in this._tempRowHeights){
+					hasSession = remainingKey != null;
+					break;
+				}
+			}
+			if(!hasSession){
+				this._tempRowHeights = null;
+			}
+
+		}
+		this._session = this._session === "A" ? "B" : "A";
+	}
+};
+/** @public
+ * @ignore
+ * @return {Array&lt;boolean&gt;}
+ */
+tr.grid.VirtualizedLayoutGrid.prototype._getTempRowHeights = function () {
+	return this._tempRowHeights;
+};
 /** @inheritDoc */
 tr.grid.VirtualizedLayoutGrid.prototype.getRowHeight = function (index) {
 	return this._layoutY.getLaneSize(index);
 };
 /** @inheritDoc */
 tr.grid.VirtualizedLayoutGrid.prototype.setRowHeight = function (index, val) {
+	if(this._isBinding &amp;&amp; val != this.getDefaultRowHeight()){
+		this._layoutY.setLaneProperty(index, "sizeSession", this._session);
+		if(!this._tempRowHeights){
+			this._tempRowHeights = [];
+		}
+		this._tempRowHeights[index] = true; // Store row index that set temporary row height
+	}
 	if(this._layoutY.setLaneSize(index, val)) {
 		this._grid.setRowHeight(index - this._firstIndex, val);
 		this._topNode.setHeight(this._layoutY.getTrackSize());
@@ -413,6 +482,9 @@ tr.grid.VirtualizedLayoutGrid.prototype.setRowCount = function (val, noBinding) 
 	var prevCount = this._layoutY.getLaneCount();
 	if(prevCount !== val){
 		this._layoutY.setLaneCount(val);
+		if(this._tempRowHeights){
+			this._tempRowHeights.length = val;
+		}
 		this._topNode.setHeight(this._layoutY.getTrackSize());
 		this._requestUpdatingRowBounds();
 		//After rowCountChanged fires, virtualizer will update virtual row count if

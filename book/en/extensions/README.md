@@ -117,6 +117,7 @@ The pagination element is **completely independent** from the grid element and t
 - [Auto Tooltip](tr-grid-auto-tooltip.md)
 - [Cell Selection](tr-grid-cell-selection.md)
 - [Checkbox Column](tr-grid-checkbox.md)
+- [Column Dragging](column-dragging.md)
 - [Column Fitter](tr-grid-column-fitter.md)
 - [Column Formatting](tr-grid-column-formatting.md)
 - [Column Grouping](tr-grid-column-grouping.md)

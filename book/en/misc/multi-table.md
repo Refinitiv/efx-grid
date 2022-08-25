@@ -81,7 +81,8 @@ mgr.setTableCount(3); // Or any other number
 			new tr.RowSelectionExtension(),
 			new tr.ColumnSelectionExtension(),
 			new tr.ColumnResizingExtension(),
-			new tr.ColumnFitterExtension()
+			new tr.ColumnFitterExtension(),
+			new tr.ColumnDraggingExtension()
 		]
 	};
 

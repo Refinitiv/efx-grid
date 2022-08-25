@@ -371,7 +371,16 @@ tr.fn.Formula.toUpperCase = function(exp) {
 	exp = exp.toUpperCase(); // Upper case the remaining
 
 	// May have the new string token from ADC field with parameter
-	exp = exp.replace(/TR\.[\w_ ]+\([^\(\)]*\)(\.[a-zA-Z]+)*/g, tr.fn.Formula._encloseWithTR);
+
+	// Regex for adc fileds
+	// TR 				: start with tr
+	// (\.[\w]+)+ 		: dot follow by any character at least 1
+	// \( 				: start parentheses
+	// [^\(\)]* 		: any except parentheses
+	// \) 				: end parentheses
+	// (\.[a-zA-Z]+)* 	: dot follow by any character (optional)
+
+	exp = exp.replace(/TR(\.[\w ]+)+\([^\(\)]*\)(\.[a-zA-Z]+)*/g, tr.fn.Formula._encloseWithTR);
 
 	exp = tr.fn.Formula.resolveTokens(exp, tokens, calcHierarchy); // Restore the string
 

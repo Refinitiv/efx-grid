@@ -10,7 +10,7 @@ Both the `showRows()` and `hideRows()` APIs accept either an individual value (s
 
 ```live
 <style>
-	emerald-grid {
+	atlas-blotter {
 		height: 200px;
 	}
 </style>
