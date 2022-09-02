@@ -3392,6 +3392,11 @@ tr.Grid.prototype.getScrollHeight = function () {
 	}
 	return this._vscrollbar.getContentHeight();
 };
+/** @public
+*/
+tr.Grid.prototype.restoreScrollbars = function () {
+	this._vscrollbar.restoreTrackPosition();
+};
 
 /** @public
 * @ignore
@@ -5216,7 +5221,8 @@ tr.Grid.prototype._updateSectionIndices = function (from) {
 
 /** @private */
 tr.Grid.prototype._updateLayout = function () {
-	if(this._disposed) { return; }
+	var element =  this.getElement();
+	if(this._disposed || !element.offsetParent) { return; }
 
 	this._syncLayoutToColumns(); // Update only if need
 
@@ -5393,6 +5399,7 @@ var methodMap = {
 	"scrollDown": pt.scrollDown,
 	"getVScrollView": pt.getVScrollView,
 	"getScrollHeight": pt.getScrollHeight,
+	"restoreScrollbars": pt.restoreScrollbars,
 	"autoHideScrollbars": pt.autoHideScrollbars,
 	"getVScrollStartIndex": pt.getVScrollStartIndex,
 	"getHScrollStartIndex": pt.getHScrollStartIndex,

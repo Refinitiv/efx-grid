@@ -56,6 +56,11 @@ import { ElementWrapper } from "../../node_modules/@grid/core/es6/grid/component
 * @property {boolean=} debug=false If true, Synapse response will be mock
 */
 
+/** @typedef {Object} Grid~ADCOptions
+* @description ADC requesting level config from adc team
+* @property {string=} productId=001 required parameter, it specifies the product for which you request data. Contact the adc staff to create one.
+*/
+
 /** @typedef {Object} Grid~GridOptions
 * @description Configuration object that can be provided directly at the initialization phase
 * @property {Array.&lt;ColumnDefinition~Options|string&gt;=} columns Collection of the column definitions
@@ -90,6 +95,7 @@ import { ElementWrapper } from "../../node_modules/@grid/core/es6/grid/component
 * @property {boolean=} verticalLines=true Vertical lines for all sections
 * @property {boolean=} horizontalLines=true Horizontal lines for all sections
 * @property {*=} RTK=null rtk toolkit instance
+* @property {Grid~ADCOptions=} ADC=null ADC requesting level config object from adc team
 * @property {Grid~SynapseConfig=} synapse=null synapse config object
 * @property {number=} contentRightPadding=0 Padding that is added next to the right most column. The padding is still a part of scrollable content.
 * @property {number=} contentBottomPadding=0 Padding that is added below the last section. The padding is still a part of scrollable content.
@@ -480,6 +486,10 @@ Grid.prototype._defaultColumnOptions = null;
 * @type {*}
 */
 Grid.prototype._RTK = null;
+/** @private
+* @type {Grid~ADCOptions}
+*/
+Grid.prototype._ADCOptions = null;
 /** use for synapse service
 * @private
 * @type {string}
@@ -754,6 +764,12 @@ Grid.prototype.initialize = function(gridOption) {
 		t._RTK = gridOption["RTK"];
 		t._snapshot.setRTK(t._RTK);
 	}
+
+	if (gridOption["ADC"]) {
+		t._ADCOptions = gridOption["ADC"];
+		t._snapshot.setADCOptions(t._ADCOptions);
+	}
+
 	if (gridOption["synapse"]) {
 		t._synapse = gridOption["synapse"];
 		FieldDefinition.setSynapseConfig(t._synapse);
@@ -1109,7 +1125,7 @@ Grid.prototype.getConfigObject = function (gridOptions) {
 	// topFreezingCount, bottomFreezingCount
 	// scrollbarParent
 
-	// NOTE: no need to export synapseApiKey and RTK
+	// NOTE: no need to export synapseApiKey, ADC and RTK
 
 	return obj;
 };
@@ -1269,6 +1285,70 @@ Grid.prototype.insertColumn = function (columnOption, idx) {
 	this._grid.insertColumn(idx, configObj); // columnAdded is fired
 };
 
+
+/** @public
+* @param {ColumnDefinition~Options|string} columnOption String will be treated as field, while object is treated as the column options
+* @param {Grid~ColumnReference} colRef
+*/
+Grid.prototype.replaceColumn = function (columnOption, colRef) {
+	var colIndex = this.getColumnIndex(colRef);
+	if(colIndex &lt; 0) {
+		return;
+	}
+	var colConfig = {};
+	var core = this._grid;
+	var columnDef = core._getColumnDef(colIndex);
+
+	var value = core.getColumnScalability(colIndex);
+	colConfig["scalable"] = value;
+
+	value = core.getColumnCustomLaneSize(colIndex);
+	colConfig["width"] = value;
+
+	value = core.getMinimumColumnWidth(colIndex);
+	if(value !== 32) {
+		colConfig["minWidth"] = value;
+	}
+
+	value = core.isColumnVisible(colIndex);
+	if(!value) {
+		colConfig["hidden"] = true;
+	}
+
+	value = columnDef["stationary"];
+	if (value) {
+		colConfig["stationary"] = value;
+	}
+
+	value = columnDef["leftPinned"];
+	if (value) {
+		colConfig["leftPinned"] = value;
+	}
+
+	value = columnDef["rightPinned"];
+	if (value) {
+		colConfig["rightPinned"] = value;
+	}
+
+	if(typeof columnOption === "string") {
+		colConfig["field"] = columnOption;
+	} else { // type object from user
+		for (var key in columnOption) {
+			colConfig[key] = columnOption[key];
+		}
+	}
+
+	if(columnOption["width"] &amp;&amp; !columnOption["scalable"]) {
+		colConfig["scalable"] = false;
+	}
+
+	if(columnOption["scalable"] &amp;&amp; !columnOption["width"]) {
+		colConfig["width"] = 1;
+	}
+
+	this.insertColumn(colConfig, colIndex);
+	this.removeColumn(colIndex + 1); // remove existing column after insert
+};
 
 /** to update column name when field info is loaded
  * @private

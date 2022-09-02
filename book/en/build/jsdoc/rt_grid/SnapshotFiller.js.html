@@ -23,7 +23,9 @@
     
     <section>
         <article>
-            <pre class="prettyprint source linenums"><code>import {Ext} from '../../node_modules/tr-grid-util/es6/Ext.js';
+            <pre class="prettyprint source linenums"><code>/* eslint-disable */
+import Grid from "./Grid.js";
+import {Ext} from '../../node_modules/tr-grid-util/es6/Ext.js';
 import {EventDispatcher} from '../../node_modules/tr-grid-util/es6/EventDispatcher.js';
 
 /** @private
@@ -46,6 +48,9 @@ var SnapshotFiller = function () {
 
 	this._rics = {};
 	this._fields = {};
+	this._adcOptions = { // TODO: support requesting level parameter
+		productId: "001"
+	};
 };
 Ext.inherits(SnapshotFiller, EventDispatcher);
 
@@ -66,6 +71,10 @@ SnapshotFiller.prototype._fields;
 * @private
 */
 SnapshotFiller.prototype._rtk;
+/** @type {!Grid~ADCOptions}
+* @private
+*/
+SnapshotFiller.prototype._adcOptions = null;
 //#endregion Private Members
 
 /** @public
@@ -73,6 +82,26 @@ SnapshotFiller.prototype._rtk;
 */
 SnapshotFiller.prototype.setRTK = function (rtk) {
 	this._rtk = rtk;
+};
+
+/** @public
+* @param {Grid~ADCOptions} adcOptions ADC requesting level parameter options
+*/
+SnapshotFiller.prototype.setADCOptions = function (adcOptions) {
+
+	var val = adcOptions["productId"];
+	if(val) {
+		this._adcOptions.productId = val;
+	}
+	// TODO: support requesting level parameter https://confluence.refinitiv.com/display/ADC/Request+level+parameters
+	// var val = adcOptions["lang"];
+	// if(val) {
+	// 	this._adcOptions.lang = val;
+	// }
+	// var val = adcOptions["cache"];
+	// if(val) {
+	// 	this._adcOptions.cache = val;
+	// }
 };
 
 /** @public
@@ -192,29 +221,37 @@ SnapshotFiller.prototype._onRequest = function () {
 		return;
 	}
 
-	var reqFields = [];
-	for(i = 0; i &lt; fieldLen; i++) {
-		reqFields.push({ "name": fields[i] });
-	}
-
 	// Clean up members, preparing for the next request
 	this._rics = {};
 	this._fields = {};
 
-	var payload = {
-		"instruments": instruments,
-		"fields": reqFields
-	};
-
-	var onSuccess = this._onSuccess.bind(this, fields);
+	var onSuccess, payload;
 	if (this._rtk) {
-		this._rtk.Data.DataGrid
+		var strFields = fields.join(',');
+		payload = {
+			"method": "select",
+			"formula": strFields,
+			"identifiers": instruments,
+			"productId": this._adcOptions.productId,
+			"output": "Col,In,va,T,NoEmptyTickers" // For customize output server, for more information please visit "https://confluence.refinitiv.com/display/ADC/Data+Cloud+Output+Format"
+		};
+		onSuccess = this._onRTKSuccess.bind(this, fields);
+		this._rtk.Data.Adc
 			.request(payload)
 			.then(onSuccess)
 			.catch(function (err) {
 				console.log(err);
 			});
 	} else {
+		var reqFields = [];
+		for(i = 0; i &lt; fieldLen; i++) {
+			reqFields.push({ "name": fields[i] });
+		}
+		payload = {
+			"instruments": instruments,
+			"fields": reqFields
+		};
+		onSuccess = this._onJETSuccess.bind(this, fields);
 		jet["Data"]("datagrid")
 			.then(function (service) { return service["request"](payload); })
 			.then(JSON.parse)
@@ -230,16 +267,15 @@ SnapshotFiller.prototype._onRequest = function () {
 * @param {Array.&lt;string&gt;} fields
 * @param {string} serverResult
 */
-SnapshotFiller.prototype._onSuccess = function (fields, serverResult) {
+SnapshotFiller.prototype._onJETSuccess = function (fields, serverResult) {
+	this._dispatch("adcDataReceived", serverResult);
 	var data2D = serverResult["data"];
 	var svHeaders = serverResult["headers"] &amp;&amp; serverResult["headers"][0];
 
 	if (!Array.isArray(data2D) || !Array.isArray(svHeaders)) {
-		console.log("Invalid server response detected");
 		return; //TODO: Return Promise.reject(errMsg);
 	}
 
-	this._dispatch("adcDataReceived", serverResult);
 
 	// Server will return field only in UPPERCASE
 	// ex. requestField = TR.Volume ===&gt; serverField = TR.VOLUME
@@ -278,6 +314,76 @@ SnapshotFiller.prototype._onSuccess = function (fields, serverResult) {
 			if (value != null &amp;&amp; value !== "") {
 				field = headers[j];
 				snapData[field] = value;
+			}
+		}
+	}
+
+	// return result only ric that has update data
+	var updatedData = {};
+	for (ric in ricMap) {
+		var obj = ricMap[ric];
+		if (!isEmptyObject(obj)) {
+			updatedData[ric] = obj;
+		}
+	}
+
+	this._dispatch("dataChanged", {
+		data: updatedData
+	});
+};
+
+/** @private
+* @function
+* @param {Array.&lt;string&gt;} fields
+* @param {string} serverResult
+*/
+SnapshotFiller.prototype._onRTKSuccess = function (fields, serverResult) {
+	this._dispatch("adcDataReceived", serverResult);
+	var data2D = serverResult["rows"];
+	var svHeaders = serverResult["rows"] &amp;&amp; serverResult["rows"][0];
+	if (!Array.isArray(data2D) || !Array.isArray(svHeaders)) {
+		return; //TODO: Return Promise.reject(errMsg);
+	}
+
+	// Server will return field only in UPPERCASE
+	// ex. requestField = TR.Volume ===&gt; serverField = TR.VOLUME
+	// so we need convert UPPERCASE to be original
+	var i, field, ric;
+	var j = 1; //  to skip instrument index, use j = 1
+	var fLength = fields.length;
+	var hLength = svHeaders.length;
+	var headers = new Array(hLength);
+	for (i = 0; i &lt; fLength &amp;&amp; j &lt; hLength; i++) {
+		field = fields[i];
+		if (svHeaders[j].r.toUpperCase() === field.toUpperCase()) {
+			headers[j] = field;
+			j++;
+		}
+	}
+
+	var len = data2D.length;
+	var fieldLen = headers.length;
+	var ricMap = {};
+
+	// TODO: Freeze the data view before setting multiple data
+	for (i = 1; i &lt; len; i++) { // to skip column header index, use i = 1
+		var dataRow = data2D[i];
+		ric = dataRow[0];
+
+		var snapData = ricMap[ric] = {};
+
+		// loop for create rowData for update
+		for (j = 1; j &lt; fieldLen; j++) { // to skip instrument index, use j = 1
+			var value = dataRow[j];
+			if (value != null &amp;&amp; value !== "") {
+				if(typeof value !== 'object') {
+					field = headers[j];
+					snapData[field] = value;
+				}
+				// TODO : handled when a cell has a mistake and the value appears as {f: "1"} ( description error in fault attribute at index 1 ),
+				// Therefore, we need to store information to the error field for this cell.
+				// else {}
+
 			}
 		}
 	}

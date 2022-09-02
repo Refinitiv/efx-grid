@@ -9,15 +9,16 @@ Multiple grids can be created within a single page. They are independent from ea
 MultiTableManager is still in development and support only some basic features as listed below:
 - Each table will have the same width and become inline-block element.
 - Each table will have the same number of rows and columns.
-- Column Selection will be displayed on each table.
-- Column Resizing will be applied on each table.
-- Column Fitting will be applied on each table.
-- Row Selection can be moved across multiple grids through keyboard navigation. Row selection can be only active for one grid at any time.
+- Column selection will be displayed on each table.
+- Column resizing will be applied on each table.
+- Column fitting will be applied on each table.
+- Column insertion, removal, and reordering will be applied on each table.
+- Row selection can be moved across multiple grids through keyboard navigation. Row selection can be only active for one grid at any time.
  
 
 ## Usage 
 
-To use multi-table feature, you need to import MultiTableManager, a helper, from our utility package. Then, initialize the helper by supplying Grid element. The element will be used as primary table for creating another table. Lastly, initialize the Grid element by using `setGridConfig` method from the helper to specify configuration. 
+To use multi-table feature, you need to import `MultiTableManager`, a helper, from our utility package. Then, initialize the helper by supplying Grid element. The element will be used as a primary table for creating another table. Lastly, initialize the Grid element by using `setGridConfig` method from the helper to specify configuration. 
 
 To adjust number of tables, use `setTableCount` method. 
 
@@ -39,7 +40,7 @@ mgr.setGridConfig(configObj);
 mgr.setTableCount(3); // Or any other number
 ```
 
-### Multi-table Example
+### Multi-table example
 
 ```live
 <style>
@@ -126,6 +127,141 @@ mgr.setTableCount(3); // Or any other number
 			}
 		}
 	}, 500);
+</script>
+```
+
+### Multi-table: wrap mode example
+
+In wrap mode, a single table will be used as a primary table and wrapped by specified number of rows. After wrapping, multiple secondary tables will be created with specified number of rows to represent the rows from the primary table. The main difference between wrap mode and multi-table mode is that content rows, in wrap mode, of each table are based on a single primary table. Any change on a row from the primary table will also apply to corresponding row on one of the secondary tables, and vice versa. In multi-table mode, rows in one table are independent from rows in other tables. 
+
+To enable wrap mode, use `wrapTable` method with number of wrapping rows as its parameter. 
+
+To disable wrap mode, use `wrapTable` method with 0 as its parameter.
+
+If you are in multi-table mode, `wrapTable` method will automatically remove any existing table and  switch to wrap mode.
+
+If you are in wrap mode, `setTableCount` method will automatically disable wrap-mode and  switch to multi-table mode.
+
+> Note that original table is still kept intact after the wrapping, even though it is hidden from view. `getTable(0)` will return the original table. 
+
+```live
+<style>
+	html hr {
+		margin: 5px;
+	}
+	atlas-blotter {
+		margin: 0 5px 5px;
+		vertical-align: top;
+	}
+	#h_scrollbar_host {
+		height: 250px;
+	}
+</style>
+
+<button id="wrap_btn1">Wrap 3 rows</button>
+<button id="wrap_btn2">Wrap 4 rows</button>
+<button id="wrap_btn3">Wrap 5 rows</button>
+<button id="wrap_btn4">Disable wrap mode</button>
+<hr>
+<button id="set_btn1">Set Data on the second table</button>
+<button id="set_btn2">Set Data on the third table</button>
+<button id="add_row_btn">Add row</button>
+<button id="remove_row_btn">Remove row</button>
+<hr>
+<button id="add_col_btn">Add Column</button>
+<button id="remove_col_btn">Remove Column</button>
+<hr>
+<div id="v_scrollbar_host">
+	<div id="h_scrollbar_host">
+		<atlas-blotter id="grid"></atlas-blotter>
+	</div>
+</div>
+
+<script>
+	var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
+	var records = tr.DataGenerator.generateRecords(fields, { numRows: 10 });
+	
+	var configObj = {
+		sorting: {
+			sortableColumns: true
+		},
+		defaultColumnOptions: {
+			minWidth: 24
+		},
+		columns: [
+			{title: fields[0], width: 100, field: fields[0]},
+			{title: fields[2], width: 100, field: fields[2], formatType: "number", colorText: true },
+			{title: fields[3], width: 100, field: fields[3], formatType: "percent", blinking: true }
+		],
+		staticDataRows: records,
+		extensions: [
+			new tr.RowSelectionExtension(),
+			new tr.ColumnSelectionExtension(),
+			new tr.ColumnResizingExtension(),
+			new tr.ColumnFitterExtension(),
+			new tr.ColumnDraggingExtension()
+		]
+	};
+
+	var grid = document.getElementById("grid");
+	var mgr = new tr.MultiTableManager(grid);
+	mgr.setGridConfig(configObj);
+	
+	wrap_btn1.addEventListener("click", function() {
+		mgr.wrapTable(3);
+	});
+	wrap_btn2.addEventListener("click", function() {
+		mgr.wrapTable(4);
+	});
+	wrap_btn3.addEventListener("click", function() {
+		mgr.wrapTable(5);
+	});
+	wrap_btn4.addEventListener("click", function() {
+		mgr.wrapTable(0);
+	});
+	add_row_btn.addEventListener("click", function() {
+		mgr.insertRow({});
+	});
+	remove_row_btn.addEventListener("click", function() {
+		mgr.removeRow();
+	});
+	add_col_btn.addEventListener("click", function() {
+		mgr.insertColumn({field: "industry", width: 80});
+	});
+	remove_col_btn.addEventListener("click", function() {
+		mgr.removeColumn(mgr.getColumnCount() - 1);
+	});
+	set_btn1.addEventListener("click", function() {
+		randomlySetData(mgr.getTable(1));
+	});
+	set_btn2.addEventListener("click", function() {
+		randomlySetData(mgr.getTable(2));
+	});
+	
+	setInterval(function simulateDataUpdate() {
+		var tblCount = mgr.getTableCount();
+		
+		for(var i = 0; i < tblCount; ++i) {
+			if(Math.random() > 0.6) {
+				randomlySetData(mgr.getTable(i));
+			}
+		}
+	}, 500);
+	
+	function randomlySetData(tbl) {
+		if(!tbl || !tbl.api) {
+			return;
+		}
+		var rowCount = mgr.getRowCount();
+		for(var i = 0; i < rowCount; ++i) {
+			if(Math.random() > 0.7) {
+				var rowDef = tbl.api.getRowDefinition(i);
+				if(rowDef) {
+					rowDef.setRowData(tr.DataGenerator.generateRecord(fields));
+				}
+			}
+		}
+	}
 </script>
 ```
 

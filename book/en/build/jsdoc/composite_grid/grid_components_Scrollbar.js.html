@@ -1400,6 +1400,19 @@ tr.grid.Scrollbar.prototype.freezeScrolling = function (frozen) {
 	this._isFrozen = frozen !== false;
 	return prev;
 };
+/** @public
+*/
+tr.grid.Scrollbar.prototype.restoreTrackPosition = function () {
+	// Scroll event will be fired asynchronously, if there is any change
+	var track = this._topNode.getElement();
+	if(this._vertical) {
+		track.scrollTop = this._tScrollVal;
+		if(track.scrollTop){
+			this._tScrollVal = track.scrollTop; //Check to ensure that cache equal to element's scroll
+		}
+	}
+	//TODO: handle restore scrollLeft for hscroll
+};
 
 goog.exportSymbol("tr.grid.Scrollbar", tr.grid.Scrollbar);
 goog.exportSymbol("tr.grid.Scrollbar.updateTrackThickness", tr.grid.Scrollbar.updateTrackThickness);
@@ -1442,7 +1455,9 @@ var methodMap = {
 	"attachToExternalElement": pt.attachToExternalElement,
 
 	"setScrollingStep": pt.setScrollingStep,
-	"freezeScrolling": pt.freezeScrolling
+	"freezeScrolling": pt.freezeScrolling,
+
+	"restoreTrackPosition": pt.restoreTrackPosition
 };
 // Export methods for Closure's advanced compilation
 for(var methodName in methodMap) {
