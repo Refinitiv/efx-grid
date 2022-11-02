@@ -23,10 +23,9 @@ Use `import` syntax to import the Grid and theme into your app.
 ```javascript
 // import element and its Halo dark theme
 import '@refinitiv-ui/efx-grid';
-import '@refinitiv-ui/efx-grid/themes/halo/dark';
 
-// import native styles for typography, css variables, etc.
-import '@refinitiv-ui/halo-theme/dark/imports/native-elements';
+import '@refinitiv-ui/halo-theme/dark/imports/native-elements'; // import native styles for typography, css variables, etc.
+import '@refinitiv-ui/efx-grid/themes/halo/dark';
 ```
 
 Now, you can use Grid in your app.

@@ -29,7 +29,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="8c993240-7923-4a7b-a074-c002728bf21a">
+        <pandora-nav id="634b226d-734d-4924-b832-244c6b97b0be">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -135,8 +135,10 @@
                 <li><a href="../rendering/custom-formatter.html">Custom Rendering</a></li>
                 <li><a href="../rendering/change-formatter.html">Changing Formatter at Runtime</a></li>
                 <li><a href="../rendering/formatter-event-handling.html">Event Handling in Formatter</a></li>
-                <li parent="" id="cid-7" collapsible="" collapsed=""><a href="../rendering/predefined-formatter.html">Predefined Formatter</a>
+                <li parent="" id="cid-7" collapsible="" collapsed="">
+                  <div collapser="">Predefined Formatter</div>
                   <ul>
+                    <li><a href="../rendering/predefined-formatter.html">Overview</a></li>
                     <li><a href="../rendering/predefined_formatters/simple-image-formatter.html">SimpleImageFormatter</a></li>
                     <li><a href="../rendering/predefined_formatters/simple-input-formatter.html">SimpleInputFormatter</a></li>
                     <li><a href="../rendering/predefined_formatters/simple-link-formatter.html">SimpleLinkFormatter</a></li>
@@ -217,7 +219,6 @@
                 <li><a href="../sorting/default-sorting.html">Default Sort</a></li>
                 <li><a href="../sorting/server-side-sorting.html">Server Side Sorting</a></li>
                 <li><a href="../sorting/custom-sort-logic.html">Custom Sort Logic</a></li>
-                <li><a href="../sorting/multi-column-sorting.html">Multi-Column/3-States Sorting</a></li>
                 <li><a href="../sorting/sorting-get-reset.html">Get Sort States / Reset All Sorting</a></li>
               </ul>
             </li>
@@ -238,14 +239,21 @@
               </ul>
             </li>
             <li parent="" id="cid-16" collapsible="" collapsed="">
+              <div collapser="">Printing</div>
+              <ul>
+                <li><a href="../printing/printer-extension.html">Native Print and Extensions</a></li>
+              </ul>
+            </li>
+            <li parent="" id="cid-17" collapsible="" collapsed="">
               <div collapser="">Widgets</div>
               <ul>
                 <li><a href="../widgets/column-format-dialog.html">Column Format Dialog</a></li>
                 <li><a href="../widgets/column-selection-dialog.html">Column Selection Dialog</a></li>
                 <li><a href="../widgets/filter-dialog.html">Filter Dialog</a></li>
+                <li><a href="../widgets/language-support.html">Language Support</a></li>
               </ul>
             </li>
-            <li parent="" id="cid-17" collapsible="" collapsed="">
+            <li parent="" id="cid-18" collapsible="" collapsed="">
               <div collapser="">Miscellaneous</div>
               <ul>
                 <li><a href="../misc/core-apis.html">Using Core APIs</a></li>
@@ -257,7 +265,7 @@
                 <li><a href="../misc/text-selection.html">Text Selection</a></li>
               </ul>
             </li>
-            <li parent="" id="cid-18" collapsible="" collapsed="">
+            <li parent="" id="cid-19" collapsible="" collapsed="">
               <div collapser="">Migrating to EFX Grid</div>
               <ul>
                 <li><a href="../migrating/from-emerald-grid.html">Emerald Grid</a></li>
@@ -968,7 +976,14 @@ grid.config = configObj;</pre>
                               <td class="type"> <span class="param-type">boolean</span> </td>
                               <td class="attributes"> &lt;optional&gt;<br> </td>
                               <td class="default"> false </td>
-                              <td class="description last">Scrollbar will be frozen when editor opened.</td>
+                              <td class="description last">Scrollbar will be frozen when editor opened. Deprecated in favor of uiBlocking</td>
+                            </tr>
+                            <tr>
+                              <td class="name"><code>uiBlocking</code></td>
+                              <td class="type"> <span class="param-type">boolean</span> </td>
+                              <td class="attributes"> &lt;optional&gt;<br> </td>
+                              <td class="default"> false </td>
+                              <td class="description last">append transparent overlay to block ui interaction</td>
                             </tr>
                             <tr>
                               <td class="name"><code>preEditorOpening</code></td>
@@ -1010,28 +1025,28 @@ grid.config = configObj;</pre>
                               <td class="type"> <span class="param-type">function</span> </td>
                               <td class="attributes"> &lt;optional&gt;<br> </td>
                               <td class="default"> null </td>
-                              <td class="description last">Handler before all editor in row commit</td>
+                              <td class="description last">Handler before committing from all editors in the row</td>
                             </tr>
                             <tr>
                               <td class="name"><code>rowEditorClosed</code></td>
                               <td class="type"> <span class="param-type">function</span> </td>
                               <td class="attributes"> &lt;optional&gt;<br> </td>
                               <td class="default"> null </td>
-                              <td class="description last">Handler after all editors closed</td>
-                            </tr>
-                            <tr>
-                              <td class="name"><code>uiBlocking</code></td>
-                              <td class="type"> <span class="param-type">boolean</span> </td>
-                              <td class="attributes"> &lt;optional&gt;<br> </td>
-                              <td class="default"> false </td>
-                              <td class="description last">append transparent overlay to block ui interaction</td>
+                              <td class="description last">Handler after closing of all editors</td>
                             </tr>
                             <tr>
                               <td class="name"><code>autoSuggest</code></td>
                               <td class="type"> <span class="param-type">Element</span> </td>
                               <td class="attributes"> &lt;optional&gt;<br> </td>
                               <td class="default"> null </td>
-                              <td class="description last">Element of ef-autosuggest for handled with input cell</td>
+                              <td class="description last">Element of ef-autosuggest or atlas-autosuggest for handled with input cell</td>
+                            </tr>
+                            <tr>
+                              <td class="name"><code>closingOnScroll</code></td>
+                              <td class="type"> <span class="param-type">boolean</span> </td>
+                              <td class="attributes"> &lt;optional&gt;<br> </td>
+                              <td class="default"> true </td>
+                              <td class="description last">If disabled, scrolling will not automatically close editor. autoHiding, closingOnScroll</td>
                             </tr>
                           </tbody>
                         </table>
@@ -1297,7 +1312,7 @@ grid.config = configObj;</pre>
                     <div class="item">
                       <div class="item-type">function</div>
                       <h4 class="name" id="getAutoSuggest"><span class="type-signature"></span>getAutoSuggest<span class="signature">()</span><span class="type-signature"> → {Element}</span></h4>
-                      <div class="description"> Get ef-autosuggest </div>
+                      <div class="description"> Get ef-autosuggest or atlas-autosuggest </div>
                       <div class="details"> </div>
                       <h5>Returns:</h5>
                       <div class="sub-content"> <span class="param-type">Element</span> </div>
@@ -1501,6 +1516,12 @@ grid.config = configObj;</pre>
                           <div class="description"> core grid object </div>
                         </div>
                       </div>
+                      <div class="details"> </div>
+                    </div>
+                    <div class="item">
+                      <div class="item-type">function</div>
+                      <h4 class="name" id="requestShowEditorPopup"><span class="type-signature"></span>requestShowEditorPopup<span class="signature">()</span><span class="type-signature"></span></h4>
+                      <div class="description"> Set a timer to call onUpdateEditorPopup only once to avoid performance issue </div>
                       <div class="details"> </div>
                     </div>
                     <div class="item">
@@ -1771,7 +1792,7 @@ cep.listen("beforeRowCommit", function(e) {
                             <tr>
                               <td class="name"><code>autoSuggest</code></td>
                               <td class="type"> <span class="param-type">Element</span> </td>
-                              <td class="description last"></td>
+                              <td class="description last">ef-autosuggest or atlas-autosuggest</td>
                             </tr>
                           </tbody>
                         </table>

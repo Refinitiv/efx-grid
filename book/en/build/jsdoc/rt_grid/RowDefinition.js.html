@@ -23,7 +23,7 @@
     
     <section>
         <article>
-            <pre class="prettyprint source linenums"><code>import { arrayToObject } from "../../node_modules/tr-grid-util/es6/Util.js";
+            <pre class="prettyprint source linenums"><code>import { arrayToObject, cloneObject } from "../../node_modules/tr-grid-util/es6/Util.js";
 /* eslint-disable */
 import { DataCache } from "../../node_modules/@grid/core/es6/data/DataCache.js";
 import { DataTable } from "../../node_modules/@grid/core/es6/data/DataTable.js";
@@ -297,7 +297,12 @@ RowDefinition.prototype.setContent = function(userInput) {
 	this._dataId = this._rowId + this._ric; // JET/RTK will generate data id to be rowId (given from this rowDef) + ric;
 
 	// This will work for runtime ric modification, but not for first initilization.
-	this.subscribeForUpdates();
+	if(!this.subscribeForUpdates()) {
+		// Avoid losing the ROW_DEF pointer.
+		var rowData = {};
+		rowData[ROW_DEF] = this; // Enable tracking back and updating data
+		this.setRowData(rowData);
+	}
 	return true;
 };
 /** @public
@@ -319,7 +324,7 @@ RowDefinition.prototype.getConfigObject = function(rowOptions) {
 
 	val = this._staticValues;
 	if(val) {
-		obj["values"] = val;
+		obj["values"] = cloneObject(val);
 	}
 
 	val = this._chainRic;
@@ -576,15 +581,16 @@ RowDefinition.prototype.isRealTimeRow = function() {
 };
 
 /** @public
+* @return {boolean} If a subscription is made, return true.
 */
 RowDefinition.prototype.subscribeForUpdates = function() {
 	if(!this.isRealTimeRow()) {
-		return;
+		return false;
 	}
 
 	var subs = this._dc ? this._dc.getSubscriptions() : null;
 	if(!subs) {
-		return;
+		return false;
 	}
 	// TODO: Check if the same subscription is being made.
 	var prevRowData = this.unsubscribeForUpdates();
@@ -601,6 +607,7 @@ RowDefinition.prototype.subscribeForUpdates = function() {
 	} else {
 		this._dc.setRowData(this._dataId, {"X_RIC_NAME": this._ric, "ROW_DEF": this}); // Trigger data update immediately
 	}
+	return true;
 };
 /** @public
  * @returns {*}

@@ -93,6 +93,7 @@ import { ElementWrapper } from "../../node_modules/@grid/core/es6/grid/component
 * @property {boolean=} borders=true Lines around grid element
 * @property {boolean=} gridlines=true Horizontal and Vertical lines for ONLY content sections
 * @property {boolean=} verticalLines=true Vertical lines for all sections
+* @property {boolean=} contentVerticalLines=true Vertical lines for all content section
 * @property {boolean=} horizontalLines=true Horizontal lines for all sections
 * @property {*=} RTK=null rtk toolkit instance
 * @property {Grid~ADCOptions=} ADC=null ADC requesting level config object from adc team
@@ -107,6 +108,7 @@ import { ElementWrapper } from "../../node_modules/@grid/core/es6/grid/component
 * @property {Element=} scrollbarParent=null Element to be attached by grid's scrollbars, allowing them to move outside and avoid overlapping with the content.
 * @property {boolean=} formulaEngine=false If enabled, field with leading equal sign will be treated as a formula and rows will be filled with the calculated values.
 * @property {number=} adcPollingInterval=0 Length of polling interval for refreshing ADC data in milliseconds. The default value (0) means no polling.
+* @property {boolean=} fieldCaching=false If enabled, field definition will be caching internal mechanism
 */
 
 /** @typedef {number|string|RowDefinition} Grid~RowReference
@@ -119,7 +121,7 @@ import { ElementWrapper } from "../../node_modules/@grid/core/es6/grid/component
 /** @typedef {number|string|ColumnDefinition} Grid~ColumnReference
 * @description A column in Grid can be referred by the following values:&lt;br&gt;
 * &lt;b&gt;number&lt;/b&gt; : Column index including all invisible (hidden) columns&lt;br&gt;
-* &lt;b&gt;string&lt;/b&gt; : Field name of the column&lt;br&gt;
+* &lt;b&gt;string&lt;/b&gt; : Field name or column id of the column&lt;br&gt;
 * &lt;b&gt;ColumnDefinition&lt;/b&gt; : Column definition object&lt;br&gt;
 */
 
@@ -213,25 +215,6 @@ var cloneRowData = function(fromRowDef, toRowDef) {
 			to[key] = from[key];
 		}
 	}
-};
-
-/** @private
-* @param {number} a
-* @param {number} b
-* @return {number}
-*/
-var ascNumberSorter = function (a, b) {
-	return a - b;
-};
-
-/** @private
-* @param {number} min
-* @param {number} max
-* @param {number} elem
-* @return {boolean}
-*/
-var inRangeFilter = function (min, max, elem) {
-	return elem &gt;= min &amp;&amp; elem &lt;= max;
 };
 
 /** @private
@@ -531,6 +514,10 @@ Grid.prototype._lastPollingRequest = 0;
 * @private
 */
 Grid.prototype._pollingEnabled = true;
+/** @type {boolean}
+* @private
+*/
+Grid.prototype._fieldCaching = false;
 
 
 /** @public
@@ -775,6 +762,11 @@ Grid.prototype.initialize = function(gridOption) {
 		FieldDefinition.setSynapseConfig(t._synapse);
 	}
 
+	if (gridOption["fieldCaching"]) {
+		t._fieldCaching = gridOption["fieldCaching"];
+		FieldDefinition.setFieldCaching(t._fieldCaching);
+	}
+
 	if (gridOption["icons"] &amp;&amp; gridOption["icons"]["rowGrouping"] &amp;&amp; gridOption["icons"]["rowGrouping"]["expander"]) {
 		StyleLoader.chainIcon = gridOption["icons"]["rowGrouping"]["expander"];
 	}
@@ -796,6 +788,10 @@ Grid.prototype.initialize = function(gridOption) {
 	var vLines = gridOption["verticalLines"];
 	if (vLines != null) {
 		grid.toggleVerticalLines(vLines);
+	}
+	var cvLines = gridOption["contentVerticalLines"];
+	if (cvLines != null) {
+		grid.toggleContentVerticalLines(cvLines);
 	}
 	var hLines = gridOption["horizontalLines"];
 	if (hLines != null) {
@@ -1085,11 +1081,14 @@ Grid.prototype.getConfigObject = function (gridOptions) {
 	if(this._pollingInterval) {
 		obj["adcPollingInterval"] = this._pollingInterval;
 	}
+	if(this._fieldCaching) {
+		obj["fieldCaching"] = this._fieldCaching;
+	}
 
 	// get all rows config
 	var rowDefs = this.getAllRowDefinitions();
 	var rows = obj["rows"] = [];
-	var rowDef, rowConfig, pluginInstance, retObj, row;
+	var rowDef, rowConfig;
 	len = rowDefs.length;
 	for (i = 0; i &lt; len; i++) {
 		rowDef = rowDefs[i];
@@ -1099,6 +1098,7 @@ Grid.prototype.getConfigObject = function (gridOptions) {
 
 	// get row config from extensions
 	var extensions = grid.getPlugins();
+	var pluginInstance, row;
 	for(var key in extensions) {
 		pluginInstance = extensions[key];
 		if(typeof pluginInstance["getRowConfigObject"] === "function") {
@@ -1106,15 +1106,7 @@ Grid.prototype.getConfigObject = function (gridOptions) {
 			for (i = 0; i &lt; len; i++) {
 				rowDef = rowDefs[i];
 				row = rows[i];
-				retObj = pluginInstance["getRowConfigObject"](rowDef.getRowId());
-				if(retObj) {
-					if(row.values) {
-						// eslint-disable-next-line es5/no-es6-static-methods
-						Object.assign(row.values, retObj); // Ignore lint
-					} else {
-						row.values = retObj;
-					}
-				}
+				pluginInstance["getRowConfigObject"](row, rowDef.getRowId());
 			}
 		}
 	}
@@ -1646,78 +1638,7 @@ Grid.prototype.removeAllColumns = function() {
  * @return {boolean} Return true if there is any change, and false otherwise
  */
 Grid.prototype.moveColumn = function (fromColIndex, toColIndex) {
-	//Wrap single index to array
-	if (!Array.isArray(fromColIndex)) {
-		fromColIndex = [fromColIndex];
-	}
-
-	var columnCount = this._grid.getColumnCount();
-	var lastColIndex = columnCount - 1;
-	fromColIndex.sort(ascNumberSorter);
-	fromColIndex = fromColIndex.filter(inRangeFilter.bind(null, 0, lastColIndex));
-
-	if (!this._grid.isColumnMoveAllowed(fromColIndex, toColIndex)) {
-		return false;
-	}
-
-	var frozen = this._grid.isLayoutFrozen();
-	this._grid.freezeLayout(true);
-
-	var marker = [];
-	var runner = 0;
-	var i;
-	for (i = 0; i &lt; columnCount; i++) {
-		if (i == fromColIndex[runner]) {
-			marker.push(true);
-			runner++;
-		} else {
-			marker.push(false);
-		}
-	}
-	//Find the index to be moved to
-	var counter = -1;
-	var toMoveTo = -1;
-
-	for (i = 0; i &lt; columnCount; i++) {
-		if (marker[i] === false) {
-			counter++;
-		}
-
-		if (counter === toColIndex) {
-			toMoveTo = i;
-			break;
-		}
-	}
-
-	//If toMoveTo == -1, it means the target column index is beyond the last colmn so just move the columns
-	//to the end of the table
-	if (toMoveTo === -1) {
-		toMoveTo = columnCount;
-	}
-
-	//Perform moving
-	var leftList = [], rightList = [];
-
-	for (i = 0; i &lt; fromColIndex.length; i++) {
-		if (fromColIndex[i] &lt; toMoveTo) {
-			leftList.push(fromColIndex[i]);
-		} else if (fromColIndex[i] &gt; toMoveTo) {
-			rightList.push(fromColIndex[i]);
-		}
-	}
-
-	for (i = 0; i &lt; rightList.length; i++) {
-		this._grid.moveColumn(rightList[i], toMoveTo + i);
-	}
-
-	for (i = leftList.length - 1; i &gt;= 0; i--) {
-		toMoveTo--;
-
-		this._grid.moveColumn(leftList[i], toMoveTo);
-	}
-
-	this._grid.freezeLayout(frozen);
-	return true;
+	return this._grid.moveColumn(fromColIndex, toColIndex);
 };
 
 /** The hidden column still occupies the same index.
@@ -1782,7 +1703,7 @@ Grid.prototype.addDataFields = function(fieldRef, referrer) {
 
 			if(!dataType) {
 				// wait field-info to be loaded before adding field
-				onLoaded = this._onFieldLoaded.bind(this, field);
+				onLoaded = this._onFieldLoaded.bind(this, field, referrer);
 				prom = prom.then(onLoaded).catch(onLoaded);
 			} else {
 				this._connector.addFields(field, referrer || "grid");
@@ -1807,6 +1728,16 @@ Grid.prototype.removeDataFields = function(fieldRef, referrer) {
 
 	this._connector.removeFields(fieldRef, referrer || "grid");
 	return true;
+};
+/** @public
+* @param {string} referrer
+*/
+Grid.prototype.removeFieldReferrer = function(referrer) {
+	if(!referrer) {
+		return;
+	}
+
+	this._connector.removeFieldReferrer(referrer);
 };
 
 /** @public
@@ -2434,6 +2365,40 @@ Grid.prototype.getColumnDefinition = function(colIndex) {
 	}
 	return null;
 };
+
+/** @public
+* @param {string} colId
+* @return {ColumnDefinition}
+*/
+Grid.prototype.getColumnDefinitionById = function(colId) {
+	if(typeof colId === "string") {
+		var colIndex = this.getColumnIndex(colId);
+		var colData = this._grid.getColumnData(colIndex);
+		if(colData) {
+			return /** @type{ColumnDefinition} */(colData[COL_DEF]) || null;
+		}
+	}
+	return null;
+};
+
+/** @public
+* @param {Array.&lt;string&gt;} colIds
+* @return {ColumnDefinition}
+*/
+Grid.prototype.getColumnDefinitionsById = function(colIds) {
+	var colCount = Array.isArray(colIds) ? colIds.length : 0;
+	if(colCount &gt; 0) {
+		var i, colId;
+		var colDefs = new Array(colCount);
+		for(i = 0; i &lt; colCount; i++) {
+			colId = colIds[i];
+			colDefs[i] = this.getColumnDefinitionById(colId);
+		}
+		return colDefs;
+	}
+	return null;
+
+};
 /** @private
 * @param {Grid~ColumnReference} colRef
 * @return {ColumnDefinition}
@@ -2447,7 +2412,7 @@ Grid.prototype._getColumnDefinition = function(colRef) {
 		var colCount = this.getColumnCount();
 		for(var i = 0; i &lt; colCount; ++i) {
 			var colDef = this.getColumnDefinition(i);
-			if(colDef.getField() === colRef) {
+			if(colDef.getField() === colRef || colDef.getId() === colRef) {
 				return colDef; // Return the first found field
 			}
 		}
@@ -2639,7 +2604,7 @@ Grid.prototype.getColumnIndex = function(colRef) {
 	} else if(typeof colRef === "string") {
 		for(i = 0; i &lt; colCount; ++i) {
 			colDef = this.getColumnDefinition(i);
-			if(colDef.getField() === colRef) {
+			if(colDef.getField() === colRef || colDef.getId() === colRef) {
 				return i; // Return the first found field
 			}
 		}

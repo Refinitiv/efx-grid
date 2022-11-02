@@ -95,7 +95,8 @@
 	- [Custom Rendering](rendering/custom-formatter.md)
 	- [Changing Formatter at Runtime](rendering/change-formatter.md)
 	- [Event Handling in Formatter](rendering/formatter-event-handling.md)
-	- [Predefined Formatter](rendering/predefined-formatter.md)
+	- Predefined Formatter
+		- [Overview](rendering/predefined-formatter.md)
 		- [SimpleImageFormatter](rendering/predefined_formatters/simple-image-formatter.md)
 		- [SimpleInputFormatter](rendering/predefined_formatters/simple-input-formatter.md)
 		- [SimpleLinkFormatter](rendering/predefined_formatters/simple-link-formatter.md)
@@ -159,7 +160,6 @@
 	- [Default Sort](sorting/default-sorting.md)
 	- [Server Side Sorting](sorting/server-side-sorting.md)
 	- [Custom Sort Logic](sorting/custom-sort-logic.md)
-	- [Multi-Column/3-States Sorting](sorting/multi-column-sorting.md)
 	- [Get Sort States / Reset All Sorting](sorting/sorting-get-reset.md)
 
 - Filtering
@@ -172,10 +172,14 @@
 	- [In-Cell Editing](editing/in-cell-editor.md)
 	- [Custom Editor](editing/custom-editor.md)
 
+- Printing
+	- [Native Print and Extensions](printing/printer-extension.md)
+
 - Widgets
 	- [Column Format Dialog](widgets/column-format-dialog.md)
 	- [Column Selection Dialog](widgets/column-selection-dialog.md)
 	- [Filter Dialog](widgets/filter-dialog.md)
+	- [Language Support](widgets/language-support.md)
 
 - Miscellaneous
 	- [Using Core APIs](misc/core-apis.md)

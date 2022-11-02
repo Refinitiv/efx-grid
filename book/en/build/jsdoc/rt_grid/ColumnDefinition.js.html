@@ -94,7 +94,11 @@ var TYPE_MAPPING = {
 
 	PRICE: "number",
 	DOUBLE: "number",
-	MONEY: "number"
+	MONEY: "number",
+
+	INTEGER: "number",
+	FLOAT: "number",
+	SCORE: "number"
 };
 
 /** @type {string}
@@ -172,6 +176,10 @@ ColumnDefinition.prototype._name = "";
 * @private
 */
 ColumnDefinition.prototype._isDefaultName = true;
+/** @type {boolean}
+* @private
+*/
+ColumnDefinition.prototype._emptyField = false;
 /** @type {string|null}
 * @private
 */
@@ -492,6 +500,17 @@ ColumnDefinition.prototype.getDataType = function () {
 	}
 	return "";
 };
+/** set data type
+* @public
+* @param {string} dataType
+*/
+ColumnDefinition.prototype.setDataType = function (dataType) {
+	var val = TYPE_MAPPING[dataType.toUpperCase()];
+	if(val) {
+		dataType = val;
+	}
+	this._dataType = dataType;
+};
 /** get data type
 * @public
 * @param {string} field
@@ -654,6 +673,13 @@ ColumnDefinition.prototype.getTextAlign = function() {
 	var colIndex = grid.getColumnIndex(this);
 	return core.getColumnAlignment(colIndex);
 };
+/** @public
+* @return {boolean}
+*/
+ColumnDefinition.prototype.isFieldEmpty = function() {
+	return this._emptyField;
+};
+
 /** @public
 * @return {string}
 */
@@ -912,9 +938,11 @@ ColumnDefinition.prototype._setField = function(field, formulaStr) {
 	if(defaultField) {
 		this._field = "COLUMN_" + this._id;
 		this._name = "Column " + this._id;
+		this._emptyField = true;
 	} else {
 		this._field = field;
 		this._name = field;
+		this._emptyField = false;
 		this._realTimeField = field ? true : false;
 	}
 	this._isDefaultName = true;
@@ -970,6 +998,8 @@ ColumnDefinition.prototype._customRenderer = function(e) {
 	arg["rowIndex"] = e["rowIndex"];
 	if(rowData) {
 		arg["data"] = rowData[this._field];
+	} else {
+		arg["data"] = null;
 	}
 	arg["colIndex"] = e["colIndex"];
 	arg["cell"] = e["cell"];

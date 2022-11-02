@@ -62,7 +62,7 @@ Unlike the native printer above, the Printing Utility has been created to help p
 
 Basically, the utility creates a new grid DOM dynamically and copies its data into this newly created grid. It will be destroyed automatically when printing is finished.
 
-```live(formatters)
+```live(formatters,printer)
 <style>
 	atlas-blotter {
 		height: 300px;
@@ -71,7 +71,11 @@ Basically, the utility creates a new grid DOM dynamically and copies its data in
 <button id="print">print</button>
 <atlas-blotter id="grid"></atlas-blotter>
 <script>
-	var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
+	var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry", "icon"];
+	tr.DataGenerator.addFieldInfo("icon", {
+  		type: "set",
+  		members: ["up", "down", "phone", "calendar", "flame"]
+	});
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 20 });
 	var configObj = {
 		columns: [
@@ -79,7 +83,8 @@ Basically, the utility creates a new grid DOM dynamically and copies its data in
 			{title: "Market", field: fields[1], width: 100},
 			{title: "Last", field: fields[2], width: 80},
 			{title: "Net. Chng", field: fields[3], width: 80},
-			{title: "Industry", field: fields[4]}
+			{title: "Industry", field: fields[4]},
+			{title: "Icon", field: fields[5], binding: tr.CoralIconFormatter.create()}
 		],
 		staticDataRows: records
 	};

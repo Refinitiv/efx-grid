@@ -29,7 +29,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="8c993240-7923-4a7b-a074-c002728bf21a">
+        <pandora-nav id="634b226d-734d-4924-b832-244c6b97b0be">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -135,8 +135,10 @@
                 <li><a href="../../rendering/custom-formatter.html">Custom Rendering</a></li>
                 <li><a href="../../rendering/change-formatter.html">Changing Formatter at Runtime</a></li>
                 <li><a href="../../rendering/formatter-event-handling.html">Event Handling in Formatter</a></li>
-                <li parent="" id="cid-7" collapsible="" collapsed=""><a href="../../rendering/predefined-formatter.html">Predefined Formatter</a>
+                <li parent="" id="cid-7" collapsible="" collapsed="">
+                  <div collapser="">Predefined Formatter</div>
                   <ul>
+                    <li><a href="../../rendering/predefined-formatter.html">Overview</a></li>
                     <li><a href="../../rendering/predefined_formatters/simple-image-formatter.html">SimpleImageFormatter</a></li>
                     <li><a href="../../rendering/predefined_formatters/simple-input-formatter.html">SimpleInputFormatter</a></li>
                     <li><a href="../../rendering/predefined_formatters/simple-link-formatter.html">SimpleLinkFormatter</a></li>
@@ -217,7 +219,6 @@
                 <li><a href="../../sorting/default-sorting.html">Default Sort</a></li>
                 <li><a href="../../sorting/server-side-sorting.html">Server Side Sorting</a></li>
                 <li><a href="../../sorting/custom-sort-logic.html">Custom Sort Logic</a></li>
-                <li><a href="../../sorting/multi-column-sorting.html">Multi-Column/3-States Sorting</a></li>
                 <li><a href="../../sorting/sorting-get-reset.html">Get Sort States / Reset All Sorting</a></li>
               </ul>
             </li>
@@ -238,14 +239,21 @@
               </ul>
             </li>
             <li parent="" id="cid-16" collapsible="" collapsed="">
+              <div collapser="">Printing</div>
+              <ul>
+                <li><a href="../../printing/printer-extension.html">Native Print and Extensions</a></li>
+              </ul>
+            </li>
+            <li parent="" id="cid-17" collapsible="" collapsed="">
               <div collapser="">Widgets</div>
               <ul>
                 <li><a href="../../widgets/column-format-dialog.html">Column Format Dialog</a></li>
                 <li><a href="../../widgets/column-selection-dialog.html">Column Selection Dialog</a></li>
                 <li><a href="../../widgets/filter-dialog.html">Filter Dialog</a></li>
+                <li><a href="../../widgets/language-support.html">Language Support</a></li>
               </ul>
             </li>
-            <li parent="" id="cid-17" collapsible="" collapsed="">
+            <li parent="" id="cid-18" collapsible="" collapsed="">
               <div collapser="">Miscellaneous</div>
               <ul>
                 <li><a href="../../misc/core-apis.html">Using Core APIs</a></li>
@@ -257,7 +265,7 @@
                 <li><a href="../../misc/text-selection.html">Text Selection</a></li>
               </ul>
             </li>
-            <li parent="" id="cid-18" collapsible="" collapsed="">
+            <li parent="" id="cid-19" collapsible="" collapsed="">
               <div collapser="">Migrating to EFX Grid</div>
               <ul>
                 <li><a href="../../migrating/from-emerald-grid.html">Emerald Grid</a></li>
@@ -342,7 +350,7 @@
                   <div class="item">
                     <div class="item-type">typedef</div>
                     <h4 class="name" id="~ColumnReference">ColumnReference</h4>
-                    <div class="description"> A column in Grid can be referred by the following values:<br><b>number</b> : Column index including all invisible (hidden) columns<br><b>string</b> : Field name of the column<br><b>ColumnDefinition</b> : Column definition object<br></div>
+                    <div class="description"> A column in Grid can be referred by the following values:<br><b>number</b> : Column index including all invisible (hidden) columns<br><b>string</b> : Field name or column id of the column<br><b>ColumnDefinition</b> : Column definition object<br></div>
                     <h5>Type:</h5> <span class="param-type">number</span> | <span class="param-type">string</span> | <span class="param-type"><a href="ColumnDefinition.html">ColumnDefinition</a></span>
                     <div class="details"> </div>
                   </div>
@@ -575,6 +583,13 @@
                             <td class="description last">Vertical lines for all sections</td>
                           </tr>
                           <tr>
+                            <td class="name"><code>contentVerticalLines</code></td>
+                            <td class="type"> <span class="param-type">boolean</span> </td>
+                            <td class="attributes"> &lt;optional&gt;<br> </td>
+                            <td class="default"> true </td>
+                            <td class="description last">Vertical lines for all content section</td>
+                          </tr>
+                          <tr>
                             <td class="name"><code>horizontalLines</code></td>
                             <td class="type"> <span class="param-type">boolean</span> </td>
                             <td class="attributes"> &lt;optional&gt;<br> </td>
@@ -671,6 +686,13 @@
                             <td class="attributes"> &lt;optional&gt;<br> </td>
                             <td class="default"> 0 </td>
                             <td class="description last">Length of polling interval for refreshing ADC data in milliseconds. The default value (0) means no polling.</td>
+                          </tr>
+                          <tr>
+                            <td class="name"><code>fieldCaching</code></td>
+                            <td class="type"> <span class="param-type">boolean</span> </td>
+                            <td class="attributes"> &lt;optional&gt;<br> </td>
+                            <td class="default"> false </td>
+                            <td class="description last">If enabled, field definition will be caching internal mechanism</td>
                           </tr>
                         </tbody>
                       </table>
@@ -980,6 +1002,34 @@ grid.addStaticDataRows([
                       <div class="param">
                         <div class="name">colIndex</div>
                         <div class="type"> <span class="param-type">number</span> </div>
+                      </div>
+                    </div>
+                    <div class="details"> </div>
+                    <h5>Returns:</h5>
+                    <div class="sub-content"> <span class="param-type"><a href="ColumnDefinition.html">ColumnDefinition</a></span> </div>
+                  </div>
+                  <div class="item">
+                    <div class="item-type">function</div>
+                    <h4 class="name" id="getColumnDefinitionById">getColumnDefinitionById<span class="signature">(colId)</span></h4>
+                    <h5>Parameters:</h5>
+                    <div class="params">
+                      <div class="param">
+                        <div class="name">colId</div>
+                        <div class="type"> <span class="param-type">string</span> </div>
+                      </div>
+                    </div>
+                    <div class="details"> </div>
+                    <h5>Returns:</h5>
+                    <div class="sub-content"> <span class="param-type"><a href="ColumnDefinition.html">ColumnDefinition</a></span> </div>
+                  </div>
+                  <div class="item">
+                    <div class="item-type">function</div>
+                    <h4 class="name" id="getColumnDefinitionsById">getColumnDefinitionsById<span class="signature">(colIds)</span></h4>
+                    <h5>Parameters:</h5>
+                    <div class="params">
+                      <div class="param">
+                        <div class="name">colIds</div>
+                        <div class="type"> <span class="param-type">Array.&lt;string&gt;</span> </div>
                       </div>
                     </div>
                     <div class="details"> </div>
@@ -1659,6 +1709,18 @@ grid.logDV({"rowCount": 10}); // Showing 10 records</code></pre> </div>
                     <div class="item-type">function</div>
                     <h4 class="name" id="removeEventListeners">removeEventListeners<span class="signature">()</span></h4>
                     <div class="description"> Alias to EventDispatcher#removeAllEventListeners </div>
+                    <div class="details"> </div>
+                  </div>
+                  <div class="item">
+                    <div class="item-type">function</div>
+                    <h4 class="name" id="removeFieldReferrer">removeFieldReferrer<span class="signature">(referrer)</span></h4>
+                    <h5>Parameters:</h5>
+                    <div class="params">
+                      <div class="param">
+                        <div class="name">referrer</div>
+                        <div class="type"> <span class="param-type">string</span> </div>
+                      </div>
+                    </div>
                     <div class="details"> </div>
                   </div>
                   <div class="item">

@@ -196,6 +196,11 @@ FieldDefinition._synapse = '';
 * @const
 */
 FieldDefinition._lang = 'en';
+/**
+* @type {boolean}
+* @private
+*/
+FieldDefinition._caching = false;
 
 /**
  * @type {Object.&lt;string, boolean&gt;}
@@ -217,7 +222,10 @@ FieldDefinition.set = function(field, def) {
 * @return {Object}
 */
 FieldDefinition.get = function(field) {
-	return FieldDefinition._defs[field];
+	if(this._caching) {
+		return FieldDefinition._defs[field];
+	}
+	return null;
 };
 /** @public
 * @function
@@ -238,11 +246,10 @@ FieldDefinition.setSynapseConfig = function (config) {
 
 /** @public
 * @function
-* @param {string} field
-* @param {Object} def
+* @param {boolean} caching
 */
-FieldDefinition.set = function (field, def) {
-	FieldDefinition._defs[field] = def || null;
+FieldDefinition.setFieldCaching = function (caching) {
+	FieldDefinition._caching = caching;
 };
 
 /** to get more info about field via synapse service

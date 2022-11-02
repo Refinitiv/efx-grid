@@ -140,26 +140,7 @@ rfe.openDialog(0); // Change "0" to any column index.
 
 ### Changing Language
 
-Please follow this [Link](https://ui.refinitiv.com/intl/internationalization)
-
-You can change the language of this component in 2 ways,
-
-1. By specify `lang` attribute in the root html tag.
-
-```html
-<html lang="en">
-
-</html>
-```
-
-2. By specify `lang` property of the dialog element directly.
-
-```js
-var dialog = document.getElementByTagName("filter-dialog")[0];
-dialog.lang = "en";
-```
-
-> Note: Currently, the following languages are supported: en, ja, de, zh, zh-Hant
+For more information about internationalization and how is it applied in different contexts see [Language Support](language-support.md).
 
 ## Using with the [Context Menu Extension](../extensions/tr-grid-contextmenu.md)
 
