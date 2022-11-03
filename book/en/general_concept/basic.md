@@ -16,7 +16,7 @@ document.body.appendChild(grid);
 
 The element is used for positioning and sizing the grid in the document. Anything else should be done by passing a configuration object to the grid. 
 
-> See all available configuration options for [efx-grid here](../apis/rt_grid/Grid.md)
+> See all available configuration options for efx-grid [here](../apis/rt_grid/Grid.md)
 
 To define how the grid renders its layout and content use the `columns` property, as shown below:
 

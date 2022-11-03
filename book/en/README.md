@@ -36,7 +36,7 @@ Now, you can use Grid in your app.
 
 ## License for the Grid
 
-Please see [the license here](./license.html).
+Please see the license [here](./license.html).
 
 ## License for the Halo Theme
-The font “Proxima Nova Fin” shall only be used within Refinitiv products or services. The copyright owner must approve any use of such font outside of Refinitiv products or services, which may be subject to a fee. Please see [the license here](https://www.fontspring.com/lic/fontspring/webfont#license_text).
+The font “Proxima Nova Fin” shall only be used within Refinitiv products or services. The copyright owner must approve any use of such font outside of Refinitiv products or services, which may be subject to a fee. Please see the license [here](https://www.fontspring.com/lic/fontspring/webfont#license_text).

@@ -61,7 +61,7 @@ The following are some of the commonly used APIs:
 	grid.api.removeRow(0); // Remove the first row
 ```
 
-For all available APIs [see this document](../apis/README.md).
+For all available APIs see this [document](../apis/README.md).
 
 ## Example
 

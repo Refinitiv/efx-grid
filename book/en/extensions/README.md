@@ -67,7 +67,7 @@ grid.config = {
 
 ## Additional dependencies
 
-For details on how to install and use the EF-element see the [Refinitiv UI Installation document](https://ui.refinitiv.com/start/installation).
+For details on how to install and use the EF-element see the [Element Framework - Quick Start document](https://ui.refinitiv.com/quick-start).
 
 ### Checkbox Extension
 
