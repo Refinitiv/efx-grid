@@ -155,7 +155,11 @@ tr.grid.StretchedCells.prototype.setCellCount = function (count) {
 * @return {tr.grid.Cell}
 */
 tr.grid.StretchedCells.prototype.getCell = function (rowIndex) {
-	return this._cells[rowIndex] || null;
+	var cell = this._cells[rowIndex];
+	if(cell &amp;&amp; cell.getParent()) {
+		return cell;
+	}
+	return null;
 };
 /** @public
 * @ignore
@@ -202,13 +206,13 @@ tr.grid.StretchedCells.prototype.getColumnIndex = function (cellRef) {
 tr.grid.StretchedCells.prototype.getRowIndex = function (cellRef) {
 	if(cellRef) {
 		if(cellRef["getElement"]) {
-			return this._cells.indexOf(/** @type{tr.grid.Cell} */(cellRef));
+			return cellRef.getParent() ? this._cells.indexOf(/** @type{tr.grid.Cell} */(cellRef)): -1;
 		} else {
 			var cells = this._cells;
 			var rowCount = cells.length;
 			for(var r = 0; r &lt; rowCount; ++r) {
 				var cell = cells[r];
-				if(cell &amp;&amp; cell["getElement"]() === cellRef) {
+				if(cell &amp;&amp; cell.getParent() &amp;&amp; cell["getElement"]() === cellRef) {
 					return r;
 				}
 			}

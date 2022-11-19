@@ -64,6 +64,7 @@ tr.SegmentCollection.prototype.addSegment = function(rid) {
 	if(rid &amp;&amp; !this._segments[rid]) {
 		if(this._childToSegmentId[rid]) {
 			console.log("child of a segment cannot be set as a segment separator");
+			return false;
 		}
 		this._segments[rid] = new tr.Segment(rid);
 		++this._segmentCount;
@@ -394,8 +395,27 @@ tr.SegmentCollection.prototype.fillSegments = function(rids) {
 	return change;
 };
 /** @public
+* @param {Array.&lt;string&gt;} rids
+*/
+tr.SegmentCollection.prototype.calcSegmentOrder = function(rids) {
+	var ridCount = rids ? rids.length : 0;
+	var segmentSeparators = this._segments;
+	var segmentCount = this._segmentCount;
+	var order = 0;
+	for(var i = 0; i &lt; ridCount; ++i) {
+		var rid = rids[i];
+		var segment = segmentSeparators[rid];
+		if(segment) {
+			segment.setOrder(++order);
+			if(order &gt;= segmentCount) {
+				break;
+			}
+		}
+	}
+};
+/** @public
 * @param {!Array.&lt;string&gt;} rids Array of row ids
-* @return {Array.&lt;number&gt;} Returns Array of segment values, if there are at least two segments, otherwise returns null
+* @return {Array.&lt;number&gt;} Returns Array of segment values, if there are at least one segment, otherwise returns null
 */
 tr.SegmentCollection.prototype.getSegmentValues = function(rids) {
 	var rowCount = rids ? rids.length : 0;
@@ -405,51 +425,33 @@ tr.SegmentCollection.prototype.getSegmentValues = function(rids) {
 	var segmentSeparators = this._segments;
 	var childToSegmentId = this._childToSegmentId;
 	var curSegment = null;
+	var prevSegment = null;
 	var segmentValues = new Array(rowCount);
-	var curSegmentCount = 0;
 	var segmentVal = 0;
-	var r = 0;
-	var childToIndex = {};
-	while(r &lt; rowCount) {
+	var offset = 0;
+	for(var r = 0; r &lt; rowCount; ++r) {
 		var rid = rids[r];
-		if(segmentSeparators[rid]) {
-			++curSegmentCount;
-			curSegment = segmentSeparators[rid];
-			segmentVal += 100;
-			segmentValues[r] = segmentVal;
-			curSegment.setValue(segmentVal);
-			if(curSegmentCount &gt;= this._segmentCount) {
-				++r;
-				break;
-			}
+		curSegment = segmentSeparators[rid];
+		if(curSegment) {
+			offset = 0;
 		} else {
-			if(curSegmentCount) {
-				segmentValues[r] = segmentVal + 10;
+			var parentId = childToSegmentId[rid];
+			if(parentId) {
+				curSegment = segmentSeparators[parentId];
+				offset = 1;
 			} else {
-				segmentValues[r] = 0;
-			}
-			if(childToSegmentId[rid]) {
-				childToIndex[rid] = r;
+				offset = prevSegment ? 10 : 0;
 			}
 		}
-		++r;
+
+		if(curSegment &amp;&amp; prevSegment !== curSegment) {
+			prevSegment = curSegment;
+			segmentVal = curSegment.getOrder() * 100;
+		}
+		segmentValues[r] = segmentVal + offset;
 	}
-	if(curSegmentCount) {
-		while(r &lt; rowCount) {
-			rid = rids[r];
-			segmentValues[r] = segmentVal + 10;
-			if(childToSegmentId[rid]) {
-				childToIndex[rid] = r;
-			}
-			++r;
-		}
-		for(var childId in childToIndex) {
-			curSegment = segmentSeparators[childToSegmentId[childId]];
-			segmentValues[childToIndex[childId]] = curSegment.getValue() + 1;
-		}
-	}
-	
-	return curSegmentCount ? segmentValues : null;
+
+	return prevSegment ? segmentValues : null;
 };
 </code></pre>
         </article>

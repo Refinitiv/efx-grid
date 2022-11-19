@@ -211,7 +211,7 @@ The extension supports color from the predefined colors. To do this you need to 
 	}
 	
 	var ext = new tr.RowSegmentingExtension();
-	var fields = ["companyName", "percent", "number_2"];
+	var fields = ["companyName", "CF_NETCHNG", "CF_VOLUME"];
 	var columns = fields.map(function(f) {
 		return {
 			title: f,
@@ -235,7 +235,21 @@ The extension supports color from the predefined colors. To do this you need to 
 			cssField: "TAG_CSS_CLASS",
 			predefinedColors: predefinedColorsSet1
 		},
-		columns: columns,
+		columns: [
+			{
+				field: fields[0],
+				name: "companyName"
+			},
+			{
+				field: fields[1],
+				name: "Net. Chng"
+			},
+			{
+				field: fields[2],
+				name: "Volume"
+			},
+		
+		],
 		extensions: [
 			ext
 		],
@@ -259,24 +273,271 @@ The extension supports color from the predefined colors. To do this you need to 
 	});
 
 	document.getElementById("set_color_btn1").addEventListener("click", function(e) {
-		grid.api.setRowData(5, {
-			TAG_CSS_CLASS: "color-1"
-		});
+		grid.api.setStaticData(5, "TAG_CSS_CLASS", "color-1");
 	});
 
 	document.getElementById("set_color_btn2").addEventListener("click", function(e) {
-		grid.api.setRowData(5, {
-			TAG_CSS_CLASS: "color-2"
-		});
+		grid.api.setStaticData(5, "TAG_CSS_CLASS", "color-2");
 	});
 
 	document.getElementById("set_color_btn3").addEventListener("click", function(e) {
-		grid.api.setRowData(5, {
-			TAG_CSS_CLASS: "color-3"
-		});
+		grid.api.setStaticData(5, "TAG_CSS_CLASS", "color-3");
 	});
 
 </script>
+```
+
+#### Save/Load grid config
+
+In atlas-blotter with row segmenting extension we have spanningField, predefinedColor, segmentId can be implement save/load grid config,
+We provide the user to set those properties with `setStaticRowData` or `setStaticData`.
+When you set static data to pass grid API. It will be applied API in row segment extension too. Such as, setPredefiniedColor can be set static value with grid.api.setStaticData(0,"TAG_CSS_CLASS", "color1") in runtime mode.
+And also, in the initialization grid, it will get values from rows or staticDataRows, which is static data.
+
+The example of set static data, which edits values in runtime,
+we provide the use case save/load config from the grid.
+You can get the config from the grid and use this config in another grid.
+
+You can follow in below example for implement save/load functionality.
+The first example it will be grid that can be change data with click "Save config". 
+And then you can paste this config on the example 2 and click "Start Grid" and both grids look the same. 
+
+```live
+
+<style>
+		html body {
+			padding: 20px;
+			box-sizing: border-box;
+		}
+
+		html hr {
+			margin: 5px;
+		}
+
+		atlas-blotter {
+			height: 300px;
+		}
+		
+		#copy_success {
+			color: green;
+		}
+
+		input[type="number"] {
+			width: 40px;
+		}
+</style>
+	
+	<!--  Set predifined color with api  -->
+    <h4>Example 1 save data from grid</h4>
+	<span>Row Index</span>
+	<input value="1" type="number" id="row_index">
+	<hr>
+	<span> Set segment color</span>
+	<button id="set_segment_color_1"> Segment color 1 </button>
+	<button id="set_segment_color_2"> Segment color 2 </button>
+	<button id="set_segment_color_3"> Segment color 3 </button>
+	<button id="unset_segment_color"> Unset Segment Color</button>
+	<hr>
+	<span> Toggle Spanning </span>
+	<button id="spanning_segment_separator"> Toggle </button>
+	<hr>
+	<span> Save grid config for restore </span>
+	<button id="save_config"> Save config </button>
+	<span id="copy_success"> </span>
+	<atlas-blotter></atlas-blotter>
+
+	<script type="module">
+
+		var rowSegmentingExt = window.rowSegmentingExt = new tr.RowSegmentingExtension();
+
+		var fields = ["companyName", "industry", "CF_NETCHNG", "PCTCHNG", "CF_VOLUME"];
+
+		var records = tr.DataGenerator.generateRecords(fields, { seed: 1, rowCount: 12 });
+
+		// Initial grid with set segment separator 
+		records[1].segmentId = 1;
+		records[1].rowSegmentingColoringClass = "color-1";
+		records[2].segmentId = 1;
+		records[3].segmentId = 1;
+
+		records[4].segmentId = 3;
+		records[4].rowSegmentingColoringClass = "color-2";
+		records[4].spanning = true;
+		records[4].customGroup = "Custom Group 1";
+		records[5].segmentId = 3;
+		records[6].segmentId = 3;
+
+		records[7].segmentId = 2;
+		records[7].rowSegmentingColoringClass = "color-3";
+		records[7].spanning = 2;
+		records[8].segmentId = 2;
+		records[9].segmentId = 2;
+		// end set segment separator
+
+
+		var predefinedColorsSet1 = {
+			"color-1": {
+				backgroundColor: "#FF2848"
+			},
+			"color-2": {
+				backgroundColor: "#FFB27B"
+			},
+			"color-3": {
+				backgroundColor: "#EEF3B4"
+			}
+		};
+
+		var configObj = {
+			columns: [
+				{
+					name: "Company Name",
+					field: fields[0],
+					width: 120
+				},
+				{
+					name: "Industry",
+					field: fields[1]
+				},
+				{
+					name: "Net. Chng",
+					field: fields[2]
+				},
+				{
+					name: "Price. Chng",
+					field: fields[3]
+				},
+				{
+					name: "Volume",
+					field: fields[4]
+				}
+			],
+			extensions: [rowSegmentingExt],
+			rowSegmenting: {
+				cssField: "rowSegmentingColoringClass",
+				predefinedColors: predefinedColorsSet1,
+				rowSpanningField: "spanning",
+				segmentIdField: "segmentId",
+				segmentSeparatorBinding: function (e) {
+					if (e.rowData["customGroup"]) {
+						e.cell.setTextContent(e.rowData["customGroup"]);
+					} else {
+						e.cell.setTextContent(e.rowData["companyName"]);
+					}
+				}
+			},
+			staticDataRows: records,
+		};
+
+		var grid = window.grid = document.getElementsByTagName("atlas-blotter")[0];
+		grid.config = configObj;
+		window.grid = grid;
+
+		// listening Click Events
+
+		set_segment_color_1.addEventListener("click", function (e) {
+			var rowIndex = + row_index.value;
+			grid.api.setStaticData(rowIndex, "rowSegmentingColoringClass", "color-1");
+		});
+
+		set_segment_color_2.addEventListener("click", function (e) {
+			var rowIndex = + row_index.value;
+			grid.api.setStaticData(rowIndex, "rowSegmentingColoringClass", "color-2");
+		});
+
+		set_segment_color_3.addEventListener("click", function (e) {
+			var rowIndex = + row_index.value;
+			grid.api.setStaticData(rowIndex, "rowSegmentingColoringClass", "color-3");
+		});
+
+		unset_segment_color.addEventListener("click", function (e) {
+			var rowIndex = + row_index.value;
+			grid.api.setStaticData(rowIndex, "rowSegmentingColoringClass", null);
+		});
+
+
+		spanning_segment_separator.addEventListener("click", function (e) {
+			var rowIndex = + row_index.value;
+			var rowSpanning = grid.api.getRowData(rowIndex).spanning;
+
+			var rowDef = grid.api.getRowDefinition(rowIndex);
+			rowDef.setStaticData("spanning", !rowSpanning);
+
+		});
+
+		save_config.addEventListener("click", function (e) {
+			var config = grid.api.getConfigObject();
+			var configStr = JSON.stringify(config, null, 2);
+			navigator.clipboard.writeText(configStr);
+			copy_success.textContent = "Copied grid config to clipboard success";
+			setTimeout(function (e) { copy_success.textContent = "" }, 5000); // clear alert user
+		});
+
+	</script>
+
+```
+
+- - -
+
+
+```live
+<style>
+		html body {
+			padding: 20px;
+			box-sizing: border-box;
+		}
+
+		html hr {
+			margin: 5px;
+		}
+
+		atlas-blotter {
+			height: 300px;
+		}
+
+		#area_config {
+			width: 100%;
+			height: 100px;
+		}
+</style>
+
+	<!-- For restore config to grid -->
+    <h4>Example 2 load data to grid</h4>
+	<span> You can load the grid config with pase in below text area and then click "Start Grid" </span>
+	<hr>
+	<button id="start_grid"> Start Grid </button>
+	<hr>
+	<textarea id="area_config" placeholder="Patse grid config and click Start Grid"></textarea>
+	<hr>
+	<atlas-blotter></atlas-blotter>
+
+	<script type="module">
+
+		var rowSegmentingExt = (window.rowSegmentingExt = new tr.RowSegmentingExtension());
+
+		var fields = ["companyName", "industry", "CF_NETCHNG", "PCTCHNG", "CF_VOLUME"];
+
+		function onSeparatorBinding(e) {
+			if (e.rowData["customGroup"]) {
+				e.cell.setTextContent(e.rowData["customGroup"]);
+			} else {
+				e.cell.setTextContent(e.rowData["companyName"]);
+			}
+		}
+
+		start_grid.addEventListener("click", function (e) {
+			var grid = window.grid = window.grid = document.getElementsByTagName("atlas-blotter")[0];
+
+			var valueConfig = JSON.parse(area_config.value);
+			var configObj = valueConfig;
+			if(configObj.rowSegmenting) {
+				configObj.rowSegmenting["segmentSeparatorBinding"] = onSeparatorBinding;
+			}
+			configObj.extensions = [rowSegmentingExt];
+			grid.config = configObj;
+		});
+
+	</script>
+
 ```
 
 <div></div>

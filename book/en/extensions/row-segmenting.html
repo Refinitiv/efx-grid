@@ -29,7 +29,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="49727e3d-78da-4fd7-beab-77b8a80e49ee">
+        <pandora-nav id="fd44be30-0204-4805-84f9-849a1742864b">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -283,7 +283,7 @@
             <h2 id="row-segmenting"><a href="https://refinitiv.github.io/efx-grid/book/en/extensions/row-segmenting.html" target="_top" class="link-icon"></a> Row Segmenting</h2>
             <p>The Row Segmenting Extension provides a way to group row content based on row index. By specifying a row index, the row becomes a group header. Any row below the group header can then be added as a group member. This provides more flexibility in how you define a group, unlike Row Grouping Extension where groups are based on strictly defined criteria. </p>
 
-            <div class="pandora-code-viewer" id="pid-56">
+            <div class="pandora-code-viewer" id="pid-57">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -417,7 +417,7 @@ document.getElementById("unset_btn").addEventListener("click", function(e) {
             <h4 id="predefined-color">Predefined color</h4>
             <p>The extension supports color from the predefined colors. To do this you need to assign predefined class object to the <code>predefinedColors</code> property then specify field name of the <code>cssField</code> property.</p>
 
-            <div class="pandora-code-viewer" id="pid-57">
+            <div class="pandora-code-viewer" id="pid-58">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -495,7 +495,7 @@ for (color in predefinedColorsSet2) {
 }
 
 var ext = new RowSegmenting();
-var fields = ["companyName", "percent", "number_2"];
+var fields = ["companyName", "CF_NETCHNG", "CF_VOLUME"];
 var columns = fields.map(function(f) {
   return {
     title: f,
@@ -519,7 +519,20 @@ var configObj = {
     cssField: "TAG_CSS_CLASS",
     predefinedColors: predefinedColorsSet1
   },
-  columns: columns,
+  columns: [{
+      field: fields[0],
+      name: "companyName"
+    },
+    {
+      field: fields[1],
+      name: "Net. Chng"
+    },
+    {
+      field: fields[2],
+      name: "Volume"
+    },
+
+  ],
   extensions: [
     ext
   ],
@@ -543,21 +556,15 @@ document.getElementById("apply_btn2").addEventListener("click", function(e) {
 });
 
 document.getElementById("set_color_btn1").addEventListener("click", function(e) {
-  grid.api.setRowData(5, {
-    TAG_CSS_CLASS: "color-1"
-  });
+  grid.api.setStaticData(5, "TAG_CSS_CLASS", "color-1");
 });
 
 document.getElementById("set_color_btn2").addEventListener("click", function(e) {
-  grid.api.setRowData(5, {
-    TAG_CSS_CLASS: "color-2"
-  });
+  grid.api.setStaticData(5, "TAG_CSS_CLASS", "color-2");
 });
 
 document.getElementById("set_color_btn3").addEventListener("click", function(e) {
-  grid.api.setRowData(5, {
-    TAG_CSS_CLASS: "color-3"
-  });
+  grid.api.setStaticData(5, "TAG_CSS_CLASS", "color-3");
 });</pre>
                   <pre class="pandora-tab-view tab-css">html hr {
   margin: 5px;
@@ -584,6 +591,316 @@ efx-grid {
 
 button {
   vertical-align: middle;
+}</pre>
+                  <div class="pandora-console"></div>
+                </div>
+              </div>
+              <link rel="prefetch" href="../node_modules/tr-grid-test-resource-v6/dist/elf-halo-light.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-auto-tooltip/dist/tr-grid-auto-tooltip.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-cell-selection/dist/tr-grid-cell-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-checkbox/dist/tr-grid-checkbox.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/column-dragging/dist/column-dragging.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-fitter/dist/tr-grid-column-fitter.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-formatting/dist/tr-grid-column-formatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-grouping/dist/tr-grid-column-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-resizing/dist/tr-grid-column-resizing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-selection/dist/tr-grid-column-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-stack/dist/tr-grid-column-stack.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-conditional-coloring/dist/tr-grid-conditional-coloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-content-wrap/dist/tr-grid-content-wrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-contextmenu/dist/tr-grid-contextmenu.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-filter-input/dist/tr-grid-filter-input.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-heat-map/dist/tr-grid-heat-map.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-in-cell-editing/dist/tr-grid-in-cell-editing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-pagination/dist/tr-grid-pagination.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-percent-bar/dist/tr-grid-percent-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-range-bar/dist/tr-grid-range-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-dragging/dist/tr-grid-row-dragging.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-filtering/dist/tr-grid-row-filtering.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-grouping/dist/tr-grid-row-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/row-segmenting/dist/row-segmenting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-selection/dist/tr-grid-row-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-rowcoloring/dist/tr-grid-rowcoloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/statistics-row/dist/statistics-row.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-textformatting/dist/tr-grid-textformatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-titlewrap/dist/tr-grid-titlewrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
+            </div>
+            <h4 id="save-load-grid-config">Save/Load grid config</h4>
+            <p>In efx-grid with row segmenting extension we have spanningField, predefinedColor, segmentId can be implement save/load grid config,<br>We provide the user to set those properties with <code>setStaticRowData</code> or <code>setStaticData</code>.<br>When you set static data to pass grid API. It will be applied API in row segment extension too. Such as, setPredefiniedColor can be set static value with grid.api.setStaticData(0,"TAG_CSS_CLASS", "color1") in runtime mode.<br>And also, in the initialization grid, it will get values from rows or staticDataRows, which is static data.</p>
+            <p>The example of set static data, which edits values in runtime,<br>we provide the use case save/load config from the grid.<br>You can get the config from the grid and use this config in another grid.</p>
+            <p>You can follow in below example for implement save/load functionality.<br>The first example it will be grid that can be change data with click "Save config".<br>And then you can paste this config on the example 2 and click "Start Grid" and both grids look the same. </p>
+
+            <div class="pandora-code-viewer" id="pid-59">
+              <div class="pandora-viewer">
+                <button>&lt;/&gt;</button>
+              </div>
+              <div class="pandora-code-view">
+                <div class="pandora-toolbar">
+                  <ul>
+                    <li class="pandora-tab-selected" data-toggle="tab-html">HTML</li>
+                    <li data-toggle="tab-js">JS</li>
+                    <li data-toggle="tab-css">CSS</li>
+                  </ul>
+                </div>
+                <div class="pandora-tab-container">
+                  <pre class="pandora-tab-view tab-html">&lt;!--  Set predifined color with api  --&gt;
+&lt;h4&gt;Example 1 save data from grid&lt;/h4&gt;
+&lt;span&gt;Row Index&lt;/span&gt;
+&lt;input value="1" type="number" id="row_index"&gt;
+&lt;hr&gt;
+&lt;span&gt; Set segment color&lt;/span&gt;
+&lt;button id="set_segment_color_1"&gt; Segment color 1 &lt;/button&gt;
+&lt;button id="set_segment_color_2"&gt; Segment color 2 &lt;/button&gt;
+&lt;button id="set_segment_color_3"&gt; Segment color 3 &lt;/button&gt;
+&lt;button id="unset_segment_color"&gt; Unset Segment Color&lt;/button&gt;
+&lt;hr&gt;
+&lt;span&gt; Toggle Spanning &lt;/span&gt;
+&lt;button id="spanning_segment_separator"&gt; Toggle &lt;/button&gt;
+&lt;hr&gt;
+&lt;span&gt; Save grid config for restore &lt;/span&gt;
+&lt;button id="save_config"&gt; Save config &lt;/button&gt;
+&lt;span id="copy_success"&gt; &lt;/span&gt;
+&lt;efx-grid&gt;&lt;/efx-grid&gt;</pre>
+                  <pre class="pandora-tab-view tab-js">var rowSegmentingExt = window.rowSegmentingExt = new RowSegmenting();
+
+var fields = ["companyName", "industry", "CF_NETCHNG", "PCTCHNG", "CF_VOLUME"];
+
+var records = DataGenerator.generateRecords(fields, { seed: 1, rowCount: 12 });
+
+// Initial grid with set segment separator 
+records[1].segmentId = 1;
+records[1].rowSegmentingColoringClass = "color-1";
+records[2].segmentId = 1;
+records[3].segmentId = 1;
+
+records[4].segmentId = 3;
+records[4].rowSegmentingColoringClass = "color-2";
+records[4].spanning = true;
+records[4].customGroup = "Custom Group 1";
+records[5].segmentId = 3;
+records[6].segmentId = 3;
+
+records[7].segmentId = 2;
+records[7].rowSegmentingColoringClass = "color-3";
+records[7].spanning = 2;
+records[8].segmentId = 2;
+records[9].segmentId = 2;
+// end set segment separator
+
+
+var predefinedColorsSet1 = {
+  "color-1": {
+    backgroundColor: "#FF2848"
+  },
+  "color-2": {
+    backgroundColor: "#FFB27B"
+  },
+  "color-3": {
+    backgroundColor: "#EEF3B4"
+  }
+};
+
+var configObj = {
+  columns: [{
+      name: "Company Name",
+      field: fields[0],
+      width: 120
+    },
+    {
+      name: "Industry",
+      field: fields[1]
+    },
+    {
+      name: "Net. Chng",
+      field: fields[2]
+    },
+    {
+      name: "Price. Chng",
+      field: fields[3]
+    },
+    {
+      name: "Volume",
+      field: fields[4]
+    }
+  ],
+  extensions: [rowSegmentingExt],
+  rowSegmenting: {
+    cssField: "rowSegmentingColoringClass",
+    predefinedColors: predefinedColorsSet1,
+    rowSpanningField: "spanning",
+    segmentIdField: "segmentId",
+    segmentSeparatorBinding: function(e) {
+      if (e.rowData["customGroup"]) {
+        e.cell.setTextContent(e.rowData["customGroup"]);
+      } else {
+        e.cell.setTextContent(e.rowData["companyName"]);
+      }
+    }
+  },
+  staticDataRows: records,
+};
+
+var grid = window.grid = document.getElementsByTagName("efx-grid")[0];
+grid.config = configObj;
+window.grid = grid;
+
+// listening Click Events
+
+set_segment_color_1.addEventListener("click", function(e) {
+  var rowIndex = +row_index.value;
+  grid.api.setStaticData(rowIndex, "rowSegmentingColoringClass", "color-1");
+});
+
+set_segment_color_2.addEventListener("click", function(e) {
+  var rowIndex = +row_index.value;
+  grid.api.setStaticData(rowIndex, "rowSegmentingColoringClass", "color-2");
+});
+
+set_segment_color_3.addEventListener("click", function(e) {
+  var rowIndex = +row_index.value;
+  grid.api.setStaticData(rowIndex, "rowSegmentingColoringClass", "color-3");
+});
+
+unset_segment_color.addEventListener("click", function(e) {
+  var rowIndex = +row_index.value;
+  grid.api.setStaticData(rowIndex, "rowSegmentingColoringClass", null);
+});
+
+
+spanning_segment_separator.addEventListener("click", function(e) {
+  var rowIndex = +row_index.value;
+  var rowSpanning = grid.api.getRowData(rowIndex).spanning;
+
+  var rowDef = grid.api.getRowDefinition(rowIndex);
+  rowDef.setStaticData("spanning", !rowSpanning);
+
+});
+
+save_config.addEventListener("click", function(e) {
+  var config = grid.api.getConfigObject();
+  var configStr = JSON.stringify(config, null, 2);
+  navigator.clipboard.writeText(configStr);
+  copy_success.textContent = "Copied grid config to clipboard success";
+  setTimeout(function(e) { copy_success.textContent = "" }, 5000); // clear alert user
+});</pre>
+                  <pre class="pandora-tab-view tab-css">html body {
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+html hr {
+  margin: 5px;
+}
+
+efx-grid {
+  height: 300px;
+}
+
+#copy_success {
+  color: green;
+}
+
+input[type="number"] {
+  width: 40px;
+}</pre>
+                  <div class="pandora-console"></div>
+                </div>
+              </div>
+              <link rel="prefetch" href="../node_modules/tr-grid-test-resource-v6/dist/elf-halo-light.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-auto-tooltip/dist/tr-grid-auto-tooltip.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-cell-selection/dist/tr-grid-cell-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-checkbox/dist/tr-grid-checkbox.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/column-dragging/dist/column-dragging.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-fitter/dist/tr-grid-column-fitter.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-formatting/dist/tr-grid-column-formatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-grouping/dist/tr-grid-column-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-resizing/dist/tr-grid-column-resizing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-selection/dist/tr-grid-column-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-stack/dist/tr-grid-column-stack.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-conditional-coloring/dist/tr-grid-conditional-coloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-content-wrap/dist/tr-grid-content-wrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-contextmenu/dist/tr-grid-contextmenu.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-filter-input/dist/tr-grid-filter-input.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-heat-map/dist/tr-grid-heat-map.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-in-cell-editing/dist/tr-grid-in-cell-editing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-pagination/dist/tr-grid-pagination.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-percent-bar/dist/tr-grid-percent-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-range-bar/dist/tr-grid-range-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-dragging/dist/tr-grid-row-dragging.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-filtering/dist/tr-grid-row-filtering.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-grouping/dist/tr-grid-row-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/row-segmenting/dist/row-segmenting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-selection/dist/tr-grid-row-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-rowcoloring/dist/tr-grid-rowcoloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/statistics-row/dist/statistics-row.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-textformatting/dist/tr-grid-textformatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-titlewrap/dist/tr-grid-titlewrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
+            </div>
+            <hr>
+
+            <div class="pandora-code-viewer" id="pid-60">
+              <div class="pandora-viewer">
+                <button>&lt;/&gt;</button>
+              </div>
+              <div class="pandora-code-view">
+                <div class="pandora-toolbar">
+                  <ul>
+                    <li class="pandora-tab-selected" data-toggle="tab-html">HTML</li>
+                    <li data-toggle="tab-js">JS</li>
+                    <li data-toggle="tab-css">CSS</li>
+                  </ul>
+                </div>
+                <div class="pandora-tab-container">
+                  <pre class="pandora-tab-view tab-html">&lt;!-- For restore config to grid --&gt;
+&lt;h4&gt;Example 2 load data to grid&lt;/h4&gt;
+&lt;span&gt; You can load the grid config with pase in below text area and then click &amp;quot;Start Grid&amp;quot; &lt;/span&gt;
+&lt;hr&gt;
+&lt;button id="start_grid"&gt; Start Grid &lt;/button&gt;
+&lt;hr&gt;
+&lt;textarea id="area_config" placeholder="Patse grid config and click Start Grid"&gt;&lt;/textarea&gt;
+&lt;hr&gt;
+&lt;efx-grid&gt;&lt;/efx-grid&gt;</pre>
+                  <pre class="pandora-tab-view tab-js">var rowSegmentingExt = (window.rowSegmentingExt = new RowSegmenting());
+
+var fields = ["companyName", "industry", "CF_NETCHNG", "PCTCHNG", "CF_VOLUME"];
+
+function onSeparatorBinding(e) {
+  if (e.rowData["customGroup"]) {
+    e.cell.setTextContent(e.rowData["customGroup"]);
+  } else {
+    e.cell.setTextContent(e.rowData["companyName"]);
+  }
+}
+
+start_grid.addEventListener("click", function(e) {
+  var grid = window.grid = window.grid = document.getElementsByTagName("efx-grid")[0];
+
+  var valueConfig = JSON.parse(area_config.value);
+  var configObj = valueConfig;
+  if (configObj.rowSegmenting) {
+    configObj.rowSegmenting["segmentSeparatorBinding"] = onSeparatorBinding;
+  }
+  configObj.extensions = [rowSegmentingExt];
+  grid.config = configObj;
+});</pre>
+                  <pre class="pandora-tab-view tab-css">html body {
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+html hr {
+  margin: 5px;
+}
+
+efx-grid {
+  height: 300px;
+}
+
+#area_config {
+  width: 100%;
+  height: 100px;
 }</pre>
                   <div class="pandora-console"></div>
                 </div>

@@ -583,6 +583,7 @@ tr.DataTable.prototype.removeRows = function(refs) {
 			this._prevData[rid] = this._rows[rid];
 			this._removedRows[rid] = 1;
 			delete this._rows[rid];
+			// remove segments
 			dirty = true;
 		}
 	}
@@ -680,6 +681,7 @@ tr.DataTable.prototype.moveRow = function(fromIndex, toIndex, suppressEvent) {
 
 	if(output) {
 		if(this._segments) {
+			this._segments.calcSegmentOrder(this._rids);
 			this._sort(null); // Reorder segment members
 		}
 		this._dispatchPositionChange(suppressEvent);
@@ -909,12 +911,19 @@ tr.DataTable.prototype.isFrozen = function() {
 tr.DataTable.prototype.setSegmentSeparator = function(rid, enabled) {
 	var change = false;
 	var memberCount = 0;
-	if(typeof rid === "string") {
+	if(rid &amp;&amp; typeof rid === "string") {
 		if(enabled !== false) {
 			if(!this._segments) {
 				this._segments = new tr.SegmentCollection();
 			}
+			if(this._autoSegmentFilling) {
+				var parentId = this._segments.getParentRowId(rid);
+				if(parentId) {
+					this._segments.removeSegmentChild(parentId, rid);
+				}
+			}
 			if(this._segments.addSegment(rid)) {
+				this._segments.calcSegmentOrder(this._rids);
 				change = true;
 			}
 		} else if(this._segments) {
@@ -1216,6 +1225,7 @@ tr.DataTable.prototype.sortSegments = function (compare) {
 	}
 	
 	if(dirty) {
+		this._segments.calcSegmentOrder(rids);
 		this._sort(null);
 		this._dispatchPositionChange();
 	}
