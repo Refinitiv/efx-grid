@@ -47,11 +47,15 @@ tr.DataTable = function() {
 	
 	this._removeRows = this._removeRows.bind(this);
 	this._bySegmentSeparator = this._bySegmentSeparator.bind(this);
+	this._onClassifyingTimer = this._onClassifyingTimer.bind(this);
+	this._onSubSegmentChanged = this._onSubSegmentChanged.bind(this);
 
 	this._prevData = {};
 	this._rids = [];
 
 	this._compMap = {};
+
+	this._addEvent("subSegmentChanged");
 };
 goog.inherits(tr.DataTable, tr.DataCache);
 
@@ -94,6 +98,14 @@ tr.DataTable.prototype._removedRows = null;
 * @type {Function}
 */
 tr.DataTable.prototype._userSegmentComparer = null;
+/** @private
+* @type {Object.&lt;string, Object&gt;}
+*/
+tr.DataTable.prototype._clsSource = null;
+/** @private
+* @type {number}
+*/
+tr.DataTable.prototype._classifyingTimer = 0;
 
 
 /** @typedef {Function} tr.DataTable~SortLogic
@@ -122,8 +134,17 @@ tr.DataTable.prototype.dispose = function() {
 	this.unlistenAll();
 	this.clearAllData(true);
 
+	if(this._classifyingTimer) {
+		clearTimeout(this._classifyingTimer);
+		this._classifyingTimer = 0;
+	}
+
 	this._compMap = null; // Release user function that may be bound
-	this._segments = null;
+	this._clsSource = null;
+	if(this._segments) {
+		this._segments.dispose();
+		this._segments = null;
+	}
 };
 
 /** {@link tr.DataCache#getColumnData}
@@ -239,7 +260,7 @@ tr.DataTable.prototype.setRowData = function(rid, values, eventArg) { // Data ch
 			this._prevData[rid] = {};
 			if(eventArg) {
 				var nextRid = /** @type{string} */(eventArg["nextRid"]); // Used for insertion only
-				var rowIndex = (nextRid != null) ? this.getRowIndex(nextRid) : -1;
+				var rowIndex = (nextRid) ? this.getRowIndex(nextRid) : -1;
 				if(rowIndex &lt; 0) {
 					rowIndex = /** @type{number} */(eventArg["fallback"]);
 				}
@@ -271,6 +292,7 @@ tr.DataTable.prototype.setRowData = function(rid, values, eventArg) { // Data ch
 				var segment = this._segments.getSegment(rid);
 				if(segment) {
 					if(this._segments.removeSegment(rid)) {
+						// TODO: Handle sub segment removal
 						segmentChanged = true;
 						if(!this._segments.getSegmentCount()) {
 							this._segments = null;
@@ -278,12 +300,7 @@ tr.DataTable.prototype.setRowData = function(rid, values, eventArg) { // Data ch
 					}
 				}
 			}
-			for(var i = this._rids.length; --i &gt;= 0;) {
-				if(this._rids[i] === rid) {
-					this._rids.splice(i, 1);
-					break;
-				}
-			}
+			tr.DataTable._removeArrayItem(this._rids, rid);
 			dirty = true;
 		}
 	}
@@ -302,6 +319,7 @@ tr.DataTable.prototype.setRowData = function(rid, values, eventArg) { // Data ch
 			}
 			this._dispatchDataChange(e);
 		}
+		this.requestClassifying(); // TODO: Check if needFiring method should have an effect on this request
 	}
 	return dirty;
 };
@@ -504,7 +522,7 @@ tr.DataTable.prototype.unshiftRow = function(opt_values, opt_rid) {
 	return this.insertRow(0, opt_values, opt_rid);
 };
 /** @public
-* @param {string|number|null=} rowRef
+* @param {(string|number|null)=} rowRef
 * @param {Object.&lt;string, *&gt;=} values Key/value pair object map
 * @param {string|null=} rid If the given row Id already exists, data is updated and no new row is added. Leave blank or null to let DataTable generate unique row Id
 * @return {string} Return Row id that has been inserted or changed
@@ -513,11 +531,13 @@ tr.DataTable.prototype.unshiftRow = function(opt_values, opt_rid) {
 * @see {@link tr.DataTable#removeRow}
 */
 tr.DataTable.prototype.insertRow = function(rowRef, values, rid) {
-	var arg = {};
+	var arg = null;
 	if(typeof rowRef === "number") {
+		arg = {};
 		arg["nextRid"] = this._rids[rowRef];
 		arg["fallback"] = rowRef; // Fallback index in case of no nextRid found
-	} else {
+	} else if(rowRef) {
+		arg = {};
 		arg["nextRid"] = /** @type{string} */(rowRef);
 	}
 	
@@ -583,7 +603,7 @@ tr.DataTable.prototype.removeRows = function(refs) {
 			this._prevData[rid] = this._rows[rid];
 			this._removedRows[rid] = 1;
 			delete this._rows[rid];
-			// remove segments
+			// TODO: remove segments
 			dirty = true;
 		}
 	}
@@ -603,12 +623,34 @@ tr.DataTable.prototype.removeRows = function(refs) {
 tr.DataTable.prototype._removeRows = function(rid) {
 	return !this._removedRows[rid];
 };
+
+/** @private
+* @param {Array} ary
+* @param {*} item
+* @return {boolean}
+*/
+tr.DataTable._removeArrayItem = function(ary, item) {
+	var at = ary.indexOf(item);
+	if(at &gt;= 0) {
+		if(at &gt;= ary.length) {
+			ary.pop(); // Array.pop is 100 times faster than Array.splice
+		} else {
+			ary.splice(at, 1);
+		}
+		return true;
+	}
+	return false;
+};
 /** Remove all existing rows
 * @override
 */
 tr.DataTable.prototype.clearAllData = function(suppressEvent) {
 	tr.DataTable.base(this, "clearAllData", true);
 	this._prevData = {};
+	// TODO: Clear all segments
+	if(this._segments) {
+		this._segments.removeAllSegmentChildren(); // This immediately remove all sub segments
+	}
 
 	if(this._rids.length) {
 		this._rids.length = 0;
@@ -915,6 +957,7 @@ tr.DataTable.prototype.setSegmentSeparator = function(rid, enabled) {
 		if(enabled !== false) {
 			if(!this._segments) {
 				this._segments = new tr.SegmentCollection();
+				this._segments.listen("subSegmentChanged", this._onSubSegmentChanged);
 			}
 			if(this._autoSegmentFilling) {
 				var parentId = this._segments.getParentRowId(rid);
@@ -975,6 +1018,29 @@ tr.DataTable.prototype.unsetAllSegmentSeparators = function() {
 */
 tr.DataTable.prototype.hasSegmentation = function() {
 	return this._segments ? true : false;
+};
+/** Get Segment object
+* @public
+* @param {string} rid Row id
+* @return {tr.Segment} Return 0 if the given rid is not a segment
+*/
+tr.DataTable.prototype.getSegment = function(rid) {
+	if(this._segments) {
+		return this._segments.getSegment(rid);
+	}
+	return null;
+};
+/** Segment level starts from 1
+* @public
+* @param {string} rid
+* @return {number} Return 0 if the given rid is not a segment
+*/
+tr.DataTable.prototype.getSegmentLevel = function(rid) {
+	var segment = this.getSegment(rid);
+	if(segment) {
+		return segment.getSegmentLevel() + 1;
+	}
+	return 0;
 };
 /** 
 * @public
@@ -1060,6 +1126,7 @@ tr.DataTable.prototype.fillSegment = function(segmentId) {
 	if(this._segments) {
 		this._segments.fillSegment(segmentId, this._rids);
 		this.dispatchGlobalChange();
+		this.requestClassifying();
 	}
 };
 /** Remove all existing segment children in each segment and fill the segments with all contnet rows before the next segment separator
@@ -1071,6 +1138,7 @@ tr.DataTable.prototype.fillSegments = function() {
 		var dirty = this._segments.fillSegments(this._rids);
 		if(dirty) {
 			this.dispatchGlobalChange();
+			this.requestClassifying();
 		}
 		return dirty;
 	}
@@ -1079,15 +1147,17 @@ tr.DataTable.prototype.fillSegments = function() {
 /** @public
 * @param {string} segmentId Row id
 * @param {string} rid Row id
+* @param {string=} dataId Row id for retrieving data
 * @return {boolean} Return true if there is any change
 */
-tr.DataTable.prototype.addSegmentChild = function(segmentId, rid) {
+tr.DataTable.prototype.addSegmentChild = function(segmentId, rid, dataId) {
 	if(this._segments) {
-		var dirty = this._segments.addSegmentChild(segmentId, rid);
+		var dirty = this._segments.addSegmentChild(segmentId, rid, dataId);
 		if(dirty) {
 			if(this._sort(null)) {
 				this._dispatchPositionChange();
 			}
+			this.requestClassifying();
 			return true;
 		}
 	}
@@ -1105,6 +1175,7 @@ tr.DataTable.prototype.addSegmentChildren = function(segmentId, rids) {
 			if(this._sort(null)) {
 				this._dispatchPositionChange();
 			}
+			this.requestClassifying();
 			return true;
 		}
 	}
@@ -1120,6 +1191,7 @@ tr.DataTable.prototype.removeSegmentChild = function(segmentId, rid) {
 		var dirty = this._segments.removeSegmentChild(segmentId, rid);
 		if(dirty) {
 			this.dispatchGlobalChange();
+			this.requestClassifying();
 		}
 		return dirty;
 	}
@@ -1135,6 +1207,7 @@ tr.DataTable.prototype.removeSegmentChildren = function(segmentId, rids) {
 		var dirty = this._segments.removeSegmentChildren(segmentId, rids);
 		if(dirty) {
 			this.dispatchGlobalChange();
+			this.requestClassifying();
 		}
 		return dirty;
 	}
@@ -1145,7 +1218,7 @@ tr.DataTable.prototype.removeSegmentChildren = function(segmentId, rids) {
 */
 tr.DataTable.prototype.removeAllSegmentChildren = function() {
 	if(this._segments) {
-		var dirty = this._segments.removeAllSegmentChildren();
+		var dirty = this._segments.removeAllSegmentChildren(); // This immediately remove all sub segments
 		if (dirty) {
 			this.dispatchGlobalChange();
 		}
@@ -1180,11 +1253,16 @@ tr.DataTable.prototype.getSegmentChildIds = function(segmentId) {
 };
 /** Sort all of existing segments by given compare function
 * @public
-* @param {Function} compare 
+* @param {Function} compare
+* @return {boolean}
 */
 tr.DataTable.prototype.sortSegments = function (compare) {
-	if(!this._segments || typeof compare !== "function") {
-		return;
+	if(!this._segments) {
+		return false;
+	}
+	if(typeof compare !== "function") {
+		this._segments.calcSegmentOrder(this._rids);
+		return false;
 	}
 	var rids = this._rids;
 	var segments = this._segments;
@@ -1228,7 +1306,9 @@ tr.DataTable.prototype.sortSegments = function (compare) {
 		this._segments.calcSegmentOrder(rids);
 		this._sort(null);
 		this._dispatchPositionChange();
+		return true;
 	}
+	return false;
 };
 /** Sort all of existing segments by given compare function
 * @private
@@ -1243,6 +1323,111 @@ tr.DataTable.prototype._bySegmentSeparator = function (segmentA, segmentB) {
 	));
 };
 
+/** A data source to be used with segment classification
+* @public
+* @param {tr.DataCache} dc
+*/
+tr.DataTable.prototype.setClassificationSource = function(dc) {
+	this._clsSource = null;
+
+	if(dc &amp;&amp; dc._rows) {
+		this._clsSource = dc._rows;
+	}
+};
+/**
+* @public
+* @param {string} segmentId
+* @param {string|Array.&lt;string&gt;} fields
+* @return {boolean}
+*/
+tr.DataTable.prototype.setSegmentClassification = function(segmentId, fields) {
+	if(this._segments) {
+		var dirty = this._segments.setSegmentClassification(segmentId, fields);
+		if(dirty) {
+			return this.classifySegments();
+		}
+	}
+	return false;
+};
+/** @public
+* @return {boolean}
+*/
+tr.DataTable.prototype.classifySegments = function() {
+	if(this._segments) {
+		if(this._rids.length) {
+			return this._segments.classify(this._clsSource || this._rows);
+		}
+	}
+	return false;
+};
+
+/** @public
+*/
+tr.DataTable.prototype.requestClassifying = function() {
+	if(this._segments &amp;&amp; !this._classifyingTimer) {
+		if(this._segments.hasClassification()) {
+			this._classifyingTimer = setTimeout(this._onClassifyingTimer, 10);
+		}
+	}
+};
+/** @private
+*/
+tr.DataTable.prototype._onClassifyingTimer = function() {
+	this._classifyingTimer = 0;
+	this.classifySegments();
+};
+/** @private
+* @param {Object} e
+*/
+tr.DataTable.prototype._onSubSegmentChanged = function(e) {
+	var insertionList = /** @type{Array.&lt;tr.Segment&gt;} */(e["insertionList"]);
+	var removalList = /** @type{Array.&lt;string&gt;} */(e["removalList"]);
+
+	var dirty = false;
+	var rows = this._rows;
+	var clsSource = this._clsSource || rows;
+	var rids = this._rids;
+	var prevData = this._prevData;
+	var i;
+
+	var removalCount = removalList.length;
+	var removedRows = {};
+	for(i = 0; i &lt; removalCount; i++) {
+		var rid = removalList[i];
+		if(rows[rid]) {
+			removedRows[rid] = prevData[rid] = rows[rid];
+			delete rows[rid];
+			tr.DataTable._removeArrayItem(rids, rid);
+			dirty = true;
+			// TODO: Remove classification source
+		}
+	}
+
+	var insertionCount = insertionList.length;
+	for(i = 0; i &lt; insertionCount; i++) {
+		var segment = insertionList[i];
+		var parentId = segment.getParentId();
+		var segmentId = segment.getId();
+
+		if(!rows[segmentId]) {
+			prevData[segmentId] = {};
+			segment.setRowData(rows, clsSource);
+
+			var parentAt = rids.indexOf(parentId);
+			if(parentAt &lt; 0 || parentAt + 1 &gt;= rids.length) {
+				rids.push(segmentId);
+			} else {
+				rids.splice(parentAt + 1, 0, segmentId);
+			}
+			dirty = true;
+		}
+	}
+	if(dirty) {
+		e["removedRows"] = removedRows;
+		this._dispatch("subSegmentChanged", e);
+		this.dispatchGlobalChange(); // Rerender everything
+	}
+};
 
 /** 
 * @public
@@ -1725,82 +1910,97 @@ tr.DataTable._getSortOrder = function(sortOrder) {
 goog.exportSymbol("tr.DataTable", tr.DataTable);
 tr.DataTable._proto = tr.DataTable.prototype;
 
-goog.exportProperty(tr.DataTable._proto, "dispose", tr.DataTable._proto.dispose);
+goog.exportProperty(tr.DataTable, "getSortingDefinitions", tr.DataTable.getSortingDefinitions);
+(function() {
+var pt = tr.DataTable.prototype;
+var methodMap = {
+	"dispose": pt.dispose,
 
-// goog.exportProperty(tr.DataTable._proto, "getData", tr.DataTable._proto.getData); derive
-// goog.exportProperty(tr.DataTable._proto, "getRowData", tr.DataTable._proto.getRowData); derive
-// goog.exportProperty(tr.DataTable._proto, "getMultipleRowData", tr.DataTable._proto.getMultipleRowData); derive
-// goog.exportProperty(tr.DataTable._proto, "getAllRowData", tr.DataTable._proto.getAllRowData); derive
+	// "getData": pt.getData, derive
+	// "getRowData": pt.getRowData, derive
+	// "getMultipleRowData": pt.getMultipleRowData, derive
+	// "getAllRowData": pt.getAllRowData, derive
 
-goog.exportProperty(tr.DataTable._proto, "getColumnData", tr.DataTable._proto.getColumnData); // override
-goog.exportProperty(tr.DataTable._proto, "getRowId", tr.DataTable._proto.getRowId);
-goog.exportProperty(tr.DataTable._proto, "getAllRowIds", tr.DataTable._proto.getAllRowIds); // override
-goog.exportProperty(tr.DataTable._proto, "getRowIndex", tr.DataTable._proto.getRowIndex);
-goog.exportProperty(tr.DataTable._proto, "getRowCount", tr.DataTable._proto.getRowCount);
-goog.exportProperty(tr.DataTable._proto, "getDataAt", tr.DataTable._proto.getDataAt);
-goog.exportProperty(tr.DataTable._proto, "getRowDataAt", tr.DataTable._proto.getRowDataAt);
-goog.exportProperty(tr.DataTable._proto, "getPreviousData", tr.DataTable._proto.getPreviousData);
+	"getColumnData": pt.getColumnData, // override
+	"getRowId": pt.getRowId,
+	"getAllRowIds": pt.getAllRowIds, // override
+	"getRowIndex": pt.getRowIndex,
+	"getRowCount": pt.getRowCount,
+	"getDataAt": pt.getDataAt,
+	"getRowDataAt": pt.getRowDataAt,
+	"getPreviousData": pt.getPreviousData,
 
-goog.exportProperty(tr.DataTable._proto, "setData", tr.DataTable._proto.setData); // override
-goog.exportProperty(tr.DataTable._proto, "setRowData", tr.DataTable._proto.setRowData); // override
-goog.exportProperty(tr.DataTable._proto, "setColumnData", tr.DataTable._proto.setColumnData);
-goog.exportProperty(tr.DataTable._proto, "setDataFromObjectMap", tr.DataTable._proto.setDataFromObjectMap);
-goog.exportProperty(tr.DataTable._proto, "setDataFrom2DArray", tr.DataTable._proto.setDataFrom2DArray);
+	"setData": pt.setData, // override
+	"setRowData": pt.setRowData, // override
+	"setColumnData": pt.setColumnData,
+	"setDataFromObjectMap": pt.setDataFromObjectMap,
+	"setDataFrom2DArray": pt.setDataFrom2DArray,
 
-goog.exportProperty(tr.DataTable._proto, "setDataAt", tr.DataTable._proto.setDataAt);
-goog.exportProperty(tr.DataTable._proto, "setRowDataAt", tr.DataTable._proto.setRowDataAt);
-goog.exportProperty(tr.DataTable._proto, "addRow", tr.DataTable._proto.addRow);
-goog.exportProperty(tr.DataTable._proto, "addRows", tr.DataTable._proto.addRows);
-goog.exportProperty(tr.DataTable._proto, "unshiftRow", tr.DataTable._proto.unshiftRow);
-goog.exportProperty(tr.DataTable._proto, "insertRow", tr.DataTable._proto.insertRow);
-goog.exportProperty(tr.DataTable._proto, "insertAfter", tr.DataTable._proto.insertAfter);
-goog.exportProperty(tr.DataTable._proto, "removeRow", tr.DataTable._proto.removeRow);
-goog.exportProperty(tr.DataTable._proto, "removeRows", tr.DataTable._proto.removeRows);
-goog.exportProperty(tr.DataTable._proto, "removeAllRows", tr.DataTable._proto.removeAllRows);
-goog.exportProperty(tr.DataTable._proto, "moveRow", tr.DataTable._proto.moveRow);
-goog.exportProperty(tr.DataTable._proto, "moveRows", tr.DataTable._proto.moveRows);
-goog.exportProperty(tr.DataTable._proto, "swapRow", tr.DataTable._proto.swapRow);
+	"setDataAt": pt.setDataAt,
+	"setRowDataAt": pt.setRowDataAt,
+	"addRow": pt.addRow,
+	"addRows": pt.addRows,
+	"unshiftRow": pt.unshiftRow,
+	"insertRow": pt.insertRow,
+	"insertAfter": pt.insertAfter,
+	"removeRow": pt.removeRow,
+	"removeRows": pt.removeRows,
+	"removeAllRows": pt.removeAllRows,
+	"moveRow": pt.moveRow,
+	"moveRows": pt.moveRows,
+	"swapRow": pt.swapRow,
 
-goog.exportProperty(tr.DataTable._proto, "clearAllData", tr.DataTable._proto.clearAllData); // override
-goog.exportProperty(tr.DataTable._proto, "clearRowData", tr.DataTable._proto.clearRowData);
-goog.exportProperty(tr.DataTable._proto, "clearColumnData", tr.DataTable._proto.clearColumnData); // override
+	"clearAllData": pt.clearAllData, // override
+	"clearRowData": pt.clearRowData,
+	"clearColumnData": pt.clearColumnData, // override
 
-goog.exportProperty(tr.DataTable._proto, "getDataSource", tr.DataTable._proto.getDataSource);
-goog.exportProperty(tr.DataTable._proto, "setDataSource", tr.DataTable._proto.setDataSource);
+	"getDataSource": pt.getDataSource,
+	"setDataSource": pt.setDataSource,
 
-goog.exportProperty(tr.DataTable._proto, "sortOnce", tr.DataTable._proto.sortOnce);
-goog.exportProperty(tr.DataTable._proto, "setSortingLogic", tr.DataTable._proto.setSortingLogic);
-goog.exportProperty(tr.DataTable._proto, "setColumnSortingLogic", tr.DataTable._proto.setColumnSortingLogic);
+	"sortOnce": pt.sortOnce,
+	"setSortingLogic": pt.setSortingLogic,
+	"setColumnSortingLogic": pt.setColumnSortingLogic,
 
-goog.exportProperty(tr.DataTable._proto, "freeze", tr.DataTable._proto.freeze);
-goog.exportProperty(tr.DataTable._proto, "unfreeze", tr.DataTable._proto.unfreeze);
-goog.exportProperty(tr.DataTable._proto, "isFrozen", tr.DataTable._proto.isFrozen);
+	"freeze": pt.freeze,
+	"unfreeze": pt.unfreeze,
+	"isFrozen": pt.isFrozen,
 
-goog.exportProperty(tr.DataTable._proto, "setSegmentSeparator", tr.DataTable._proto.setSegmentSeparator);
-goog.exportProperty(tr.DataTable._proto, "unsetAllSegmentSeparators", tr.DataTable._proto.unsetAllSegmentSeparators);
-goog.exportProperty(tr.DataTable._proto, "hasSegmentation", tr.DataTable._proto.hasSegmentation);
-goog.exportProperty(tr.DataTable._proto, "isSegmentSeparator", tr.DataTable._proto.isSegmentSeparator);
-goog.exportProperty(tr.DataTable._proto, "getSegmentParentRowId", tr.DataTable._proto.getSegmentParentRowId);
+	"setSegmentSeparator": pt.setSegmentSeparator,
+	"unsetAllSegmentSeparators": pt.unsetAllSegmentSeparators,
+	"hasSegmentation": pt.hasSegmentation,
+	"getSegment": pt.getSegment,
+	"getSegmentLevel": pt.getSegmentLevel,
+	"isSegmentSeparator": pt.isSegmentSeparator,
+	"getSegmentParentRowId": pt.getSegmentParentRowId,
 
-goog.exportProperty(tr.DataTable._proto, "getSegmentValues", tr.DataTable._proto.getSegmentValues);
-goog.exportProperty(tr.DataTable._proto, "enableAutoSegmentFilling", tr.DataTable._proto.enableAutoSegmentFilling);
-goog.exportProperty(tr.DataTable._proto, "fillSegment", tr.DataTable._proto.fillSegment);
-goog.exportProperty(tr.DataTable._proto, "fillSegments", tr.DataTable._proto.fillSegments);
-goog.exportProperty(tr.DataTable._proto, "addSegmentChild", tr.DataTable._proto.addSegmentChild);
-goog.exportProperty(tr.DataTable._proto, "addSegmentChildren", tr.DataTable._proto.addSegmentChildren);
-goog.exportProperty(tr.DataTable._proto, "removeSegmentChild", tr.DataTable._proto.removeSegmentChild);
-goog.exportProperty(tr.DataTable._proto, "removeSegmentChildren", tr.DataTable._proto.removeSegmentChildren);
-goog.exportProperty(tr.DataTable._proto, "removeAllSegmentChildren", tr.DataTable._proto.removeAllSegmentChildren);
-goog.exportProperty(tr.DataTable._proto, "getSegmentIds", tr.DataTable._proto.getSegmentIds);
-goog.exportProperty(tr.DataTable._proto, "getSegmentChildIds", tr.DataTable._proto.getSegmentChildIds);
-goog.exportProperty(tr.DataTable._proto, "sortSegments", tr.DataTable._proto.sortSegments);
+	"getSegmentValues": pt.getSegmentValues,
+	"enableAutoSegmentFilling": pt.enableAutoSegmentFilling,
+	"fillSegment": pt.fillSegment,
+	"fillSegments": pt.fillSegments,
+	"addSegmentChild": pt.addSegmentChild,
+	"addSegmentChildren": pt.addSegmentChildren,
+	"removeSegmentChild": pt.removeSegmentChild,
+	"removeSegmentChildren": pt.removeSegmentChildren,
+	"removeAllSegmentChildren": pt.removeAllSegmentChildren,
+	"getSegmentIds": pt.getSegmentIds,
+	"getSegmentChildIds": pt.getSegmentChildIds,
+	"sortSegments": pt.sortSegments,
+	"setClassificationSource": pt.setClassificationSource,
+	"setSegmentClassification": pt.setSegmentClassification,
+	"classifySegments": pt.classifySegments,
+	"requestClassifying": pt.requestClassifying,
 
-goog.exportProperty(tr.DataTable._proto, "dispatchGlobalChange", tr.DataTable._proto.dispatchGlobalChange);
+	"dispatchGlobalChange": pt.dispatchGlobalChange,
 
-goog.exportProperty(tr.DataTable._proto, "dump", tr.DataTable._proto.dump); // override
-// goog.exportProperty(tr.DataTable._proto, "log", tr.DataTable._proto.log); derive
-
-goog.exportProperty(tr.DataTable, "getSortingDefinitions", tr.DataTable.getSortingDefinitions);</code></pre>
+	"dump": pt.dump // override
+	// "log": pt.log, derive
+};
+// Export methods for Closure's advanced compilation
+for(var methodName in methodMap) {
+	goog.exportProperty(pt, methodName, methodMap[methodName]);
+}
+})();
+</code></pre>
         </article>
     </section>
 

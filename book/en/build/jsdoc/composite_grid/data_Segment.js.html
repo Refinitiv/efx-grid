@@ -24,15 +24,60 @@
     <section>
         <article>
             <pre class="prettyprint source linenums"><code>goog.provide("tr.Segment");
+goog.require("tr.EventDispatcher");
 
 /** @constructor
+* @extends {tr.EventDispatcher}
 * @param {string} rid
+* @param {!Object} sharedObj
 */
-tr.Segment = function(rid) {
+tr.Segment = function(rid, sharedObj) {
 	this._rid = rid;
 	this._children = {};
+	this._shared = sharedObj;
+	
+	this._addEvents("subSegmentAdded",
+		"subSegmentRemoved"
+	);
+};
+goog.inherits(tr.Segment, tr.EventDispatcher);
+
+/** @private
+* @function
+* @param {string} a
+* @param {string} b
+* @return {number}
+*/
+tr.Segment._subSegSortLogic = function(a, b) {
+	if(a === "Uncategorized") {
+		return 1;
+	}
+	if(b === "Uncategorized") {
+		return -1;
+	}
+
+	if(a &lt; b) {
+		return -1;
+	}
+	if(b &lt; a) {
+		return 1;
+	}
+
+	return 0;
+};
+/** @private
+* @function
+* @param {tr.Segment} segment
+* @param {number} idx
+*/
+tr.Segment._assignSubSegmentOrder = function(segment, idx) {
+	segment.setOrder(idx + 1);
 };
 
+/** @type {Object}
+* @private
+*/
+tr.Segment.prototype._shared = null;
 
 /** @type {string}
 * @private
@@ -53,13 +98,67 @@ tr.Segment.prototype._collapsed = false;
 /** @type {number}
 * @private
 */
-tr.Segment.prototype._value = 0;
+tr.Segment.prototype._order = 0;
+/** @type {boolean}
+* @private
+*/
+tr.Segment.prototype._disposed = false;
+
+/** @type {Object}
+* @private
+*/
+tr.Segment.prototype._subSegDef = null;
 /** @type {number}
 * @private
 */
-tr.Segment.prototype._order = 0;
+tr.Segment.prototype._subSegLevel = 0;
+/** @type {Object.&lt;string, tr.Segment&gt;}
+* @private
+*/
+tr.Segment.prototype._subSegMap = null; // For immediate sub-segment children
+/** @type {Array.&lt;string&gt;}
+* @private
+*/
+tr.Segment.prototype._subSegNames = null; // For immediate sub-segment child names
+/** @type {string}
+* @private
+*/
+tr.Segment.prototype._subSegName = "";
+/** @type {*}
+* @private
+*/
+tr.Segment.prototype._subSegVal;
+/** @type {tr.Segment}
+* @private
+*/
+tr.Segment.prototype._subSegParent = null;
 
 
+/** @public
+*/
+tr.Segment.prototype.dispose = function() {
+	if(this._disposed) {
+		return;
+	}
+	this._disposed = true;
+
+	this.unlistenAll();
+	var segmentNames = this._subSegNames;
+	if(segmentNames) {
+		var segmentCount = segmentNames.length;
+		var segmentMap = this._subSegMap;
+		for(var i = 0; i &lt; segmentCount; ++i) {
+			segmentMap[segmentNames[i]].dispose();
+		}
+		this._subSegMap = this._subSegNames = null;
+	}
+	if(this._collapsed) {
+		this._shared.dirtyCollapsingState = true;
+	}
+
+	this._shared = null;
+	this._subSegParent = this._subSegDef = this._subSegVal = null;
+};
 /** @public
 * @return {string}
 */
@@ -67,32 +166,66 @@ tr.Segment.prototype.getId = function() {
 	return this._rid;
 };
 /** @public
+* @return {string}
+*/
+tr.Segment.prototype.getParentId = function() {
+	if(this._subSegParent) {
+		return this._subSegParent.getId();
+	}
+	return "";
+};
+/** @public
+* @param {Array.&lt;string&gt;=} out_ary
+* @return {Array.&lt;string&gt;}
+*/
+tr.Segment.prototype.getSubSegmentIds = function(out_ary) {
+	var segmentNames = this._subSegNames;
+	if(segmentNames) {
+		if(!out_ary) {
+			out_ary = [];
+		}
+		var segmentCount = segmentNames.length;
+		var segmentMap = this._subSegMap;
+		for(var i = 0; i &lt; segmentCount; ++i) {
+			var segmentName = segmentNames[i];
+			var segment = segmentMap[segmentName];
+			out_ary.push(segment.getId());
+			segment.getSubSegmentIds(out_ary);
+		}
+
+		return out_ary;
+	}
+	return null;
+};
+/** @public
 * @param {string} rid
-* @param {Object=} objMap
+* @param {string=} dataId Row id for retrieving data
 * @return {boolean}
 */
-tr.Segment.prototype.addChild = function(rid, objMap) {
-	if(rid &amp;&amp; !this._children[rid]) {
-		if(objMap) {
-			objMap[rid] = this._rid;
+tr.Segment.prototype.addChild = function(rid, dataId) {
+	if(rid) {
+		this._shared.childToSegment[rid] = this._rid;
+		if(this._collapsed) {
+			this._shared.dirtyCollapsingState = true; // TODO: Check if we need to update this only when new child is added
 		}
-		this._children[rid] = 1;
-		++this._childCount;
-		return true;
+		if(!this._children[rid]) {
+			this._children[rid] = dataId || rid;
+			++this._childCount;
+			return true;
+		}
 	}
 	return false;
 };
 /** @public
 * @param {Array.&lt;string&gt;} rids
-* @param {Object=} objMap
 * @return {boolean}
 */
-tr.Segment.prototype.addChildren = function(rids, objMap) {
+tr.Segment.prototype.addChildren = function(rids) {
 	var rowIds = Array.isArray(rids) ? rids : [rids];
 	var rowCount = rowIds.length;
 	var dirty = 0;
 	for(var i = 0; i &lt; rowCount; ++i) {
-		dirty |= this.addChild(rowIds[i], objMap);
+		dirty |= this.addChild(rowIds[i]);
 	}
 	return dirty ? true : false;
 };
@@ -105,26 +238,37 @@ tr.Segment.prototype.containsChild = function(rid) {
 };
 /** @public
 * @param {string} rid
-* @param {Object=} objMap
 * @return {boolean}
 */
-tr.Segment.prototype.removeChild = function(rid, objMap) {
-	if(this._childCount &amp;&amp; this._children[rid]) {
-		if(objMap) {
-			delete objMap[rid];
-		}
-		delete this._children[rid]; // Slow
-		--this._childCount;
-		return true;
+tr.Segment.prototype.removeChild = function(rid) {
+	if(this._subSegLevel) {
+		return false; // Sub segments are not allowed to remove its children
 	}
-	return false;
+	if(!this._childCount) {
+		return false;
+	}
+	if(!this._children[rid]) {
+		return false; // The specified rid is not a child of this segment
+	}
+
+	var objMap = this._shared.childToSegment;
+	delete objMap[rid];
+	delete this._children[rid]; // Slow
+	--this._childCount;
+
+	if(this._collapsed) {
+		this._shared.dirtyCollapsingState = true;
+	}
+	return true;
 };
 /** @public
 * @param {Array.&lt;string&gt;} rids
-* @param {Object=} objMap
 * @return {boolean}
 */
-tr.Segment.prototype.removeChildren = function(rids, objMap) {
+tr.Segment.prototype.removeChildren = function(rids) {
+	if(this._subSegLevel) {
+		return false; // Sub segments are not allowed to remove its children
+	}
 	if(!this._childCount) {
 		return false;
 	}
@@ -132,29 +276,34 @@ tr.Segment.prototype.removeChildren = function(rids, objMap) {
 	var rowCount = rowIds.length;
 	var dirty = 0;
 	for(var i = 0; i &lt; rowCount; ++i) {
-		dirty |= this.removeChild(rowIds[i], objMap);
+		dirty |= this.removeChild(rowIds[i]);
 	}
 	return dirty ? true : false;
 };
 /** @public
-* @param {Object=} objMap
 * @return {boolean}
 */
-tr.Segment.prototype.removeAllChildren = function(objMap) {
-	if(this._childCount) {
-		if(objMap) {
-			var chdr = this._children;
-			for(var rid in chdr) {
-				if(objMap[rid]) {
-					delete objMap[rid];
-				}
-			}
-		}
-		this._children = {};
-		this._childCount = 0;
-		return true;
+tr.Segment.prototype.removeAllChildren = function() {
+	if(this._subSegLevel) {
+		return false; // Sub segments are not allowed to remove its children
 	}
-	return false;
+	if(!this._childCount) {
+		return false;
+	}
+	var objMap = this._shared.childToSegment;
+	var chdr = this._children;
+	for(var rid in chdr) {
+		if(objMap[rid]) {
+			delete objMap[rid]; // TODO: Check if we need to do this
+		}
+	}
+	this._children = {};
+	this._childCount = 0;
+
+	if(this._collapsed) {
+		this._shared.dirtyCollapsingState = true;
+	}
+	return true;
 };
 /** @public
 * @return {!Array.&lt;string&gt;}
@@ -171,6 +320,310 @@ tr.Segment.prototype.getChildCount = function() {
 
 
 /** @public
+* @return {Array.&lt;string&gt;} fields
+*/
+tr.Segment.prototype.getClassification = function() {
+	if(this._subSegDef) {
+		return this._subSegDef.classifiers || null;
+	}
+	return null;
+};
+/** @public
+* @param {string|Array.&lt;string&gt;} fields
+* @return {boolean}
+*/
+tr.Segment.prototype.setClassification = function(fields) {
+	if(this._subSegLevel) {
+		return false; // non-root segment cannot be classified
+	}
+	var classifiers = null;
+	if(this._subSegDef) {
+		classifiers = this._subSegDef.classifiers;
+	}
+
+	var newClassifiers = null;
+	if(fields) {
+		if(typeof fields === "string") {
+			newClassifiers = [fields];
+		} else if(Array.isArray(fields)) {
+			newClassifiers = fields;
+		}
+	}
+	var i;
+	var fieldCount = newClassifiers ? newClassifiers.length : 0;
+
+	if(fieldCount) {
+		var curCount = classifiers ? classifiers.length : 0;
+		if(curCount === fieldCount) { // Check duplication
+			for(i = 0; i &lt; fieldCount; ++i) {
+				if(newClassifiers[i] !== classifiers[i]) {
+					break;
+				}
+			}
+			if(i &gt;= fieldCount) {
+				return false; // nothing has change
+			}
+		}
+
+		if(!this._subSegDef) {
+			this._subSegDef = {
+				root: this,
+				subSegments: null
+			};
+		}
+
+		this._subSegDef.classifiers = newClassifiers;
+		// this._subSegDef.classifierChanged = true;
+		return true;
+	} else if(classifiers) { // Remove existing ones
+		this._subSegDef.classifiers = null;
+		this._subSegDef.subSegments = null;
+		// this._subSegDef.classifierChanged = true;
+		this._subSegDef = null; // WARNING: All sub segments remain existing
+		return true;
+	}
+	return false;
+};
+/** @public
+* @param {Object.&lt;string, Object&gt;=} rows Object maps between row id and its record
+* @return {boolean}
+*/
+tr.Segment.prototype.classify = function(rows) {
+	var classifiers = this._subSegDef ? this._subSegDef.classifiers : null;
+	var classifierCount = classifiers ? classifiers.length : 0;
+
+	var segmentNames = this._subSegNames;
+	var segmentCount = segmentNames ? segmentNames.length : 0;
+
+	if(!segmentCount) {
+		if(this._subSegLevel &gt;= classifierCount) {
+			return false; // Current segment level is beyond existing classification level and this segment should already be removed
+		}
+	}
+
+	// Prepare existing sub segments for checking change in its members
+	var i;
+	var segmentName = "";
+	var nonExistenceGroups = {};
+	var removalCount = 0;
+	var segmentMap = this._subSegMap;
+	var segment = null;
+	if(segmentCount) {
+		removalCount = segmentCount;
+		for(i = 0; i &lt; removalCount; ++i) {
+			segmentName = segmentNames[i];
+			nonExistenceGroups[segmentName] = 1;
+
+			segment = segmentMap[segmentName];
+			if(segment._childCount) { // Quick cleaning up
+				segment._children = {};
+				segment._childCount = 0;
+			}
+		}
+	}
+
+	// Loop through row children and assign them to their corresponding sub segment
+	var isRootSegment = !this._subSegLevel;
+	var rid;
+	var children = this._children;
+	if(this._subSegLevel &lt; classifierCount &amp;&amp; rows) {
+		if(!segmentMap) {
+			segmentMap = this._subSegMap = {};
+			segmentNames = this._subSegNames = [];
+		}
+
+		var classifier = classifiers[this._subSegLevel];
+
+		for(rid in children) {
+			var dataId = children[rid];
+			var record = rows[dataId];
+			var val = record ? record[classifier] : null; // WARNING: row could already be removed
+
+			this._shared.childToSegment[rid] = this._rid; // Relocate child in case of it has been moved to a non existence group
+
+			segmentName = "Uncategorized";
+			if(val || val === 0 || val === false) { // Check for null, undefined, "", and NaN value
+				segmentName = val + "";
+			}
+			if(nonExistenceGroups[segmentName]) {
+				nonExistenceGroups[segmentName] = 0;
+				--removalCount;
+			}
+
+			segment = segmentMap[segmentName];
+			if(!segment) { // New group is detected
+				segment = new tr.Segment(this._rid + "/" + segmentName, this._shared);
+				segment._subSegDef = this._subSegDef;
+				segment._subSegLevel = this._subSegLevel + 1;
+				segment._subSegName = segmentName;
+				segment._subSegVal = val;
+				segment._subSegParent = this;
+
+				segmentMap[segmentName] = segment;
+				segmentNames.push(segmentName);
+
+				this._dispatch("subSegmentAdded", {
+					"rid": segment.getId(),
+					"segment": segment
+				});
+			}
+
+			segment.addChild(rid, dataId);
+		}
+	} else if(isRootSegment) { // In case of no classification
+		for(rid in children) {
+			this._shared.childToSegment[rid] = this._rid; // Relocate child in case of it has been moved to a non existence group
+		}
+	}
+
+	// Remove all sub segments with no members
+	if(removalCount &gt; 0) {
+		if(removalCount &gt;= segmentNames.length) {
+			segmentNames.length = 0;
+		}
+		for(segmentName in nonExistenceGroups) {
+			if(nonExistenceGroups[segmentName]) {
+				segment = segmentMap[segmentName];
+				delete segmentMap[segmentName];
+				// TODO: Slow
+				var at = segmentNames.indexOf(segmentName);
+				if(at &gt;= 0) {
+					segmentNames.splice(at, 1);
+				}
+
+				this._dispatch("subSegmentRemoved", {
+					"rid": segment.getId(),
+					"segment": segment
+				});
+
+				// segment.dispose(); Already done by segment collection
+			}
+		}
+		if(!segmentNames.length) {
+			segmentNames = this._subSegMap = this._subSegNames = null;
+		}
+	}
+
+	// Sort and classify existing sub segments
+	segmentCount = segmentNames ? segmentNames.length : 0;
+	if(segmentCount) {
+		segmentNames.sort(tr.Segment._subSegSortLogic);
+		for(i = 0; i &lt; segmentCount; ++i) {
+			segment = segmentMap[segmentNames[i]];
+			segment.classify(rows);
+		}
+	}
+
+	// Collecting all sub segments including all descendants and reassigning segment order.
+	if(isRootSegment) { // If this is a root segment
+		if(this._subSegDef) {
+			if(segmentCount) {
+				var subSegments = this._subSegDef.subSegments = [];
+				this.getAllSubSegments(subSegments);
+				subSegments.forEach(tr.Segment._assignSubSegmentOrder);
+			} else {
+				this._subSegDef.subSegments = null;
+			}
+			// this._subSegDef.classifierChanged = false;
+		}
+	}
+	return true;
+};
+/** @public
+* @return {boolean}
+*/
+tr.Segment.prototype.hasSubSegments = function() {
+	if(this._subSegNames) {
+		return this._subSegNames.length ? true : false;
+	}
+	return false;
+};
+/** @public
+* @return {boolean}
+*/
+tr.Segment.prototype.isSubSegment = function() {
+	return this._subSegLevel ? true : false;
+};
+/** @public
+* @return {tr.Segment}
+*/
+tr.Segment.prototype.getFirstAncestor = function() {
+	if(this._subSegLevel &amp;&amp; this._subSegDef) {
+		var ancestor = this._subSegDef.root;
+		return /** @type{tr.Segment} */(ancestor) || null;
+	}
+	return null;
+};
+/** @public
+* @param {Array.&lt;tr.Segment&gt;=} out_ary
+* @return {Array.&lt;tr.Segment&gt;}
+*/
+tr.Segment.prototype.getAllSubSegments = function(out_ary) {
+	var segmentNames = this._subSegNames;
+	if(segmentNames) {
+		if(!out_ary) {
+			out_ary = [];
+		}
+		var segmentMap = this._subSegMap;
+		var segmentCount = segmentNames.length;
+		for(var i = 0; i &lt; segmentCount; ++i) {
+			var segment = segmentMap[segmentNames[i]];
+			out_ary.push(segment);
+			segment.getAllSubSegments(out_ary);
+		}
+	}
+	return out_ary || null;
+};
+/** @public
+* @return {number}
+*/
+tr.Segment.prototype.getSegmentLevel = function() {
+	return this._subSegLevel;
+};
+/** This method will be called on sub segments only
+* @public
+* @param {Object=} rows
+* @param {Object=} clsSource
+*/
+tr.Segment.prototype.setRowData = function(rows, clsSource) {
+	if(!rows) {
+		return;
+	}
+	var row = rows[this._rid];
+	if(!row) {
+		row = rows[this._rid] = {};
+	}
+
+	if(!clsSource) {
+		clsSource = rows;
+	}
+	row = clsSource[this._rid];
+	if(!row) {
+		row = clsSource[this._rid] = {};
+	}
+
+	var segment = this;
+	while(segment &amp;&amp; segment.isSubSegment()) {
+		segment.getSubSegmentName(row);
+		segment = segment._subSegParent;
+	}
+};
+/** @public
+* @param {Object=} row
+* @return {string}
+*/
+tr.Segment.prototype.getSubSegmentName = function(row) {
+	if(row &amp;&amp; this._subSegLevel) {
+		var classifiers = this.getClassification();
+		var field = classifiers[this._subSegLevel - 1];
+		if(field) {
+			row[field] = this._subSegName;
+		}
+	}
+	return this._subSegName;
+};
+
+/** @public
 * @param {boolean=} bool
 * @return {boolean}
 */
@@ -178,6 +631,7 @@ tr.Segment.prototype.collapse = function(bool) {
 	bool = (bool !== false);
 	if(this._collapsed !== bool) {
 		this._collapsed = bool;
+		this._shared.dirtyCollapsingState = true;
 		return true;
 	}
 	return false;
@@ -197,38 +651,64 @@ tr.Segment.prototype.isCollapsed = function() {
 };
 /** @public
 * @param {Object=} objMap
-* @return {!Object}
+* @param {boolean=} parentState=false Collapsing state from parent segment
+* @return {boolean}
 */
-tr.Segment.prototype.getCollapsingStates = function(objMap) {
+tr.Segment.prototype.getCollapsingStates = function(objMap, parentState) {
+	var segmentNames = this._subSegNames;
+	if(!this._subSegLevel) { // Only root segment
+		if(!segmentNames) { // No sub segment
+			if(!this._collapsed) {
+				return false;
+			}
+		}
+	}
+
 	if(!objMap) {
 		objMap = {};
 	}
-	if(this._childCount) {
-		var chdr = this._children;
-		var collapsed = this._collapsed;
-		for(var rid in chdr) {
-			objMap[rid] = collapsed;
+	var dirty = false;
+	if(this._subSegLevel) { // Sub segments are also subjected to collapsing
+		if(parentState) {
+			objMap[this._rid] = true;
+			dirty = true;
 		}
 	}
-	return objMap;
+	if(this._childCount) {
+		var collapsed = parentState || this._collapsed;
+		if(segmentNames) {
+			var segmentMap = this._subSegMap;
+			var segmentCount = segmentNames.length;
+			for(var i = 0; i &lt; segmentCount; ++i) {
+				var segment = segmentMap[segmentNames[i]];
+				objMap[segment.getId()] = !!parentState;
+				if(segment.getCollapsingStates(objMap, collapsed)) {
+					dirty = true;
+				}
+			}
+		} else if(collapsed) {
+			var chdr = this._children;
+			for(var rid in chdr) {
+				objMap[rid] = collapsed;
+			}
+			dirty = true;
+		}
+	}
+	return dirty;
 };
-/** @public
-* @return {number}
-*/
-tr.Segment.prototype.getValue = function() {
-	return this._value;
-};
-/** @public
-* @param {number} val
-*/
-tr.Segment.prototype.setValue = function(val) {
-	this._value = val;
-};
+
 /** @public
 * @return {number}
 */
 tr.Segment.prototype.getOrder = function() {
-	return this._order;
+	if(this._subSegLevel) {
+		var ancestor = this.getFirstAncestor();
+		if(ancestor) {
+			// WARNING: this._order cannot be greater than 9999
+			return ancestor.getOrder() + this._order;
+		}
+	}
+	return this._order * 10000;
 };
 /** @public
 * @param {number} val
@@ -236,6 +716,86 @@ tr.Segment.prototype.getOrder = function() {
 tr.Segment.prototype.setOrder = function(val) {
 	this._order = val;
 };
+
+/** @private
+* @type {Array.&lt;string&gt;}
+*/
+tr.Segment._tabs = null;
+/** @public
+* @param {Array.&lt;string&gt;} lines
+* @return {Array.&lt;string&gt;} lines
+*/
+tr.Segment.prototype.log = function(lines) {
+	var i;
+	var tabs = tr.Segment._tabs;
+	if(!tabs) {
+		tabs = tr.Segment._tabs = [];
+		var tabCh = "";
+		for(i = 0; i &lt; 11; ++i) {
+			tabs[i] = tabCh;
+			tabCh += "  ";
+		}
+	}
+	var collapsedCh = this._collapsed ? "+ " : "- ";
+	lines.push(tabs[this._subSegLevel] + collapsedCh + this._rid);
+
+	var segmentNames = this._subSegNames;
+	if(segmentNames) {
+		var segmentCount = segmentNames.length;
+		var segmentMap = this._subSegMap;
+		for(i = 0; i &lt; segmentCount; ++i) {
+			segmentMap[segmentNames[i]].log(lines);
+		}
+	} else if(this._childCount) {
+		var indent = tabs[this._subSegLevel + 1];
+		for(var rid in this._children) {
+			lines.push(indent + "- " + rid);
+		}
+	}
+
+	return lines;
+};
+
+goog.exportSymbol("tr.Segment", tr.Segment);
+tr.Segment._proto = tr.Segment.prototype;
+(function() {
+var pt = tr.Segment.prototype;
+var methodMap = {
+	"dispose": pt.dispose,
+	"getId": pt.getId,
+	"getParentId": pt.getParentId,
+	"getSubSegmentIds": pt.getSubSegmentIds,
+	"addChild": pt.addChild,
+	"addChildren": pt.addChildren,
+	"containsChild": pt.containsChild,
+	"removeChild": pt.removeChild,
+	"removeChildren": pt.removeChildren,
+	"removeAllChildren": pt.removeAllChildren,
+	"getChildIds": pt.getChildIds,
+	"getChildCount": pt.getChildCount,
+	"getClassification": pt.getClassification,
+	"setClassification": pt.setClassification,
+	"classify": pt.classify,
+	"hasSubSegments": pt.hasSubSegments,
+	"isSubSegment": pt.isSubSegment,
+	"getFirstAncestor": pt.getFirstAncestor,
+	"getAllSubSegments": pt.getAllSubSegments,
+	"getSegmentLevel": pt.getSegmentLevel,
+	"setRowData": pt.setRowData,
+	"getSubSegmentName": pt.getSubSegmentName,
+	"collapse": pt.collapse,
+	"expand": pt.expand,
+	"isCollapsed": pt.isCollapsed,
+	"getCollapsingStates": pt.getCollapsingStates,
+	"getOrder": pt.getOrder,
+	"setOrder": pt.setOrder,
+	"log": pt.log
+};
+// Export methods for Closure's advanced compilation
+for(var methodName in methodMap) {
+	goog.exportProperty(pt, methodName, methodMap[methodName]);
+}
+})();
 </code></pre>
         </article>
     </section>

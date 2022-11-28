@@ -2362,6 +2362,22 @@ tr.DataView.prototype.hasSegmentation = function() {
 tr.DataView.prototype.isSegmentSeparator = function(rid) {
 	return this._dt.isSegmentSeparator(rid);
 };
+/** Get Segment object
+* @public
+* @param {string} rid Row id
+* @return {tr.Segment} Return 0 if the given rid is not a segment
+*/
+tr.DataView.prototype.getSegment = function(rid) {
+	return this._dt.getSegment(rid);
+};
+/** Segment level starts from 1
+* @public
+* @param {string} rid Row id
+* @return {number} Return 0 if the given rid is not a segment
+*/
+tr.DataView.prototype.getSegmentLevel = function(rid) {
+	return this._dt.getSegmentLevel(rid);
+};
 /**
 * @public
 * @param {string} rid
@@ -2443,13 +2459,14 @@ tr.DataView.prototype.fillSegments = function() {
 /** @public
 * @param {string|number} segmentRef Row id or row index
 * @param {string|number} rowRef Row id, row index
+* @param {string=} dataId Row id for retrieving data
 * @return {boolean} Return true if there is any change
 */
-tr.DataView.prototype.addSegmentChild = function(segmentRef, rowRef) {
+tr.DataView.prototype.addSegmentChild = function(segmentRef, rowRef, dataId) {
 	if(this._dt._getSegmentSeparators()) {
 		var segmentId = this._toRowId(segmentRef);
 		var rowId = this._toRowId(rowRef);
-		return this._dt.addSegmentChild(segmentId, rowId);
+		return this._dt.addSegmentChild(segmentId, rowId, dataId);
 	}
 	return false;
 };
@@ -2520,6 +2537,16 @@ tr.DataView.prototype.getSegmentChildIds = function(segmentRef) {
 tr.DataView.prototype.sortSegments = function (compare) {
 	this._dt.sortSegments(compare);
 };
+/**
+* @public
+* @param {string|number} segmentRef Row id or row index
+* @param {string|Array.&lt;string&gt;} fields
+* @return {boolean}
+*/
+tr.DataView.prototype.setSegmentClassification = function(segmentRef, fields) {
+	return this._dt.setSegmentClassification(this._toRowId(segmentRef), fields);
+};
+
 
 /** @public
 * @ignore
@@ -3948,6 +3975,8 @@ var methodMap = {
 	"unsetAllSegmentSeparators": pt.unsetAllSegmentSeparators,
 	"hasSegmentation": pt.hasSegmentation,
 	"isSegmentSeparator": pt.isSegmentSeparator,
+	"getSegment": pt.getSegment,
+	"getSegmentLevel": pt.getSegmentLevel,
 	"getSegmentParentRowId": pt.getSegmentParentRowId,
 
 	"collapseSegment": pt.collapseSegment,
