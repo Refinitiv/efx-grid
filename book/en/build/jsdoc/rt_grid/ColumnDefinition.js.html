@@ -73,6 +73,7 @@ import Engine from "../../node_modules/tr-grid-util/es6/formula/Engine.js";
 * @property {boolean=} stationary=false If enabled, the column order cannot be changed (i.e., this column and any column to its left cannot be moved)
 * @property {boolean=} leftPinned=false If enabled, the column will not be part of the scrollable area and is pinned to the left side
 * @property {boolean=} rightPinned=false If enabled, the column will not be part of the scrollable area and is pinned to the right side
+* @property {Object=} info=null Store additional information
 */
 
 /** mapping of field type to javascript type
@@ -265,6 +266,10 @@ ColumnDefinition.prototype._textSelect = false;
 * @private
 */
 ColumnDefinition.prototype._userModel = null;
+/** @type {Object}
+* @private
+*/
+ColumnDefinition.prototype._info = null;
 //#endregion Private Members
 
 
@@ -422,6 +427,11 @@ ColumnDefinition.prototype.initialize = function(columnOption) {
 	val = columnOption["textSelect"];
 	if(val) {
 		this._textSelect = val;
+	}
+
+	val = columnOption["info"];
+	if(val) {
+		this._info = val;
 	}
 
 	this._userModel = columnOption;
@@ -698,6 +708,10 @@ ColumnDefinition.prototype.getClasses = function() {
 */
 ColumnDefinition.prototype.getConfigObject = function(colOptions) {
 	var obj = colOptions || {};
+
+	if(this._info){
+		obj["info"] = this._info;
+	}
 
 	if(this._field !== "" &amp;&amp; !this._field.match(/^COLUMN_/)) {
 		obj["field"] = this._field;
@@ -1036,6 +1050,21 @@ ColumnDefinition.prototype.getUserModel = function() {
 ColumnDefinition.prototype.clearUserModel = function() {
 	this._userModel = null;
 };
+
+/** @public
+* @param {Object} obj
+*/
+ColumnDefinition.prototype.setColumnInfo = function(obj) {
+	this._info = obj;
+};
+
+/** @public
+* @return {Object}
+*/
+ColumnDefinition.prototype.getColumnInfo = function() {
+	return this._info;
+};
+
 
 export {ColumnDefinition, COL_DEF};
 export default ColumnDefinition;
