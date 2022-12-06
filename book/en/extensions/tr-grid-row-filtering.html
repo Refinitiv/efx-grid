@@ -29,7 +29,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="99753c30-f311-4a0e-a156-c7193bf88a5c">
+        <pandora-nav id="969edbb1-6269-449c-aae2-87d48c2d1824">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -766,7 +766,7 @@ grid.config = config;</code></pre>
                     <div class="item">
                       <div class="item-type">typedef</div>
                       <h4 class="name" id="~FilterDialogOptions">FilterDialogOptions</h4>
-                      <div class="description"> Options that specific UI of filter dialog</div>
+                      <div class="description"> Options that specify UIs of filter dialog</div>
                       <h5>Type:</h5> <span class="param-type">Object</span>
                       <h5>Properties:</h5>
                       <div class="props">
@@ -912,7 +912,7 @@ grid.config = config;</code></pre>
                               <td class="type"> <span class="param-type">boolean</span> </td>
                               <td class="attributes"> &lt;optional&gt;<br> </td>
                               <td class="default"> false </td>
-                              <td class="description last">If enabled, filter icon will not be created/shown.</td>
+                              <td class="description last">Deprecated in favor of `iconActivation`. Set iconActivation to none instead.</td>
                             </tr>
                             <tr>
                               <td class="name"><code>iconActivation</code></td>
@@ -920,6 +920,13 @@ grid.config = config;</code></pre>
                               <td class="attributes"> &lt;optional&gt;<br> </td>
                               <td class="default"> onActiveFilter </td>
                               <td class="description last">Filter icon redering behavior, can be set to `always`,`onHover`,`onActiveFilter`,or `none`</td>
+                            </tr>
+                            <tr>
+                              <td class="name"><code>dialogOptions</code></td>
+                              <td class="type"> <span class="param-type"><a href="RowFilteringPlugin.html#~FilterDialogOptions">RowFilteringPlugin~FilterDialogOptions</a></span> </td>
+                              <td class="attributes"> &lt;optional&gt;<br> </td>
+                              <td class="default"> null </td>
+                              <td class="description last">Default configuration for Filter Dialog, applying to all columns.</td>
                             </tr>
                             <tr>
                               <td class="name"><code>click</code></td>
@@ -1276,7 +1283,7 @@ grid.config = config;</code></pre>
                     </div>
                     <div class="item">
                       <div class="item-type">function</div>
-                      <h4 class="name" id="openDialog"><span class="type-signature"></span>openDialog<span class="signature">(colIndex, options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>
+                      <h4 class="name" id="openDialog"><span class="type-signature"></span>openDialog<span class="signature">(colIndex, runtimeDialogOptions<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>
                       <h5>Parameters:</h5>
                       <div class="params">
                         <div class="param">
@@ -1285,7 +1292,7 @@ grid.config = config;</code></pre>
                           <div class="attributes"> </div>
                         </div>
                         <div class="param">
-                          <div class="name">options</div>
+                          <div class="name">runtimeDialogOptions</div>
                           <div class="type"> <span class="param-type"><a href="RowFilteringPlugin.html#~FilterDialogOptions">RowFilteringPlugin~FilterDialogOptions</a></span> </div>
                           <div class="attributes"> &lt;optional&gt; </div>
                         </div>
@@ -1502,6 +1509,47 @@ grid.config = config;</code></pre>
                       <div class="details"> </div>
                     </div>
                     <h3 class="subsection-title">Events</h3>
+                    <div class="item">
+                      <div class="item-type">event</div>
+                      <h4 class="name" id="event:beforeDialogOpened">beforeDialogOpened</h4>
+                      <div class="description"> Fired before the opening of filter dialog. This can be used to cancel the operation or set a dialog configuration at runtime. </div>
+                      <h5>Properties:</h5>
+                      <div class="props">
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>Name</th>
+                              <th>Type</th>
+                              <th class="last">Description</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td class="name"><code>colIndex</code></td>
+                              <td class="type"> <span class="param-type">number</span> </td>
+                              <td class="description last">Column index</td>
+                            </tr>
+                            <tr>
+                              <td class="name"><code>field</code></td>
+                              <td class="type"> <span class="param-type">string</span> </td>
+                              <td class="description last">Field</td>
+                            </tr>
+                            <tr>
+                              <td class="name"><code>grid</code></td>
+                              <td class="type"> <span class="param-type">Object</span> </td>
+                              <td class="description last">Core grid instance</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div class="details"> </div>
+                      <h5>Example:</h5>
+                      <pre><code>beforeDialogOpened: function(e) {
+  e.cancel = true; // To cancel the operation
+},
+beforeDialogOpened: function(e) {
+  e.dialogOptions = { sortLogic: func }; // To set a dialog configuration
+},</code></pre> </div>
                     <div class="item">
                       <div class="item-type">event</div>
                       <h4 class="name" id="event:click">click</h4>

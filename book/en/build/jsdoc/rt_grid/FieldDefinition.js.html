@@ -184,6 +184,12 @@ FieldDefinition._defs = {
 		description: "The latest Ask price."
 	}
 };
+
+/** @type {Object.&lt;string, Object&gt;}
+* @private
+*/
+FieldDefinition._timeSeriesChildren = {};
+
 /** api-key to call synapse service
 * @type {string}
 * @private
@@ -230,6 +236,25 @@ FieldDefinition.get = function(field) {
 /** @public
 * @function
 * @param {string} field
+* @return {Object}
+*/
+FieldDefinition.getTimeSeriesChildren = function(field) {
+	return FieldDefinition._timeSeriesChildren[field];
+};
+/** @public
+* @function
+* @param {string} tsDef
+* @param {Object} childDef
+*/
+FieldDefinition.addTimeSeriesChild = function(tsDef, childDef) {
+	if(!FieldDefinition._timeSeriesChildren[tsDef]) {
+		FieldDefinition._timeSeriesChildren[tsDef] = [];
+	}
+	FieldDefinition._timeSeriesChildren[tsDef].push(childDef);
+};
+/** @public
+* @function
+* @param {string} field
 */
 FieldDefinition.remove = function(field) {
 	delete FieldDefinition._defs[field];
@@ -250,6 +275,24 @@ FieldDefinition.setSynapseConfig = function (config) {
 */
 FieldDefinition.setFieldCaching = function (caching) {
 	FieldDefinition._caching = caching;
+};
+
+/** @public
+* @param {string} field
+* @return {boolean}=true if field is time series field
+*/
+FieldDefinition.isTimeSeriesField = function (field) {
+	/*
+		^TR.                    =&gt; start with TR.
+		[\w]+                   =&gt; any field with string and value
+		[\(]                    =&gt; open bucket (
+		[\w\-\=\,]*             =&gt; any property name and follow by = EX. SDATE=2011-11-11, PRIOD=123123
+		EDATE\=+                =&gt; EDATE in bucket
+		[\w\-\=\,]+             =&gt; another propertie param
+		[\)]$                   =&gt; end with only )
+	*/
+
+	return !!field.toUpperCase().match(/^TR.[\w]+[\(][\w\-\=\,]*EDATE\=+[\w\-\=\,]+[\)]$/g);
 };
 
 /** to get more info about field via synapse service

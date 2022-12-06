@@ -37,7 +37,6 @@ sort.clearSortState(); // Reset all sorting states to neutral
 	var configObj = {
 		sorting: {
 			sortableColumns: true,
-			multiColumn: true,
 			threeStatesSorting: true
 		},
 		columns: [

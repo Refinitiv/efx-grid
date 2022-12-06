@@ -29,7 +29,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="99753c30-f311-4a0e-a156-c7193bf88a5c">
+        <pandora-nav id="969edbb1-6269-449c-aae2-87d48c2d1824">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -780,6 +780,20 @@ input[type="number"] {
                               <td class="description last">Apply CSS class based on the given field</td>
                             </tr>
                             <tr>
+                              <td class="name"><code>cssRangeField</code></td>
+                              <td class="type"> <span class="param-type">string</span> </td>
+                              <td class="attributes"> &lt;optional&gt;<br> </td>
+                              <td class="default"> "" </td>
+                              <td class="description last">Apply CSS class only on the given range field, which range will be array 2 element, the first element is start column used colour and the second one is the length of column applied</td>
+                            </tr>
+                            <tr>
+                              <td class="name"><code>altCssField</code></td>
+                              <td class="type"> <span class="param-type">string</span> </td>
+                              <td class="attributes"> &lt;optional&gt;<br> </td>
+                              <td class="default"> "" </td>
+                              <td class="description last">Apply alternative CSS class based on the given field which not in range field</td>
+                            </tr>
+                            <tr>
                               <td class="name"><code>predefinedColors</code></td>
                               <td class="type"> <span class="param-type">Object</span> </td>
                               <td class="attributes"> &lt;optional&gt;<br> </td>
@@ -1008,7 +1022,8 @@ input[type="number"] {
                     </div>
                     <div class="item">
                       <div class="item-type">function</div>
-                      <h4 class="name" id="setRowPredefinedColor"><span class="type-signature"></span>setRowPredefinedColor<span class="signature">(rowRef, color<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>
+                      <h4 class="name" id="setRowPredefinedColor"><span class="type-signature"></span>setRowPredefinedColor<span class="signature">(rowRef, color<span class="signature-attributes">opt</span>, range<span class="signature-attributes">opt</span>, altColor<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>
+                      <div class="description"> Set predefined color into row reference </div>
                       <h5>Parameters:</h5>
                       <div class="params">
                         <div class="param">
@@ -1023,9 +1038,25 @@ input[type="number"] {
                           <div class="attributes"> &lt;optional&gt; </div>
                           <div class="description"> Predefined color being applied to row </div>
                         </div>
+                        <div class="param">
+                          <div class="name">range</div>
+                          <div class="type"> <span class="param-type">Array.&lt;number&gt;</span> </div>
+                          <div class="attributes"> &lt;optional&gt; </div>
+                          <div class="description"> Range of column applied colour which array 2 element, the first element is start column used colour and the second one is the length of column applied, it doesn't provide a range, the columns will apply the colour all columns in row reference </div>
+                        </div>
+                        <div class="param">
+                          <div class="name">altColor</div>
+                          <div class="type"> <span class="param-type">string</span> | <span class="param-type">null</span> </div>
+                          <div class="attributes"> &lt;optional&gt; </div>
+                          <div class="description"> Alternative predefined color being applied to row if the column doesn't in the rage </div>
+                        </div>
                       </div>
                       <div class="details"> </div>
-                    </div>
+                      <h5>Example:</h5>
+                      <pre><code>rowColoringExt.setRowPredefinedColor(2, "c-red") // set predefined color into row index 2 all row.
+rowColoringExt.setRowPredefinedColor(2, "c-red", [2, 5]) // set predefined color into row index 2 and applied since column 2 and next 5 columns
+rowColoringExt.setRowPredefinedColor(2, "c-red", [2]) // if pass only 1 element into rage parameter, the row will be applied since 2 to last column
+rowColoringExt.setRowPredefinedColor(2, "c-red", [2, 5], "c-yellow") // set predefined color into row index 2 and applied since column 2 and next 5 columns and another column will be set color c-yellow</code></pre> </div>
                     <div class="item">
                       <div class="item-type">function</div>
                       <h4 class="name" id="toggleRowColor"><span class="type-signature"></span>toggleRowColor<span class="signature">(rowRef, bgColor<span class="signature-attributes">opt</span>, txtColor<span class="signature-attributes">opt</span>, state<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {boolean}</span></h4>
