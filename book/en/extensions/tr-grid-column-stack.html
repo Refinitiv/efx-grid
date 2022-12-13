@@ -29,7 +29,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="969edbb1-6269-449c-aae2-87d48c2d1824">
+        <pandora-nav id="44c91f06-1912-4d2f-a3fc-92af8d8a225d">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -517,6 +517,8 @@ popupMenu.addEventListener("item-trigger", function(e) {
                             <tr>
                               <th>Name</th>
                               <th>Type</th>
+                              <th>Attributes</th>
+                              <th>Default</th>
                               <th class="last">Description</th>
                             </tr>
                           </thead>
@@ -524,12 +526,23 @@ popupMenu.addEventListener("item-trigger", function(e) {
                             <tr>
                               <td class="name"><code>fields</code></td>
                               <td class="type"> <span class="param-type">Array.&lt;string&gt;</span> </td>
+                              <td class="attributes"> </td>
+                              <td class="default"> </td>
                               <td class="description last">Fields for stacking. The minimum is 2 fields.</td>
                             </tr>
                             <tr>
                               <td class="name"><code>stacks</code></td>
                               <td class="type"> <span class="param-type">Array.&lt;<a href="ColumnStackPlugin.html#~StackDefinition">ColumnStackPlugin~StackDefinition</a>&gt;</span> </td>
+                              <td class="attributes"> </td>
+                              <td class="default"> </td>
                               <td class="description last">List of stacking configuration</td>
+                            </tr>
+                            <tr>
+                              <td class="name"><code>autoStacking</code></td>
+                              <td class="type"> <span class="param-type">boolean</span> </td>
+                              <td class="attributes"> &lt;optional&gt;<br> </td>
+                              <td class="default"> false </td>
+                              <td class="description last">If enabled, columns will be auto stacked when new inserted column field match in stack</td>
                             </tr>
                           </tbody>
                         </table>
@@ -624,7 +637,14 @@ popupMenu.addEventListener("item-trigger", function(e) {
                               <td class="type"> <span class="param-type">Array.&lt;string&gt;</span> </td>
                               <td class="attributes"> </td>
                               <td class="default"> </td>
-                              <td class="description last">Children column ID</td>
+                              <td class="description last">Children column ID. Used when autoStacking is disabled</td>
+                            </tr>
+                            <tr>
+                              <td class="name"><code>fields</code></td>
+                              <td class="type"> <span class="param-type">Array.&lt;string&gt;</span> </td>
+                              <td class="attributes"> </td>
+                              <td class="default"> </td>
+                              <td class="description last">Children fiields. Used when autoStacking is enabled</td>
                             </tr>
                             <tr>
                               <td class="name"><code>name</code></td>
@@ -638,7 +658,7 @@ popupMenu.addEventListener("item-trigger", function(e) {
                               <td class="type"> <span class="param-type">string</span> </td>
                               <td class="attributes"> &lt;optional&gt;<br> </td>
                               <td class="default"> "" </td>
-                              <td class="description last">Column Id of active column in stack</td>
+                              <td class="description last">If enable autoStacking, field of active column in stack. Else, column Id of active column in stack.</td>
                             </tr>
                           </tbody>
                         </table>
@@ -761,6 +781,38 @@ popupMenu.addEventListener("item-trigger", function(e) {
                       <h5>Returns:</h5>
                       <div class="sub-content"> <span class="param-type">Array.&lt;number&gt;</span> </div>
                       <div class="sub-content-desc"> Null if it is non-grouped column</div>
+                    </div>
+                    <div class="item">
+                      <div class="item-type">function</div>
+                      <h4 class="name" id="getActiveColumnField"><span class="type-signature"></span>getActiveColumnField<span class="signature">(stackId)</span><span class="type-signature"> → {string}</span></h4>
+                      <div class="description"> Get active column field of specific stack </div>
+                      <h5>Parameters:</h5>
+                      <div class="params">
+                        <div class="param">
+                          <div class="name">stackId</div>
+                          <div class="type"> <span class="param-type">string</span> </div>
+                        </div>
+                      </div>
+                      <div class="details"> </div>
+                      <h5>Returns:</h5>
+                      <div class="sub-content"> <span class="param-type">string</span> </div>
+                      <div class="sub-content-desc"> active column field</div>
+                    </div>
+                    <div class="item">
+                      <div class="item-type">function</div>
+                      <h4 class="name" id="getColumnIdsByFields"><span class="type-signature"></span>getColumnIdsByFields<span class="signature">(field)</span><span class="type-signature"> → {Array.&lt;string&gt;}</span></h4>
+                      <div class="description"> Get column ids by fields </div>
+                      <h5>Parameters:</h5>
+                      <div class="params">
+                        <div class="param">
+                          <div class="name">field</div>
+                          <div class="type"> <span class="param-type">string</span> | <span class="param-type">Array.&lt;string&gt;</span> </div>
+                        </div>
+                      </div>
+                      <div class="details"> </div>
+                      <h5>Returns:</h5>
+                      <div class="sub-content"> <span class="param-type">Array.&lt;string&gt;</span> </div>
+                      <div class="sub-content-desc"> Column indices</div>
                     </div>
                     <div class="item">
                       <div class="item-type">function</div>
