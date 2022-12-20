@@ -464,13 +464,29 @@ And then you can paste this config on the example 2 and click "Start Grid" and b
 
 		});
 
-		save_config.addEventListener("click", function (e) {
+		save_config.addEventListener("click", function(e) {
 			var config = grid.api.getConfigObject();
 			var configStr = JSON.stringify(config, null, 2);
-			navigator.clipboard.writeText(configStr);
+			copyToClipboard(configStr);
 			copy_success.textContent = "Copied grid config to clipboard success";
-			setTimeout(function (e) { copy_success.textContent = "" }, 5000); // clear alert user
+			setTimeout(function(e) { copy_success.textContent = "" }, 5000); // clear alert user
 		});
+
+		function copyToClipboard(val) {
+			// tmpInput for copy text
+			var tmpInput = document.getElementById("tmp_input");
+			if(!tmpInput) {
+				tmpInput = document.createElement("textarea");
+				tmpInput.id = "tmp_input";
+				document.body.appendChild(tmpInput);
+			}
+			tmpInput.style.visibility = "visible";
+			tmpInput.value = val;
+			tmpInput.select();
+			document.execCommand("copy");
+			tmpInput.style.visibility = "hidden";
+
+		}
 
 	</script>
 

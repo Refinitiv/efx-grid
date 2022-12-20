@@ -29,7 +29,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="44c91f06-1912-4d2f-a3fc-92af8d8a225d">
+        <pandora-nav id="d47362eb-f7f7-489d-bae7-ea8e7dcc100e">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -780,10 +780,26 @@ spanning_segment_separator.addEventListener("click", function(e) {
 save_config.addEventListener("click", function(e) {
   var config = grid.api.getConfigObject();
   var configStr = JSON.stringify(config, null, 2);
-  navigator.clipboard.writeText(configStr);
+  copyToClipboard(configStr);
   copy_success.textContent = "Copied grid config to clipboard success";
   setTimeout(function(e) { copy_success.textContent = "" }, 5000); // clear alert user
-});</pre>
+});
+
+function copyToClipboard(val) {
+  // tmpInput for copy text
+  var tmpInput = document.getElementById("tmp_input");
+  if (!tmpInput) {
+    tmpInput = document.createElement("textarea");
+    tmpInput.id = "tmp_input";
+    document.body.appendChild(tmpInput);
+  }
+  tmpInput.style.visibility = "visible";
+  tmpInput.value = val;
+  tmpInput.select();
+  document.execCommand("copy");
+  tmpInput.style.visibility = "hidden";
+
+}</pre>
                   <pre class="pandora-tab-view tab-css">html body {
   padding: 20px;
   box-sizing: border-box;

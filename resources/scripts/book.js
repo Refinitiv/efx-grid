@@ -9865,7 +9865,7 @@
 
   addLegacyProps(CodeMirror);
 
-  CodeMirror.version = "5.65.9";
+  CodeMirror.version = "5.65.10";
 
   return CodeMirror;
 
@@ -10652,7 +10652,7 @@ CodeMirror.defineMode("javascript", function(config, parserConfig) {
     if (type == "async" ||
         (type == "variable" &&
          (value == "static" || value == "get" || value == "set" || (isTS && isModifier(value))) &&
-         cx.stream.match(/^\s+[\w$\xa1-\uffff]/, false))) {
+         cx.stream.match(/^\s+#?[\w$\xa1-\uffff]/, false))) {
       cx.marked = "keyword";
       return cont(classBody);
     }

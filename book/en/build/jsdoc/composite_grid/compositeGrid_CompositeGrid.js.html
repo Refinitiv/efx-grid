@@ -798,16 +798,53 @@ tr.CompositeGrid.prototype.autoResizeAllColumns = function (){
 	}
 };
 
-/**
- * Move the column at the specified index to the target index.
- * @public
- * @param {number|Array.&lt;number&gt;} fromColIndex index or array of indices of the column(s) to be moved.
- * @param {number} toColIndex target column index
- * @return {boolean} Return true if there is any change, and false otherwise
- */
+/** Move the column at the specified index to the target index. When moving multiple columns, the original order of the source columns will be sorted by their index and the position of the columns will not be guaranteed to be exactly at the destination index.
+* @public
+* @param {number|Array.&lt;number&gt;} fromColIndex index or array of indices of the column(s) to be moved.
+* @param {number} toColIndex target column index
+* @return {boolean} Return true if there is any change, and false otherwise
+* @see {@link tr.CompositeGrid#moveColumnById}
+*/
 tr.CompositeGrid.prototype.moveColumn = function (fromColIndex, toColIndex) {
 	// WARNING: Column model should be updated in the event handler
 	return this._grid.moveColumn(fromColIndex, toColIndex);
+};
+/** If source column is not found, no operation is performed. If destination column is not found, the source column will be moved to the last position.&lt;br&gt;
+* Note: this method behaves slightly different from moveColumn method in that it always put source column at the position before the specified destination column, while moveColumn method will put column at exactly at the destination index.
+* @public
+* @param {number|string} srcCol Column Id or index
+* @param {(number|string)=} destCol Column Id or index of the destination
+* @return {boolean} Return true if there is any change, and false otherwise
+* @see {@link tr.CompositeGrid#moveColumn}
+* @example
+* grid.moveColumnById(3, 1); // Move column 3 to position before column 1
+* grid.moveColumnById(0, 2); // Move column 0 to position before column 2 (column index 1)
+* grid.moveColumnById(0, 1); // Nothing is moved
+* grid.moveColumnById("sourceColumnId", "anotherId");
+* grid.moveColumnById("sourceColumnId", ""); // move to the last position
+*/
+tr.CompositeGrid.prototype.moveColumnById = function (srcCol, destCol) {
+	var colCount = this.getColumnCount();
+	var srcIndex = typeof srcCol === "string" ? this.getColumnIndex(srcCol) : /** @type{number} */(srcCol);
+	if(srcIndex &lt; 0 || srcIndex &gt;= colCount) {
+		return false;
+	}
+	var destIndex = -1; 
+	if(typeof destCol === "string") {
+		destIndex = this.getColumnIndex(destCol);
+	} else if(typeof destCol === "number") {
+		destIndex = destCol;
+	}
+	if(destIndex &lt; 0) {
+		destIndex = colCount;
+	}
+	if(srcIndex &lt; destIndex) { // Ensure that the source column is put in front of the destination index
+		--destIndex;
+	}
+	if(srcIndex === destIndex) {
+		return false;
+	}
+	return this.moveColumn(srcIndex, destIndex);
 };
 
 /** Freeze the column at the left side of the table starting from index 0 to the specified colIndex
@@ -1222,6 +1259,22 @@ tr.CompositeGrid.prototype.getColumnFields = function() {
 	return fields;
 };
 
+/** @public
+* @return {!Array.&lt;string&gt;}
+*/
+tr.CompositeGrid.prototype.getColumnNames = function() {
+	var fields = [];
+	var columns = this._model ? /** @type{Array} */(this._model["columns"]) : null;
+	if(columns) {
+		var colCount = columns.length;
+		for (var i = 0; i &lt; colCount; ++i) {
+			var colDef = columns[i];
+			fields[i] = colDef ? (colDef["name"] || colDef["title"]) : "";
+		}
+	}
+	return fields;
+};
+
 /** Get the column definition object of the specified columnId
  * @param {number} columnIndex
  * @public
@@ -1239,6 +1292,22 @@ tr.CompositeGrid.prototype.getColumnId = function (columnIndex) {
 	}
 
 	return "";
+};
+/**
+ * @public
+ * @return {!Array.&lt;string&gt;}
+ */
+tr.CompositeGrid.prototype.getColumnIds = function () {
+	var ids = [];
+	var columns = this._model ? /** @type{Array} */(this._model["columns"]) : null;
+	if(columns) {
+		var colCount = columns.length;
+		for (var i = 0; i &lt; colCount; ++i) {
+			var colDef = columns[i];
+			ids[i] = colDef ? (colDef["id"] || "") : "";
+		}
+	}
+	return ids;
 };
 
 /** Get the index of the column with the specified columnId.
@@ -4368,6 +4437,7 @@ goog.exportSymbol("tr.CompositeGrid", tr.CompositeGrid);
 		"setColumnFormatter": pt.setColumnFormatter,
 		"updateColumn": pt.updateColumn,
 		"moveColumn": pt.moveColumn,
+		"moveColumnById": pt.moveColumnById,
 		"setColumnName": pt.setColumnName,
 		"setColumnVisible": pt.setColumnVisible,
 		"hideColumn": pt.hideColumn,
@@ -4379,7 +4449,9 @@ goog.exportSymbol("tr.CompositeGrid", tr.CompositeGrid);
 		"getColumnModel": pt.getColumnModel,
 		"getColumnField": pt.getColumnField,
 		"getColumnFields": pt.getColumnFields,
+		"getColumnNames": pt.getColumnNames,
 		"getColumnId": pt.getColumnId,
+		"getColumnIds": pt.getColumnIds,
 		"getColumnIndex": pt.getColumnIndex,
 		"findColumnIndex": pt.findColumnIndex,
 		"getColumnCount": pt.getColumnCount,

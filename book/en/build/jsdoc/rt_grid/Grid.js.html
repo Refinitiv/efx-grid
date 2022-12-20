@@ -252,6 +252,45 @@ var compareNumber = function(rowDefA, rowDefB, sortOrder, fieldName) { // edit n
 	return (rowDefA.getData(fieldName) - rowDefB.getData(fieldName)) * sortOrder; // for numeric comparison
 };
 
+/** @private
+* @param {ColumnDefinition} colDef
+* @return {string}
+*/
+var _getId = function(colDef) {
+	if(colDef) {
+		return colDef.getId();
+	}
+	return "";
+};
+/** @private
+* @param {ColumnDefinition} colDef
+* @return {string}
+*/
+var _getField = function(colDef) {
+	if(colDef) {
+		return colDef.getField();
+	}
+	return "";
+};
+/** @private
+* @param {ColumnDefinition} colDef
+* @return {string}
+*/
+var _getName = function(colDef) {
+	if(colDef) {
+		return colDef.getName();
+	}
+	return "";
+};
+/** @private
+* @param {ColumnDefinition} colDef
+* @param {string} str
+* @return {boolean}
+*/
+var _hasFieldOrId = function(colDef, str) {
+	return (colDef.getField() === str) || (colDef.getId() === str);
+};
+
 /** @constructor
 * @extends {EventDispatcher}
 * @param {(Element|null)=} placeholder
@@ -1238,7 +1277,7 @@ Grid.prototype._onFieldAdded = function(e) {
 
 	// JET
 	if (this._subs) {
-		var colDefs = this._getAllColumnDefinitions();
+		var colDefs = this.getColumnDefinitions();
 		var fields = colDefs.reduce(ColumnDefinition.getRealTimeFields, []);
 		this._subs["addFields"](fields);
 	}
@@ -1788,16 +1827,49 @@ Grid.prototype.removeAllColumns = function() {
 	}
 };
 
-/**
- * Move the column at the specified index to the target index.
- * @public
- * @param {number|Array.&lt;number&gt;} fromColIndex index or array of indices of the column(s) to be moved.
- * @param {number} toColIndex target column index
- * @return {boolean} Return true if there is any change, and false otherwise
- */
+/** Move the column at the specified index to the target index. When moving multiple columns, the original order of the source columns will be sorted by their index and the position of the columns will not be guaranteed to be exactly at the destination index.
+* @public
+* @param {number|Array.&lt;number&gt;} fromColIndex index or array of indices of the column(s) to be moved.
+* @param {number} toColIndex target column index
+* @return {boolean} Return true if there is any change, and false otherwise
+* @see {@link Grid#moveColumnById}
+*/
 Grid.prototype.moveColumn = function (fromColIndex, toColIndex) {
 	return this._grid.moveColumn(fromColIndex, toColIndex);
 };
+/** If source column is not found, no operation is performed. If destination column is not found, the source column will be moved to the last position.&lt;br&gt;
+* Note: this method behaves slightly different from moveColumn method in that it always put source column at the position before the specified destination column, while moveColumn method will put column at exactly at the destination index.
+* @public
+* @param {number|string} srcCol Column Id or index
+* @param {(number|string)=} destCol Column Id or index of the destination
+* @return {boolean} Return true if there is any change, and false otherwise
+* @see {@link Grid#moveColumn}
+* @example
+* grid.moveColumnById(3, 1); // Move column 3 to position before column 1
+* grid.moveColumnById(0, 2); // Move column 0 to position before column 2 (column index 1)
+* grid.moveColumnById(0, 1); // Nothing is moved
+* grid.moveColumnById("sourceColumnId", "anotherId");
+* grid.moveColumnById("sourceColumnId", ""); // move to the last position
+*/
+Grid.prototype.moveColumnById = function (srcCol, destCol) {
+	var colCount = this.getColumnCount();
+	var srcIndex = this.getColumnIndex(srcCol);
+	if(srcIndex &lt; 0 || srcIndex &gt;= colCount) {
+		return false;
+	}
+	var destIndex = this.getColumnIndex(destCol);
+	if(destIndex &lt; 0) {
+		destIndex = colCount;
+	}
+	if(srcIndex &lt; destIndex) { // Ensure that the source column is put in front of the destination index
+		--destIndex;
+	}
+	if(srcIndex === destIndex) {
+		return false;
+	}
+	return this.moveColumn(srcIndex, destIndex);
+};
+
 
 /** The hidden column still occupies the same index.
 * @public
@@ -2364,12 +2436,18 @@ Grid.prototype._removeRow = function(rowDef) {
 	}
 	this._dispatch("beforeRowRemoved", {});
 
-	var rowIds = rowDef.getAllDescendantIds(); // TODO: Support nested child
-	if(rowIds) { // Remove all children first
-		this._dt.removeRows(rowIds);
+	var connector = this._connector;
+	var dt = this._dt;
+	var childRowDefs = rowDef.getDescendants(); // TODO: Support nested child
+	if(childRowDefs) { // Remove all children first
+		for(var i = 0; i &lt; childRowDefs.length; i++) {
+			connector.removeRic(childRowDefs[i]);
+		}
+		var rowIds = childRowDefs.map(RowDefinition.toRowId);
+		dt.removeRows(rowIds);
 	}
-	this._connector.removeRic(rowDef);
-	this._dt.removeRow(rowDef.getRowId()); // TODO: Merge this with the above removeRows() method
+	connector.removeRic(rowDef);
+	dt.removeRow(rowDef.getRowId()); // TODO: Merge this with the above removeRows() method
 	rowDef.dispose(); // WARNING: This does not remove child reference from its parent
 };
 
@@ -2424,19 +2502,35 @@ Grid.prototype.hasHiddenRow = function(){
 * @public
 * @param {Grid~RowReference} rowRef
 * @param {string} str
+* @param {RowDefinition~Options=} options
 */
-Grid.prototype.setRic = function(rowRef, str) {
+Grid.prototype.setRic = function(rowRef, str, options) {
 	if(this._mainGrid) {
 		this._mainGrid.setRic(this._toRowId(rowRef), str);
 		return;
 	}
 	var rowDef = this._getRowDefinition(rowRef);
 	if(rowDef) {
-		var oldRic = rowDef.getRic();
-		if(rowDef.setContent(str)) { // The given string may not be a RIC
-			this._connector.removeRic(rowDef, oldRic);
-			this._initDuplicateRicData(rowDef);
-			this._connector.addRic(rowDef);
+		options = options || {};
+		var newChain = false;
+		if(str.indexOf("0#") &gt; 0 || options["asChain"]) {
+			newChain = true;
+		}
+		if(rowDef.isChain() || newChain) {
+			if(rowDef.getRic() !== str.replace("0#", "")) {
+				var rowIndex = this._dv.getRowIndex(rowDef.getRowId());
+				this.removeRow(rowDef);
+
+				options["ric"] = str;
+				this.insertRow(options, rowIndex);
+			}
+		} else {
+			var oldRic = rowDef.getRic();
+			if(rowDef.setContent(str)) { // The given string may not be a RIC
+				this._connector.removeRic(rowDef, oldRic);
+				this._initDuplicateRicData(rowDef);
+				this._connector.addRic(rowDef);
+			}
 		}
 	}
 };
@@ -2560,6 +2654,17 @@ Grid.prototype.getColumnDefinition = function(colIndex) {
 	}
 	return null;
 };
+/** @public
+* @return {!Array.&lt;ColumnDefinition&gt;}
+*/
+Grid.prototype.getColumnDefinitions = function() {
+	var colCount = this.getColumnCount();
+	var colDefs = new Array(colCount);
+	for(var i = 0; i &lt; colCount; i++) {
+		colDefs[i] = this.getColumnDefinition(i);
+	}
+	return colDefs;
+};
 
 /** @public
 * @param {string} colId
@@ -2567,11 +2672,7 @@ Grid.prototype.getColumnDefinition = function(colIndex) {
 */
 Grid.prototype.getColumnDefinitionById = function(colId) {
 	if(typeof colId === "string") {
-		var colIndex = this.getColumnIndex(colId);
-		var colData = this._grid.getColumnData(colIndex);
-		if(colData) {
-			return /** @type{ColumnDefinition} */(colData[COL_DEF]) || null;
-		}
+		return this.getColumnDefinition(this.getColumnIndex(colId));
 	}
 	return null;
 };
@@ -2607,23 +2708,12 @@ Grid.prototype._getColumnDefinition = function(colRef) {
 		var colCount = this.getColumnCount();
 		for(var i = 0; i &lt; colCount; ++i) {
 			var colDef = this.getColumnDefinition(i);
-			if(colDef.getField() === colRef || colDef.getId() === colRef) {
-				return colDef; // Return the first found field
+			if(_hasFieldOrId(colDef, colRef)) {
+				return colDef; // Return the first found column
 			}
 		}
 	}
 	return null;
-};
-/** @private
-* @return {Array.&lt;ColumnDefinition&gt;}
-*/
-Grid.prototype._getAllColumnDefinitions = function() {
-	var colCount = this.getColumnCount();
-	var colDefs = new Array(colCount);
-	for(var i = 0; i &lt; colCount; i++) {
-		colDefs[i] = this.getColumnDefinition(i);
-	}
-	return colDefs;
 };
 
 /** @public
@@ -2680,16 +2770,17 @@ Grid.prototype.getRowDefinitions = function() {
 Grid.prototype._getAllRowDefinitions = function() {
 	return this._dt.getColumnData(ROW_DEF); // no group header rows
 };
-/** Get all row definitions, including filtered and hidden rows, but without group header rows.
+
+/** Get all row definitions, including filtered and hidden rows, but without auto generated rows (i.e., group header and chain constituent).
 * @public
-* @param {boolean=} inclAutoGenerate=false means exclude auto generate rows
+* @param {boolean=} inclAutoGenerated=false Set to true to include auto generated rows. Default value is false (exclude auto generated rows)
 * @return {!Array.&lt;RowDefinition&gt;}
 */
-Grid.prototype.getAllRowDefinitions = function(inclAutoGenerate) {
-	if(!inclAutoGenerate) {
-		return this._dt.getColumnData(ROW_DEF).filter(excludeAutoGenerated);
+Grid.prototype.getAllRowDefinitions = function(inclAutoGenerated) {
+	if(inclAutoGenerated) {
+		return this._getAllRowDefinitions();
 	}
-	return this._getAllRowDefinitions();
+	return this._dt.getColumnData(ROW_DEF).filter(excludeAutoGenerated);
 };
 /** A shorthand to retrieve row data based on index of the specified row.
 * @public
@@ -2826,7 +2917,7 @@ Grid.prototype.getColumnIndex = function(colRef) {
 	} else if(typeof colRef === "string") {
 		for(i = 0; i &lt; colCount; ++i) {
 			colDef = this.getColumnDefinition(i);
-			if(colDef.getField() === colRef || colDef.getId() === colRef) {
+			if(_hasFieldOrId(colDef, colRef)) {
 				return i; // Return the first found field
 			}
 		}
@@ -2859,8 +2950,14 @@ Grid.prototype.getColumnIndices = function(colRefs) {
 * @see {@link Grid#getColumnDefinition}
 */
 Grid.prototype.getColumnId = function(colIndex) {
-	var colDef = this.getColumnDefinition(colIndex);
-	return (colDef) ? colDef.getId() : "";
+	return _getId(this.getColumnDefinition(colIndex));
+};
+/** Get ids from each column definition.
+* @public
+* @return {!Array.&lt;string&gt;} New array is created
+*/
+Grid.prototype.getColumnIds = function() {
+	return this.getColumnDefinitions().map(_getId);
 };
 /** Return field defined in the column definition
 * @public
@@ -2869,20 +2966,21 @@ Grid.prototype.getColumnId = function(colIndex) {
 * @see {@link Grid#getColumnDefinition}
 */
 Grid.prototype.getColumnField = function(colIndex) {
-	var colDef = this.getColumnDefinition(colIndex);
-	return (colDef) ? colDef.getField() : "";
+	return _getField(this.getColumnDefinition(colIndex));
 };
 /** Get fields from each column definition. Note that this does not include any required field or data fields. Duplicates may exist.
 * @public
 * @return {!Array.&lt;string&gt;} New array is created
 */
 Grid.prototype.getColumnFields = function() {
-	var colCount = this.getColumnCount();
-	var ary = new Array(colCount);
-	for(var i = 0; i &lt; colCount; ++i) {
-		ary[i] = this.getColumnField(i);
-	}
-	return ary;
+	return this.getColumnDefinitions().map(_getField);
+};
+/** Get column name from each column definition. Note that this does not include any required field or data fields. Duplicates may exist.
+* @public
+* @return {!Array.&lt;string&gt;} New array is created
+*/
+Grid.prototype.getColumnNames = function() {
+	return this.getColumnDefinitions().map(_getName);
 };
 /** Get all fields, including required fields and data fields, with no duplicate
 * @public

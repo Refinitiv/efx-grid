@@ -216,7 +216,8 @@
 
   var allAvailableColumns = [
     {
-      checkboxColumn: true
+      checkboxColumn: true,
+      leftPinned: true
     },
     {
       id: "c0",
