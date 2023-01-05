@@ -1073,7 +1073,7 @@ tr.DataView.prototype.prevPage = tr.DataView.prototype.previousPage;
 * @fires tr.DataView#dataChanged
 */
 tr.DataView.prototype.lastPage = function () {
-	return this.gotoPage(this._lastPageIndex - 1);
+	return this.gotoPage(this._lastPageIndex);
 };
 /** Goes to the first page
 * @public
@@ -1775,6 +1775,21 @@ tr.DataView.prototype.isCollapsed = function() {
 tr.DataView.prototype.enableContentAsHeader = function(bool) {
 	this._shared.contentAsHeader = bool !== false;
 };
+/** set default collapse when new groups added
+* @public
+* @param {boolean=} collapse=false, if enable it, it will be set collapsing by default
+*/
+tr.DataView.prototype.setDefaultCollapse = function(collapse) {
+	this._shared.defaultCollapse = !!collapse;
+};
+/** get default collapse when new groups added
+* @public
+* @return {boolean}
+*/
+tr.DataView.prototype.getDefaultCollapse = function() {
+	return !!this._shared.defaultCollapse; // it can be null, convert to boolean
+};
+
 /** @private
 * @return {?Array.&lt;string&gt;}
 */
@@ -3691,6 +3706,10 @@ tr.DataView.prototype._addGroup = function (value) {
 		}
 	}
 	member = new tr.DataView();
+	var collapsed = this._shared.defaultCollapse;
+	if(collapsed != null) {
+		member._collapsed = collapsed;
+	}
 	member._groupId = groupId;
 	if(typeof value == "string") { // TODO: Raw value should not always be a string
 		if(value == "null") {
@@ -3945,6 +3964,8 @@ var methodMap = {
 	"toggleCollapsedState": pt.toggleCollapsedState,
 	"isCollapsed": pt.isCollapsed,
 	"enableContentAsHeader": pt.enableContentAsHeader,
+	"setDefaultCollapse": pt.setDefaultCollapse,
+	"getDefaultCollapse": pt.getDefaultCollapse,
 
 	"getVisibleRowIds": pt.getVisibleRowIds,
 	"getVisibleRowCount": pt.getVisibleRowCount,

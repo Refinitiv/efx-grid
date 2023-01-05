@@ -469,26 +469,38 @@ tr.SegmentCollection.prototype.getSegmentValues = function(rids) {
 	var prevSegment = null;
 	var segmentValues = new Array(rowCount);
 	var segmentVal = 0;
+	var highestVal = -10;
 	var offset = 0;
 	for(var r = 0; r &lt; rowCount; ++r) {
 		var rid = rids[r];
 		curSegment = segmentSeparators[rid];
-		if(curSegment) {
+		if(curSegment) { // segment separator
+			if(prevSegment !== curSegment) {
+				prevSegment = curSegment;
+				segmentVal = curSegment.getOrder() * 100;
+				if(segmentVal &gt; highestVal) {
+					highestVal = segmentVal;
+				}
+			}
 			offset = 0;
 		} else {
 			var parentId = childToSegmentId[rid];
-			if(parentId) {
+			if(parentId) { // segment member
 				curSegment = segmentSeparators[parentId];
+				if(prevSegment !== curSegment) {
+					prevSegment = curSegment;
+					segmentVal = curSegment.getOrder() * 100;
+					if(segmentVal &gt; highestVal) {
+						highestVal = segmentVal;
+					}
+				}
 				offset = 1;
-			} else {
-				offset = prevSegment ? 10 : 0;
+			} else { // row outside of segments
+				segmentVal = highestVal;
+				offset = 10;
 			}
 		}
 
-		if(curSegment &amp;&amp; prevSegment !== curSegment) {
-			prevSegment = curSegment;
-			segmentVal = curSegment.getOrder() * 100;
-		}
 		segmentValues[r] = segmentVal + offset;
 	}
 

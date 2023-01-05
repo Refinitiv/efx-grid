@@ -9,18 +9,16 @@ See more details about data setting at [Columns and Data Properties](../data/col
 ## Example
 
 ```js
-	// ...
 	function onServerResponse(data) {
 		hideLoadingMask();
 		grid.data = data; // Setting data from server
 	}
-	function onGettingTotalPage(total) {
-		pagination_ui.totalItems = total;
+	function onRowCountRecieved(total) {
+		pagination_ui.max = Math.ceil(total / PAGE_SIZE);
 	}
 	function onPageChanged(e) {
-		requestData(e.detail.value, e.target.pageSize, onServerResponse);
+		requestData(e.detail.value, PAGE_SIZE, onServerResponse);
 	}
-	// ...
 ```
 
 ```live
@@ -37,13 +35,14 @@ See more details about data setting at [Columns and Data Properties](../data/col
 </style>
 <div id="container_div">
 	<atlas-blotter id="grid"></atlas-blotter>
-	<emerald-pagination id='pagination_ui' page="1" page-size="5"></emerald-pagination>
+	<emerald-pagination id='pagination_ui' value="1"></emerald-pagination>
 </div>
 
 <script>
 	var paginationUI = document.getElementById("pagination_ui");
 	var SERVER_DELAY = 300;
 	var loading_mask = document.createElement("amber-loader");
+	var PAGE_SIZE = 5;
 
 	function showLoadingMask() {
 		if (!loading_mask.parentElement) {
@@ -67,11 +66,11 @@ See more details about data setting at [Columns and Data Properties](../data/col
 		hideLoadingMask();
 		grid.data = data; // Setting data from server
 	}
-	function onGettingTotalPage(total) {
-		paginationUI.totalItems = total;
+	function onRowCountRecieved(total) {
+		paginationUI.max = Math.ceil(total / PAGE_SIZE);
 	}
 	function onPageChanged(e) {
-		requestData(e.detail.value, e.target.pageSize, onServerResponse);
+		requestData(e.detail.value, PAGE_SIZE, onServerResponse);
 	}
 
 	// Mocking Server
@@ -119,11 +118,11 @@ See more details about data setting at [Columns and Data Properties](../data/col
 	var grid = document.getElementById("grid");
 	grid.config = configObj;
 
-	paginationUI.addEventListener('page-changed', onPageChanged);
+	paginationUI.addEventListener("value-changed", onPageChanged);
 
 	// Start app by getting total number of items and data
-	requestTotalPage(onGettingTotalPage);
-	requestData(paginationUI.page, paginationUI.pageSize, onServerResponse);
+	requestTotalPage(onRowCountRecieved);
+	requestData(paginationUI.value, PAGE_SIZE, onServerResponse);
 </script>
 ```
 

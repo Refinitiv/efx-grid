@@ -76,17 +76,17 @@ The Row Segmenting Extension provides a way to group row content based on row in
 
 Installation examples and details of how to import the extension to a project are available on the [Overview](README.md) page.
 
-### Differences between Row Segmenting and Row Grouping Extensions
+## Differences between Row Segmenting Extension and Row Grouping Extension
 
 Both extensions produce very similar looking results, but there are some key differences in behaviors and functionalities. 
 
-#### Group header (segment separator)
+### Group header (segment separator)
 
 The group headers in Row Segmenting Extension have their own data/content, whereas those in Row Grouping Extension have no data. Group headers in Row Segmenting Extension are actually normal row with a separator mark on it. This means you can perform sorting and filtering on the group headers.
 
 The group headers in the Row Grouping Extension have no data because they are automatically generated based on the specified criteria. So they have no place to hold their data and you will need to have a separate place to hold it. Because of this extra place to manage, it's more difficult to perform sorting and filtering on these group headers.
 
-#### Dragging group header
+### Dragging group header
 
 The group headers in Row Segmenting Extension can be moved by dragging, if we use Row Dragging Extension. Moving group header is the same as moving row content. After moving, group headers will also move their row members along with them.
 
@@ -94,7 +94,7 @@ The group headers in Row Grouping Extension cannot be moved freely. They can onl
 
 > Note: dragging behaviors for group headers have not yet finalized and are subject to change.
 
-#### Grouping criteria
+### Grouping criteria
 
 Specifying a group header in Row Segmenting Extension is a bit more difficult. Each group header has to be set manually through the extension's APIs. Use the `setSegmentSeparator()` method to specify group header. Group members need to be manually added to the new groups by `addSegmentChild()` or `addSegmentChildren()` methods. Any row added to the group will be moved below the group header position. Rows that are already a group member cannot be added to another group. 
 
@@ -102,19 +102,105 @@ Grouping in Row Grouping Extension are based on row content. So, you can add or 
 
 > More APIs will be implemented to accommodate adding or removing member in the future updates.
 
-#### Multi-level grouping
+### Segment Classification (multi-level/nested grouping)
 
-Multi-level grouping is not supported by Row Segmenting Extension at the moment. The feature is stil in development. 
+With Row Segmenting Extension, you can specify classfication on individual segment to add nested segments. The criteria can be defined by using `setSegmentClassification` method with array of fields as its parameter. 
 
-#### Group sorting
+```live
+<style>
+	html hr {
+		margin: 5px;
+	}
+	atlas-blotter {
+		height: 300px;
+	}
+</style>
+<button id="set_btn1">Classify by market</button>
+<button id="set_btn2">Classify by industry</button>
+<button id="set_btn3">Classify by market and industry</button>
+<button id="set_btn4">Unclassify</button>
+<hr>
+<button id="data_btn1">Set row 6 market to NASDAQ</button>
+<button id="data_btn2">Set row 6 market to DJI</button>
+<button id="data_btn3">Set row 6 industry to Investment Managers</button>
+<button id="data_btn4">Set row 6 industry to Paper</button>
+<hr>
+<atlas-blotter></atlas-blotter>
+
+<script type="module">
+	var segmentIdx = 1;
+	set_btn1.addEventListener("click", function(e) {
+		rowSegmentingExt.setSegmentClassification(segmentIdx, ["market"]);
+	});
+	set_btn2.addEventListener("click", function(e) {
+		rowSegmentingExt.setSegmentClassification(segmentIdx, ["industry"]);
+	});
+	set_btn3.addEventListener("click", function(e) {
+		rowSegmentingExt.setSegmentClassification(segmentIdx, ["market", "industry"]);
+	});
+	set_btn4.addEventListener("click", function(e) {
+		rowSegmentingExt.setSegmentClassification(segmentIdx, null);
+	});
+	
+	data_btn1.addEventListener("click", function(e) {
+		grid.api.setStaticData(row5, "market", "NASDAQ");
+	});
+	data_btn2.addEventListener("click", function(e) {
+		grid.api.setStaticData(row5, "market", "DJI");
+	});
+	data_btn3.addEventListener("click", function(e) {
+		grid.api.setStaticData(row5, "industry", "Investment Managers");
+	});
+	data_btn4.addEventListener("click", function(e) {
+		grid.api.setStaticData(row5, "industry", "Paper");
+	});
+	
+	var row5 = null;
+	var rowSegmentingExt = new tr.RowSegmentingExtension();
+	var fields = ["companyName", "id", "market", "industry", "number_2", "float_1"];
+	var columnMap = {};
+	var columns = fields.map(function(f) {
+		var column = {
+			name: f,
+			field: f
+		};
+		columnMap[f] = column;
+		return column;
+	});
+	columnMap["companyName"].width = 200;
+	columnMap["id"].width = 60;
+
+	var records = tr.DataGenerator.generateRecords(fields, {seed: 0, rowCount: 20});
+	var configObj = {
+		columns: columns,
+		extensions: [
+			rowSegmentingExt
+		],
+		whenDefined: function(e) {
+			row5 = e.api.getRowDefinition(6);
+			rowSegmentingExt.setSegmentSeparator(segmentIdx);
+			rowSegmentingExt.addSegmentChildren(segmentIdx, [2, 3, 4, 5, 6, 7]);
+			
+			rowSegmentingExt.setSegmentSeparator(10);
+			rowSegmentingExt.addSegmentChildren(10, [11, 12, 13]);
+		}
+	};
+
+	var grid = window.grid = document.getElementsByTagName("atlas-blotter")[0];
+	grid.config = configObj;
+	grid.data = records;
+</script>
+```
+
+### Group sorting
 
 sorting at the group level is not supported by Row Segmenting Extension at the moment. The feature is stil in development. 
 
-#### Content sorting
+### Content sorting
 
 Row content is sorted within its own group. The behavior is the same for both Row Segmenting and Row Grouping extension.
 
-#### Predefined color
+### Predefined color
 
 The extension supports color from the predefined colors. To do this you need to assign predefined class object to the `predefinedColors` property then specify field name of the `cssField` property.
 
@@ -287,7 +373,7 @@ The extension supports color from the predefined colors. To do this you need to 
 </script>
 ```
 
-#### Save/Load grid config
+### Save/Load grid config
 
 In atlas-blotter with row segmenting extension we have spanningField, predefinedColor, segmentId can be implement save/load grid config,
 We provide the user to set those properties with `setStaticRowData` or `setStaticData`.
@@ -301,6 +387,8 @@ You can get the config from the grid and use this config in another grid.
 You can follow in below example for implement save/load functionality.
 The first example it will be grid that can be change data with click "Save config". 
 And then you can paste this config on the example 2 and click "Start Grid" and both grids look the same. 
+
+#### Example 1 save data from grid
 
 ```live
 
@@ -328,7 +416,6 @@ And then you can paste this config on the example 2 and click "Start Grid" and b
 </style>
 	
 	<!--  Set predifined color with api  -->
-    <h4>Example 1 save data from grid</h4>
 	<span>Row Index</span>
 	<input value="1" type="number" id="row_index">
 	<hr>
@@ -492,8 +579,7 @@ And then you can paste this config on the example 2 and click "Start Grid" and b
 
 ```
 
-- - -
-
+#### Example 2 load data to grid
 
 ```live
 <style>
@@ -517,7 +603,6 @@ And then you can paste this config on the example 2 and click "Start Grid" and b
 </style>
 
 	<!-- For restore config to grid -->
-    <h4>Example 2 load data to grid</h4>
 	<span> You can load the grid config with pase in below text area and then click "Start Grid" </span>
 	<hr>
 	<button id="start_grid"> Start Grid </button>

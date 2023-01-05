@@ -29,7 +29,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="d47362eb-f7f7-489d-bae7-ea8e7dcc100e">
+        <pandora-nav id="0e9c78ba-1698-42cb-91a1-9eb47de2919f">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -283,19 +283,17 @@
             <p>All related logics (such as data requesting, validation, and transformation) must be implemented on the application side. Once data is received, you can just assign data to Grid's <code>data</code> property. </p>
             <p>See more details about data setting at <a href="../data/columns-and-data.html">Columns and Data Properties</a>.</p>
             <h2 id="example">Example</h2>
-            <pre><code>    <span class="hljs-comment">// ...</span>
-    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">onServerResponse</span>(<span class="hljs-params">data</span>) </span>{
+            <pre><code>    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">onServerResponse</span>(<span class="hljs-params">data</span>) </span>{
         hideLoadingMask();
         grid.data = data; <span class="hljs-comment">// Setting data from server</span>
     }
-    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">onGettingTotalPage</span>(<span class="hljs-params">total</span>) </span>{
-        pagination_ui.totalItems = total;
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">onRowCountRecieved</span>(<span class="hljs-params">total</span>) </span>{
+        pagination_ui.max = <span class="hljs-built_in">Math</span>.ceil(total / PAGE_SIZE);
     }
     <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">onPageChanged</span>(<span class="hljs-params">e</span>) </span>{
-        requestData(e.detail.value, e.target.pageSize, onServerResponse);
-    }
-    <span class="hljs-comment">// ...</span></code></pre>
-            <div class="pandora-code-viewer" id="pid-158">
+        requestData(e.detail.value, PAGE_SIZE, onServerResponse);
+    }</code></pre>
+            <div class="pandora-code-viewer" id="pid-159">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -310,11 +308,12 @@
                 <div class="pandora-tab-container">
                   <pre class="pandora-tab-view tab-html">&lt;div id="container_div"&gt;
   &lt;efx-grid id="grid"&gt;&lt;/efx-grid&gt;
-  &lt;ef-pagination id="pagination_ui" page="1" page-size="5"&gt;&lt;/ef-pagination&gt;
+  &lt;ef-pagination id="pagination_ui" value="1"&gt;&lt;/ef-pagination&gt;
 &lt;/div&gt;</pre>
                   <pre class="pandora-tab-view tab-js">var paginationUI = document.getElementById("pagination_ui");
 var SERVER_DELAY = 300;
 var loading_mask = document.createElement("ef-loader");
+var PAGE_SIZE = 5;
 
 function showLoadingMask() {
   if (!loading_mask.parentElement) {
@@ -340,12 +339,12 @@ function onServerResponse(data) {
   grid.data = data; // Setting data from server
 }
 
-function onGettingTotalPage(total) {
-  paginationUI.totalItems = total;
+function onRowCountRecieved(total) {
+  paginationUI.max = Math.ceil(total / PAGE_SIZE);
 }
 
 function onPageChanged(e) {
-  requestData(e.detail.value, e.target.pageSize, onServerResponse);
+  requestData(e.detail.value, PAGE_SIZE, onServerResponse);
 }
 
 // Mocking Server
@@ -394,11 +393,11 @@ var configObj = {
 var grid = document.getElementById("grid");
 grid.config = configObj;
 
-paginationUI.addEventListener('page-changed', onPageChanged);
+paginationUI.addEventListener("value-changed", onPageChanged);
 
 // Start app by getting total number of items and data
-requestTotalPage(onGettingTotalPage);
-requestData(paginationUI.page, paginationUI.pageSize, onServerResponse);</pre>
+requestTotalPage(onRowCountRecieved);
+requestData(paginationUI.value, PAGE_SIZE, onServerResponse);</pre>
                   <pre class="pandora-tab-view tab-css">efx-grid {
   height: 169px;
 }
@@ -448,7 +447,7 @@ ef-pagination {
             <p>If you have all the data available on the client side and want to show data in pagination style, you can use the Pagination Extension and the <a href="https://ui.refinitiv.com/elements/pagination" target="_blank">pagination</a> element. The current page and page size can be configured using the <code>pagination</code> option. The pagination behaviors are then implemented by the extension. See <a href="../extensions/tr-grid-pagination.html">Pagination Extension</a> for more details.</p>
             <h2 id="example">Example</h2>
 
-            <div class="pandora-code-viewer" id="pid-159">
+            <div class="pandora-code-viewer" id="pid-160">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>

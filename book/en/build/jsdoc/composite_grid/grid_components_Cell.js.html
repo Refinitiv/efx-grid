@@ -39,8 +39,6 @@ goog.require("tr.grid.util");
 * @param {tr.ILayoutGrid=} opt_section Parent section
 */
 tr.grid.Cell = function (opt_element, opt_section) {
-	this._onFocus = this._onFocus.bind(this);
-
 	this._id = tr.grid.Cell._runningId++;
 	this._element = document.createElement("div");
 	this._element.className = "cell";
@@ -378,7 +376,6 @@ tr.grid.Cell.prototype.initialize = function () {
 			this._aligner = document.createElement("div");
 		} else {
 			this._aligner = document.createElement("button");
-			this._aligner.addEventListener('focus', this._onFocus);
 		}
 		this._aligner.className = "valigner";
 		if(this._frontIcon) {
@@ -744,16 +741,6 @@ tr.grid.Cell.prototype._updateDisplay = function () {
 	} else {
 		this._element.style.display = "none";
 	}
-};
-
-/** @private
-* @param {Event} e
-*/
-tr.grid.Cell.prototype._onFocus = function (e) {
-	if (!this._section) return;
-
-	var core = this._section._getContext();
-	core.getElement().focus({ preventScroll: true });
 };
 //#endregion Private Methods
 

@@ -29,7 +29,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="d47362eb-f7f7-489d-bae7-ea8e7dcc100e">
+        <pandora-nav id="0e9c78ba-1698-42cb-91a1-9eb47de2919f">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -391,33 +391,160 @@ document.getElementById("unset_btn").addEventListener("click", function(e) {
             </div>
             <h3 id="installation-and-how-to-import-to-a-project">Installation and how to import to a project</h3>
             <p>Installation examples and details of how to import the extension to a project are available on the <a href="README.html">Overview</a> page.</p>
-            <h3 id="differences-between-row-segmenting-and-row-grouping-extensions">Differences between Row Segmenting and Row Grouping Extensions</h3>
+            <h2 id="differences-between-row-segmenting-extension-and-row-grouping-extension">Differences between Row Segmenting Extension and Row Grouping Extension</h2>
             <p>Both extensions produce very similar looking results, but there are some key differences in behaviors and functionalities. </p>
-            <h4 id="group-header-segment-separator-">Group header (segment separator)</h4>
+            <h3 id="group-header-segment-separator-">Group header (segment separator)</h3>
             <p>The group headers in Row Segmenting Extension have their own data/content, whereas those in Row Grouping Extension have no data. Group headers in Row Segmenting Extension are actually normal row with a separator mark on it. This means you can perform sorting and filtering on the group headers.</p>
             <p>The group headers in the Row Grouping Extension have no data because they are automatically generated based on the specified criteria. So they have no place to hold their data and you will need to have a separate place to hold it. Because of this extra place to manage, it's more difficult to perform sorting and filtering on these group headers.</p>
-            <h4 id="dragging-group-header">Dragging group header</h4>
+            <h3 id="dragging-group-header">Dragging group header</h3>
             <p>The group headers in Row Segmenting Extension can be moved by dragging, if we use Row Dragging Extension. Moving group header is the same as moving row content. After moving, group headers will also move their row members along with them.</p>
             <p>The group headers in Row Grouping Extension cannot be moved freely. They can only moved or ordered by sorting operation. This is because they are automatically generated and constantly added or removed according to data updates. </p>
             <blockquote>
               <p>Note: dragging behaviors for group headers have not yet finalized and are subject to change.</p>
             </blockquote>
-            <h4 id="grouping-criteria">Grouping criteria</h4>
+            <h3 id="grouping-criteria">Grouping criteria</h3>
             <p>Specifying a group header in Row Segmenting Extension is a bit more difficult. Each group header has to be set manually through the extension's APIs. Use the <code>setSegmentSeparator()</code> method to specify group header. Group members need to be manually added to the new groups by <code>addSegmentChild()</code> or <code>addSegmentChildren()</code> methods. Any row added to the group will be moved below the group header position. Rows that are already a group member cannot be added to another group. </p>
             <p>Grouping in Row Grouping Extension are based on row content. So, you can add or remove a group by just changing content of a row. A row can be moved between different groups by changing content of the row as well. </p>
             <blockquote>
               <p>More APIs will be implemented to accommodate adding or removing member in the future updates.</p>
             </blockquote>
-            <h4 id="multi-level-grouping">Multi-level grouping</h4>
-            <p>Multi-level grouping is not supported by Row Segmenting Extension at the moment. The feature is stil in development. </p>
-            <h4 id="group-sorting">Group sorting</h4>
-            <p>sorting at the group level is not supported by Row Segmenting Extension at the moment. The feature is stil in development. </p>
-            <h4 id="content-sorting">Content sorting</h4>
-            <p>Row content is sorted within its own group. The behavior is the same for both Row Segmenting and Row Grouping extension.</p>
-            <h4 id="predefined-color">Predefined color</h4>
-            <p>The extension supports color from the predefined colors. To do this you need to assign predefined class object to the <code>predefinedColors</code> property then specify field name of the <code>cssField</code> property.</p>
+            <h3 id="segment-classification-multi-level-nested-grouping-">Segment Classification (multi-level/nested grouping)</h3>
+            <p>With Row Segmenting Extension, you can specify classfication on individual segment to add nested segments. The criteria can be defined by using <code>setSegmentClassification</code> method with array of fields as its parameter. </p>
 
             <div class="pandora-code-viewer" id="pid-58">
+              <div class="pandora-viewer">
+                <button>&lt;/&gt;</button>
+              </div>
+              <div class="pandora-code-view">
+                <div class="pandora-toolbar">
+                  <ul>
+                    <li class="pandora-tab-selected" data-toggle="tab-html">HTML</li>
+                    <li data-toggle="tab-js">JS</li>
+                    <li data-toggle="tab-css">CSS</li>
+                  </ul>
+                </div>
+                <div class="pandora-tab-container">
+                  <pre class="pandora-tab-view tab-html">&lt;button id="set_btn1"&gt;Classify by market&lt;/button&gt;
+&lt;button id="set_btn2"&gt;Classify by industry&lt;/button&gt;
+&lt;button id="set_btn3"&gt;Classify by market and industry&lt;/button&gt;
+&lt;button id="set_btn4"&gt;Unclassify&lt;/button&gt;
+&lt;hr&gt;
+&lt;button id="data_btn1"&gt;Set row 6 market to NASDAQ&lt;/button&gt;
+&lt;button id="data_btn2"&gt;Set row 6 market to DJI&lt;/button&gt;
+&lt;button id="data_btn3"&gt;Set row 6 industry to Investment Managers&lt;/button&gt;
+&lt;button id="data_btn4"&gt;Set row 6 industry to Paper&lt;/button&gt;
+&lt;hr&gt;
+&lt;efx-grid&gt;&lt;/efx-grid&gt;</pre>
+                  <pre class="pandora-tab-view tab-js">var segmentIdx = 1;
+set_btn1.addEventListener("click", function(e) {
+  rowSegmentingExt.setSegmentClassification(segmentIdx, ["market"]);
+});
+set_btn2.addEventListener("click", function(e) {
+  rowSegmentingExt.setSegmentClassification(segmentIdx, ["industry"]);
+});
+set_btn3.addEventListener("click", function(e) {
+  rowSegmentingExt.setSegmentClassification(segmentIdx, ["market", "industry"]);
+});
+set_btn4.addEventListener("click", function(e) {
+  rowSegmentingExt.setSegmentClassification(segmentIdx, null);
+});
+
+data_btn1.addEventListener("click", function(e) {
+  grid.api.setStaticData(row5, "market", "NASDAQ");
+});
+data_btn2.addEventListener("click", function(e) {
+  grid.api.setStaticData(row5, "market", "DJI");
+});
+data_btn3.addEventListener("click", function(e) {
+  grid.api.setStaticData(row5, "industry", "Investment Managers");
+});
+data_btn4.addEventListener("click", function(e) {
+  grid.api.setStaticData(row5, "industry", "Paper");
+});
+
+var row5 = null;
+var rowSegmentingExt = new RowSegmenting();
+var fields = ["companyName", "id", "market", "industry", "number_2", "float_1"];
+var columnMap = {};
+var columns = fields.map(function(f) {
+  var column = {
+    name: f,
+    field: f
+  };
+  columnMap[f] = column;
+  return column;
+});
+columnMap["companyName"].width = 200;
+columnMap["id"].width = 60;
+
+var records = DataGenerator.generateRecords(fields, { seed: 0, rowCount: 20 });
+var configObj = {
+  columns: columns,
+  extensions: [
+    rowSegmentingExt
+  ],
+  whenDefined: function(e) {
+    row5 = e.api.getRowDefinition(6);
+    rowSegmentingExt.setSegmentSeparator(segmentIdx);
+    rowSegmentingExt.addSegmentChildren(segmentIdx, [2, 3, 4, 5, 6, 7]);
+
+    rowSegmentingExt.setSegmentSeparator(10);
+    rowSegmentingExt.addSegmentChildren(10, [11, 12, 13]);
+  }
+};
+
+var grid = window.grid = document.getElementsByTagName("efx-grid")[0];
+grid.config = configObj;
+grid.data = records;</pre>
+                  <pre class="pandora-tab-view tab-css">html hr {
+  margin: 5px;
+}
+
+efx-grid {
+  height: 300px;
+}</pre>
+                  <div class="pandora-console"></div>
+                </div>
+              </div>
+              <link rel="prefetch" href="../node_modules/tr-grid-test-resource-v6/dist/elf-halo-light.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-auto-tooltip/dist/tr-grid-auto-tooltip.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-cell-selection/dist/tr-grid-cell-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-checkbox/dist/tr-grid-checkbox.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/column-dragging/dist/column-dragging.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-fitter/dist/tr-grid-column-fitter.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-formatting/dist/tr-grid-column-formatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-grouping/dist/tr-grid-column-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-resizing/dist/tr-grid-column-resizing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-selection/dist/tr-grid-column-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-stack/dist/tr-grid-column-stack.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-conditional-coloring/dist/tr-grid-conditional-coloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-content-wrap/dist/tr-grid-content-wrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-contextmenu/dist/tr-grid-contextmenu.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-filter-input/dist/tr-grid-filter-input.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-heat-map/dist/tr-grid-heat-map.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-in-cell-editing/dist/tr-grid-in-cell-editing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-pagination/dist/tr-grid-pagination.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-percent-bar/dist/tr-grid-percent-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-range-bar/dist/tr-grid-range-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-dragging/dist/tr-grid-row-dragging.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-filtering/dist/tr-grid-row-filtering.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-grouping/dist/tr-grid-row-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/row-segmenting/dist/row-segmenting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-selection/dist/tr-grid-row-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-rowcoloring/dist/tr-grid-rowcoloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/statistics-row/dist/statistics-row.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-textformatting/dist/tr-grid-textformatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-titlewrap/dist/tr-grid-titlewrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
+            </div>
+            <h3 id="group-sorting">Group sorting</h3>
+            <p>sorting at the group level is not supported by Row Segmenting Extension at the moment. The feature is stil in development. </p>
+            <h3 id="content-sorting">Content sorting</h3>
+            <p>Row content is sorted within its own group. The behavior is the same for both Row Segmenting and Row Grouping extension.</p>
+            <h3 id="predefined-color">Predefined color</h3>
+            <p>The extension supports color from the predefined colors. To do this you need to assign predefined class object to the <code>predefinedColors</code> property then specify field name of the <code>cssField</code> property.</p>
+
+            <div class="pandora-code-viewer" id="pid-59">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -626,12 +753,13 @@ button {
               <link rel="prefetch" href="../node_modules/tr-grid-titlewrap/dist/tr-grid-titlewrap.min.js" type="script">
               <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
             </div>
-            <h4 id="save-load-grid-config">Save/Load grid config</h4>
+            <h3 id="save-load-grid-config">Save/Load grid config</h3>
             <p>In efx-grid with row segmenting extension we have spanningField, predefinedColor, segmentId can be implement save/load grid config,<br>We provide the user to set those properties with <code>setStaticRowData</code> or <code>setStaticData</code>.<br>When you set static data to pass grid API. It will be applied API in row segment extension too. Such as, setPredefiniedColor can be set static value with grid.api.setStaticData(0,"TAG_CSS_CLASS", "color1") in runtime mode.<br>And also, in the initialization grid, it will get values from rows or staticDataRows, which is static data.</p>
             <p>The example of set static data, which edits values in runtime,<br>we provide the use case save/load config from the grid.<br>You can get the config from the grid and use this config in another grid.</p>
             <p>You can follow in below example for implement save/load functionality.<br>The first example it will be grid that can be change data with click "Save config".<br>And then you can paste this config on the example 2 and click "Start Grid" and both grids look the same. </p>
+            <h4 id="example-1-save-data-from-grid">Example 1 save data from grid</h4>
 
-            <div class="pandora-code-viewer" id="pid-59">
+            <div class="pandora-code-viewer" id="pid-60">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -645,7 +773,6 @@ button {
                 </div>
                 <div class="pandora-tab-container">
                   <pre class="pandora-tab-view tab-html">&lt;!--  Set predifined color with api  --&gt;
-&lt;h4&gt;Example 1 save data from grid&lt;/h4&gt;
 &lt;span&gt;Row Index&lt;/span&gt;
 &lt;input value="1" type="number" id="row_index"&gt;
 &lt;hr&gt;
@@ -854,9 +981,9 @@ input[type="number"] {
               <link rel="prefetch" href="../node_modules/tr-grid-titlewrap/dist/tr-grid-titlewrap.min.js" type="script">
               <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
             </div>
-            <hr>
+            <h4 id="example-2-load-data-to-grid">Example 2 load data to grid</h4>
 
-            <div class="pandora-code-viewer" id="pid-60">
+            <div class="pandora-code-viewer" id="pid-61">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -870,7 +997,6 @@ input[type="number"] {
                 </div>
                 <div class="pandora-tab-container">
                   <pre class="pandora-tab-view tab-html">&lt;!-- For restore config to grid --&gt;
-&lt;h4&gt;Example 2 load data to grid&lt;/h4&gt;
 &lt;span&gt; You can load the grid config with pase in below text area and then click &amp;quot;Start Grid&amp;quot; &lt;/span&gt;
 &lt;hr&gt;
 &lt;button id="start_grid"&gt; Start Grid &lt;/button&gt;
