@@ -29,7 +29,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="0e9c78ba-1698-42cb-91a1-9eb47de2919f">
+        <pandora-nav id="bbc8d886-0e63-4186-9f02-382388cba0b0">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -284,7 +284,7 @@
               <li>The grid scope can enable by set textSelect property to <code>true</code> in configuration of <a href="../apis/rt_grid/Grid.html">Grid</a></li>
               <li>The column scope can enable by set textSelect property to <code>true</code> in configuration of <a href="../apis/rt_grid/ColumnDefinition.html">Columns</a></li>
             </ul>
-            <h2 id="limitation">Limitation</h2>
+            <h2 id="limitation-with-safari">Limitation with safari</h2>
             <ul>
               <li>When you use Text selection with <a href="../extensions/tr-grid-row-dragging.html">Row Dragging</a>, Safari is unable to select text.</li>
               <li>Safari is unable to listening pointer events such as clicks, hovers, and so on. When you use <a href="../rendering/custom-formatter.html">Custom Formatter</a> in a cell, it looks like this example.</li>
@@ -306,7 +306,7 @@
                 </div>
                 <div class="pandora-tab-container">
                   <pre class="pandora-tab-view tab-html">&lt;efx-grid id="grid"&gt;&lt;/efx-grid&gt;</pre>
-                  <pre class="pandora-tab-view tab-js">var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
+                  <pre class="pandora-tab-view tab-js">var fields = ["companyName", "market"];
 var records = DataGenerator.generateRecords(fields, { numRows: 10 });
 var buttonDisplay = {
   binding: function(e) {
@@ -343,6 +343,259 @@ var configObj = {
 var grid = document.getElementById("grid");
 grid.config = configObj;</pre>
                   <pre class="pandora-tab-view tab-css"></pre>
+                  <div class="pandora-console"></div>
+                </div>
+              </div>
+              <link rel="prefetch" href="../node_modules/tr-grid-test-resource-v6/dist/elf-halo-light.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-auto-tooltip/dist/tr-grid-auto-tooltip.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-cell-selection/dist/tr-grid-cell-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-checkbox/dist/tr-grid-checkbox.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/column-dragging/dist/column-dragging.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-fitter/dist/tr-grid-column-fitter.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-formatting/dist/tr-grid-column-formatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-grouping/dist/tr-grid-column-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-resizing/dist/tr-grid-column-resizing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-selection/dist/tr-grid-column-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-stack/dist/tr-grid-column-stack.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-conditional-coloring/dist/tr-grid-conditional-coloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-content-wrap/dist/tr-grid-content-wrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-contextmenu/dist/tr-grid-contextmenu.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-filter-input/dist/tr-grid-filter-input.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-heat-map/dist/tr-grid-heat-map.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-in-cell-editing/dist/tr-grid-in-cell-editing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-pagination/dist/tr-grid-pagination.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-percent-bar/dist/tr-grid-percent-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-range-bar/dist/tr-grid-range-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-dragging/dist/tr-grid-row-dragging.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-filtering/dist/tr-grid-row-filtering.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-grouping/dist/tr-grid-row-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/row-segmenting/dist/row-segmenting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-selection/dist/tr-grid-row-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-rowcoloring/dist/tr-grid-rowcoloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/statistics-row/dist/statistics-row.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-textformatting/dist/tr-grid-textformatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-titlewrap/dist/tr-grid-titlewrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
+            </div>
+            <h2 id="limitation-with-row-virtualization">Limitation with row virtualization</h2>
+            <p>Text selection with row virtualization cannot select all data in the grid.<br>In the example below, the grid has text selection enabled and uses row virtualization.<br>When you try to select and copy text from the grid and paste it into a text area, you will see that not all data from the grid is obtained.<br>This is because row virtualization render only the rows that is visible in the grid's viewport.<br>For example, if you have 50 rows of data, but the grid can only show the first 10 rows at a time, then when you try to select the text, it will only select the first 14 rows (10 rows + buffer rows).<br>If you want to know about row virtualization in more detail, you can refer to the 'Understanding row virtualization' section in the <a href="../rendering/custom-formatter.html">Custom Formatter</a> page.</p>
+            <h3 id="example">Example</h3>
+
+            <div class="pandora-code-viewer" id="pid-170">
+              <div class="pandora-viewer">
+                <button>&lt;/&gt;</button>
+              </div>
+              <div class="pandora-code-view">
+                <div class="pandora-toolbar">
+                  <ul>
+                    <li class="pandora-tab-selected" data-toggle="tab-html">HTML</li>
+                    <li data-toggle="tab-js">JS</li>
+                    <li data-toggle="tab-css">CSS</li>
+                  </ul>
+                </div>
+                <div class="pandora-tab-container">
+                  <pre class="pandora-tab-view tab-html">&lt;efx-grid id="grid"&gt;
+&lt;/efx-grid&gt;
+&lt;hr&gt;
+&lt;textarea placeholder="Paste text here"&gt;&lt;/textarea&gt;</pre>
+                  <pre class="pandora-tab-view tab-js">var fields = [
+  "id",
+  "companyName",
+  "market",
+  "CF_LAST",
+  "CF_NETCHNG",
+  "industry"
+];
+var records = DataGenerator.generateRecords(fields, { numRows: 50, seed: 0 });
+var config = {
+  textSelect: true,
+  columns: [{
+      field: fields[0],
+      name: "ID"
+    },
+    {
+      field: fields[1],
+      name: "Company Name"
+    },
+    {
+      field: fields[2],
+      name: "Market"
+    },
+    {
+      field: fields[3],
+      name: "Last"
+    },
+    {
+      field: fields[4],
+      name: "Net. Chng"
+    },
+    {
+      field: fields[5],
+      name: "Industry"
+    },
+  ],
+  staticDataRows: records
+};
+
+var grid = document.getElementById("grid");
+grid.config = config;
+window.grid = grid;</pre>
+                  <pre class="pandora-tab-view tab-css">efx-grid {
+  height: 300px;
+}
+
+textarea {
+  height: 200px;
+  width: 100%;
+}</pre>
+                  <div class="pandora-console"></div>
+                </div>
+              </div>
+              <link rel="prefetch" href="../node_modules/tr-grid-test-resource-v6/dist/elf-halo-light.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-auto-tooltip/dist/tr-grid-auto-tooltip.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-cell-selection/dist/tr-grid-cell-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-checkbox/dist/tr-grid-checkbox.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/column-dragging/dist/column-dragging.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-fitter/dist/tr-grid-column-fitter.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-formatting/dist/tr-grid-column-formatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-grouping/dist/tr-grid-column-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-resizing/dist/tr-grid-column-resizing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-selection/dist/tr-grid-column-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-stack/dist/tr-grid-column-stack.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-conditional-coloring/dist/tr-grid-conditional-coloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-content-wrap/dist/tr-grid-content-wrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-contextmenu/dist/tr-grid-contextmenu.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-filter-input/dist/tr-grid-filter-input.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-heat-map/dist/tr-grid-heat-map.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-in-cell-editing/dist/tr-grid-in-cell-editing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-pagination/dist/tr-grid-pagination.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-percent-bar/dist/tr-grid-percent-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-range-bar/dist/tr-grid-range-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-dragging/dist/tr-grid-row-dragging.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-filtering/dist/tr-grid-row-filtering.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-grouping/dist/tr-grid-row-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/row-segmenting/dist/row-segmenting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-selection/dist/tr-grid-row-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-rowcoloring/dist/tr-grid-rowcoloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/statistics-row/dist/statistics-row.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-textformatting/dist/tr-grid-textformatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-titlewrap/dist/tr-grid-titlewrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
+            </div>
+            <h2 id="copying-all-content-in-the-grid-without-text-selection">Copying all content in the grid without text selection</h2>
+            <p>If you want to copy all the data in the grid, you can do it by focusing on the grid element and modifying the clipboard without text selection.<br>To do this, you can listen for the 'click' event on the grid element and call the focus method on the grid API to focus on the grid.<br>Then, you can listen for the 'copy' event on the grid element and modify the clipboard as shown in the example below.</p>
+            <h3 id="example">Example</h3>
+
+            <div class="pandora-code-viewer" id="pid-171">
+              <div class="pandora-viewer">
+                <button>&lt;/&gt;</button>
+              </div>
+              <div class="pandora-code-view">
+                <div class="pandora-toolbar">
+                  <ul>
+                    <li class="pandora-tab-selected" data-toggle="tab-html">HTML</li>
+                    <li data-toggle="tab-js">JS</li>
+                    <li data-toggle="tab-css">CSS</li>
+                  </ul>
+                </div>
+                <div class="pandora-tab-container">
+                  <pre class="pandora-tab-view tab-html">&lt;div id="header"&gt; Click for focus in the grid and copy text with &amp;quot;ctrl+c&amp;quot; inside grid, it will be write your clipboard with all data in the grid &lt;/div&gt;
+&lt;div id="feedback"&gt;&lt;/div&gt;
+&lt;efx-grid id="grid"&gt;&lt;/efx-grid&gt;
+&lt;hr&gt;
+&lt;textarea placeholder="Paste text here"&gt;&lt;/textarea&gt;</pre>
+                  <pre class="pandora-tab-view tab-js">var fields = [
+  "id",
+  "companyName",
+  "market",
+  "CF_LAST",
+  "CF_NETCHNG",
+  "industry"
+];
+var records = DataGenerator.generateRecords(fields, { numRows: 50, seed: 0 });
+var config = {
+  columns: [{
+      field: fields[0],
+      name: "ID"
+    },
+    {
+      field: fields[1],
+      name: "Company Name"
+    },
+    {
+      field: fields[2],
+      name: "Market"
+    },
+    {
+      field: fields[3],
+      name: "Last"
+    },
+    {
+      field: fields[4],
+      name: "Net. Chng"
+    },
+    {
+      field: fields[5],
+      name: "Industry"
+    },
+  ],
+  staticDataRows: records
+};
+
+var grid = document.getElementById("grid");
+grid.config = config;
+window.grid = grid;
+
+grid.addEventListener("click", onGridClick);
+grid.addEventListener("copy", onGridCopy);
+
+function onGridClick(e) {
+  // We need to listen for a click event on the grid to focus on it, which will allow us to track the copy event
+  grid.api.focus();
+}
+
+function onGridCopy(e) {
+  // When the grid is focused, the listen function will be triggered and we can provide data to be copied to the clipboard before the copy event occurs
+  var allNames = grid.api.getColumnNames();
+
+  var i;
+  var colValues = allNames;
+
+  var rows = grid.api.getMultipleRowData();
+
+  // We can use the join method to map the rows of object data to a string, separating each row with a tab character. This can be useful when trying to paste the data into an Excel spreadsheet.
+  var rowValues = rows.map(function(row) {
+    return [
+      row["id"],
+      row["companyName"],
+      row["market"],
+      row["CF_LAST"],
+      row["CF_NETCHNG"],
+      row["industry"]
+    ].join("\t");
+  });
+  var text = colValues.join("\t") + "\n" + rowValues.join("\n");
+  e.clipboardData.setData("text/plain", text);
+  // Below is a feedback message that is displayed to the user when they have successfully copied text. The message will automatically clear after 3 seconds
+  feedback.textContent = "Successfully copied text from the grid";
+  setTimeout(function(e) {
+    feedback.textContent = "";
+  }, 3000);
+
+  e.preventDefault();
+}</pre>
+                  <pre class="pandora-tab-view tab-css">efx-grid {
+  height: 300px;
+}
+
+textarea {
+  height: 200px;
+  width: 100%;
+}
+
+#feedback {
+  color: green;
+}</pre>
                   <div class="pandora-console"></div>
                 </div>
               </div>
