@@ -1870,6 +1870,63 @@ Grid.prototype.moveColumnById = function (srcCol, destCol) {
 	return this.moveColumn(srcIndex, destIndex);
 };
 
+/** @public
+* @param {number|string|Array.&lt;number|string&gt;} colRefs List of column index or column id to be moved
+* @param {number|string} destCol Destination position where the moved columns will be placed BEFORE the specified position. This can be column id or index
+* @return {boolean} Return true if there is any change, and false otherwise
+* @fires Core#columnMoved
+*/
+Grid.prototype.reorderColumns = function (colRefs, destCol) {
+	var destId = (typeof destCol === "number") ? this.getColumnId(destCol) : destCol;
+
+	if(Array.isArray(colRefs)) {
+		var srcLen = colRefs.length;
+		if(srcLen &gt; 1) {
+			var colIds = this.getColumnIds();
+			var srcIds = [];
+			var invalidDest = false;
+			var i;
+			for(i = 0; i &lt; srcLen; ++i) {
+				var colRef = colRefs[i];
+				var srcId = (typeof colRef === "number") ? colIds[colRef] : colRef;
+				if(srcId) {
+					srcIds.push(srcId);
+					if(destId === srcId) {
+						invalidDest = true; // Destination must not exist in source columns
+					}
+				}
+			}
+			srcLen = srcIds.length;
+			if(invalidDest) { // Find the next valid destination where it is not contained in the source columns
+				var colCount = colIds.length;
+				var destIdx = this.getColumnIndex(destId);
+				if(destIdx &gt;= 0) {
+					while(++destIdx &lt; colCount) {
+						destId = colIds[destIdx];
+						if(srcIds.indexOf(destId) &lt; 0) {
+							break;
+						}
+					}
+				}
+				if(destIdx &lt; 0 || destIdx &gt;= colCount) {
+					destId = "";
+				}
+			}
+
+			var dirty = 0;
+			for(i = 0; i &lt; srcLen; ++i) {
+				dirty |= this.moveColumnById(srcIds[i], destId);
+			}
+			// TODO: Handle the case where all columns stay in the same place
+			return dirty ? true : false;
+		} else {
+			return this.moveColumnById(colRefs[0], destId);
+		}
+	}
+
+	// colRefs will be a number or string
+	return this.moveColumnById(colRefs, destId);
+};
 
 /** The hidden column still occupies the same index.
 * @public
@@ -2990,16 +3047,135 @@ Grid.prototype.getAllFields = function() {
 	return this._connector.getAllFields();
 };
 /** Freeze the column at the left side of the table starting from index 0 to the specified colIndex
- * If no index is specified (null or undefined index), unfreeze all columns.
- * @public
- * @param {number=} colIndex Negative index is equivalent to null value
- * @param {number=} pinnedRightColumns Number of columns to be pinned/snapped on the right side
- */
+* If no index is specified (null or undefined index), unfreeze all columns.
+* @public
+* @param {number=} colIndex Negative index is equivalent to null value
+* @param {number=} pinnedRightColumns Number of columns to be pinned/snapped on the right side
+*/
 Grid.prototype.freezeColumn = function(colIndex, pinnedRightColumns) {
 	if(colIndex == null) {
 		colIndex = -1;
 	}
 	this._grid.freezeColumn(colIndex, pinnedRightColumns);
+};
+/** Pin column to the left side by moving the specified column to the rightmost of the frozen columns. &lt;br&gt;
+* The method will do nothing if the specified column is already pinned to the left side
+* @public
+* @param {Grid~ColumnReference|Array.&lt;Grid~ColumnReference&gt;} colRef
+* @return {boolean}
+*/
+Grid.prototype.pinColumn = function(colRef) {
+	if(Array.isArray(colRef)) {
+		var ary = colRef;
+		var len = ary.length;
+
+		var dirty = 0;
+		for(var i = 0; i &lt; len; ++i) {
+			dirty |= this._pinColumn(ary[i]);
+		}
+		return dirty ? true : false;
+	}
+	return this._pinColumn(colRef);
+};
+/** @private
+* @param {Grid~ColumnReference} colRef
+* @return {boolean}
+*/
+Grid.prototype._pinColumn = function(colRef) {
+	var colIndex = this.getColumnIndex(colRef);
+	if(colIndex &lt; 0) {
+		return false;
+	}
+	var pinnedCount = this._grid.getFrozenColumnCount();
+	if(colIndex &lt; pinnedCount) {
+		return false; // The column is already pinned area
+	}
+	if(!pinnedCount) {
+		var stationaryIdx = this._grid.getStationaryColumnIndex();
+		if(stationaryIdx &gt;= 0) {
+			pinnedCount = stationaryIdx;
+			if(colIndex &gt; stationaryIdx) {
+				pinnedCount++;
+			}
+		}
+	}
+
+	this.moveColumnById(colIndex, pinnedCount);
+	this._grid.freezeColumn(pinnedCount);
+	return true;
+};
+/** Unpin column from the left side by moving the specified column to the end of the frozen columns. &lt;br&gt;
+* The method will do nothing if the specified column is not pinned on the left side.
+* @public
+* @param {Grid~ColumnReference|Array.&lt;Grid~ColumnReference&gt;} colRef
+* @param {Grid~ColumnReference=} dest The unpinned column will be placed before the destination position after the operation
+* @return {boolean}
+*/
+Grid.prototype.unpinColumn = function(colRef, dest) {
+	if(Array.isArray(colRef)) {
+		var ary = colRef;
+		var len = ary.length;
+
+		var dirty = 0;
+		for(var i = 0; i &lt; len; ++i) {
+			dirty |= this._unpinColumn(ary[i], dest);
+		}
+		return dirty ? true : false;
+	}
+	return this._unpinColumn(colRef, dest);
+};
+/** @private
+* @param {Grid~ColumnReference} colRef
+* @param {Grid~ColumnReference=} dest The unpinned column will be placed before the destination position after the operation
+* @return {boolean}
+*/
+Grid.prototype._unpinColumn = function(colRef, dest) {
+	var colIndex = this.getColumnIndex(colRef);
+	if(colIndex &lt; 0) {
+		return false;
+	}
+	var pinnedCount = this._grid.getFrozenColumnCount();
+	if(!pinnedCount) {
+		return false;
+	}
+	if(colIndex &gt;= pinnedCount) {
+		return false; // The column is outside of frozen area
+	}
+	var srcId = null;
+	var destId = null;
+	if(dest != null) {
+		var destIdx = this.getColumnIndex(dest);
+		destId = this.getColumnId(destIdx);
+		srcId = this.getColumnId(colIndex);
+	}
+
+	var stationaryIdx = this._grid.getStationaryColumnIndex();
+
+	if(colIndex &gt; stationaryIdx) {
+		this.moveColumnById(colIndex, pinnedCount);
+	}
+
+	this._grid.freezeColumn(pinnedCount - 2); // Column index is used for freezing
+
+	if(colIndex &gt; stationaryIdx) {
+		if(destId != null) {
+			this.moveColumnById(srcId, destId);
+		}
+	}
+
+	return true;
+};
+/** A shorthand to unpin all columns from the left hand side
+* @public
+* @return {boolean}
+*/
+Grid.prototype.unpinAllColumns = function() {
+	var pinnedCount = this._grid.getFrozenColumnCount();
+	if(!pinnedCount) {
+		return false;
+	}
+	this._grid.freezeColumn(-1); // Column index is used for freezing
+	return true;
 };
 
 /** @private

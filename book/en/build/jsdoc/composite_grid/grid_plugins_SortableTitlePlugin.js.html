@@ -215,6 +215,10 @@ tr.grid.SortableTitlePlugin.prototype._userManagedLogic = false;
 * @type {boolean}
 */
 tr.grid.SortableTitlePlugin.prototype._disabled = false;
+/** @private
+* @type {boolean}
+*/
+tr.grid.SortableTitlePlugin.prototype._frozenIndicator = false;
 /** Since DataView in real-time grid has only one ROW_DEF column, we need to re-map sorting field to sort correctly.
 * @private
 * @type {boolean}
@@ -766,8 +770,9 @@ tr.grid.SortableTitlePlugin.prototype.sortColumns = function (sortOptions, opt_a
 * @param {Object=} opt_arg Event argument to be sent with preDataSorting event
 */
 tr.grid.SortableTitlePlugin.prototype.clearSortState = function (opt_arg) {
-	this._popSortState(0, opt_arg);
-	this.updateSortSymbols();
+	if(this._popSortState(0, opt_arg)) {
+		this.updateSortSymbols();
+	}
 };
 /** @description Perform sorting with the same parameter.
 * @public
@@ -965,6 +970,12 @@ tr.grid.SortableTitlePlugin.prototype.disableTwoStateSorting = function (disable
 			this._sortingSequence.push("n");
 		}
 	}
+};
+/** @public
+* @param {boolean=} bool=true, if set to false it will be unfreeze indicator
+*/
+tr.grid.SortableTitlePlugin.prototype.freezeIndicator = function (bool) {
+	this._frozenIndicator = bool !== false;
 };
 /** @public
 * @param {boolean=} disabled
@@ -1571,7 +1582,7 @@ tr.grid.SortableTitlePlugin.prototype._clearSortSymbols = function (state) {
 tr.grid.SortableTitlePlugin.prototype._updateSortableIndicator = function (hostIndex) {
 	var t = this;
 	var host = t._hosts[hostIndex];
-	if (!host) { return; }
+	if (!host || this._frozenIndicator) { return; }
 
 	var section = host.getSection(tr.res.title);
 	if (section === null) { return; }
@@ -1813,6 +1824,7 @@ goog.exportSymbol("tr.grid.SortableTitlePlugin", tr.grid.SortableTitlePlugin);
 
 		"disableTwoStateSorting": pt.disableTwoStateSorting,
 		"disableSortSymbols": pt.disableSortSymbols,
+		"freezeIndicator": pt.freezeIndicator,
 		"disableDataSorting": pt.disableDataSorting,
 		"disableCellClick": pt.disableCellClick,
 		"disableColumnSorting": pt.disableColumnSorting,

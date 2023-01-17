@@ -2898,6 +2898,14 @@ tr.Grid.prototype.freezeLayout = function (opt_bool) {
 	var prevState = this._frozenLayout;
 	if (prevState !== opt_bool) {
 		this._frozenLayout = opt_bool;
+
+		var stp = this.getPlugin("SortableTitlePlugin");
+		if(this._frozenLayout) {
+			if(stp) {
+				stp.freezeIndicator(true);
+			}
+		} 
+
 		var dispatcher = null;
 		if (!this._frozenLayout) {
 			dispatcher = this._getEvent("widthChanged");
@@ -2929,6 +2937,9 @@ tr.Grid.prototype.freezeLayout = function (opt_bool) {
 			var viewChanged = this._syncRowHeights();
 			if(!viewChanged) { // Always update virtualizer
 				this._rowVirtualizer.update(true); // Force section activation
+			}
+			if(stp) {
+				stp.freezeIndicator(false);
 			}
 		}
 		this._rowHeightSync = true;

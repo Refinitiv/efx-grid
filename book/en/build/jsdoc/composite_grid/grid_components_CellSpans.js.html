@@ -47,6 +47,31 @@ tr.grid.CellSpans.prototype.removeColumn = function (at) { // Use when a column 
 	return dirty;
 };
 /** @public
+* @param {boolean=} bool=true
+*/
+tr.grid.CellSpans.prototype.freezeMapping = function (bool) {
+	this._frozenMapping = bool !== false;
+	if(!this._frozenMapping) {
+		this._mapCellSpans();
+	}
+};
+
+/** @private
+*/
+tr.grid.CellSpans.prototype._mapCellSpans = function () {
+	var cellSpans = this._spans;
+	this._spans = [];
+	this._occupiedMap = {};
+	var i, cellSpan;
+	for(i = cellSpans.length; --i &gt;= 0;) {
+		cellSpan = cellSpans[i];
+		if(cellSpan.indexX &gt;= 0) {
+			cellSpan.register(this._spans, this._occupiedMap);
+		}
+	}
+};
+
+/** @public
 * @param {number} from
 * @param {number} amount This can be negative number
 * @return {boolean} Return true if there is any change
@@ -62,18 +87,11 @@ tr.grid.CellSpans.prototype.shiftColumn = function (from, amount) { // Use when 
 			cellSpan.indexX += amount;
 		}
 	}
-	if(!dirty) { return false; }
+	if(!dirty || this._frozenMapping) { return false; } 
 	
 	// Re-registers all cellspans. Some of the cellspans may be lost due to shifting
-	var cellSpans = this._spans;
-	this._spans = [];
-	this._occupiedMap = {};
-	for(i = cellSpans.length; --i &gt;= 0;) {
-		cellSpan = cellSpans[i];
-		if(cellSpan.indexX &gt;= 0) {
-			cellSpan.register(this._spans, this._occupiedMap);
-		}
-	}
+	this._mapCellSpans();
+
 	return true;
 };
 /** @public
@@ -359,6 +377,12 @@ tr.grid.CellSpans.prototype._spans;
 * @type {!Object.&lt;string, tr.grid.CellSpan&gt;}
 */
 tr.grid.CellSpans.prototype._occupiedMap;
+
+/**
+* @private
+* @type {boolean}
+*/
+tr.grid.CellSpans.prototype._frozenMapping = false;
 </code></pre>
         </article>
     </section>
