@@ -91,6 +91,7 @@ ReferenceCounter.prototype.getSession = function() {
 		} else if(val &lt; 0) {
 			removedEntries.push(key);
 		}
+		// else {} // when val 0 do nothing, doesn't change anything
 	}
 	return {
 		newEntries: newEntries.filter(Boolean),
@@ -119,9 +120,15 @@ ReferenceCounter.prototype.addReference = function(key, referer) {
 
 		if(this._counter[key]) {
 			++this._counter[key];
+			// The session will not change when a field already exists and a counter is attempted to be added
 		} else {
 			this._counter[key] = 1;
-			this._session[key] = 1;
+			if(this._session[key] === -1) {
+				this._session[key] = 0;
+			} else {
+				this._session[key] = 1;
+			}
+
 			return true;
 		}
 	}
@@ -171,7 +178,11 @@ ReferenceCounter.prototype.removeReference = function(key, referer, count) {
 	val -= count;
 	if(!val || val &lt; 0) {
 		delete this._counter[key];
-		this._session[key] = -1;
+		if(this._session[key] === 1) {
+			this._session[key] = 0;
+		} else {
+			this._session[key] = -1;
+		}
 		return true;
 	}
 

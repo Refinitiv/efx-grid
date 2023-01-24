@@ -82,7 +82,7 @@ var FieldDefinition = {};
 FieldDefinition._defs = {
 	"X_RIC_NAME": {
 		name: "RIC",
-		notRealTimeField: true,
+		IsRealtimeField: false,
 		width: 100,
 		binding: xRicNameRenderer,
 		sortLogic: xRicNameSorter
@@ -220,7 +220,13 @@ FieldDefinition._loadingField = {};
 * @param {Object} def
 */
 FieldDefinition.set = function(field, def) {
-	FieldDefinition._defs[field] = def || null;
+	if (!FieldDefinition._defs[field]) {
+		FieldDefinition._defs[field] = def;
+	} else {
+		for (var key in def) {
+			FieldDefinition._defs[field][key] = def[key];
+		}
+	}
 };
 /** @public
 * @function
@@ -279,9 +285,62 @@ FieldDefinition.setFieldCaching = function (caching) {
 
 /** @public
 * @param {string} field
+* @return {boolean}
+*/
+FieldDefinition.isFormula = function(field) {
+	return field.charAt(0) === "=";
+};
+/** @public
+* @param {string} field
+* @return {boolean}
+*/
+FieldDefinition.isAdc = function(field) {
+	return field.indexOf("TR.") === 0;
+};
+
+/** @public
+* @param {string} field
+* @return {boolean}
+*/
+FieldDefinition.isRealTimeField = function(field) {
+	if (!field) {
+		return false;
+	}
+
+	if(FieldDefinition.isAdc(field)) {
+		return false;
+	}
+
+	if(FieldDefinition.isFormula(field)) {
+		return false;
+	}
+
+	if(FieldDefinition.getFieldProperty(field, "timeSeriesChild")) {
+		return false;
+	}
+
+	if(FieldDefinition.isTimeSeries(field)) {
+		return false;
+	}
+
+	return FieldDefinition.getFieldProperty(field, "IsRealtimeField") !== false;
+};
+
+/** @public
+* @param {string} field
 * @return {boolean}=true if field is time series field
 */
-FieldDefinition.isTimeSeriesField = function (field) {
+FieldDefinition.isTimeSeries = function (field) {
+	if (!field) {
+		return false;
+	}
+
+	// We can check time series using a cache to avoid duplicating checks in regular expressions.
+	var timeSeriesField = FieldDefinition.getFieldProperty(field, "timeSeries");
+	if (timeSeriesField != null) {
+		return timeSeriesField;
+	}
+
 	/*
 		^TR.                    =&gt; start with TR.
 		[\w]+                   =&gt; any field with string and value
@@ -290,9 +349,39 @@ FieldDefinition.isTimeSeriesField = function (field) {
 		EDATE\=+                =&gt; EDATE in bucket
 		[\w\-\=\,]+             =&gt; another propertie param
 		[\)]$                   =&gt; end with only )
+		i						=&gt; for match both upper and lower cases
 	*/
+	var timeSeriesRegex = /^TR.[\w]+[\(][\w\-\=\,]*EDATE\=+[\w\-\=\,]+[\)]$/i;
+	return timeSeriesRegex.test(field);
+};
 
-	return !!field.toUpperCase().match(/^TR.[\w]+[\(][\w\-\=\,]*EDATE\=+[\w\-\=\,]+[\)]$/g);
+/**
+ * Set property value into field definition
+ * @private
+ * @param {string} field field definition
+ * @param {string} propertyName
+ * @param {*} value
+ */
+FieldDefinition.setFieldProperty = function(field, propertyName, value) {
+	if(!FieldDefinition._defs[field]) {
+		FieldDefinition._defs[field] = {};
+	}
+	FieldDefinition._defs[field][propertyName] = value;
+};
+
+/**
+ * Set property value into field definition
+ * @private
+ * @param {string} field field definition
+ * @param {string} propertyName
+ * @return {*}
+ */
+FieldDefinition.getFieldProperty = function(field, propertyName) {
+	var fieldDef = FieldDefinition._defs[field];
+	if(fieldDef) {
+		return fieldDef[propertyName];
+	}
+	return null;
 };
 
 /** to get more info about field via synapse service

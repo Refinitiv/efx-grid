@@ -847,6 +847,66 @@ tr.CompositeGrid.prototype.moveColumnById = function (srcCol, destCol) {
 	return this.moveColumn(srcIndex, destIndex);
 };
 
+/** @public
+* @param {number|string|Array.&lt;number|string&gt;} colRefs List of column index or column id to be moved
+* @param {number|string} destCol Destination position where the moved columns will be placed BEFORE the specified position. This can be column id or index
+* @return {boolean} Return true if there is any change, and false otherwise
+*/
+tr.CompositeGrid.prototype.reorderColumns = function (colRefs, destCol) {
+	var destId = (typeof destCol === "number") ? this.getColumnId(destCol) : destCol;
+
+	if(Array.isArray(colRefs)) {
+		var srcLen = colRefs.length;
+		if(srcLen &gt; 1) {
+			var colIds = this.getColumnIds();
+			var srcIds = [];
+			var invalidDest = false;
+			var i;
+			for(i = 0; i &lt; srcLen; ++i) {
+				var colRef = colRefs[i];
+				var srcId = (typeof colRef === "number") ? colIds[colRef] : colRef;
+				if(srcId) {
+					srcIds.push(srcId);
+					if(destId === srcId) {
+						invalidDest = true; // Destination must not exist in source columns
+					}
+				}
+			}
+			srcLen = srcIds.length;
+			if(invalidDest) { // Find the next valid destination where it is not contained in the source columns
+				var colCount = colIds.length;
+				var destIdx = this.getColumnIndex(destId);
+				if(destIdx &gt;= 0) {
+					while(++destIdx &lt; colCount) {
+						destId = colIds[destIdx];
+						if(srcIds.indexOf(destId) &lt; 0) {
+							break;
+						}
+					}
+				}
+				if(destIdx &lt; 0 || destIdx &gt;= colCount) {
+					destId = "";
+				}
+			}
+
+			var dirty = 0;
+			for(i = 0; i &lt; srcLen; ++i) {
+				dirty |= this.moveColumnById(srcIds[i], destId);
+			}
+			// TODO: Handle the case where all columns stay in the same place
+			return dirty ? true : false;
+		} else {
+			return this.moveColumnById(colRefs[0], destId);
+		}
+	}
+
+	// colRefs will be a number or string
+	if(colRefs != null) {
+		return this.moveColumnById(colRefs, destId);
+	}
+	return false;
+};
+
 /** Freeze the column at the left side of the table starting from index 0 to the specified colIndex
  * If no index is specified (null or undefined index), unfreeze all columns.
  * @public
@@ -859,89 +919,128 @@ tr.CompositeGrid.prototype.freezeColumn = function(opt_colIndex, pinnedRightColu
 	}
 	this._grid.freezeColumn(opt_colIndex, pinnedRightColumns);
 };
-
-/** Pin a column or list of columns to the frozen column area on the left side of the grid. &lt;br&gt;
-* This method will be deprecated in favor of less complicated {@link tr.CompositeGrid#freezeColumn}.
+/** Pin column to the left side by moving the specified column to the rightmost of the frozen columns. &lt;br&gt;
+* The method will do nothing if the specified column is already pinned to the left side
 * @public
-* @param {string|Array.&lt;string&gt;} columnList columnId or array of columnIds to be pinned
-* @see {@link tr.CompositeGrid#freezeColumn}
+* @param {number|string|Array.&lt;number|string&gt;} colRef
+* @return {boolean}
+* @see {@link CompositeGrid#freezeColumn}
 */
-tr.CompositeGrid.prototype.pinColumn = function (columnList) {
-	//Wrap the parameter in an array if it's not yet an array
-	if (!Array.isArray(columnList)) {
-		columnList = [columnList];
-	}
+tr.CompositeGrid.prototype.pinColumn = function (colRef) {
+	if(Array.isArray(colRef)) {
+		var ary = colRef;
+		var len = ary.length;
 
-	var currentFrozen = this._grid.getFrozenColumnCount();
-	var indices = this.findColumnIndex(columnList);
-	var validToPin = [];
-
-	for (var i = 0; i &lt;indices.length; i++) {
-		if (indices[i] !== -1 &amp;&amp; validToPin.indexOf(indices[i]) == -1 &amp;&amp; indices[i] &gt;= currentFrozen) {
-			validToPin.push(indices[i]);
+		var dirty = 0;
+		for(var i = 0; i &lt; len; ++i) {
+			dirty |= this._pinColumn(ary[i]);
 		}
+		return dirty ? true : false;
 	}
-
-	if (currentFrozen === 0) {
-		if (this._checkboxColumnPlugIn != null) {
-			currentFrozen = 1;
-		}
-	}
-
-	this.moveColumn(validToPin, currentFrozen);
-	this.freezeColumn(currentFrozen + validToPin.length - 1);
+	return this._pinColumn(colRef);
 };
-
-/** Unpin a column or list of columns back to the scrollable area on the right side of the grid. &lt;br&gt;
-* The unpinned columns will be moved to the left most side of the scrollable area on the right. &lt;br&gt;
-* This method will be deprecated in favor of less complicated {@link tr.CompositeGrid#freezeColumn}.
-* @public
-* @param {string|Array.&lt;string&gt;} columnList columnId or array of columnIds to be pinned
-* @see {@link tr.CompositeGrid#freezeColumn}
+/** @private
+* @param {number|string|null} colRef
+* @return {boolean}
 */
-tr.CompositeGrid.prototype.unpinColumn = function (columnList) {
-	//Wrap the parameter in an array if it's not yet an array
-	if (!Array.isArray(columnList)) {
-		columnList = [columnList];
+tr.CompositeGrid.prototype._pinColumn = function(colRef) {
+	var colIndex = this._toColumnIndex(colRef);
+	if(colIndex &lt; 0) {
+		return false;
 	}
-
-	var currentFrozen = this._grid.getFrozenColumnCount();
-	var indices = this.findColumnIndex(columnList);
-	var inputCount = indices.length;
-	if(!inputCount) {
-		return;
+	var pinnedCount = this._grid.getFrozenColumnCount();
+	if(colIndex &lt; pinnedCount) {
+		return false; // The column is already pinned area
 	}
-	
-	var pinnedColumns = {};
-	var i;
-	for(i = 0; i &lt; currentFrozen; ++i) {
-		pinnedColumns[i] = 1;
-	}
-	var unpinnedCount = 0;
-	for(i = 0; i &lt; inputCount; ++i) {
-		var idx = indices[i];
-		if(pinnedColumns[idx]) {
-			unpinnedCount++;
-			pinnedColumns[idx] = 0;
-		}
-	}
-	if(!unpinnedCount) {
-		return;
-	}
-	
-	this.freezeColumn(-1); // Unfreeze all columns
-	
-	var frozenColumnCount = currentFrozen - unpinnedCount;
-	if(frozenColumnCount &gt; 0) {
-		var pinnedIndices = [];
-		for(i = 0; i &lt; currentFrozen; ++i) {
-			if(pinnedColumns[i]) {
-				pinnedIndices.push(i);
+	if(!pinnedCount) {
+		var stationaryIdx = this._grid.getStationaryColumnIndex();
+		if(stationaryIdx &gt;= 0) {
+			pinnedCount = stationaryIdx;
+			if(colIndex &gt; stationaryIdx) {
+				pinnedCount++;
 			}
 		}
-		this.moveColumn(pinnedIndices, 0); // Move unpinned columns out of frozen zone
-		this.freezeColumn(frozenColumnCount - 1); // freezeColumn takes column index
 	}
+
+	this.moveColumnById(colIndex, pinnedCount);
+	this._grid.freezeColumn(pinnedCount);
+	return true;
+};
+
+/** Unpin column from the left side by moving the specified column to the end of the frozen columns. &lt;br&gt;
+* The method will do nothing if the specified column is not pinned on the left side.
+* @public
+* @param {number|string|Array.&lt;number|string&gt;} colRef
+* @param {(number|string)=} dest The unpinned column will be placed before the destination position after the operation
+* @return {boolean}
+* @see {@link CompositeGrid#freezeColumn}
+*/
+tr.CompositeGrid.prototype.unpinColumn = function (colRef, dest) {
+	if(Array.isArray(colRef)) {
+		var ary = colRef;
+		var len = ary.length;
+
+		var dirty = 0;
+		for(var i = len; --i &gt;= 0;) { // WARNING: unpinning is done in reversed order
+			dirty |= this._unpinColumn(ary[i], dest);
+		}
+		return dirty ? true : false;
+	}
+	return this._unpinColumn(colRef, dest);
+};
+/** @private
+* @param {number|string|null} colRef
+* @param {(number|string)=} dest The unpinned column will be placed before the destination position after the operation
+* @return {boolean}
+* @see {@link CompositeGrid#freezeColumn}
+*/
+tr.CompositeGrid.prototype._unpinColumn = function (colRef, dest) {
+	var colIndex = this._toColumnIndex(colRef);
+	if(colIndex &lt; 0) {
+		return false;
+	}
+	var pinnedCount = this._grid.getFrozenColumnCount();
+	if(!pinnedCount) {
+		return false;
+	}
+	if(colIndex &gt;= pinnedCount) {
+		return false; // The column is outside of frozen area
+	}
+	var srcId = null;
+	var destId = null;
+	if(dest != null) {
+		var destIdx = this._toColumnIndex(dest);
+		destId = this.getColumnId(destIdx);
+		srcId = this.getColumnId(colIndex);
+	}
+
+	var stationaryIdx = this._grid.getStationaryColumnIndex();
+
+	if(colIndex &gt; stationaryIdx) {
+		this.moveColumnById(colIndex, pinnedCount);
+	}
+
+	this._grid.freezeColumn(pinnedCount - 2); // Column index is used for freezing
+
+	if(colIndex &gt; stationaryIdx) {
+		if(srcId &amp;&amp; destId != null) {
+			this.moveColumnById(srcId, destId);
+		}
+	}
+
+	return true;
+};
+/** A shorthand to unpin all columns from the left hand side
+* @public
+* @return {boolean}
+*/
+tr.CompositeGrid.prototype.unpinAllColumns = function() {
+	var pinnedCount = this._grid.getFrozenColumnCount();
+	if(!pinnedCount) {
+		return false;
+	}
+	this._grid.freezeColumn(-1); // Column index is used for freezing
+	return true;
 };
 
 /** Get the list of pinned columns (frozen column)
@@ -1325,6 +1424,20 @@ tr.CompositeGrid.prototype.getColumnIndex = function (columnId) {
 	}
 
 	return -1;
+};
+/** Get the index of the column with the specified columnId.
+ * @private
+ * @param {number|string|null} colRef
+ * @return {number}
+ */
+tr.CompositeGrid.prototype._toColumnIndex = function (colRef) {
+	if(!colRef &amp;&amp; colRef !== 0) {
+		return -1;
+	}
+	if(typeof colRef === "string") {
+		return this.getColumnIndex(colRef);
+	}
+	return colRef;
 };
 
 /**
@@ -4450,6 +4563,7 @@ goog.exportSymbol("tr.CompositeGrid", tr.CompositeGrid);
 		"updateColumn": pt.updateColumn,
 		"moveColumn": pt.moveColumn,
 		"moveColumnById": pt.moveColumnById,
+		"reorderColumns": pt.reorderColumns,
 		"setColumnName": pt.setColumnName,
 		"setColumnVisible": pt.setColumnVisible,
 		"hideColumn": pt.hideColumn,
@@ -4476,6 +4590,7 @@ goog.exportSymbol("tr.CompositeGrid", tr.CompositeGrid);
 		"freezeColumn": pt.freezeColumn,
 		"pinColumn": pt.pinColumn,
 		"unpinColumn": pt.unpinColumn,
+		"unpinAllColumns": pt.unpinAllColumns,
 		"getPinnedColumns": pt.getPinnedColumns,
 		"restorePinnedColumns": pt.restorePinnedColumns,
 		// Sorting wrapper methods

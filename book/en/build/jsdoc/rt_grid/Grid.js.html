@@ -109,6 +109,7 @@ import { ElementWrapper } from "../../node_modules/@grid/core/es6/grid/component
 * @property {boolean=} formulaEngine=false If enabled, field with leading equal sign will be treated as a formula and rows will be filled with the calculated values.
 * @property {number=} adcPollingInterval=0 Length of polling interval for refreshing ADC data in milliseconds. The default value (0) means no polling.
 * @property {boolean=} fieldCaching=false If enabled, field definition will be caching internal mechanism
+* @property {string=} childDataField=CHILD_VALUES The given field will be used to store children's static data, such as row color assignment.
 */
 
 /** @typedef {number|string|RowDefinition} Grid~RowReference
@@ -305,8 +306,7 @@ var Grid = function(placeholder, config) {
 	t._recalculateFormulas = t._recalculateFormulas.bind(t);
 	t._updateStreamingData = t._updateStreamingData.bind(t);
 	t.updateColumnTitle = t.updateColumnTitle.bind(t);
-	t._insertTimeSeriesChildren = t._insertTimeSeriesChildren.bind(t);
-
+	t._populateTimeSeriesChildren = t._populateTimeSeriesChildren.bind(t);
 
 	t._onPostSectionDataBinding = t._onPostSectionDataBinding.bind(t);
 	t._asyncClearDataUpdates = t._asyncClearDataUpdates.bind(t);
@@ -330,7 +330,7 @@ var Grid = function(placeholder, config) {
 	t._formulaConflator = new Conflator(300, t._onFormulaDataChanged);
 	t._chainConflator = new Conflator(100, t._addMemberOfChain);
 	t._columnTitleConflator = new Conflator(0, t.updateColumnTitle);
-	t._timeSeriesChildConflator = new Conflator(0, t._insertTimeSeriesChildren);
+	t._timeSeriesChildConflator = new Conflator(0, t._populateTimeSeriesChildren);
 
 
 	t._defaultColumnOptions = {};
@@ -571,6 +571,10 @@ Grid.prototype._pollingEnabled = true;
 * @private
 */
 Grid.prototype._fieldCaching = false;
+/** @type {string}
+* @private
+*/
+Grid.prototype._childDataField = "";
 
 
 /** @public
@@ -985,6 +989,9 @@ Grid.prototype.initialize = function(gridOption) {
 	}
 
 	// Row operations
+	if(gridOption["childDataField"] != null) {
+		this._childDataField = RowDefinition._childDataField = gridOption["childDataField"];
+	}
 	var rows = gridOption["rows"];
 	if(!rows) {
 		rows = gridOption["rics"] || null; // Make "rics" an alias to "rows"
@@ -1140,6 +1147,10 @@ Grid.prototype.getConfigObject = function (gridOptions) {
 		obj["fieldCaching"] = this._fieldCaching;
 	}
 
+	if(this._childDataField) {
+		obj["childDataField"] = this._childDataField;
+	}
+
 	// get all rows config
 	var rowDefs = this.getAllRowDefinitions();
 	var rows = obj["rows"] = [];
@@ -1277,9 +1288,8 @@ Grid.prototype._onFieldAdded = function(e) {
 
 	// JET
 	if (this._subs) {
-		var colDefs = this.getColumnDefinitions();
-		var fields = colDefs.reduce(ColumnDefinition.getRealTimeFields, []);
-		this._subs["addFields"](fields);
+		var realtimeFields = addedFields.filter(FieldDefinition.isRealTimeField);
+		this._subs["addFields"](realtimeFields);
 	}
 
 	this._dispatch(e.type, e);
@@ -1290,6 +1300,7 @@ Grid.prototype._onFieldAdded = function(e) {
 Grid.prototype._onFieldRemoved = function(e) {
 	var removedFields = e.removedFields;
 
+	// TODO: ADC fields have an interval load. Currently, we only keep the field but do not delete it.
 	// JET
 	if(this._subs) {
 		this._subs["removeFields"](removedFields);
@@ -1386,7 +1397,7 @@ Grid.prototype._updateTimeSeriesFields = function (e) {
 /** @private
 * @param {ColumnDefinition} colDef
 */
-Grid.prototype._insertTimeSeriesChildren = function (colDef) {
+Grid.prototype._populateTimeSeriesChildren = function (colDef) {
 	if(this._timeSeriesChildConflator.conflate(colDef) ) {
 		return;
 	}
@@ -1436,7 +1447,7 @@ Grid.prototype._cloneTimeSeriesColumn = function (parentColDef, childField, idx)
 		}
 	}
 	columnOption = cloneObject(obj);
-	columnOption["field"] = childField.replace("TR.", "");
+	columnOption["field"] = childField.replace("TR.", ""); // We need to remove the 'TR' prefix from the field to avoid confusion with time series fields.
 	columnOption["name"] = childField.split("_")[1].split("T")[0]; // Currently, response server format utc date ex "2022-11-23T00:00:00"
 	columnOption["parent"] = parentColDef;
 	this.insertColumn(columnOption, idx++);
@@ -1543,15 +1554,12 @@ Grid.prototype._onFieldLoadedError = function (err) {
  * @param {string} referrer
  */
 Grid.prototype._onFieldLoaded = function (field, referrer) {
-	// async process, the field can be remove before column added
-	var colIndex = this.getColumnIndex(field);
-	if(colIndex &gt; -1) {
-		var colDef = this._getColumnDefinition(field);
-		if(colDef.isTimeSeriesField()) {
-			this._insertTimeSeriesChildren(colDef);
-		}
-		this._connector.addFields(field, referrer);
+	// For time series, we need to wait until the field is loadedm, then we can insert a child from the field data.
+	if(FieldDefinition.isTimeSeries(field)) {
+		var colDef = this.getColumnDefinitionById(referrer); // The 'referrer' is a column ID that was just added
+		this._populateTimeSeriesChildren(colDef);
 	}
+	this._connector.addFields(field, referrer);
 };
 
 /**
@@ -1580,7 +1588,7 @@ Grid.prototype._shouldLoadFieldInfo = function (field, isRealTime) {
 	var fieldDef = FieldDefinition.get(field);
 	if (!fieldDef &amp;&amp;
 		field !== 'X_RIC_NAME' &amp;&amp; // ignore X_RIC_NAME
-		(isRealTime || ColumnDefinition.isAdcField(field)) &amp;&amp; // realtime field or adc field (Without static field)
+		(isRealTime || FieldDefinition.isAdc(field)) &amp;&amp; // realtime field or adc field (Without static field)
 		(this._RTK || window["JET"]) // have rtk instance or window jet sub
 	) {
 		return true;
@@ -1684,14 +1692,13 @@ Grid.prototype._onColumnAdded = function(e) {
 		}
 	}
 	this._grid.setDataColumnName(idx, ROW_DEF); // This make ColumnDefinition renderer work
-
 	var fields = colDef.getAllFields();
 	var referrer = colDef.getId();
 	var len = fields.length;
 	var field, dataType, prom, isRealTimeField, onLoaded;
 	for(i = 0; i &lt; len; i++) {
 		field = fields[i];
-		isRealTimeField = ColumnDefinition.isRealTimeField(field);
+		isRealTimeField = FieldDefinition.isRealTimeField(field);
 		if(this._shouldLoadFieldInfo(field, isRealTimeField)) {
 			if(field === colField) {
 				dataType = colDef.getDataType(); // Data-type from user's column options
@@ -1707,14 +1714,14 @@ Grid.prototype._onColumnAdded = function(e) {
 				onLoaded = this._onFieldLoaded.bind(this, field, referrer);
 				prom = prom.then(onLoaded).catch(onLoaded);
 			} else {
-				if(colDef.isTimeSeriesField()) {
-					this._insertTimeSeriesChildren(colDef);
+				if(colDef.isTimeSeries()) {
+					this._populateTimeSeriesChildren(colDef);
 				}
 				this._connector.addFields(field, referrer);
 			}
 		} else {
-			if(colDef.isTimeSeriesField()) {
-				this._insertTimeSeriesChildren(colDef);
+			if(colDef.isTimeSeries()) {
+				this._populateTimeSeriesChildren(colDef);
 			}
 			this._connector.addFields(field, referrer);
 		}
@@ -1874,7 +1881,6 @@ Grid.prototype.moveColumnById = function (srcCol, destCol) {
 * @param {number|string|Array.&lt;number|string&gt;} colRefs List of column index or column id to be moved
 * @param {number|string} destCol Destination position where the moved columns will be placed BEFORE the specified position. This can be column id or index
 * @return {boolean} Return true if there is any change, and false otherwise
-* @fires Core#columnMoved
 */
 Grid.prototype.reorderColumns = function (colRefs, destCol) {
 	var destId = (typeof destCol === "number") ? this.getColumnId(destCol) : destCol;
@@ -1997,7 +2003,7 @@ Grid.prototype.addDataFields = function(fieldRef, referrer) {
 	var i, field, dataType, prom, isRealTimeField, onLoaded;
 	for(i = 0; i &lt; len; i++) {
 		field = fields[i];
-		isRealTimeField = ColumnDefinition.isRealTimeField(field);
+		isRealTimeField = FieldDefinition.isRealTimeField(field);
 		if(this._shouldLoadFieldInfo(field, isRealTimeField)) {
 			dataType = ColumnDefinition.getDataType(field);
 			prom = FieldDefinition.loadFieldInfo(field)
@@ -3117,7 +3123,7 @@ Grid.prototype.unpinColumn = function(colRef, dest) {
 		var len = ary.length;
 
 		var dirty = 0;
-		for(var i = 0; i &lt; len; ++i) {
+		for(var i = len; --i &gt;= 0;) { // WARNING: unpinning is done in reversed order
 			dirty |= this._unpinColumn(ary[i], dest);
 		}
 		return dirty ? true : false;

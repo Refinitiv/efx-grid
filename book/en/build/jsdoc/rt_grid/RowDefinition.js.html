@@ -75,6 +75,10 @@ var RowDefinition = function(rowOptions) {
 * @private
 */
 RowDefinition._runningId = 0;
+/** @type {string}
+* @private
+*/
+RowDefinition._childDataField = "CHILD_VALUES";
 //#region Private Members
 /** @type {string}
 * @private
@@ -265,7 +269,11 @@ RowDefinition.prototype._initializeAsConstituent = function(rowOptions) {
 			}
 		}
 	}
-	// TODO: Allow constituent to have predefined static values
+	var val = rowOptions["values"];
+	// eslint-disable-next-line no-undefined
+	if(val !== undefined) {
+		this.setStaticRowData(val, rowOptions["fields"]);
+	}
 };
 /** @public
 * @param {string} userInput
@@ -337,11 +345,6 @@ RowDefinition.prototype.getConfigObject = function(rowOptions) {
 		obj["ric"] = val;
 	}
 
-	val = this._staticValues;
-	if(val) {
-		obj["values"] = cloneObject(val);
-	}
-
 	val = this._chainRic;
 	if(val) {
 		obj["chainRic"] = val;
@@ -371,6 +374,40 @@ RowDefinition.prototype.getConfigObject = function(rowOptions) {
 	val = this._view.isHiddenRow(this._rowId);
 	if(val) {
 		obj["hidden"] = val;
+	}
+
+	val = this._getStaticRowData();
+	if(val) {
+		obj["values"] = val;
+	}
+
+	// obtain the static values of constituent rows
+	if(this.isChain()) {
+		var children = this.getChildren();
+		if(children) {
+			var childValues = val ? val[RowDefinition._childDataField] : {};
+			if(!childValues) {
+				childValues = {};
+			}
+			var dirty = false;
+			var len = children.length;
+			var i, rowDef, staticValues;
+			for(i = 0; i &lt; len; i++) {
+				rowDef = children[i];
+				staticValues = rowDef._getStaticRowData();
+				if(staticValues) {
+					dirty = true;
+					childValues[rowDef.getRic()] = staticValues;
+				}
+			}
+
+			if(dirty) {
+				if(!obj["values"]) {
+					obj["values"] = {};
+				}
+				obj["values"][RowDefinition._childDataField] = childValues;
+			}
+		}
 	}
 
 	return obj;
@@ -445,6 +482,12 @@ RowDefinition.prototype.setStaticRowData = function(data, opt_fields) {
 	if(this._staticValues) {
 		this.setRowData(data);
 	}
+};
+/** @public
+* @return {Object.&lt;string, *&gt;}
+*/
+RowDefinition.prototype._getStaticRowData = function() {
+	return this._staticValues ? cloneObject(this._staticValues) : null;
 };
 /** @public
 * @param {Object.&lt;string, *&gt;|Array} data
@@ -747,6 +790,22 @@ RowDefinition.deregisterFromView = function(rowIds, rowDef) {
 	rowDef._deregisterFromView(rowIds);
 	return rowIds;
 };
+/** @private
+* @param {string} ric
+* @return {Object}
+*/
+RowDefinition.prototype._getChildStaticRowData = function(ric) {
+	if(!this._staticValues) {
+		return null;
+	}
+
+	var childValues = this._staticValues[RowDefinition._childDataField];
+	if(!childValues) {
+		return null;
+	}
+
+	return childValues[ric] || null;
+};
 /** @public
 * @ignore
 * @param {string} ric
@@ -774,12 +833,19 @@ RowDefinition.prototype.addConstituent = function(ric) {
 
 	var newChild = !childDef;
 	if(newChild) {
-		childDef = new RowDefinition({
+		var rowOptions = {
 			"asConstituent": true,
 			"dataId": this._subId + ric,
 			"ric": ric,
 			"parent": this
-		});
+		};
+
+		var staticData = this._getChildStaticRowData(ric);
+		if(staticData) {
+			rowOptions["values"] = staticData;
+		}
+
+		childDef = new RowDefinition(rowOptions);
 	}
 
 	if(this._view) {

@@ -1,5 +1,14 @@
 # Predefined Formatter
 
+## Setup guide
+
+Use `import` syntax to import the formatter into your app.
+
+```js
+import EFButtonFormatter from "@refinitiv-ui/efx-grid/formatters/EFButtonFormatter";
+import EFSelectFormatter from "@refinitiv-ui/efx-grid/formatters/EFSelectFormatter";
+```
+
 ## The basics
 
 The simplest way to get the basic formatter is by calling `create()` without options, for example `SimpleInputFormatter.create()`. Then pass it to Grid using configuration, as shown below:

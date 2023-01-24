@@ -1,6 +1,7 @@
 - Getting Started
   - [Installation](README.md)
   - [Overview](overview.md)
+- [Help and Support](support.md)
 - General Concept
 	- [Basic Grid Creation](general_concept/basic.md)
 	- [Initializing Data](general_concept/initializing-data.md)
