@@ -239,6 +239,17 @@ FieldDefinition.get = function(field) {
 	}
 	return null;
 };
+
+/** @public
+* @function
+* @param {string} field
+* @return {boolean}
+*/
+FieldDefinition.hasFieldInfo = function(field) {
+	var val = FieldDefinition.get(field);
+	return val &amp;&amp; val.field; // Already preventing an error caused by accessing a property on a null value
+};
+
 /** @public
 * @function
 * @param {string} field
@@ -401,8 +412,8 @@ FieldDefinition.loadFieldInfo = function (field) {
 		defer.resolve(null);
 	}
 	// already have field definition then return
-	else if (FieldDefinition._defs[field]) {
-		defer.resolve(FieldDefinition._defs[field]);
+	else if (FieldDefinition.hasFieldInfo(field)) {
+		defer.resolve(FieldDefinition.get(field));
 	}
 	// in debug using mock data instead
 	else if (synapse.debug) {

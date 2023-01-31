@@ -98,6 +98,9 @@ tr.Grid = function (opt_initializer) {
 	var _t = this;
 
 	// Initialize method binding
+	_t.getColumnId = _t.getColumnId.bind(_t);
+	_t.getColumnIndex = _t.getColumnIndex.bind(_t);
+	
 	_t._onMouseMove = _t._onMouseMove.bind(_t);
 	_t._onRowHightlighted = _t._onRowHightlighted.bind(_t);
 
@@ -538,8 +541,13 @@ tr.Grid.prototype._preserveGridSize = false;
 * @private
 */
 tr.Grid.prototype._rowHeightTimerId = 0;
-//#region Public Methods
+/** @type {*}
+* @private
+*/
+tr.Grid.prototype._groupDefs = null;
 
+
+//#region Public Methods
 /** {@link tr.IElementControl#dispose}
 * @override
 */
@@ -1676,7 +1684,7 @@ tr.Grid.prototype._moveColumn = function (fromCol, destCol) {
 		vEnd = this._colVirtualizer.getLastIndexInView();
 	}
 
-	var colId = this._getColumnId(fromCol);
+	var colId = this.getColumnId(fromCol);
 	this._layoutX.moveLane(fromCol, destCol);
 	var sectionCount = this._settings.length;
 	for (var i = 0; i &lt; sectionCount; ++i) {
@@ -1796,6 +1804,11 @@ tr.Grid.prototype._deserializeColumn = function (index, jsonObj) {
 	// TODO: Load specific styles for each column type (e.g. "content", "title", "header")
 
 	var colDef = this._getColumnDef(index);
+	var colId = jsonObj["id"];
+	if(colId &amp;&amp; typeof colId === "string") {
+		colDef["id"] = colId; // WARNING: We do not guarantee uniqueness of user id
+	}
+	
 	var value = jsonObj[tr.res.dataColumnName];
 	if (value != null) {
 		colDef[tr.res.dataColumnName] = value;
@@ -3269,14 +3282,19 @@ tr.Grid.prototype.getRelativePosition = function (obj, context) {
 	return ret_obj;
 };
 
-/** @public
-* @param {string} str data column name
-* @return {number} Return negative if the mouse is not hit
+/** Find column index by column id or data column name
+* @public
+* @param {string} str Column id or data column name
+* @return {number} Return negative value if there is no match
 */
 tr.Grid.prototype.getColumnIndex = function (str) {
-	for(var c = this.getColumnCount(); --c &gt;= 0;) {
-		if(str === this.getDataColumnName(c)) {
-			return c;
+	if(str) {
+		var colCount = this.getColumnCount();
+		for(var c = 0; c &lt; colCount; ++c) {
+			var colDef = this._getColumnDef(c);
+			if(str === colDef["id"] || str === colDef["dataColumnName"]) {
+				return c;
+			}
 		}
 	}
 	return -1;
@@ -4158,6 +4176,37 @@ tr.Grid.prototype.normalizeConfig = function (configObj) {
 
 	return configObj;
 };
+/** @public
+* @param {*} groupDefs
+*/
+tr.Grid.prototype.setColumnGrouping = function (groupDefs) {
+	this._groupDefs = groupDefs || null;
+};
+/** @public
+* @param {string|number} colRef
+* @return {string} Return group id of immediate group parent. Return empty string, if no parent is found.
+*/
+tr.Grid.prototype.getColumnGroupParentId = function (colRef) {
+	if(this._groupDefs) {
+		var colId = (typeof colRef === "number") ? this.getColumnId(colRef) : colRef;
+		return this._groupDefs["getParentId"](colId);
+	}
+	return "";
+};
+
+/** @public
+* @param {string} groupId
+* @return {Array.&lt;string&gt;} Return array of column id. Return null if the specified group has no child
+*/
+tr.Grid.prototype.getColumnGroupChildIds = function (groupId) {
+	if(this._groupDefs) {
+		var ary = this._groupDefs["getLeafDescendants"](groupId);
+		if(ary &amp;&amp; ary.length &gt; 0) {
+			return ary;
+		}
+	}
+	return null;
+};
 //#endregion Public Methods
 
 //#region Private Methods
@@ -4813,12 +4862,33 @@ tr.Grid.prototype._getNestedColumnDef = function (colIndex, firstLvl, secondLvl)
 	return def;
 };
 /** @public
+* @param {number} colIndex
+* @return {string} Return empty string if the specified column does not exist
+*/
+tr.Grid.prototype.getColumnId = function (colIndex) {
+	if(colIndex &gt;= 0 &amp;&amp; colIndex &lt; this.getColumnCount()) {
+		return this._getColumnDef(colIndex)["id"] || "";
+	}
+	return "";
+};
+/** @deprecated
+* @public
+* @function
 * @ignore
 * @param {number} colIndex
 * @return {string}
 */
-tr.Grid.prototype._getColumnId = function (colIndex) {
-	return this._getColumnDef(colIndex)["id"];
+tr.Grid.prototype._getColumnId = tr.Grid.prototype.getColumnId;
+/** @public
+* @return {!Array.&lt;string&gt;} Return all column ids from existing column
+*/
+tr.Grid.prototype.getColumnIds = function () {
+	var colCount = this.getColumnCount();
+	var ary = new Array(colCount);
+	for(var c = 0; c &lt; colCount; ++c) {
+		ary[c] = this._getColumnDef(c)["id"] || "";
+	}
+	return ary;
 };
 
 
@@ -5455,6 +5525,8 @@ var methodMap = {
 
 	"getColumnCount": pt.getColumnCount,
 	"setColumnCount": pt.setColumnCount,
+	"getColumnId": pt.getColumnId,
+	"getColumnIds": pt.getColumnIds,
 	"removeColumnAt": pt.removeColumnAt,
 	"removeAllColumns": pt.removeAllColumns,
 	"insertColumn": pt.insertColumn,
@@ -5615,7 +5687,10 @@ var methodMap = {
 	"isSelectedColumn": pt.isSelectedColumn,
 	"getColumnRect": pt.getColumnRect,
 	"getRowRect": pt.getRowRect,
-	"normalizeConfig": pt.normalizeConfig
+	"normalizeConfig": pt.normalizeConfig,
+	"setColumnGrouping": pt.setColumnGrouping,
+	"getColumnGroupParentId": pt.getColumnGroupParentId,
+	"getColumnGroupChildIds": pt.getColumnGroupChildIds
 };
 // Export methods for Closure's advanced compilation
 for(var methodName in methodMap) {

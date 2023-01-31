@@ -1289,7 +1289,9 @@ Grid.prototype._onFieldAdded = function(e) {
 	// JET
 	if (this._subs) {
 		var realtimeFields = addedFields.filter(FieldDefinition.isRealTimeField);
-		this._subs["addFields"](realtimeFields);
+		if(realtimeFields.length &gt; 0) {
+			this._subs["addFields"](realtimeFields);
+		}
 	}
 
 	this._dispatch(e.type, e);
@@ -1581,19 +1583,31 @@ Grid.prototype._setScrollbarParent = function (host) {
 /**
 * @private
 * @param {string} field
-* @param {boolean} isRealTime
 * @returns {boolean}
 */
-Grid.prototype._shouldLoadFieldInfo = function (field, isRealTime) {
-	var fieldDef = FieldDefinition.get(field);
-	if (!fieldDef &amp;&amp;
-		field !== 'X_RIC_NAME' &amp;&amp; // ignore X_RIC_NAME
-		(isRealTime || FieldDefinition.isAdc(field)) &amp;&amp; // realtime field or adc field (Without static field)
-		(this._RTK || window["JET"]) // have rtk instance or window jet sub
-	) {
-		return true;
+Grid.prototype._shouldLoadFieldInfo = function (field) {
+
+	var val = this._RTK || window["JET"]; // Fastest checking can be performed by checking the first condition.
+	if(!val) {
+		return false;
 	}
-	return false;
+
+	// WARNING: If field caching is disabled, it shouldn't load field info
+	if(!this._fieldCaching) {
+		return false;
+	}
+
+	val = FieldDefinition.hasFieldInfo(field);
+	if(val) {
+		return false;
+	}
+
+	val = FieldDefinition.isAdc(field) || FieldDefinition.isRealTimeField(field);
+	if(!val) {
+		return false;
+	}
+
+	return true;
 };
 /** Remove all existing columns and add new columns based on the given objects
 * @public
@@ -1695,11 +1709,10 @@ Grid.prototype._onColumnAdded = function(e) {
 	var fields = colDef.getAllFields();
 	var referrer = colDef.getId();
 	var len = fields.length;
-	var field, dataType, prom, isRealTimeField, onLoaded;
+	var field, dataType, prom, onLoaded;
 	for(i = 0; i &lt; len; i++) {
 		field = fields[i];
-		isRealTimeField = FieldDefinition.isRealTimeField(field);
-		if(this._shouldLoadFieldInfo(field, isRealTimeField)) {
+		if(this._shouldLoadFieldInfo(field)) {
 			if(field === colField) {
 				dataType = colDef.getDataType(); // Data-type from user's column options
 			} else { // Other required fields
@@ -1868,6 +1881,15 @@ Grid.prototype.moveColumnById = function (srcCol, destCol) {
 	if(destIndex &lt; 0) {
 		destIndex = colCount;
 	}
+	return this._moveColumnByIndex(srcIndex, destIndex);
+};
+/** Move column without verification for better performance
+* @private
+* @param {number} srcIndex Column index
+* @param {number} destIndex Column index of the destination
+* @return {boolean} Return true if there is any change, and false otherwise
+*/
+Grid.prototype._moveColumnByIndex = function (srcIndex, destIndex) {
 	if(srcIndex &lt; destIndex) { // Ensure that the source column is put in front of the destination index
 		--destIndex;
 	}
@@ -1889,23 +1911,31 @@ Grid.prototype.reorderColumns = function (colRefs, destCol) {
 		var srcLen = colRefs.length;
 		if(srcLen &gt; 1) {
 			var colIds = this.getColumnIds();
+			var colCount = colIds.length;
 			var srcIds = [];
 			var invalidDest = false;
-			var i;
+			var i, srcId, srcIdx;
 			for(i = 0; i &lt; srcLen; ++i) {
 				var colRef = colRefs[i];
-				var srcId = (typeof colRef === "number") ? colIds[colRef] : colRef;
-				if(srcId) {
+				if(typeof colRef === "number") {
+					srcIdx = colRef;
+					srcId = colIds[colRef] || "";
+				} else {
+					srcId = colRef;
+					srcIdx = colIds.indexOf(srcId);
+				}
+				if(srcId &amp;&amp; srcIdx &gt;= 0) {
 					srcIds.push(srcId);
 					if(destId === srcId) {
 						invalidDest = true; // Destination must not exist in source columns
 					}
 				}
 			}
+
+			var destIdx;
 			srcLen = srcIds.length;
 			if(invalidDest) { // Find the next valid destination where it is not contained in the source columns
-				var colCount = colIds.length;
-				var destIdx = this.getColumnIndex(destId);
+				destIdx = this.getColumnIndex(destId);
 				if(destIdx &gt;= 0) {
 					while(++destIdx &lt; colCount) {
 						destId = colIds[destIdx];
@@ -1920,10 +1950,16 @@ Grid.prototype.reorderColumns = function (colRefs, destCol) {
 			}
 
 			var dirty = 0;
-			for(i = 0; i &lt; srcLen; ++i) {
-				dirty |= this.moveColumnById(srcIds[i], destId);
+			for(i = srcLen; --i &gt;= 0;) {
+				srcId = srcIds[i]; // Only valid source columns are left at this point
+				srcIdx = this.getColumnIndex(srcId);
+				destIdx = this.getColumnIndex(destId);
+				if(destIdx &lt; 0) { // Insert to the back when id is not found
+					destIdx = colCount;
+				}
+				dirty |= this._moveColumnByIndex(srcIdx, destIdx);
+				destId = srcId;
 			}
-			// TODO: Handle the case where all columns stay in the same place
 			return dirty ? true : false;
 		} else {
 			return this.moveColumnById(colRefs[0], destId);
@@ -2000,11 +2036,10 @@ Grid.prototype.addDataFields = function(fieldRef, referrer) {
 
 	var fields = Array.isArray(fieldRef) ? fieldRef : [fieldRef];
 	var len = fields.length;
-	var i, field, dataType, prom, isRealTimeField, onLoaded;
+	var i, field, dataType, prom, onLoaded;
 	for(i = 0; i &lt; len; i++) {
 		field = fields[i];
-		isRealTimeField = FieldDefinition.isRealTimeField(field);
-		if(this._shouldLoadFieldInfo(field, isRealTimeField)) {
+		if(this._shouldLoadFieldInfo(field)) {
 			dataType = ColumnDefinition.getDataType(field);
 			prom = FieldDefinition.loadFieldInfo(field)
 				.catch(this._onFieldLoadedError);
@@ -2968,20 +3003,22 @@ Grid.prototype.getColumnIndex = function(colRef) {
 		return colRef;
 	}
 
-	var colCount = this.getColumnCount();
-	var i, colDef;
-	if(colRef instanceof ColumnDefinition) {
-		for(i = 0; i &lt; colCount; ++i) {
-			colDef = this.getColumnDefinition(i);
-			if(colDef === colRef) {
-				return i;
+	if(colRef) {
+		var colCount = this.getColumnCount();
+		var i, colDef;
+		if(colRef instanceof ColumnDefinition) {
+			for(i = 0; i &lt; colCount; ++i) {
+				colDef = this.getColumnDefinition(i);
+				if(colDef === colRef) {
+					return i;
+				}
 			}
-		}
-	} else if(typeof colRef === "string") {
-		for(i = 0; i &lt; colCount; ++i) {
-			colDef = this.getColumnDefinition(i);
-			if(_hasFieldOrId(colDef, colRef)) {
-				return i; // Return the first found field
+		} else if(typeof colRef === "string") {
+			for(i = 0; i &lt; colCount; ++i) {
+				colDef = this.getColumnDefinition(i);
+				if(_hasFieldOrId(colDef, colRef)) {
+					return i; // Return the first found field
+				}
 			}
 		}
 	}

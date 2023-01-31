@@ -2,7 +2,7 @@
 If you need help, simply go to the proper channel, post your questions or difficulties, and provide your live example.
 
 There are two possible channels:
-- [Stack Overflow](https://lseg.stackenterprise.co/)
+- [Stack Overflow](https://lseg.stackenterprise.co/posts/tagged/1102)
 - [MS Team](https://teams.microsoft.com/l/channel/19%3ad514a7251da6436699c306fcb5710fca%40thread.tacv2/Grids%2520and%2520Blotters?groupId=8900d5cb-b36d-406a-9101-c9830b069f19&tenantId=287e9f0e-91ec-4cf0-b7a4-c63898072181)
 
 # Live example with CodePen
