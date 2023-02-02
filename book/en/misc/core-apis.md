@@ -7,21 +7,17 @@ Some of the APIs are already propagated and exposed to the `api` property of the
 To unlock all the APIs you need to get a reference to the Core Grid by using the `getCoreGrid` method from `api` as shown in the below sample:
 
 ```js
-var configObj = {
-	// ...
-	whenDefined: function(e) {
-		var core = e.api.getCoreGrid(); // Getting Core Grid reference
-		
-		var titleSection = core.getSection("title");
-		var contentSection = core.getSection("content");
-		var colCount = core.getColumnCount();
-		// etc.
-	},
-	// ...
-}
+var grid = document.getElementsByTagName("atlas-blotter")[0];
+grid.addEventListener("configured", function(e) {
+	var core = e.detail.api.getCoreGrid(); // Getting Core Grid reference
+	
+	var titleSection = core.getSection("title");
+	var contentSection = core.getSection("content");
+	var colCount = core.getColumnCount();
+});
 ```
 
-> Note: The [custom elements](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_custom_elements) are not defined immediately after the page load. `api` will only be available after the element is defined. So, use the `whenDefined` method to ensure the existence of the `api` property.
+> Note: The [custom elements](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_custom_elements) are not defined immediately after the page load. `api` will only be available after the element is defined. So, use the `configured` event to ensure the existence of the `api` property.
 
 For all available Core Grid APIs, see [this page](../apis/README.md).
 
@@ -67,16 +63,16 @@ The following example shows how you can listen to the `columnSorted` event fired
 			{name: "Net. Chng", field: fields[3], width: 100},
 			{name: "Industry", field: fields[4]}
 		],
-		staticDataRows: records,
-		whenDefined: function(e) {
-			var core = e.api.getCoreGrid();
-			
-			var plugin = core.getPlugin("SortableTitle");
-			plugin.listen("columnSorted", onColumnSorted);
-		}
+		staticDataRows: records
 	};
 
 	var grid = document.getElementById("grid");
+	grid.addEventListener("configured", function(e) {
+		var core = e.detail.api.getCoreGrid();
+		
+		var plugin = core.getPlugin("SortableTitle");
+		plugin.listen("columnSorted", onColumnSorted);
+	});
 	grid.config = configObj;
 </script>
 ```

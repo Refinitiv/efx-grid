@@ -29,12 +29,13 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="7e8db53e-74c8-46ab-99f9-b4788c19bc97">
+        <pandora-nav id="7b32efb8-d3bd-4fdd-b451-5ddd8edf5fea">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
               <ul>
                 <li><a href="../index.html">Installation</a></li>
+                <li><a href="../typescript.html">TypeScript</a></li>
                 <li><a href="../overview.html">Overview</a></li>
               </ul>
             </li>
@@ -46,7 +47,6 @@
                 <li><a href="../general_concept/initializing-data.html">Initializing Data</a></li>
                 <li><a href="../general_concept/accessing-data.html">Accessing Data</a></li>
                 <li><a href="../general_concept/event-listeners.html">Event Listeners</a></li>
-                <li><a href="../general_concept/typescript.html">Adding TypeScript</a></li>
                 <li><a href="../general_concept/disposing-grid.html">Disposing Grid</a></li>
               </ul>
             </li>
@@ -314,7 +314,7 @@ var buttonDisplay = {
     var cellData = e.cell;
     var buttonContent = document.createElement("button");
     var spanContent = document.createElement("span");
-    buttonContent.addEventListener('click', () =&gt; {
+    buttonContent.addEventListener("click", () =&gt; {
       alert(e.data);
     });
     spanContent.textContent = `${e.data}`;
@@ -330,15 +330,7 @@ var configObj = {
     { title: "Company", field: fields[0] },
     { title: "Market", field: fields[1], formatter: buttonDisplay, width: 120 }
   ],
-  dataModel: {
-    data: records
-  },
-  whenDefined: function(e) {
-    var section = e.api.getSection('content');
-    // section.setCellRowSpan(colIndex, rowIndex, spanSlot);
-    section.setCellRowSpan(1, 0, 2);
-    section.setCellRowSpan(4, 4, 3);
-  }
+  staticDataRows: records
 };
 
 var grid = document.getElementById("grid");
@@ -379,7 +371,7 @@ grid.config = configObj;</pre>
               <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
             </div>
             <h2 id="limitation-with-row-virtualization">Limitation with row virtualization</h2>
-            <p>Text selection with row virtualization cannot select all data in the grid.<br>In the example below, the grid has text selection enabled and uses row virtualization.<br>When you try to select and copy text from the grid and paste it into a text area, you will see that not all data from the grid is obtained.<br>This is because row virtualization render only the rows that is visible in the grid's viewport.<br>For example, if you have 50 rows of data, but the grid can only show the first 10 rows at a time, then when you try to select the text, it will only select the first 14 rows (10 rows + buffer rows).<br>If you want to know about row virtualization in more detail, you can refer to the 'Understanding row virtualization' section in the <a href="../rendering/custom-formatter.html">Custom Formatter</a> page.</p>
+            <p>Text selection with row virtualization cannot select all data in the grid.<br>In the example below, the grid has text selection enabled and uses row virtualization.<br>When you try to select and copy text from the grid and paste it into a text area, you will see that not all data from the grid is obtained.<br>This is because row virtualization render only the rows that is visible in the grid's viewport.<br>For example, if you have 50 rows of data, but the grid can only show the first 10 rows at a time, then when you try to select the text, it will only select the first 14 rows (10 rows + buffer rows).<br>If you want to know about row virtualization in more detail, you can refer to the <code>Understanding row virtualization</code> section in the <a href="../rendering/custom-formatter.html">Custom Formatter</a> page.</p>
             <h3 id="example">Example</h3>
 
             <div class="pandora-code-viewer" id="pid-171">
@@ -484,7 +476,7 @@ textarea {
               <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
             </div>
             <h2 id="copying-all-content-in-the-grid-without-text-selection">Copying all content in the grid without text selection</h2>
-            <p>If you want to copy all the data in the grid, you can do it by focusing on the grid element and modifying the clipboard without text selection.<br>To do this, you can listen for the 'click' event on the grid element and call the focus method on the grid API to focus on the grid.<br>Then, you can listen for the 'copy' event on the grid element and modify the clipboard as shown in the example below.</p>
+            <p>If you want to copy all the data in the grid, you can do it by focusing on the grid element and modifying the clipboard without text selection.<br>To do this, you can listen for the <code>click</code> event on the grid element and call the focus method on the grid API to focus on the grid.<br>Then, you can listen for the <code>copy</code> event on the grid element and modify the clipboard as shown in the example below.</p>
             <h3 id="example">Example</h3>
 
             <div class="pandora-code-viewer" id="pid-172">
@@ -631,6 +623,7 @@ textarea {
               <link rel="prefetch" href="../node_modules/tr-grid-titlewrap/dist/tr-grid-titlewrap.min.js" type="script">
               <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
             </div>
+            <h2 id="___">___</h2>
           </pandora-page>
           <div class="results"></div>
         </div>

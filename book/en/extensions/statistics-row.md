@@ -30,6 +30,7 @@ The Statistics Row Extension provides special rows to show various statistics fo
 				field: fields[2],
 				width: 200,
 				alignment: "right",
+				formatType: "number",
 				statistics: true
 			},
 			{

@@ -25,13 +25,11 @@ Data in the `dataModel` can be retrieved using a normal HTTP request. You are fr
 			{title: "Last", field: fields[2], width: 80},
 			{title: "Net. Chng", field: fields[3], width: 80},
 			{title: "Industry", field: fields[4]}
-		],
-		whenDefined: function(e) {
-			loadData();
-		}
+		]
 	};
 
 	var grid = document.getElementById("grid");
+	grid.addEventListener("configured", loadData);
 	grid.config = configObj;
 	
 	document.getElementById("fetch_btn").addEventListener("click", loadData);

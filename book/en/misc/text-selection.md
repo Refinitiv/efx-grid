@@ -23,7 +23,7 @@ If you use Safari, try clicking the button in column `Market` from the sample be
 		var cellData = e.cell;
 		var buttonContent = document.createElement("button");
 		var spanContent = document.createElement("span");
-		buttonContent.addEventListener('click' , () => {
+		buttonContent.addEventListener("click" , () => {
 			alert(e.data);
 		});
 		spanContent.textContent = `${e.data}`;
@@ -39,15 +39,7 @@ If you use Safari, try clicking the button in column `Market` from the sample be
 			{title: "Company", field: fields[0]},
 			{title: "Market", field: fields[1], formatter: buttonDisplay , width: 120}
 		],
-		dataModel: {
-			data: records
-		},
-		whenDefined: function(e) {
-			var section = e.api.getSection('content');
-			// section.setCellRowSpan(colIndex, rowIndex, spanSlot);
-			section.setCellRowSpan(1, 0, 2);
-			section.setCellRowSpan(4, 4, 3);
-		}
+		staticDataRows: records
 	};
 
 	var grid = document.getElementById("grid");
@@ -61,7 +53,7 @@ In the example below, the grid has text selection enabled and uses row virtualiz
 When you try to select and copy text from the grid and paste it into a text area, you will see that not all data from the grid is obtained.
 This is because row virtualization render only the rows that is visible in the grid's viewport. 
 For example, if you have 50 rows of data, but the grid can only show the first 10 rows at a time, then when you try to select the text, it will only select the first 14 rows (10 rows + buffer rows). 
-If you want to know about row virtualization in more detail, you can refer to the 'Understanding row virtualization' section in the [Custom Formatter](../rendering/custom-formatter.html) page.
+If you want to know about row virtualization in more detail, you can refer to the `Understanding row virtualization` section in the [Custom Formatter](../rendering/custom-formatter.html) page.
 
 ### Example
 ```live
@@ -128,8 +120,9 @@ textarea {
 ## Copying all content in the grid without text selection
 
 If you want to copy all the data in the grid, you can do it by focusing on the grid element and modifying the clipboard without text selection.
-To do this, you can listen for the 'click' event on the grid element and call the focus method on the grid API to focus on the grid.
-Then, you can listen for the 'copy' event on the grid element and modify the clipboard as shown in the example below.
+To do this, you can listen for the `click` event on the grid element and call the focus method on the grid API to focus on the grid.
+Then, you can listen for the `copy` event on the grid element and modify the clipboard as shown in the example below.
+
 ### Example
 
 ```live
@@ -237,3 +230,5 @@ textarea {
 
 </script>
 ```
+
+## ___

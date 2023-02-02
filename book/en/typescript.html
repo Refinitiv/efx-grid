@@ -8,10 +8,10 @@
       margin-left: -26px;
     }
   </style>
-  <title>License</title>
+  <title>TypeScript</title>
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <meta name="x-pandora-base" content="./">
-  <meta name="x-pandora-location" content="license.html">
+  <meta name="x-pandora-location" content="typescript.html">
   <link rel="stylesheet" href="../../resources/styles/book.css">
   <script defer src="../../resources/scripts/book.js"></script>
   <script defer src="./search.index.js"></script>
@@ -35,7 +35,7 @@
               <div collapser="">Getting Started</div>
               <ul>
                 <li><a href="index.html">Installation</a></li>
-                <li><a href="typescript.html">TypeScript</a></li>
+                <li selected><a href="typescript.html">TypeScript</a></li>
                 <li><a href="overview.html">Overview</a></li>
               </ul>
             </li>
@@ -272,34 +272,65 @@
                 <li><a href="migrating/from-emerald-grid.html">Emerald Grid</a></li>
               </ul>
             </li>
-            <li selected><a href="license.html">License</a></li>
+            <li><a href="license.html">License</a></li>
           </ul>
         </pandora-nav>
       </div>
       <div class="main">
         <div class="reader">
           <pandora-page>
-            <h1 id="grid-s-license"><a href="https://refinitiv.github.io/efx-grid/book/en/license.html" target="_top" class="link-icon"></a> Grid's License</h1>
-            <p>Copyright © 2022 Refinitiv, an LSEG business. All rights reserved.</p>
-            <p>Permission to use and redistribute this software in source and binary forms, with or without modification (the “Software”) is hereby granted to any person, provided the following conditions are met:</p>
-            <ol>
-              <li>
-                <p>The person is an active Refinitiv Subscription License holder currently using Refinitiv products or services.</p>
-              </li>
-              <li>
-                <p>The Software and its closed source components must only be used within Refinitiv products or services. Any use of the Software and its closed source components outside Refinitiv products or services is not permitted unless explicitly authorized in writing from the copyright holder.</p>
-              </li>
-              <li>
-                <p>Redistribution of the Software in source code in any form must retain the above copyright notice, this list of conditions, and the following disclaimer.</p>
-              </li>
-              <li>
-                <p>Redistribution of the Software in binary form must reproduce the above copyright notice, this list of conditions, and the following disclaimer, in the documentation and/or other materials provided with the distribution.</p>
-              </li>
-              <li>
-                <p>Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this Software without specific prior written authorization.</p>
-              </li>
-            </ol>
-            <p>DISCLAIMER<br>THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</p>
+            <h1 id="using-typescript-with-grid"><a href="https://refinitiv.github.io/efx-grid/book/en/typescript.html" target="_top" class="link-icon"></a> Using TypeScript with Grid</h1>
+            <p><a href="https://www.typescriptlang.org/" target="_blank">TypeScript</a> is a typed superset of JavaScript that compiles to plain JavaScript.</p>
+            <p>To apply Typescript for <code>EFX Grid</code>, first you are required to install <code>@refinitiv-ui/efx-grid</code> in your project.</p>
+            <pre><code>npm install @refinitiv-ui/efx-grid --save-dev</code></pre>
+            <p>Use <code>import</code> syntax to import the Grid and theme into your app.</p>
+            <pre><code><span class="hljs-comment">// Import element and its Halo dark theme</span>
+<span class="hljs-keyword">import</span> <span class="hljs-string">"@refinitiv-ui/efx-grid"</span>;
+<span class="hljs-keyword">import</span> <span class="hljs-string">"@refinitiv-ui/efx-grid/themes/halo/dark"</span>;
+
+<span class="hljs-comment">// Import native styles for typography, css variables, etc.</span>
+<span class="hljs-keyword">import</span> <span class="hljs-string">"@refinitiv-ui/halo-theme/dark/imports/native-elements"</span>;</code></pre>
+            <p>Then import types from <code>efx-grid</code> package to your file. These types are typically for properties on a configuration object or APIs defined by Grid components. You don't need to import every type, if you don't use them. All of the types are optional.</p>
+            <pre><code><span class="hljs-keyword">import</span> {
+    RealtimeGrid, <span class="hljs-comment">// Provide types for api object</span>
+    ColumnDefinition, <span class="hljs-comment">// Provide types for column config and ColumnDefinition object</span>
+    CoreGrid <span class="hljs-comment">// Provide types for core object</span>
+} <span class="hljs-keyword">from</span> <span class="hljs-string">"@refinitiv-ui/efx-grid"</span>;</code></pre>
+            <p>Optionally, you can also import Grid's <a href="../extensions/README.html">extensions</a> from <code>efx-grid/extensions</code> package to extend its functionalities. </p>
+            <pre><code><span class="hljs-keyword">import</span> { ColumnResizing } <span class="hljs-keyword">from</span> <span class="hljs-string">"@refinitiv-ui/efx-grid/extensions"</span>;</code></pre>
+            <p>To define how the grid renders its content, use <code>ColumnDefinition.Options</code> as shown below:</p>
+            <pre><code><span class="hljs-keyword">let</span> columns: ColumnDefinition.Options[] = [
+    { <span class="hljs-attr">name</span>: <span class="hljs-string">"Integer"</span>, <span class="hljs-attr">field</span>: <span class="hljs-string">"intCol"</span> },
+    { <span class="hljs-attr">name</span>: <span class="hljs-string">"String"</span>, <span class="hljs-attr">field</span>: <span class="hljs-string">"strCol"</span> },
+    { <span class="hljs-attr">name</span>: <span class="hljs-string">"Float"</span>, <span class="hljs-attr">field</span>: <span class="hljs-string">"floatCol"</span> }
+];
+<span class="hljs-keyword">let</span> records: <span class="hljs-built_in">Array</span>&lt;<span class="hljs-built_in">Object</span>&gt; = [
+    { <span class="hljs-attr">intCol</span>: <span class="hljs-number">1</span>, <span class="hljs-attr">strCol</span>: <span class="hljs-string">"Sample data"</span>, <span class="hljs-attr">floatCol</span>: <span class="hljs-number">1.1</span> },
+    { <span class="hljs-attr">intCol</span>: <span class="hljs-number">2</span>, <span class="hljs-attr">strCol</span>: <span class="hljs-string">"Sample data"</span>, <span class="hljs-attr">floatCol</span>: <span class="hljs-number">2.2</span> },
+    { <span class="hljs-attr">intCol</span>: <span class="hljs-number">3</span>, <span class="hljs-attr">strCol</span>: <span class="hljs-string">"Sample data"</span>, <span class="hljs-attr">floatCol</span>: <span class="hljs-number">3.3</span> }
+];</code></pre>
+            <p>To define a configuration object, use <code>RealtimeGrid.GridOptions</code> as shown below:</p>
+            <pre><code><span class="hljs-keyword">let</span> configObj: RealtimeGrid.GridOptions = {
+    <span class="hljs-attr">columns</span>: columns,
+    <span class="hljs-attr">staticDataRows</span>: records,
+    <span class="hljs-attr">extensions</span>: [
+        <span class="hljs-keyword">new</span> ColumnResizing()
+    ]
+};</code></pre>
+            <p>Finally assign configuration to <code>efx-grid</code> element. Note that <code>efx-grid</code> element already has type defined. There is no need to cast it to some other types.</p>
+            <pre><code><span class="hljs-keyword">let</span> grid = <span class="hljs-built_in">document</span>.getElementsByTagName(<span class="hljs-string">"efx-grid"</span>)[<span class="hljs-number">0</span>];
+grid.addEventListener(<span class="hljs-string">"configured"</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">e: any</span>) </span>{
+    <span class="hljs-keyword">let</span> api: RealtimeGrid = e.detail.api;
+    <span class="hljs-keyword">let</span> core: CoreGrid = api.getCoreGrid();
+
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"Grid has been configured."</span>);
+});
+
+grid.config = configObj;</code></pre>
+            <blockquote>
+              <p>Grid element is not immediately initialized when it is put on to the document. Only after it has been configured, then you can use its <code>api</code> to perform any runtime change or custom task.</p>
+            </blockquote>
+            <p>For a complete list of APIs, please see the <a href="../apis/README.html">API document</a>.</p>
           </pandora-page>
           <div class="results"></div>
         </div>

@@ -29,12 +29,13 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="7e8db53e-74c8-46ab-99f9-b4788c19bc97">
+        <pandora-nav id="7b32efb8-d3bd-4fdd-b451-5ddd8edf5fea">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
               <ul>
                 <li><a href="../index.html">Installation</a></li>
+                <li><a href="../typescript.html">TypeScript</a></li>
                 <li><a href="../overview.html">Overview</a></li>
               </ul>
             </li>
@@ -46,7 +47,6 @@
                 <li><a href="../general_concept/initializing-data.html">Initializing Data</a></li>
                 <li><a href="../general_concept/accessing-data.html">Accessing Data</a></li>
                 <li><a href="../general_concept/event-listeners.html">Event Listeners</a></li>
-                <li><a href="../general_concept/typescript.html">Adding TypeScript</a></li>
                 <li><a href="../general_concept/disposing-grid.html">Disposing Grid</a></li>
               </ul>
             </li>
@@ -311,17 +311,17 @@ var configObj = {
     { name: "Net. Chng", field: fields[3], width: 100 },
     { name: "Industry", field: fields[4] }
   ],
-  staticDataRows: records,
-  whenDefined: function(e) {
-    var core = e.api.getCoreGrid();
-    var section = core.getSection('content');
-    section.setCellRowSpan(1, 0, 2);
-    section.setCellRowSpan(4, 4, 3);
-    section.setCellRowSpan(0, 4, 4);
-  }
+  staticDataRows: records
 };
 
 var grid = document.getElementById("grid");
+grid.addEventListener("configured", function(e) {
+  var core = e.detail.api.getCoreGrid();
+  var section = core.getSection('content');
+  section.setCellRowSpan(1, 0, 2);
+  section.setCellRowSpan(4, 4, 3);
+  section.setCellRowSpan(0, 4, 4);
+});
 grid.config = configObj;</pre>
                   <pre class="pandora-tab-view tab-css"></pre>
                   <div class="pandora-console"></div>
@@ -438,6 +438,7 @@ grid.config = configObj;</pre>
               <link rel="prefetch" href="../node_modules/tr-grid-titlewrap/dist/tr-grid-titlewrap.min.js" type="script">
               <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
             </div>
+            <h2 id="___">___</h2>
           </pandora-page>
           <div class="results"></div>
         </div>

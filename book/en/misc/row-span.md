@@ -25,17 +25,17 @@ Grid does not support row span in row virtualization mode. The row virtualizatio
 			{name: "Net. Chng", field: fields[3], width: 100},
 			{name: "Industry", field: fields[4]}
 		],
-		staticDataRows: records,
-		whenDefined: function(e) {
-			var core = e.api.getCoreGrid();
-			var section = core.getSection('content');
-			section.setCellRowSpan(1, 0, 2);
-			section.setCellRowSpan(4, 4, 3);
-			section.setCellRowSpan(0, 4, 4);
-		}
+		staticDataRows: records
 	};
 
 	var grid = document.getElementById("grid");
+	grid.addEventListener("configured", function(e) {
+		var core = e.detail.api.getCoreGrid();
+		var section = core.getSection('content');
+		section.setCellRowSpan(1, 0, 2);
+		section.setCellRowSpan(4, 4, 3);
+		section.setCellRowSpan(0, 4, 4);
+	});
 	grid.config = configObj;
 </script>
 ```
@@ -79,3 +79,5 @@ atlas-blotter {
 	grid.config = configObj;
 </script>
 ```
+
+## ___

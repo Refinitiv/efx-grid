@@ -29,12 +29,13 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="7e8db53e-74c8-46ab-99f9-b4788c19bc97">
+        <pandora-nav id="7b32efb8-d3bd-4fdd-b451-5ddd8edf5fea">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
               <ul>
                 <li><a href="../index.html">Installation</a></li>
+                <li><a href="../typescript.html">TypeScript</a></li>
                 <li><a href="../overview.html">Overview</a></li>
               </ul>
             </li>
@@ -46,7 +47,6 @@
                 <li><a href="../general_concept/initializing-data.html">Initializing Data</a></li>
                 <li><a href="../general_concept/accessing-data.html">Accessing Data</a></li>
                 <li><a href="../general_concept/event-listeners.html">Event Listeners</a></li>
-                <li><a href="../general_concept/typescript.html">Adding TypeScript</a></li>
                 <li><a href="../general_concept/disposing-grid.html">Disposing Grid</a></li>
               </ul>
             </li>
@@ -323,16 +323,16 @@ var configObj = {
   extensions: [
     rowSegmentingExt,
     rowDraggingExt
-  ],
-  whenDefined: function(e) {
-    rowSegmentingExt.setSegmentSeparator(2);
-    rowSegmentingExt.setSegmentSeparator(5);
-    rowSegmentingExt.setSegmentSeparator(8);
-    rowSegmentingExt.fillSegments();
-  }
+  ]
 };
 
 var grid = document.getElementById("grid");
+grid.addEventListener("configured", function() {
+  rowSegmentingExt.setSegmentSeparator(2);
+  rowSegmentingExt.setSegmentSeparator(5);
+  rowSegmentingExt.setSegmentSeparator(8);
+  rowSegmentingExt.fillSegments();
+});
 grid.config = configObj;
 
 document.getElementById("set_btn1").addEventListener("click", function(e) {
@@ -483,18 +483,18 @@ var configObj = {
   columns: columns,
   extensions: [
     rowSegmentingExt
-  ],
-  whenDefined: function(e) {
-    row5 = e.api.getRowDefinition(6);
-    rowSegmentingExt.setSegmentSeparator(segmentIdx);
-    rowSegmentingExt.addSegmentChildren(segmentIdx, [2, 3, 4, 5, 6, 7]);
-
-    rowSegmentingExt.setSegmentSeparator(10);
-    rowSegmentingExt.addSegmentChildren(10, [11, 12, 13]);
-  }
+  ]
 };
 
 var grid = window.grid = document.getElementsByTagName("efx-grid")[0];
+grid.addEventListener("configured", function(e) {
+  row5 = e.detail.api.getRowDefinition(6);
+  rowSegmentingExt.setSegmentSeparator(segmentIdx);
+  rowSegmentingExt.addSegmentChildren(segmentIdx, [2, 3, 4, 5, 6, 7]);
+
+  rowSegmentingExt.setSegmentSeparator(10);
+  rowSegmentingExt.addSegmentChildren(10, [11, 12, 13]);
+});
 grid.config = configObj;
 grid.data = records;</pre>
                   <pre class="pandora-tab-view tab-css">html hr {
@@ -658,20 +658,19 @@ var configObj = {
     {
       field: fields[2],
       name: "Volume"
-    },
-
+    }
   ],
   extensions: [
     ext
-  ],
-  whenDefined: function(e) {
-    ext.setSegmentSeparator(2);
-    ext.setSegmentSeparator(5);
-    ext.setSegmentSeparator(8);
-    ext.fillSegments();
-  }
+  ]
 };
 var grid = document.getElementsByTagName("efx-grid")[0];
+grid.addEventListener("configured", function(e) {
+  ext.setSegmentSeparator(2);
+  ext.setSegmentSeparator(5);
+  ext.setSegmentSeparator(8);
+  ext.fillSegments();
+});
 grid.config = configObj;
 grid.data = records;
 

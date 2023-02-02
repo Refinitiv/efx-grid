@@ -22,16 +22,21 @@ The Text Formatting Extension provides special formatting for presenting actual 
 				field: fields[0]
 			},
 			{
-				title: "Market",
-				field: fields[1],
-				width: 120
-			},
-			{
 				title: "Last",
 				field: fields[2],
 				width: 100,
 				alignment: "right",
 				formatType: "number"
+			},
+			{
+				title: "4 Decimal Places",
+				field: fields[2],
+				width: 100,
+				alignment: "right",
+				formatType: {
+					type: "number",
+					decimalPlaces: 4
+				}
 			},
 			{
 				title: "Net. Chng",

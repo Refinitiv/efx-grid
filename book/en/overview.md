@@ -19,17 +19,19 @@ EFX Grid is a [custom element](https://developer.mozilla.org/en-US/docs/Web/Web_
 
 ## Grid APIs
 
-`api` property from the grid element represents JavaScript-based Grid instance. The `api` property is an access point for all Grid APIs and for making change at runtime. The `api` property will be available only after the `config` is set and initialized. Put the code inside `whenDefined` callback, if you want to access the `api` property after the initialization process as shown below:
+`api` property from the grid element represents JavaScript-based Grid instance. The `api` property is an access point for all Grid APIs and for making change at runtime. The `api` property will be available only after the `config` is set and initialized. To use `api` immediately after grid has been initialized, you can listen to `configured` event as shown below:
 
 ```js
 var grid = document.getElementsByTagName("efx-grid")[0];
-grid.config = {
-	whenDefined: function(e) {
-		console.log("config is set and applied");
-		var element = e.element;
-		var dv = e.api.getDataView();
-	}
-};
+grid.addEventListener("configured", function (e) {
+	var api = e.detail.api;
+	var gridElem = e.detail.element;
+	
+	var core = api.getCoreGrid();
+
+	console.log("Grid has been configured.");
+});
+
 console.log(grid.api); // api instance will not be available immediately after configuration is set.
 ```
 
@@ -41,15 +43,15 @@ As Grid grows in complexity, Core Grid is created to maintain and manage UIs for
 
 ```js
 var grid = document.getElementsByTagName("efx-grid")[0];
-grid.config = {
-	whenDefined: function(e) {
-		var core = e.api.getCoreGrid();
-		var section = core.getSection("content");
-	}
-};
+grid.addEventListener("configured", function (e) {
+	var api = e.detail.api;
+	var core = api.getCoreGrid();
+	var section = core.getSection("content"); // Content section
+	var vScrollbar = core.getVScrollbar(); // Vertical scrollbar
+});
 ```
 
-> The document for the Core Grid can be found in the [Core APIs page](./apis/composite_grid/tr.Grid.html).
+> The document for the Core Grid can be found in the [Core APIs page](./apis/core/Grid.html).
 
 ## Example
 

@@ -29,12 +29,13 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="7e8db53e-74c8-46ab-99f9-b4788c19bc97">
+        <pandora-nav id="7b32efb8-d3bd-4fdd-b451-5ddd8edf5fea">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
               <ul>
                 <li><a href="../index.html">Installation</a></li>
+                <li><a href="../typescript.html">TypeScript</a></li>
                 <li><a href="../overview.html">Overview</a></li>
               </ul>
             </li>
@@ -46,7 +47,6 @@
                 <li><a href="../general_concept/initializing-data.html">Initializing Data</a></li>
                 <li><a href="../general_concept/accessing-data.html">Accessing Data</a></li>
                 <li><a href="../general_concept/event-listeners.html">Event Listeners</a></li>
-                <li><a href="../general_concept/typescript.html">Adding TypeScript</a></li>
                 <li><a href="../general_concept/disposing-grid.html">Disposing Grid</a></li>
               </ul>
             </li>
@@ -374,13 +374,16 @@ html hr {
             <h3 id="installation-and-how-to-import-to-a-project">Installation and how to import to a project</h3>
             <p>Installation examples and details of how to import the extension to a project are available on the <a href="README.html">Overview</a> page.</p>
             <h3 id="automatic-adjusting">Automatic adjusting</h3>
-            <p>The live demo below shows how to adjust a column"s width when the data are changed – use the extension"s API to adjust it manually or use the <code>autoAdjust</code> property for automatic adjusting.</p>
+            <p>The live demo below shows how to adjust a column's width when the data are changed – use the extension's API to adjust it manually or use the <code>autoAdjust</code> property for automatic adjusting.</p>
+            <blockquote>
+              <p>By default, the size of column can only be expanded by the extension. Set <code>shrinkable</code> flag to true to allow column size to be shrunk.</p>
+            </blockquote>
             <pre><code><span class="hljs-keyword">var</span> grid = <span class="hljs-built_in">document</span>.getElementById(<span class="hljs-string">"grid"</span>);
 grid.config = {
     <span class="hljs-comment">// any other grid"s options</span>
     <span class="hljs-attr">columnFitting</span>: {
         <span class="hljs-attr">autoAdjust</span>: <span class="hljs-number">1000</span>
-    },
+    }
 };</code></pre>
             <div class="pandora-code-viewer" id="pid-19">
               <div class="pandora-viewer">
@@ -401,38 +404,35 @@ grid.config = {
                   <pre class="pandora-tab-view tab-js">var columnFitterExt = new ColumnFitter();
 var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
 var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 5 });
-var generateRecord = DataGenerator.generateRecord;
-var randInt = DataGenerator.randInt;
+
 var configObj = {
   columns: [
-    { title: "Company", field: fields[0] },
-    { title: "Market", field: fields[1], width: 120 },
-    { title: "Last", field: fields[2], width: 100 },
-    { title: "Net. Chng", field: fields[3], width: 100 },
-    { title: "Industry", field: fields[4] }
+    { name: "Company", field: fields[0] },
+    { name: "Market", field: fields[1], width: 120 },
+    { name: "Last", field: fields[2], width: 100 },
+    { name: "Industry", field: fields[4] },
+    { name: "Net. Chng", field: fields[3], width: 100 }
   ],
   staticDataRows: records,
   columnFitting: {
     title: true,
-    autoAdjust: 1000
+    autoAdjust: 800,
+    shrinkable: true
   },
   extensions: [
     columnFitterExt
-  ],
-  whenDefined: function(e) {
-    var api = e.api;
-    var dt = api.getDataTable();
-    setInterval(function() {
-      var field = "industry";
-      var record = generateRecord([field]);
-      var randRow = randInt(0, dt.getRowCount());
-      var rowId = dt.getRowId(randRow);
-      dt.setData(rowId, field, record[field]);
-    }, 500);
-  }
+  ]
 };
 
 var grid = document.getElementById("grid");
+grid.addEventListener("configured", function(e) {
+  var api = e.detail.api;
+  setInterval(function() {
+    var record = DataGenerator.generateRecord(["industry"]);
+    var randRow = DataGenerator.randInt(0, api.getRowCount());
+    api.setRowData(randRow, record);
+  }, 500);
+});
 grid.config = configObj;</pre>
                   <pre class="pandora-tab-view tab-css">efx-grid {
   height: 169px;

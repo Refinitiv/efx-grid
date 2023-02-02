@@ -37,18 +37,18 @@ Color: <input id="color_inp" type="color" value="#cbaacb">
 			{ title: "Industry", field: fields[4] }
 		],
 		staticDataRows: records,
-		whenDefined: function(e) {
-			// Set text color and BG color through extension
-			rowColoringExt.setRowColor(1, "#ffc5bf", rowColoringExt.getContrastColor("#ffc5bf"));
-			rowColoringExt.setRowColor(2, "#97c1a9", rowColoringExt.getContrastColor("#97c1a9"));
-			rowColoringExt.setRowColor(3, "#d4f0f0", rowColoringExt.getContrastColor("#d4f0f0"));
-		},
 		extensions: [
 			rowColoringExt
 		]
 	};
 
 	var grid = document.getElementById("grid");
+	grid.addEventListener("configured", function(e) {
+		// Set text color and BG color through extension
+		rowColoringExt.setRowColor(1, "#ffc5bf", rowColoringExt.getContrastColor("#ffc5bf"));
+		rowColoringExt.setRowColor(2, "#97c1a9", rowColoringExt.getContrastColor("#97c1a9"));
+		rowColoringExt.setRowColor(3, "#d4f0f0", rowColoringExt.getContrastColor("#d4f0f0"));
+	});
 	grid.config = configObj;
 
 	document.getElementById("set_btn").addEventListener("click", function(e) {
@@ -282,13 +282,11 @@ The extension also supports text color and background color from the predefined 
 		},
 		extensions: [
 			rowColoringExt, conditionalColoringExt
-		],
-		whenDefined: function(e) {
-			updateButtons(); // Update newly assigned predefined colors
-		}
+		]
 	};
 
 	var grid = document.getElementById("grid");
+	grid.addEventListener("configured", updateButtons);
 	grid.config = configObj;
 	
 	setInterval(function simulateUpdates() {

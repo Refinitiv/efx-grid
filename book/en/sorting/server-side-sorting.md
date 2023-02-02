@@ -30,14 +30,15 @@ var config = {
 	// any other grid's options
 	sorting: {
 		columnSorted: onColumnSorted
-	},
-	// Alternatively you can listen to the event directly from the built-in plugin
-	whenDefined: function(e) {
-		var core = e.api.getCoreGrid();
-		var plugin = core.getPlugin("SortableTitle");
-		// plugin.listen("columnSorted", onColumnSorted);
 	}
-}
+};
+
+// Alternatively you can listen to the event directly from the built-in plugin
+grid.addEventListener("configured", function(e) {
+	var core = e.detail.api.getCoreGrid();
+	var plugin = core.getPlugin("SortableTitle");
+	// plugin.listen("columnSorted", onColumnSorted);
+});
 ```
 
 You can see all possible values for the sort order [here](../apis/composite_grid/tr.grid.SortableTitlePlugin.html#~SortOrder).
@@ -107,3 +108,5 @@ You can see all possible values for the sort order [here](../apis/composite_grid
 	grid.config = configObj;
 </script>
 ```
+
+## ___

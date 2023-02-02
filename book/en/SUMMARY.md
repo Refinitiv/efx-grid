@@ -1,5 +1,6 @@
 - Getting Started
   - [Installation](README.md)
+  - [TypeScript](typescript.md)
   - [Overview](overview.md)
 - [Help and Support](support.md)
 - General Concept
@@ -7,7 +8,6 @@
 	- [Initializing Data](general_concept/initializing-data.md)
 	- [Accessing Data](general_concept/accessing-data.md)
 	- [Event Listeners](general_concept/event-listeners.md)
-	- [Adding TypeScript](general_concept/typescript.md)
 	- [Disposing Grid](general_concept/disposing-grid.md)
 - Showcases
 	- [Comprehensive](showcases/comprehensive.md)

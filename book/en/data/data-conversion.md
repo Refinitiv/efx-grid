@@ -129,23 +129,23 @@ When dealing with date-time data it may be hard to handle the various types of i
 
 <script>
 	var descriptions = [
-	  "Invalid",
-	  "Negative value (milliseconds)",
-	  "Excel date",
-	  "Second",
-	  "Millisecond",			
-	  "Native date object (now)",
-	  "ISO date-time string"
+		"Invalid",
+		"Negative value (milliseconds)",
+		"Excel date",
+		"Second",
+		"Millisecond",
+		"Native date object (now)",
+		"ISO date-time string"
 	];
 
 	var dateSamples = [
-	  "abc",
-	  -1,
-	  1,
-	  Date.UTC(2021, 11, 24, 10)/1000,
-	  Date.UTC(2021, 11, 24, 10),			
-	  new Date(),
-	  "2021-11-25T10:00:00"
+		"abc",
+		-1,
+		1,
+		Date.UTC(2021, 11, 24, 10)/1000,
+		Date.UTC(2021, 11, 24, 10),			
+		new Date(),
+		"2021-11-25T10:00:00"
 	];
 	
 	var records = [];
@@ -179,40 +179,40 @@ When dealing with date-time data it may be hard to handle the various types of i
 				name: "Formatted data",
 				field: "date",
 				formatType: {
-	        formatType: "DateTime",
-	        dateTimeFormat: "DD/MM/YYYY HH:mm",
-	        useUTCTime: true
-	      }
+					formatType: "DateTime",
+					dateTimeFormat: "DD/MM/YYYY HH:mm",
+					useUTCTime: true
+				}
 			},
 			{
-	      name: "Realtime Data",
-	      field: "last_update",
-	      dataType: "datetime",
-	      alignment: "center",
-	      formatType: {
-	        formatType: "DateTime",
-	        dateTimeFormat: "DD/MM/YYYY HH:mm:ss",
-	        useUTCTime: true
-	      }
-	    }
+				name: "Realtime Data",
+				field: "last_update",
+				dataType: "datetime",
+				alignment: "center",
+				formatType: {
+					formatType: "DateTime",
+					dateTimeFormat: "DD/MM/YYYY HH:mm:ss",
+					useUTCTime: true
+				}
+			}
 		],
 		staticDataRows: records,
 		extensions: [
 			new tr.TextFormattingExtension()
-		],
-		whenDefined: function(e) {
-	    var api = e.api;
-	    var randIndex = tr.DataGenerator.randIndex;
-	    setInterval(function() {
-	      var index = randIndex(records.length);
-	      api.setRowData(index, {
-	        last_update: Date.now()
-	      });
-	    }, 1000);
-	  }
+		]
 	};
 
 	var grid = document.getElementById("grid");
+	grid.addEventListener("configured", function(e) {
+		var api = e.detail.api;
+		var randIndex = tr.DataGenerator.randIndex;
+		setInterval(function() {
+			var index = randIndex(records.length);
+			api.setRowData(index, {
+				last_update: Date.now()
+			});
+		}, 400);
+	});
 	grid.config = configObj;
 </script>
 ```

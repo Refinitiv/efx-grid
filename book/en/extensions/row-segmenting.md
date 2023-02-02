@@ -38,16 +38,16 @@ The Row Segmenting Extension provides a way to group row content based on row in
 		extensions: [
 			rowSegmentingExt,
 			rowDraggingExt
-		],
-		whenDefined: function(e) {
-			rowSegmentingExt.setSegmentSeparator(2);
-			rowSegmentingExt.setSegmentSeparator(5);
-			rowSegmentingExt.setSegmentSeparator(8);
-			rowSegmentingExt.fillSegments();
-		}
+		]
 	};
 
 	var grid = document.getElementById("grid");
+	grid.addEventListener("configured", function() {
+		rowSegmentingExt.setSegmentSeparator(2);
+		rowSegmentingExt.setSegmentSeparator(5);
+		rowSegmentingExt.setSegmentSeparator(8);
+		rowSegmentingExt.fillSegments();
+	});
 	grid.config = configObj;
 
 	document.getElementById("set_btn1").addEventListener("click", function(e) {
@@ -175,18 +175,18 @@ With Row Segmenting Extension, you can specify classfication on individual segme
 		columns: columns,
 		extensions: [
 			rowSegmentingExt
-		],
-		whenDefined: function(e) {
-			row5 = e.api.getRowDefinition(6);
-			rowSegmentingExt.setSegmentSeparator(segmentIdx);
-			rowSegmentingExt.addSegmentChildren(segmentIdx, [2, 3, 4, 5, 6, 7]);
-			
-			rowSegmentingExt.setSegmentSeparator(10);
-			rowSegmentingExt.addSegmentChildren(10, [11, 12, 13]);
-		}
+		]
 	};
 
 	var grid = window.grid = document.getElementsByTagName("atlas-blotter")[0];
+	grid.addEventListener("configured", function(e) {
+		row5 = e.detail.api.getRowDefinition(6);
+		rowSegmentingExt.setSegmentSeparator(segmentIdx);
+		rowSegmentingExt.addSegmentChildren(segmentIdx, [2, 3, 4, 5, 6, 7]);
+		
+		rowSegmentingExt.setSegmentSeparator(10);
+		rowSegmentingExt.addSegmentChildren(10, [11, 12, 13]);
+	});
 	grid.config = configObj;
 	grid.data = records;
 </script>
@@ -333,20 +333,19 @@ The extension supports color from the predefined colors. To do this you need to 
 			{
 				field: fields[2],
 				name: "Volume"
-			},
-		
+			}
 		],
 		extensions: [
 			ext
-		],
-		whenDefined: function(e) {
-			ext.setSegmentSeparator(2);
-			ext.setSegmentSeparator(5);
-			ext.setSegmentSeparator(8);
-			ext.fillSegments();
-		}
+		]
 	};
 	var grid = document.getElementsByTagName("atlas-blotter")[0];
+	grid.addEventListener("configured", function(e) {
+		ext.setSegmentSeparator(2);
+		ext.setSegmentSeparator(5);
+		ext.setSegmentSeparator(8);
+		ext.fillSegments();
+	});
 	grid.config = configObj;
 	grid.data = records;
 

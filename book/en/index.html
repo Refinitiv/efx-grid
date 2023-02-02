@@ -29,12 +29,13 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="7e8db53e-74c8-46ab-99f9-b4788c19bc97">
+        <pandora-nav id="7b32efb8-d3bd-4fdd-b451-5ddd8edf5fea">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
               <ul>
                 <li selected><a href="index.html">Installation</a></li>
+                <li><a href="typescript.html">TypeScript</a></li>
                 <li><a href="overview.html">Overview</a></li>
               </ul>
             </li>
@@ -46,7 +47,6 @@
                 <li><a href="general_concept/initializing-data.html">Initializing Data</a></li>
                 <li><a href="general_concept/accessing-data.html">Accessing Data</a></li>
                 <li><a href="general_concept/event-listeners.html">Event Listeners</a></li>
-                <li><a href="general_concept/typescript.html">Adding TypeScript</a></li>
                 <li><a href="general_concept/disposing-grid.html">Disposing Grid</a></li>
               </ul>
             </li>
@@ -283,18 +283,31 @@
             <p>Grid has been created to handle a large number of rows. It achieves high performance by utilizing a <strong>row virtualization</strong> technique, and all of the display logics and layouts are calculated programmatically. So, it lacks the flexibility of managing the layout when compared to the <a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/table" target="_blank">native table</a>. Grid can be viewed to have 3 layers of controls. The outer layer is EFX Grid, which provides high level configuration through HTML properties and attributes. The middle layer is API instance, which provides most runtime interactions through JavaScript methods. The inner layer is Core Grid, which provides internal interaction with UI elements.</p>
             <h2 id="installation">Installation</h2>
             <p>EFX Grid element and extensions are published under single package.</p>
-            <pre><code>npm install @refinitiv-ui/efx-grid</code></pre>
+            <pre><code>npm install @refinitiv-ui/efx-grid --save-dev</code></pre>
             <p>The element is required theme to instantiate itself in the app. Refinitiv's design system is called Halo theme and you can install it from npm command.</p>
-            <pre><code>npm install @refinitiv-ui/halo-theme</code></pre>
+            <pre><code>npm install @refinitiv-ui/halo-theme --save-dev</code></pre>
             <h2 id="setup-guide">Setup guide</h2>
             <p>Use <code>import</code> syntax to import the Grid and theme into your app.</p>
-            <pre><code><span class="hljs-comment">// import element and its Halo dark theme</span>
-<span class="hljs-keyword">import</span> <span class="hljs-string">'@refinitiv-ui/efx-grid'</span>;
+            <pre><code><span class="hljs-comment">// Import element and its Halo dark theme</span>
+<span class="hljs-keyword">import</span> <span class="hljs-string">"@refinitiv-ui/efx-grid"</span>;
+<span class="hljs-keyword">import</span> <span class="hljs-string">"@refinitiv-ui/efx-grid/themes/halo/dark"</span>;
 
-<span class="hljs-keyword">import</span> <span class="hljs-string">'@refinitiv-ui/halo-theme/dark/imports/native-elements'</span>; <span class="hljs-comment">// import native styles for typography, css variables, etc.</span>
-<span class="hljs-keyword">import</span> <span class="hljs-string">'@refinitiv-ui/efx-grid/themes/halo/dark'</span>;</code></pre>
-            <p>Now, you can use Grid in your app.</p>
+<span class="hljs-comment">// Import native styles for typography, css variables, etc.</span>
+<span class="hljs-keyword">import</span> <span class="hljs-string">"@refinitiv-ui/halo-theme/dark/imports/native-elements"</span>;</code></pre>
+            <p>Now, you can use Grid in your HTML page.</p>
             <pre><code><span class="hljs-tag">&lt;<span class="hljs-name">efx-grid</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">efx-grid</span>&gt;</span></code></pre>
+            <p>By default, Grid without any configuration will be shown as empty element, since it doesn't have any column or row. You will need to set configuration object to define how Grid shows its content. The code snippet below shows how you would set a configuration object in JavaScript file:</p>
+            <pre><code><span class="hljs-keyword">var</span> grid = <span class="hljs-built_in">document</span>.getElementsByTagName(<span class="hljs-string">"efx-grid"</span>)[<span class="hljs-number">0</span>];
+grid.config = {
+    <span class="hljs-attr">columns</span>: [
+        {<span class="hljs-attr">name</span>: <span class="hljs-string">"Company Name"</span>, <span class="hljs-attr">field</span>: <span class="hljs-string">"companyName"</span>},
+        {<span class="hljs-attr">name</span>: <span class="hljs-string">"Last Price"</span>, <span class="hljs-attr">field</span>: <span class="hljs-string">"lastPrice"</span>}
+    ],
+    <span class="hljs-attr">staticDataRows</span>: [
+        {<span class="hljs-attr">companyName</span>: <span class="hljs-string">"Company A"</span>, <span class="hljs-attr">lastPrice</span>: <span class="hljs-number">10</span>},
+        {<span class="hljs-attr">companyName</span>: <span class="hljs-string">"Company B"</span>, <span class="hljs-attr">lastPrice</span>: <span class="hljs-number">20</span>}
+    ]
+};</code></pre>
             <h2 id="license-for-the-grid">License for the Grid</h2>
             <p>Please see the license <a href="./license.html">here</a>.</p>
             <h2 id="license-for-the-halo-theme">License for the Halo Theme</h2>

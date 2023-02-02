@@ -57,7 +57,9 @@ Installation examples and details of how to import the extension to a project ar
 
 ### Automatic adjusting
 
-The live demo below shows how to adjust a column"s width when the data are changed – use the extension"s API to adjust it manually or use the `autoAdjust` property for automatic adjusting.
+The live demo below shows how to adjust a column's width when the data are changed – use the extension's API to adjust it manually or use the `autoAdjust` property for automatic adjusting.
+
+> By default, the size of column can only be expanded by the extension. Set `shrinkable` flag to true to allow column size to be shrunk.
 
 ```js
 var grid = document.getElementById("grid");
@@ -65,7 +67,7 @@ grid.config = {
 	// any other grid"s options
 	columnFitting: {
 		autoAdjust: 1000
-	},
+	}
 };
 ```
 
@@ -82,38 +84,35 @@ grid.config = {
 	var columnFitterExt = new tr.ColumnFitterExtension();
 	var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
 	var records = tr.DataGenerator.generateRecords(fields, { seed: 0, numRows: 5 });
-	var generateRecord = tr.DataGenerator.generateRecord;
-	var randInt = tr.DataGenerator.randInt;
+
 	var configObj = {
 		columns: [
-			{title: "Company", field: fields[0]},
-			{title: "Market", field: fields[1], width: 120},
-			{title: "Last", field: fields[2], width: 100},
-			{title: "Net. Chng", field: fields[3], width: 100},
-			{title: "Industry", field: fields[4]}
+			{name: "Company", field: fields[0]},
+			{name: "Market", field: fields[1], width: 120},
+			{name: "Last", field: fields[2], width: 100},
+			{name: "Industry", field: fields[4]},
+			{name: "Net. Chng", field: fields[3], width: 100}
 		],
 		staticDataRows: records,
 		columnFitting: {
 			title: true,
-			autoAdjust: 1000
+			autoAdjust: 800,
+			shrinkable: true
 		},
 		extensions: [
 			columnFitterExt
-		],
-		whenDefined: function(e) {
-			var api = e.api;
-			var dt = api.getDataTable();
-			setInterval(function() {
-				var field = "industry";
-				var record = generateRecord([field]);
-				var randRow = randInt(0, dt.getRowCount());
-				var rowId = dt.getRowId(randRow);
-				dt.setData(rowId, field, record[field]);
-			}, 500);
-		}
+		]
 	};
 
 	var grid = document.getElementById("grid");
+	grid.addEventListener("configured", function(e) {
+		var api = e.detail.api;
+		setInterval(function() {
+			var record = tr.DataGenerator.generateRecord(["industry"]);
+			var randRow = tr.DataGenerator.randInt(0, api.getRowCount());
+			api.setRowData(randRow, record);
+		}, 500);
+	});
 	grid.config = configObj;
 </script>
 ```

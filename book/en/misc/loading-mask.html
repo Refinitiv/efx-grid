@@ -29,12 +29,13 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="7e8db53e-74c8-46ab-99f9-b4788c19bc97">
+        <pandora-nav id="7b32efb8-d3bd-4fdd-b451-5ddd8edf5fea">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
               <ul>
                 <li><a href="../index.html">Installation</a></li>
+                <li><a href="../typescript.html">TypeScript</a></li>
                 <li><a href="../overview.html">Overview</a></li>
               </ul>
             </li>
@@ -46,7 +47,6 @@
                 <li><a href="../general_concept/initializing-data.html">Initializing Data</a></li>
                 <li><a href="../general_concept/accessing-data.html">Accessing Data</a></li>
                 <li><a href="../general_concept/event-listeners.html">Event Listeners</a></li>
-                <li><a href="../general_concept/typescript.html">Adding TypeScript</a></li>
                 <li><a href="../general_concept/disposing-grid.html">Disposing Grid</a></li>
               </ul>
             </li>
@@ -463,15 +463,15 @@ var configObj = {
     { name: "Last", field: fields[2], width: 100 },
     { name: "Net. Chng", field: fields[3], width: 100 },
     { name: "Industry", field: fields[4] }
-  ],
-  whenDefined: function(e) {
-    fetchData();
-    var vScrollbar = e.api.getCoreGrid().getVScrollbar();
-    vScrollbar.listen("scroll", onScrollEnd);
-  }
+  ]
 };
 
 var grid = document.getElementById("grid");
+grid.addEventListener("configured", function(e) {
+  fetchData();
+  var vScrollbar = e.detail.api.getCoreGrid().getVScrollbar();
+  vScrollbar.listen("scroll", onScrollEnd);
+});
 grid.config = configObj;
 
 document.getElementById("fetch_btn").addEventListener("click", fetchData);
@@ -522,6 +522,7 @@ document.getElementById("clear_btn").addEventListener("click", clearData);</pre>
               <link rel="prefetch" href="../node_modules/tr-grid-titlewrap/dist/tr-grid-titlewrap.min.js" type="script">
               <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
             </div>
+            <h2 id="___">___</h2>
           </pandora-page>
           <div class="results"></div>
         </div>

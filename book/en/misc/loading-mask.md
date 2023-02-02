@@ -144,17 +144,19 @@ Loading mask is not part of Grid. To follow the standard theme, the UI and funct
 			{name: "Last", field: fields[2], width: 100},
 			{name: "Net. Chng", field: fields[3], width: 100},
 			{name: "Industry", field: fields[4]}
-		],
-		whenDefined: function(e) {
-			fetchData();
-			var vScrollbar = e.api.getCoreGrid().getVScrollbar();
-			vScrollbar.listen("scroll", onScrollEnd);
-		}
+		]
 	};
 
 	var grid = document.getElementById("grid");
+	grid.addEventListener("configured", function(e) {
+		fetchData();
+		var vScrollbar = e.detail.api.getCoreGrid().getVScrollbar();
+		vScrollbar.listen("scroll", onScrollEnd);
+	});
 	grid.config = configObj;
 
 	document.getElementById("fetch_btn").addEventListener("click", fetchData);
 	document.getElementById("clear_btn").addEventListener("click", clearData);
 ```
+
+## ___
