@@ -88,6 +88,24 @@ import '@refinitiv-ui/elements/checkbox';
 import '@refinitiv-ui/elements/checkbox/themes/halo/dark'; // Can be any theme
 ```
 
+### Range Bar Extension
+
+The Range Bar Extension provides graphical bar for last value ranking visualization based on low and high value with used [ef-led-gauge](https://ui.refinitiv.com/elements/led-gauge). To use the ef-led-gauge, the following dependency is also required:
+
+```sh
+npm install @refinitiv-ui/elements
+npm install @refinitiv-ui/halo-theme
+```
+
+Then import to your project `index.js`.
+```jsx
+// import element
+import '@refinitiv-ui/elements/led-gauge';
+
+// import element's Halo dark theme
+import '@refinitiv-ui/elements/led-gauge/themes/halo/dark'; // Can be any theme
+```
+
 ### Filter Input Extension
 
 The Filter Input extension supports various types of input elements. These can be archived by specifying the `type` property through `FilterInputPlugin options`. The EF component for each type of inputs is shown below:

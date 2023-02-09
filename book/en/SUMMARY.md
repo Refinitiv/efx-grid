@@ -1,7 +1,9 @@
 - Getting Started
   - [Installation](README.md)
-  - [TypeScript](typescript.md)
-  - [Overview](overview.md)
+  - [TypeScript](getting_started/typescript.md)
+  - [Using with React](getting_started/react_guide.md)
+  - [Using with Angular](getting_started/angular_guide.md)
+  - [Overview](getting_started/overview.md)
 - [Help and Support](support.md)
 - General Concept
 	- [Basic Grid Creation](general_concept/basic.md)

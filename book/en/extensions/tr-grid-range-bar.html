@@ -29,14 +29,16 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="7b32efb8-d3bd-4fdd-b451-5ddd8edf5fea">
+        <pandora-nav id="00133f59-e89a-4889-8b6d-aefb86faebae">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
               <ul>
                 <li><a href="../index.html">Installation</a></li>
-                <li><a href="../typescript.html">TypeScript</a></li>
-                <li><a href="../overview.html">Overview</a></li>
+                <li><a href="../getting_started/typescript.html">TypeScript</a></li>
+                <li><a href="../getting_started/react_guide.html">Using with React</a></li>
+                <li><a href="../getting_started/angular_guide.html">Using with Angular</a></li>
+                <li><a href="../getting_started/overview.html">Overview</a></li>
               </ul>
             </li>
             <li><a href="../support.html">Help and Support</a></li>
@@ -283,6 +285,10 @@
 
             <h2 id="range-bar"><a href="https://refinitiv.github.io/efx-grid/book/en/extensions/tr-grid-range-bar.html" target="_top" class="link-icon"></a> Range Bar</h2>
             <p>The Range Bar Extension provides graphical bar for last value ranking visualization based on low and high value.</p>
+            <h3 id="installation-and-how-to-import-to-a-project">Installation and how to import to a project</h3>
+            <p>Installation examples and details of how to import the extension to a project are available on the <a href="README.html">Overview</a> page.</p>
+            <h3 id="additional-dependencies">Additional dependencies</h3>
+            <p>Details of additional dependencies for this extension are available on the <a href="README.html">Overview</a> page.</p>
 
             <div class="pandora-code-viewer" id="pid-41">
               <div class="pandora-viewer">
@@ -300,29 +306,197 @@
                   <pre class="pandora-tab-view tab-html">&lt;efx-grid id="grid"&gt;
 
 &lt;/efx-grid&gt;</pre>
-                  <pre class="pandora-tab-view tab-js">var fields = ["CFLOW", "CF_LAST", "CFHIGH", "percent"];
-var records = DataGenerator.generateRecords(fields, { numRows: 20 });
+                  <pre class="pandora-tab-view tab-js">var fields = ["id", "CFLOW", "CF_LAST", "CFHIGH", "percent"];
+var records = [];
+
+var rangeBarExt = new RangeBar();
+
+var id = 0;
+for (let i = -150; i &lt; 151; i += 10) {
+  records.push({
+    id: id++,
+    CFLOW: -100,
+    CF_LAST: i,
+    CFHIGH: 100,
+    percent: i
+  });
+}
+
+// N/A Case and without top value
+records.push({
+  id: records.length,
+  CFLOW: undefined,
+  CF_LAST: undefined,
+  CFHIGH: undefined,
+  percent: undefined
+});
+
+records.push({
+  id: records.length,
+  CFLOW: 1,
+  CF_LAST: undefined, // without middle value
+  CFHIGH: 50,
+  percent: undefined
+});
+
+records.push({
+  id: records.length,
+  CFLOW: undefined,
+  CF_LAST: 5,
+  CFHIGH: 50,
+  percent: 5
+});
+
+records.push({
+  id: records.length,
+  CFLOW: 3,
+  CF_LAST: 5,
+  CFHIGH: undefined,
+  percent: 5
+});
+
+records.push({
+  id: records.length,
+  CFLOW: undefined,
+  CF_LAST: 5,
+  CFHIGH: undefined,
+  percent: 5
+});
+
+// Low_value &lt;High_value
+records.push({
+  id: records.length,
+  CFLOW: 1,
+  CF_LAST: 50,
+  CFHIGH: 99,
+  percent: 50
+});
+
+records.push({
+  id: records.length,
+  CFLOW: 50,
+  CF_LAST: 1,
+  CFHIGH: 99,
+  percent: 1
+});
+
+records.push({
+  id: records.length,
+  CFLOW: 1,
+  CF_LAST: 99,
+  CFHIGH: 50,
+  percent: 99
+});
+
+// High&lt;Low
+records.push({
+  id: records.length,
+  CFLOW: 99,
+  CF_LAST: 50,
+  CFHIGH: 1,
+  percent: 50
+});
+
+records.push({
+  id: records.length,
+  CFLOW: 99,
+  CF_LAST: 1,
+  CFHIGH: 50,
+  percent: 1
+});
+
+records.push({
+  id: records.length,
+  CFLOW: 50,
+  CF_LAST: 99,
+  CFHIGH: 1,
+  percent: 99
+});
+
+// Two equal
+records.push({
+  id: records.length,
+  CFLOW: 1,
+  CF_LAST: 50,
+  CFHIGH: 1,
+  percent: 50
+});
+
+records.push({
+  id: records.length,
+  CFLOW: 50,
+  CF_LAST: 1,
+  CFHIGH: 50,
+  percent: 1
+});
+
+records.push({
+  id: records.length,
+  CFLOW: 1,
+  CF_LAST: 1,
+  CFHIGH: 50,
+  percent: 1
+});
+
+records.push({
+  id: records.length,
+  CFLOW: 50,
+  CF_LAST: 50,
+  CFHIGH: 1,
+  percent: 50
+});
+
+records.push({
+  id: records.length,
+  CFLOW: 50,
+  CF_LAST: 1,
+  CFHIGH: 1,
+  percent: 1
+});
+
+records.push({
+  id: records.length,
+  CFLOW: 1,
+  CF_LAST: 50,
+  CFHIGH: 50,
+  percent: 50
+});
+
+// Three equal 
+records.push({
+  id: records.length,
+  CFLOW: 1,
+  CF_LAST: 1,
+  CFHIGH: 1,
+  percent: 1
+});
 
 var configObj = {
   scrollbar: true,
   columns: [{
-      title: "Low",
+      title: "ID",
       field: fields[0],
       width: 60
     },
     {
-      title: "Last",
+      title: "Low",
       field: fields[1],
       width: 60
     },
     {
-      title: "High",
+      title: "Last",
       field: fields[2],
       width: 60
     },
     {
+      title: "High",
+      field: fields[3],
+      width: 60
+    },
+    {
       title: "Range (Low, Last, High)",
-      field: fields[1],
+      field: fields[2],
+      alignment: "c",
       rangeBar: {
         low: "CFLOW",
         high: "CFHIGH",
@@ -331,40 +505,31 @@ var configObj = {
     },
     {
       title: "Percent",
-      field: fields[3],
+      field: fields[4],
       width: 60
     },
     {
-      title: "Range 1",
-      field: fields[3],
+      title: "Percent (Without low, last, high)",
+      field: fields[4],
       rangeBar: {
-        field: fields[3]
+        field: fields[4]
       }
     },
     {
-      title: "Range 2",
-      field: fields[3],
+      title: "Percent (start 30, end 70)",
+      field: fields[4],
       rangeBar: {
-        field: fields[3],
-        start: 10, // default 0
+        field: fields[4],
+        start: 30, // default 0
         end: 70 // default 100
-      }
-    },
-    {
-      title: "Range 3",
-      field: fields[1],
-      rangeBar: {
-        field: fields[3]
       }
     }
   ],
   staticDataRows: records,
-  extensions: [
-    new RangeBar()
-  ]
+  extensions: [rangeBarExt]
 };
 
-var grid = document.getElementById("grid");
+var grid = window.grid = document.getElementById("grid");
 grid.config = configObj;</pre>
                   <pre class="pandora-tab-view tab-css">efx-grid {
   height: 208px;
@@ -403,8 +568,6 @@ grid.config = configObj;</pre>
               <link rel="prefetch" href="../node_modules/tr-grid-titlewrap/dist/tr-grid-titlewrap.min.js" type="script">
               <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
             </div>
-            <h3 id="installation-and-how-to-import-to-a-project">Installation and how to import to a project</h3>
-            <p>Installation examples and details of how to import the extension to a project are available on the <a href="README.html">Overview</a> page.</p>
             <div></div>
 
             <div id="elf-api-container">
@@ -435,6 +598,36 @@ grid.config = configObj;</pre>
                               <td class="type"> <span class="param-type"><a href="RangeBarPlugin.html#~RangeDefinition">RangeBarPlugin~RangeDefinition</a></span> </td>
                               <td class="attributes"> &lt;optional&gt;<br> </td>
                               <td class="description last">Range definition object</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div class="details"> </div>
+                    </div>
+                    <div class="item">
+                      <div class="item-type">typedef</div>
+                      <h4 class="name" id="~Options">Options</h4>
+                      <div class="description"> RangeBarPlugin options that can be specified from `percentBar` property of the main grid's options</div>
+                      <h5>Type:</h5> <span class="param-type">Object</span>
+                      <h5>Properties:</h5>
+                      <div class="props">
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>Name</th>
+                              <th>Type</th>
+                              <th>Attributes</th>
+                              <th>Default</th>
+                              <th class="last">Description</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td class="name"><code>tooltip</code></td>
+                              <td class="type"> <span class="param-type">boolean</span> </td>
+                              <td class="attributes"> &lt;optional&gt;<br> </td>
+                              <td class="default"> true </td>
+                              <td class="description last">If disabled, it will be doesn't show tooltip when mouse hover sapphire-led-gauge</td>
                             </tr>
                           </tbody>
                         </table>
@@ -509,11 +702,6 @@ grid.config = configObj;</pre>
                     <h3 class="subsection-title">Methods</h3>
                     <div class="item">
                       <div class="item-type">function</div>
-                      <h4 class="name" id="_afterInit"><span class="type-signature"></span>_afterInit<span class="signature">()</span><span class="type-signature"></span></h4>
-                      <div class="details"> </div>
-                    </div>
-                    <div class="item">
-                      <div class="item-type">function</div>
                       <h4 class="name" id="config"><span class="type-signature"></span>config<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>
                       <h5>Parameters:</h5>
                       <div class="params">
@@ -524,6 +712,27 @@ grid.config = configObj;</pre>
                         </div>
                       </div>
                       <div class="details"> </div>
+                    </div>
+                    <div class="item">
+                      <div class="item-type">function</div>
+                      <h4 class="name" id="getColumnConfigObject"><span class="type-signature"></span>getColumnConfigObject<span class="signature">(colIndex, out_obj<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Object}</span></h4>
+                      <div class="description"> Get a column percent bar options from column index </div>
+                      <h5>Parameters:</h5>
+                      <div class="params">
+                        <div class="param">
+                          <div class="name">colIndex</div>
+                          <div class="type"> <span class="param-type">number</span> </div>
+                          <div class="attributes"> </div>
+                        </div>
+                        <div class="param">
+                          <div class="name">out_obj</div>
+                          <div class="type"> <span class="param-type">Object</span> </div>
+                          <div class="attributes"> &lt;optional&gt; </div>
+                        </div>
+                      </div>
+                      <div class="details"> </div>
+                      <h5>Returns:</h5>
+                      <div class="sub-content"> <span class="param-type">Object</span> </div>
                     </div>
                     <div class="item">
                       <div class="item-type">function</div>
@@ -547,6 +756,43 @@ grid.config = configObj;</pre>
                       <div class="details"> </div>
                       <h5>Returns:</h5>
                       <div class="sub-content"> <span class="param-type">string</span> </div>
+                    </div>
+                    <div class="item">
+                      <div class="item-type">function</div>
+                      <h4 class="name" id="getTooltipText"><span class="type-signature"></span>getTooltipText<span class="signature">(colRef, rowRef)</span><span class="type-signature"> → {string}</span></h4>
+                      <h5>Parameters:</h5>
+                      <div class="params">
+                        <div class="param">
+                          <div class="name">colRef</div>
+                          <div class="type"> <span class="param-type">number</span> | <span class="param-type">string</span> </div>
+                        </div>
+                        <div class="param">
+                          <div class="name">rowRef</div>
+                          <div class="type"> <span class="param-type">number</span> | <span class="param-type">string</span> </div>
+                        </div>
+                      </div>
+                      <div class="details"> </div>
+                      <h5>Returns:</h5>
+                      <div class="sub-content"> <span class="param-type">string</span> </div>
+                      <div class="sub-content-desc"> text tooltip of cell, otherwise empty string ""</div>
+                    </div>
+                    <div class="item">
+                      <div class="item-type">function</div>
+                      <h4 class="name" id="getValue"><span class="type-signature"></span>getValue<span class="signature">(colRef, rowRef)</span><span class="type-signature"> → {Object}</span></h4>
+                      <h5>Parameters:</h5>
+                      <div class="params">
+                        <div class="param">
+                          <div class="name">colRef</div>
+                          <div class="type"> <span class="param-type">number</span> | <span class="param-type">string</span> </div>
+                        </div>
+                        <div class="param">
+                          <div class="name">rowRef</div>
+                          <div class="type"> <span class="param-type">number</span> | <span class="param-type">string</span> </div>
+                        </div>
+                      </div>
+                      <div class="details"> </div>
+                      <h5>Returns:</h5>
+                      <div class="sub-content"> <span class="param-type">Object</span> </div>
                     </div>
                     <div class="item">
                       <div class="item-type">function</div>
@@ -576,6 +822,20 @@ grid.config = configObj;</pre>
                         </div>
                       </div>
                       <div class="details"> </div>
+                    </div>
+                    <div class="item">
+                      <div class="item-type">function</div>
+                      <h4 class="name" id="isRangeBarColumn"><span class="type-signature"></span>isRangeBarColumn<span class="signature">(colIndex)</span><span class="type-signature"> → {boolean}</span></h4>
+                      <h5>Parameters:</h5>
+                      <div class="params">
+                        <div class="param">
+                          <div class="name">colIndex</div>
+                          <div class="type"> <span class="param-type">number</span> </div>
+                        </div>
+                      </div>
+                      <div class="details"> </div>
+                      <h5>Returns:</h5>
+                      <div class="sub-content"> <span class="param-type">boolean</span> </div>
                     </div>
                     <div class="item">
                       <div class="item-type">function</div>
