@@ -250,7 +250,295 @@ Details of additional dependencies for this extension are available on the [Over
 </script>
 ```
 
+### With Custom Tooltip
+If you want to use a customized tooltip for the range bar, you can use it with `disabled` the rangeBar default tooltip with option and adding a tooltip condition. 
+For adding condition of tooltip you can import `addConditionTooltip` from the tooltip dependency and use it with pass `condition` and `renderer` function, following in the example below.
 
+```live
+<style>
+	atlas-blotter {
+		height: 208px;
+	}
+</style>
+
+<atlas-blotter id="grid"></atlas-blotter>
+
+<script>
+
+	var fields = ["id", "CFLOW", "CF_LAST", "CFHIGH", "percent"];
+	var records = [];
+
+	var rangeBarExt = new tr.RangeBarExtension();
+
+	var id = 0;
+	for (let i = -150; i < 151; i += 10) {
+		records.push({
+			id: id++,
+			CFLOW: -100,
+			CF_LAST: i,
+			CFHIGH: 100,
+			percent: i
+		});
+	}
+
+	// N/A Case and without top value
+	records.push({
+		id: records.length,
+		CFLOW: undefined,
+		CF_LAST: undefined,
+		CFHIGH: undefined,
+		percent: undefined
+	});
+
+	records.push({
+		id: records.length,
+		CFLOW: 1,
+		CF_LAST: undefined, // without middle value
+		CFHIGH: 50,
+		percent: undefined
+	});
+
+	records.push({
+		id: records.length,
+		CFLOW: undefined,
+		CF_LAST: 5,
+		CFHIGH: 50,
+		percent: 5
+	});
+
+	records.push({
+		id: records.length,
+		CFLOW: 3,
+		CF_LAST: 5,
+		CFHIGH: undefined,
+		percent: 5
+	});
+
+	records.push({
+		id: records.length,
+		CFLOW: undefined,
+		CF_LAST: 5,
+		CFHIGH: undefined,
+		percent: 5
+	});
+
+	// Low_value <High_value
+	records.push({
+		id: records.length,
+		CFLOW: 1,
+		CF_LAST: 50,
+		CFHIGH: 99,
+		percent: 50
+	});
+
+	records.push({
+		id: records.length,
+		CFLOW: 50,
+		CF_LAST: 1,
+		CFHIGH: 99,
+		percent: 1
+	});
+
+	records.push({
+		id: records.length,
+		CFLOW: 1,
+		CF_LAST: 99,
+		CFHIGH: 50,
+		percent: 99
+	});
+
+	// High<Low
+	records.push({
+		id: records.length,
+		CFLOW: 99,
+		CF_LAST: 50,
+		CFHIGH: 1,
+		percent: 50
+	});
+
+	records.push({
+		id: records.length,
+		CFLOW: 99,
+		CF_LAST: 1,
+		CFHIGH: 50,
+		percent: 1
+	});
+
+	records.push({
+		id: records.length,
+		CFLOW: 50,
+		CF_LAST: 99,
+		CFHIGH: 1,
+		percent: 99
+	});
+
+	// Two equal
+	records.push({
+		id: records.length,
+		CFLOW: 1,
+		CF_LAST: 50,
+		CFHIGH: 1,
+		percent: 50
+	});
+
+	records.push({
+		id: records.length,
+		CFLOW: 50,
+		CF_LAST: 1,
+		CFHIGH: 50,
+		percent: 1
+	});
+
+	records.push({
+		id: records.length,
+		CFLOW: 1,
+		CF_LAST: 1,
+		CFHIGH: 50,
+		percent: 1
+	});
+
+	records.push({
+		id: records.length,
+		CFLOW: 50,
+		CF_LAST: 50,
+		CFHIGH: 1,
+		percent: 50
+	});
+
+	records.push({
+		id: records.length,
+		CFLOW: 50,
+		CF_LAST: 1,
+		CFHIGH: 1,
+		percent: 1
+	});
+
+	records.push({
+		id: records.length,
+		CFLOW: 1,
+		CF_LAST: 50,
+		CFHIGH: 50,
+		percent: 50
+	});
+
+	// Three equal 
+	records.push({
+		id: records.length,
+		CFLOW: 1,
+		CF_LAST: 1,
+		CFHIGH: 1,
+		percent: 1
+	});
+
+	var configObj = {
+		scrollbar: true,
+		columns: [{
+			title: "ID",
+			field: fields[0],
+			width: 60
+		},
+		{
+			title: "Low",
+			field: fields[1],
+			width: 60
+		},
+		{
+			title: "Last",
+			field: fields[2],
+			width: 60
+		},
+		{
+			title: "High",
+			field: fields[3],
+			width: 60
+		},
+		{
+			title: "Range (Low, Last, High)",
+			field: fields[2],
+			alignment: "c",
+			rangeBar: {
+			low: "CFLOW",
+			high: "CFHIGH",
+			last: "CF_LAST"
+			}
+		},
+		{
+			title: "Percent",
+			field: fields[4],
+			width: 60
+		},
+		{
+			title: "Percent (Without low, last, high)",
+			field: fields[4],
+			rangeBar: {
+				field: fields[4]
+			}
+		},
+		{
+			title: "Percent (start 30, end 70)",
+			field: fields[4],
+			rangeBar: {
+			field: fields[4],
+			start: 30, // default 0
+			end: 70 // default 100
+			}
+		}],
+		staticDataRows: records,
+		extensions: [ rangeBarExt ]
+	};
+
+	var grid = window.grid = document.getElementById("grid");
+	grid.config = configObj;
+
+	// Create tooltip container section, we reused element for avoid create element multiple times
+	// This container will be show the user
+	var LEDTooltipUI = document.createElement("div");
+	LEDTooltipUI.style.textTransform = "capitalize"; // To title case
+	var keys = ["low", "last", "high"];
+	for (var i = 0; i < keys.length; i++) {
+		var key = keys[i];
+		var elem = document.createElement("div");
+		LEDTooltipUI[key] = elem;
+		LEDTooltipUI.appendChild(elem);
+	}
+	// End tooltip container creation
+
+	// in application side need to import addTooltipCondition from tooltip component
+	// For example import { addTooltipCondition } from "@elf/coral-tooltip"; // for elf v4
+	// import { addTooltipCondition } from '@refinitiv-ui/elements/tooltip'; // for elf v6
+	tr.addTooltipCondition(LEDGuageTooltipCondition, LEDGuageTooltipRenderer);
+
+	function LEDGuageTooltipCondition(target, paths) {
+		var relPos = grid.api.getRelativePosition(target);
+		if (!relPos.hit) {
+			return false;
+		}
+		if (relPos.sectionType !== "content") {
+			return false;
+		}
+		if (rangeBarExt.isRangeBarColumn(relPos.colIndex)) {
+			LEDTooltipUI._relPos = relPos; // We need to cache the relative position in the container element for use when renderer in the tooltip to avoid calling getRelativePosition multiple times.
+			return true;
+		}
+		return false;
+	}
+
+	function LEDGuageTooltipRenderer(target) {
+		var relPos = LEDTooltipUI._relPos;
+		var colIndex = relPos.colIndex;
+		var lowLastHigh = rangeBarExt.getValue(colIndex, relPos["rowIndex"]);
+		if (lowLastHigh) {
+			// update value into tooltip UI
+			LEDTooltipUI["low"].textContent = "Low: " + (lowLastHigh["low"] != null ? lowLastHigh["low"] : "--");
+			LEDTooltipUI["last"].textContent = "Last: " + (lowLastHigh["last"] != null ? lowLastHigh["last"] : "--");
+			LEDTooltipUI["high"].textContent = "High: " + (lowLastHigh["high"] != null ? lowLastHigh["high"] : "--");
+		}
+		// else {} // Currenlty, we don't have the rangeBar field that can't getValue, even if the N/A case getValue will be return object (with undefiend value)
+		return LEDTooltipUI;
+	}
+
+</script>
+```
 
 <div></div>
 

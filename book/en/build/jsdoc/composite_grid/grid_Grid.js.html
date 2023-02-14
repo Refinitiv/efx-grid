@@ -1577,7 +1577,7 @@ tr.Grid._ascNumberSorter = function (a, b) {
 * @param {number|Array.&lt;number&gt;} fromCol INCLUSIVE index/indices of the column to be moved
 * @param {number} destCol INCLUSIVE
 * @return {boolean} Return true if there is any change, and false otherwise
-* @fires Core#columnMoved
+* @fires tr.Grid#columnMoved
 */
 tr.Grid.prototype.moveColumn = function (fromCol, destCol) {
 	if(typeof fromCol === "number") {
@@ -1665,7 +1665,7 @@ tr.Grid.prototype.moveColumn = function (fromCol, destCol) {
 * @param {number} fromCol INCLUSIVE
 * @param {number} destCol INCLUSIVE
 * @return {boolean} Return true if there is any change, and false otherwise
-* @fires Core#columnMoved
+* @fires tr.Grid#columnMoved
 */
 tr.Grid.prototype._moveColumn = function (fromCol, destCol) {
 	var colCount = this.getColumnCount();
@@ -1756,6 +1756,126 @@ tr.Grid.prototype._moveColumn = function (fromCol, destCol) {
 	return true;
 };
 
+/** If source column is not found, no operation is performed. If destination column is not found, the source column will be moved to the last position.&lt;br&gt;
+* Note: this method behaves slightly different from moveColumn method in that it always put source column at the position before the specified destination column, while moveColumn method will put column at exactly at the destination index.
+* @public
+* @param {number|string} srcCol Column Id or index
+* @param {(number|string)=} destCol Column Id or index of the destination
+* @return {boolean} Return true if there is any change, and false otherwise
+* @see {@link tr.Grid#moveColumn}
+* @example
+* grid.moveColumnById(3, 1); // Move column 3 to position before column 1
+* grid.moveColumnById(0, 2); // Move column 0 to position before column 2 (column index 1)
+* grid.moveColumnById(0, 1); // Nothing is moved
+* grid.moveColumnById("sourceColumnId", "anotherId");
+* grid.moveColumnById("sourceColumnId", ""); // move to the last position
+*/
+tr.Grid.prototype.moveColumnById = function (srcCol, destCol) {
+	var colCount = this.getColumnCount();
+	var srcIndex = this.getColumnIndex(srcCol);
+	if(srcIndex &lt; 0 || srcIndex &gt;= colCount) {
+		return false;
+	}
+	var destIndex = destCol != null ? this.getColumnIndex(destCol) : -1;
+	if(destIndex &lt; 0) {
+		destIndex = colCount;
+	}
+	return this._moveColumnByIndex(srcIndex, destIndex);
+};
+/** Move column without verification for better performance
+* @private
+* @param {number} srcIndex Column index
+* @param {number} destIndex Column index of the destination
+* @return {boolean} Return true if there is any change, and false otherwise
+*/
+tr.Grid.prototype._moveColumnByIndex = function (srcIndex, destIndex) {
+	if(srcIndex &lt; destIndex) { // Ensure that the source column is put in front of the destination index
+		--destIndex;
+	}
+	if(srcIndex === destIndex) {
+		return false;
+	}
+	return this.moveColumn(srcIndex, destIndex);
+};
+/** @public
+* @param {number|string|Array.&lt;number|string&gt;} colRefs List of column index or column id to be moved
+* @param {(number|string)=} destCol Destination position where the moved columns will be placed BEFORE the specified position. This can be column id or index
+* @return {boolean} Return true if there is any change, and false otherwise
+*/
+tr.Grid.prototype.reorderColumns = function (colRefs, destCol) {
+	var destId = "";
+	if(typeof destCol === "number") {
+		destId = this.getColumnId(destCol);
+	} else if(destCol) {
+		destId = destCol;
+	}
+
+	if(Array.isArray(colRefs)) {
+		var srcLen = colRefs.length;
+		if(srcLen &gt; 1) {
+			var colIds = this.getColumnIds();
+			var colCount = colIds.length;
+			var srcIds = [];
+			var invalidDest = false;
+			var i, srcId, srcIdx;
+			for(i = 0; i &lt; srcLen; ++i) {
+				var colRef = colRefs[i];
+				if(typeof colRef === "number") {
+					srcIdx = colRef;
+					srcId = colIds[colRef] || "";
+				} else {
+					srcId = colRef;
+					srcIdx = colIds.indexOf(srcId);
+				}
+				if(srcId &amp;&amp; srcIdx &gt;= 0) {
+					srcIds.push(srcId);
+					if(destId === srcId) {
+						invalidDest = true; // Destination must not exist in source columns
+					}
+				}
+			}
+
+			var destIdx;
+			srcLen = srcIds.length;
+			if(invalidDest) { // Find the next valid destination where it is not contained in the source columns
+				destIdx = this.getColumnIndex(destId);
+				if(destIdx &gt;= 0) {
+					while(++destIdx &lt; colCount) {
+						destId = colIds[destIdx];
+						if(srcIds.indexOf(destId) &lt; 0) {
+							break;
+						}
+					}
+				}
+				if(destIdx &lt; 0 || destIdx &gt;= colCount) {
+					destId = "";
+				}
+			}
+
+			var dirty = 0;
+			for(i = srcLen; --i &gt;= 0;) {
+				srcId = srcIds[i]; // Only valid source columns are left at this point
+				srcIdx = this.getColumnIndex(srcId);
+				destIdx = this.getColumnIndex(destId);
+				if(destIdx &lt; 0) { // Insert to the back when id is not found
+					destIdx = colCount;
+				}
+				dirty |= this._moveColumnByIndex(srcIdx, destIdx);
+				destId = srcId;
+			}
+			return dirty ? true : false;
+		} else {
+			return this.moveColumnById(colRefs[0], destId);
+		}
+	}
+
+	if(colRefs != null) {
+		// colRefs will be a number or string
+		return this.moveColumnById(colRefs, destId);
+	}
+	return false;
+};
+
 /** @public
 * @ignore
 * @return {!tr.grid.TrackLayout}
@@ -1808,8 +1928,12 @@ tr.Grid.prototype._deserializeColumn = function (index, jsonObj) {
 	if(colId &amp;&amp; typeof colId === "string") {
 		colDef["id"] = colId; // WARNING: We do not guarantee uniqueness of user id
 	}
+	var field = jsonObj["field"];
+	if(field &amp;&amp; typeof field === "string") {
+		colDef["field"] = field;
+	}
 	
-	var value = jsonObj[tr.res.dataColumnName];
+	var value = jsonObj[tr.res.dataColumnName]; // deprecate
 	if (value != null) {
 		colDef[tr.res.dataColumnName] = value;
 	}
@@ -3280,24 +3404,6 @@ tr.Grid.prototype.getRelativePosition = function (obj, context) {
 	}
 	ret_obj["hit"] = true;
 	return ret_obj;
-};
-
-/** Find column index by column id or data column name
-* @public
-* @param {string} str Column id or data column name
-* @return {number} Return negative value if there is no match
-*/
-tr.Grid.prototype.getColumnIndex = function (str) {
-	if(str) {
-		var colCount = this.getColumnCount();
-		for(var c = 0; c &lt; colCount; ++c) {
-			var colDef = this._getColumnDef(c);
-			if(str === colDef["id"] || str === colDef["dataColumnName"]) {
-				return c;
-			}
-		}
-	}
-	return -1;
 };
 
 /** @public
@@ -4891,6 +4997,98 @@ tr.Grid.prototype.getColumnIds = function () {
 	return ary;
 };
 
+/** @public
+* @param {number} colIndex
+* @param {string} field
+*/
+tr.Grid.prototype.setColumnField = function (colIndex, field) {
+	this._getColumnDef(colIndex)["field"] = field || "";
+};
+/** @public
+* @param {number} colIndex
+* @return {string} Return empty string if the specified column does not exist
+*/
+tr.Grid.prototype.getColumnField = function (colIndex) {
+	if(colIndex &gt;= 0 &amp;&amp; colIndex &lt; this.getColumnCount()) {
+		return this._getColumnDef(colIndex)["field"] || "";
+	}
+	return "";
+};
+/** @public
+* @return {!Array.&lt;string&gt;} Return all column ids from existing column
+*/
+tr.Grid.prototype.getColumnFields = function () {
+	var colCount = this.getColumnCount();
+	var ary = new Array(colCount);
+	for(var c = 0; c &lt; colCount; ++c) {
+		ary[c] = this._getColumnDef(c)["field"] || "";
+	}
+	return ary;
+};
+
+/** Get column index by column id or column field
+* @public
+* @param {string|number} colRef Column id or data column name
+* @return {number} Return negative value if there is no match
+*/
+tr.Grid.prototype.getColumnIndex = function (colRef) {
+	if(typeof colRef === "number") {
+		return colRef;
+	} else if(colRef) {
+		var str = colRef;
+		var colCount = this.getColumnCount();
+		for(var c = 0; c &lt; colCount; ++c) {
+			var colDef = this._getColumnDef(c);
+			if(str === colDef["id"] || str === colDef["field"]) {
+				return c;
+			}
+		}
+	}
+	return -1;
+};
+/** Any invalid column reference will be excluded from the output array
+* @public
+* @param {Array.&lt;number|string&gt;} colRefs
+* @return {!Array.&lt;number&gt;} Return negative value if there is no match
+*/
+tr.Grid.prototype.getColumnIndices = function (colRefs) {
+	var ary = [];
+	var colCount = this.getColumnCount();
+	var inputAry = Array.isArray(colRefs) ? colRefs : [colRefs];
+	var len = inputAry.length;
+	// Verify user input
+	for(var i = 0; i &lt; len; ++i) {
+		var colIndex = this.getColumnIndex(inputAry[i]);
+		if(colIndex &gt;= 0 &amp;&amp; colIndex &lt; colCount) {
+			ary.push(colIndex); // WARNING: We have not check for duplication
+		}
+	}
+	return ary;
+};
+/** Get a map from column id and field to column index. This should be useful when finding multiple column indices.
+* @public
+* @return {!Object.&lt;string, number&gt;} 
+*/
+tr.Grid.prototype.getColumnIndexMap = function () {
+	var colCount = this.getColumnCount();
+	var obj = {};
+	var str = "";
+	for(var c = 0; c &lt; colCount; ++c) {
+		var colDef = this._getColumnDef(c);
+		
+		str = colDef["field"];
+		if(str) {
+			obj[str] = c;
+		}
+		
+		str = colDef["id"];
+		if(str) {
+			obj[str] = c;
+		}
+	}
+	return obj;
+};
+
 
 /** @private */
 tr.Grid.prototype._onWindowResize = function() {
@@ -5525,13 +5723,13 @@ var methodMap = {
 
 	"getColumnCount": pt.getColumnCount,
 	"setColumnCount": pt.setColumnCount,
-	"getColumnId": pt.getColumnId,
-	"getColumnIds": pt.getColumnIds,
 	"removeColumnAt": pt.removeColumnAt,
 	"removeAllColumns": pt.removeAllColumns,
 	"insertColumn": pt.insertColumn,
 	"insertColumns": pt.insertColumns,
 	"moveColumn": pt.moveColumn,
+	"moveColumnById": pt.moveColumnById,
+	"reorderColumns": pt.reorderColumns,
 	"getStationaryColumnIndex": pt.getStationaryColumnIndex,
 	"isColumnMoveAllowed": pt.isColumnMoveAllowed,
 	"isColumnMovable": pt.isColumnMovable,
@@ -5542,7 +5740,6 @@ var methodMap = {
 	"setSectionRowCount": pt.setSectionRowCount,
 	"getRowIndex": pt.getRowIndex,
 	"getRelativeIndex": pt.getRelativeIndex,
-	"getColumnIndex": pt.getColumnIndex,
 	"removeAllRows": pt.removeAllRows,
 	"removeAllSections": pt.removeAllSections,
 	"setBottomPaddingSection": pt.setBottomPaddingSection,
@@ -5690,7 +5887,16 @@ var methodMap = {
 	"normalizeConfig": pt.normalizeConfig,
 	"setColumnGrouping": pt.setColumnGrouping,
 	"getColumnGroupParentId": pt.getColumnGroupParentId,
-	"getColumnGroupChildIds": pt.getColumnGroupChildIds
+	"getColumnGroupChildIds": pt.getColumnGroupChildIds,
+	
+	"getColumnId": pt.getColumnId,
+	"getColumnIds": pt.getColumnIds,
+	"setColumnField": pt.setColumnField,
+	"getColumnField": pt.getColumnField,
+	"getColumnFields": pt.getColumnFields,
+	"getColumnIndex": pt.getColumnIndex,
+	"getColumnIndices": pt.getColumnIndices,
+	"getColumnIndexMap": pt.getColumnIndexMap
 };
 // Export methods for Closure's advanced compilation
 for(var methodName in methodMap) {

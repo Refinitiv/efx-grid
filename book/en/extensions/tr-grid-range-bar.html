@@ -29,7 +29,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="00133f59-e89a-4889-8b6d-aefb86faebae">
+        <pandora-nav id="e9fa1a01-64d9-403b-967c-7673bd21429b">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -531,6 +531,334 @@ var configObj = {
 
 var grid = window.grid = document.getElementById("grid");
 grid.config = configObj;</pre>
+                  <pre class="pandora-tab-view tab-css">efx-grid {
+  height: 208px;
+}</pre>
+                  <div class="pandora-console"></div>
+                </div>
+              </div>
+              <link rel="prefetch" href="../node_modules/tr-grid-test-resource-v6/dist/elf-halo-light.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-auto-tooltip/dist/tr-grid-auto-tooltip.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-cell-selection/dist/tr-grid-cell-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-checkbox/dist/tr-grid-checkbox.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/column-dragging/dist/column-dragging.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-fitter/dist/tr-grid-column-fitter.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-formatting/dist/tr-grid-column-formatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-grouping/dist/tr-grid-column-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-resizing/dist/tr-grid-column-resizing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-selection/dist/tr-grid-column-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-stack/dist/tr-grid-column-stack.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-conditional-coloring/dist/tr-grid-conditional-coloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-content-wrap/dist/tr-grid-content-wrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-contextmenu/dist/tr-grid-contextmenu.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-filter-input/dist/tr-grid-filter-input.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-heat-map/dist/tr-grid-heat-map.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-in-cell-editing/dist/tr-grid-in-cell-editing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-pagination/dist/tr-grid-pagination.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-percent-bar/dist/tr-grid-percent-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-range-bar/dist/tr-grid-range-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-dragging/dist/tr-grid-row-dragging.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-filtering/dist/tr-grid-row-filtering.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-grouping/dist/tr-grid-row-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/row-segmenting/dist/row-segmenting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-selection/dist/tr-grid-row-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-rowcoloring/dist/tr-grid-rowcoloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/statistics-row/dist/statistics-row.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-textformatting/dist/tr-grid-textformatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-titlewrap/dist/tr-grid-titlewrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
+            </div>
+            <h3 id="with-custom-tooltip">With Custom Tooltip</h3>
+            <p>If you want to use a customized tooltip for the range bar, you can use it with <code>disabled</code> the rangeBar default tooltip with option and adding a tooltip condition.<br>For adding condition of tooltip you can import <code>addConditionTooltip</code> from the tooltip dependency and use it with pass <code>condition</code> and <code>renderer</code> function, following in the example below.</p>
+
+            <div class="pandora-code-viewer" id="pid-42">
+              <div class="pandora-viewer">
+                <button>&lt;/&gt;</button>
+              </div>
+              <div class="pandora-code-view">
+                <div class="pandora-toolbar">
+                  <ul>
+                    <li class="pandora-tab-selected" data-toggle="tab-html">HTML</li>
+                    <li data-toggle="tab-js">JS</li>
+                    <li data-toggle="tab-css">CSS</li>
+                  </ul>
+                </div>
+                <div class="pandora-tab-container">
+                  <pre class="pandora-tab-view tab-html">&lt;efx-grid id="grid"&gt;
+
+&lt;/efx-grid&gt;</pre>
+                  <pre class="pandora-tab-view tab-js">var fields = ["id", "CFLOW", "CF_LAST", "CFHIGH", "percent"];
+var records = [];
+
+var rangeBarExt = new RangeBar();
+
+var id = 0;
+for (let i = -150; i &lt; 151; i += 10) {
+  records.push({
+    id: id++,
+    CFLOW: -100,
+    CF_LAST: i,
+    CFHIGH: 100,
+    percent: i
+  });
+}
+
+// N/A Case and without top value
+records.push({
+  id: records.length,
+  CFLOW: undefined,
+  CF_LAST: undefined,
+  CFHIGH: undefined,
+  percent: undefined
+});
+
+records.push({
+  id: records.length,
+  CFLOW: 1,
+  CF_LAST: undefined, // without middle value
+  CFHIGH: 50,
+  percent: undefined
+});
+
+records.push({
+  id: records.length,
+  CFLOW: undefined,
+  CF_LAST: 5,
+  CFHIGH: 50,
+  percent: 5
+});
+
+records.push({
+  id: records.length,
+  CFLOW: 3,
+  CF_LAST: 5,
+  CFHIGH: undefined,
+  percent: 5
+});
+
+records.push({
+  id: records.length,
+  CFLOW: undefined,
+  CF_LAST: 5,
+  CFHIGH: undefined,
+  percent: 5
+});
+
+// Low_value &lt;High_value
+records.push({
+  id: records.length,
+  CFLOW: 1,
+  CF_LAST: 50,
+  CFHIGH: 99,
+  percent: 50
+});
+
+records.push({
+  id: records.length,
+  CFLOW: 50,
+  CF_LAST: 1,
+  CFHIGH: 99,
+  percent: 1
+});
+
+records.push({
+  id: records.length,
+  CFLOW: 1,
+  CF_LAST: 99,
+  CFHIGH: 50,
+  percent: 99
+});
+
+// High&lt;Low
+records.push({
+  id: records.length,
+  CFLOW: 99,
+  CF_LAST: 50,
+  CFHIGH: 1,
+  percent: 50
+});
+
+records.push({
+  id: records.length,
+  CFLOW: 99,
+  CF_LAST: 1,
+  CFHIGH: 50,
+  percent: 1
+});
+
+records.push({
+  id: records.length,
+  CFLOW: 50,
+  CF_LAST: 99,
+  CFHIGH: 1,
+  percent: 99
+});
+
+// Two equal
+records.push({
+  id: records.length,
+  CFLOW: 1,
+  CF_LAST: 50,
+  CFHIGH: 1,
+  percent: 50
+});
+
+records.push({
+  id: records.length,
+  CFLOW: 50,
+  CF_LAST: 1,
+  CFHIGH: 50,
+  percent: 1
+});
+
+records.push({
+  id: records.length,
+  CFLOW: 1,
+  CF_LAST: 1,
+  CFHIGH: 50,
+  percent: 1
+});
+
+records.push({
+  id: records.length,
+  CFLOW: 50,
+  CF_LAST: 50,
+  CFHIGH: 1,
+  percent: 50
+});
+
+records.push({
+  id: records.length,
+  CFLOW: 50,
+  CF_LAST: 1,
+  CFHIGH: 1,
+  percent: 1
+});
+
+records.push({
+  id: records.length,
+  CFLOW: 1,
+  CF_LAST: 50,
+  CFHIGH: 50,
+  percent: 50
+});
+
+// Three equal 
+records.push({
+  id: records.length,
+  CFLOW: 1,
+  CF_LAST: 1,
+  CFHIGH: 1,
+  percent: 1
+});
+
+var configObj = {
+  scrollbar: true,
+  columns: [{
+      title: "ID",
+      field: fields[0],
+      width: 60
+    },
+    {
+      title: "Low",
+      field: fields[1],
+      width: 60
+    },
+    {
+      title: "Last",
+      field: fields[2],
+      width: 60
+    },
+    {
+      title: "High",
+      field: fields[3],
+      width: 60
+    },
+    {
+      title: "Range (Low, Last, High)",
+      field: fields[2],
+      alignment: "c",
+      rangeBar: {
+        low: "CFLOW",
+        high: "CFHIGH",
+        last: "CF_LAST"
+      }
+    },
+    {
+      title: "Percent",
+      field: fields[4],
+      width: 60
+    },
+    {
+      title: "Percent (Without low, last, high)",
+      field: fields[4],
+      rangeBar: {
+        field: fields[4]
+      }
+    },
+    {
+      title: "Percent (start 30, end 70)",
+      field: fields[4],
+      rangeBar: {
+        field: fields[4],
+        start: 30, // default 0
+        end: 70 // default 100
+      }
+    }
+  ],
+  staticDataRows: records,
+  extensions: [rangeBarExt]
+};
+
+var grid = window.grid = document.getElementById("grid");
+grid.config = configObj;
+
+// Create tooltip container section, we reused element for avoid create element multiple times
+// This container will be show the user
+var LEDTooltipUI = document.createElement("div");
+LEDTooltipUI.style.textTransform = "capitalize"; // To title case
+var keys = ["low", "last", "high"];
+for (var i = 0; i &lt; keys.length; i++) {
+  var key = keys[i];
+  var elem = document.createElement("div");
+  LEDTooltipUI[key] = elem;
+  LEDTooltipUI.appendChild(elem);
+}
+// End tooltip container creation
+
+// in application side need to import addTooltipCondition from tooltip component
+// For example import { addTooltipCondition } from "@elf/ef-tooltip"; // for elf v4
+// import { addTooltipCondition } from '@refinitiv-ui/elements/tooltip'; // for elf v6
+tr.addTooltipCondition(LEDGuageTooltipCondition, LEDGuageTooltipRenderer);
+
+function LEDGuageTooltipCondition(target, paths) {
+  var relPos = grid.api.getRelativePosition(target);
+  if (!relPos.hit) {
+    return false;
+  }
+  if (relPos.sectionType !== "content") {
+    return false;
+  }
+  if (rangeBarExt.isRangeBarColumn(relPos.colIndex)) {
+    LEDTooltipUI._relPos = relPos; // We need to cache the relative position in the container element for use when renderer in the tooltip to avoid calling getRelativePosition multiple times.
+    return true;
+  }
+  return false;
+}
+
+function LEDGuageTooltipRenderer(target) {
+  var relPos = LEDTooltipUI._relPos;
+  var colIndex = relPos.colIndex;
+  var lowLastHigh = rangeBarExt.getValue(colIndex, relPos["rowIndex"]);
+  if (lowLastHigh) {
+    // update value into tooltip UI
+    LEDTooltipUI["low"].textContent = "Low: " + (lowLastHigh["low"] != null ? lowLastHigh["low"] : "--");
+    LEDTooltipUI["last"].textContent = "Last: " + (lowLastHigh["last"] != null ? lowLastHigh["last"] : "--");
+    LEDTooltipUI["high"].textContent = "High: " + (lowLastHigh["high"] != null ? lowLastHigh["high"] : "--");
+  }
+  // else {} // Currenlty, we don't have the rangeBar field that can't getValue, even if the N/A case getValue will be return object (with undefiend value)
+  return LEDTooltipUI;
+}</pre>
                   <pre class="pandora-tab-view tab-css">efx-grid {
   height: 208px;
 }</pre>

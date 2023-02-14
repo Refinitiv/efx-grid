@@ -1349,6 +1349,10 @@ tr.grid.Scrollbar.prototype.getDefaultMouseWheelLogic = function () {
 * @param {Event} e
 */
 tr.grid.Scrollbar.prototype._onMouseWheel = function (e) {
+	// Blacklist for prevent triggering the scrollbar when the dialog is opened.
+	if(e.target.opened) { // get attribute method doesn't work in elf element
+		return;
+	}
 	if (this._isFrozen) {
 		tr._preventDefault(e);
 		return;
