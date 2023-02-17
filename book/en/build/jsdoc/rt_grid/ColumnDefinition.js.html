@@ -129,14 +129,13 @@ var _toAlignment = function(str) {
 };
 
 /** @constructor
-* @param {ColumnDefinition~Options|string=} columnOption
+* @param {ColumnDefinition~Options=} columnOption
 * @param {*=} hostGrid
 */
 var ColumnDefinition = function(columnOption, hostGrid) {
 	this._defaultRenderer = this._defaultRenderer.bind(this);
 	this._customRenderer = this._customRenderer.bind(this);
 
-	this._id = "" + ColumnDefinition._runningId++;
 	this._internalRenderer = this._defaultRenderer;
 	this._internalSorter = this._defaultSorter;
 
@@ -161,16 +160,8 @@ var ColumnDefinition = function(columnOption, hostGrid) {
 
 };
 //#region Private Members
-/** @type {string}
-* @private
-*/
-ColumnDefinition.prototype._id;
-/** @type {number}
-* @private
-*/
-ColumnDefinition._runningId = 1;
-
-/** @type {string}
+/** This is used as a cache for better performance. The actual field is stored in the core
+* @type {string}
 * @private
 */
 ColumnDefinition.prototype._field = "";
@@ -185,11 +176,11 @@ ColumnDefinition.prototype._name = "";
 /** @type {boolean}
 * @private
 */
-ColumnDefinition.prototype._isDefaultName = true;
+ColumnDefinition.prototype._defaultName = true;
 /** @type {boolean}
 * @private
 */
-ColumnDefinition.prototype._emptyField = false;
+ColumnDefinition.prototype._defaultField = true;
 /** @type {string|null}
 * @private
 */
@@ -288,6 +279,10 @@ ColumnDefinition.prototype._children = null;
 * @private
 */
 ColumnDefinition.prototype._info = null;
+/** @type {Object}
+* @private
+*/
+ColumnDefinition.prototype._coreColDef = null;
 //#endregion Private Members
 
 
@@ -295,6 +290,7 @@ ColumnDefinition.prototype._info = null;
 */
 ColumnDefinition.prototype.dispose = function() {
 	this._eventArg = {}; // Clear all references
+	this._coreColDef = null;
 	this._activatedRenderer = this._rendererMap = null;
 	this.setRenderer(null); // this._userRenderers are removed
 	this.setSorter(null);
@@ -314,25 +310,19 @@ ColumnDefinition.prototype._initializeTimeSeriesChild = function(columnOption) {
 	this.initialize(columnOption);
 };
 /** @public
-* @param {ColumnDefinition~Options|string=} columnOption
+* @param {ColumnDefinition~Options=} columnOption
 */
 ColumnDefinition.prototype.initialize = function(columnOption) {
-	var field = "";
-	if(typeof columnOption === "string") {
-		field = columnOption;
-		columnOption = FieldDefinition.get(field) || null;
-	}
-
 	if(!columnOption) {
-		this._setField(field);
 		return;
 	}
 
-	var i, len, key;
+	var i, len, key, val;
 	//#region Apply pre-defined option
-	field = columnOption["field"];
+	var field = columnOption["field"]; // Field could be null or undefined here
 	var defaultOption = FieldDefinition.get(field);
 	if(defaultOption &amp;&amp; defaultOption !== columnOption) { // The column match the default field list
+		// WARNING: This changes reference of the user object. Any new property added won't affect anything outside of this method
 		var userOption = columnOption;
 		columnOption = {}; // Create a new object for cloning process
 
@@ -345,12 +335,6 @@ ColumnDefinition.prototype.initialize = function(columnOption) {
 		}
 	}
 	//#endregion Apply pre-defined option
-
-	var val;
-	val = columnOption["id"];
-	if(val) {
-		this._id = val + "";
-	}
 
 	val = columnOption["formulaEngine"];
 	if(val &amp;&amp; val["addFormula"]) {
@@ -375,7 +359,7 @@ ColumnDefinition.prototype.initialize = function(columnOption) {
 	val = columnOption["name"] || columnOption["title"]; // title is migrated from Composite Grid
 	if(val != null) { // Name can be empty string
 		this._name = val;
-		this._isDefaultName = false;
+		this._defaultName = false;
 	}
 
 	val = columnOption["dataType"];
@@ -464,14 +448,17 @@ ColumnDefinition.prototype.initialize = function(columnOption) {
 		this._info = val;
 	}
 
-	this._userModel = columnOption;
+	this._userModel = columnOption; // WARNING: This may not actually the user object
 };
 
 /** @public
 * @return {string}
 */
 ColumnDefinition.prototype.getId = function() {
-	return this._id;
+	if(this._coreColDef) {
+		return this._coreColDef["id"] || "";
+	}
+	return "";
 };
 /** @public
 * @return {!Array.&lt;string&gt;}
@@ -502,19 +489,25 @@ ColumnDefinition.prototype.getHeaderRenderer = function() {
 * @return {string}
 */
 ColumnDefinition.prototype.getName = function() {
+	if(this._defaultName) {
+		if(this._defaultField) {
+			return "Column " + this.getId();
+		}
+		return this.getField();
+	}
 	return this._name;
 };
 /** @public
 * @return {boolean}
 */
 ColumnDefinition.prototype.isDefaultName = function() {
-	return this._isDefaultName;
+	return this._defaultName;
 };
 /** @public
 * @return {string}
 */
 ColumnDefinition.prototype.getFieldDefinition = function () {
-	return FieldDefinition.get(this._field);
+	return FieldDefinition.get(this.getField());
 };
 /** get realtime field data type
 * @public
@@ -576,12 +569,14 @@ ColumnDefinition.prototype.getTooltip = function() {
 		}
 	}
 
-	if(this._name) {
-		return this._name;
+	var name = this.getName();
+	if(name) {
+		return name;
 	}
 
-	if(this._field) {
-		return this._field;
+	var field = this.getField();
+	if(field) {
+		return field;
 	}
 
 	return "";
@@ -590,25 +585,32 @@ ColumnDefinition.prototype.getTooltip = function() {
 * @return {string}
 */
 ColumnDefinition.prototype.getField = function() {
-	return this._field;
+	if(this._coreColDef) {
+		return this._coreColDef["field"] || "";
+	}
+	return "";
 };
 /** @public
 * @return {!Array.&lt;string&gt;}
 */
 ColumnDefinition.prototype.getAllFields = function() {
-	return this._requiredFields.concat(this._field);
+	var field = this.getField();
+	if(field) {
+		return this._requiredFields.concat(field);
+	}
+	return this._requiredFields.slice();
 };
 /** @public
 * @return {boolean}
 */
 ColumnDefinition.prototype.isRealTimeField = function() {
-	return FieldDefinition.isRealTimeField(this._field);
+	return FieldDefinition.isRealTimeField(this.getField());
 };
 /** @public
 * @return {boolean}
 */
 ColumnDefinition.prototype.isTimeSeries = function() {
-	return FieldDefinition.isTimeSeries(this._field);
+	return FieldDefinition.isTimeSeries(this.getField());
 };
 /** @public
 * @return {boolean}
@@ -713,7 +715,7 @@ ColumnDefinition.prototype.getTextAlign = function() {
 * @return {boolean}
 */
 ColumnDefinition.prototype.isFieldEmpty = function() {
-	return this._emptyField;
+	return !this.getField();
 };
 
 /** @public
@@ -739,8 +741,13 @@ ColumnDefinition.prototype.getConfigObject = function(colOptions) {
 		obj["info"] = this._info;
 	}
 
-	if(this._field !== "" &amp;&amp; !this._field.match(/^COLUMN_/)) {
-		obj["field"] = this._field;
+	if(obj["field"] == null) {
+		if(!this._defaultField) {
+			var field = this.getField();
+			if(field) {
+				obj["field"] = field;
+			}
+		}
 	}
 
 	var value = this.getDataType();
@@ -752,16 +759,16 @@ ColumnDefinition.prototype.getConfigObject = function(colOptions) {
 		obj["formulaReference"] = this._formulaRef;
 	}
 
-	if(this._requiredFields) {
+	if(this._requiredFields &amp;&amp; this._requiredFields.length) {
 		obj["require"] = this._requiredFields;
 	}
 
-	if(this._name) {
-		obj["name"] = this._name;
+	if(!this._defaultName) {
+		obj["name"] = this.getName();
 	}
 
 	// The 'IsRealtimeField' property will only be set if the user sets 'notRealTimeField' in the column options. It will be returned if the user has this option enabled, otherwise it will not be returned
-	value = FieldDefinition.getFieldProperty(this._field, "IsRealtimeField") === false;
+	value = FieldDefinition.getFieldProperty(this.getField(), "IsRealtimeField") === false;
 	if(value) {
 		obj["notRealTimeField"] = value;
 	}
@@ -884,8 +891,6 @@ ColumnDefinition.prototype.setRenderer = function(func) {
 ColumnDefinition.prototype.getParent = function() {
 	return this._parent;
 };
-
-
 /**
 * @private
 * @param {ColumnDefinition} parentDef
@@ -902,8 +907,6 @@ ColumnDefinition.prototype._setParent = function(parentDef) {
 	}
 	return false;
 };
-
-
 /**
 * @public
 * @return {Array.&lt;ColumnDefinition&gt;}
@@ -911,7 +914,6 @@ ColumnDefinition.prototype._setParent = function(parentDef) {
 ColumnDefinition.prototype.getChildren = function() {
 	return this._children;
 };
-
 /**
 * @private
 * @param {string} colDef Child column definition
@@ -984,7 +986,7 @@ ColumnDefinition.prototype.setSorter = function(func) {
 */
 ColumnDefinition.prototype.isRowSorting = function() {
 	if(this._rowSorting == null) {
-		return !FieldDefinition.getFieldProperty(this._field, "IsRealtimeField");
+		return !FieldDefinition.getFieldProperty(this.getField(), "IsRealtimeField");
 	}
 	return this._rowSorting ? true : false;
 };
@@ -1002,7 +1004,7 @@ ColumnDefinition.prototype.isAutoGenerated = function() {
 */
 ColumnDefinition.prototype.setName = function(str) {
 	this._name = str;
-	this._isDefaultName = false;
+	this._defaultName = false;
 };
 
 /** @private
@@ -1010,14 +1012,14 @@ ColumnDefinition.prototype.setName = function(str) {
 * @param {ColumnDefinition~Options=} columnOption
 */
 ColumnDefinition.prototype._setField = function(field, columnOption) {
-	var defaultField = (field == null); // undefined or null
+	this._defaultField = (field == null); // undefined or null
 	if(!field) {
 		field = "";
 	}
 	// Trim white spaces -- equivalent to String.trim(), which is not support in IE8
 	field = field.replace(/^\s+|\s+$/gm, "");
 
-	var formulaStr = columnOption["formula"];
+	var formulaStr = columnOption ? columnOption["formula"] : "";
 	if(this._fnEngine) {
 		var uppercasedF = field.toUpperCase(); // For comparison only
 		var predefinedF = formulaStr || PredefinedFormula.get(uppercasedF);
@@ -1037,24 +1039,15 @@ ColumnDefinition.prototype._setField = function(field, columnOption) {
 		}
 	}
 
-	if(defaultField) {
-		this._field = "COLUMN_" + this._id;
-		this._name = "Column " + this._id;
-		this._emptyField = true;
-	} else {
-		this._field = field;
-		this._name = field;
-		this._emptyField = false;
-	}
+	this._field = field; // WARNING: This could be out of sync with core. It is used as a cache for better performance
 
 	// We need to cache time series in field definition for improve performance of checking methond
 	FieldDefinition.setFieldProperty(field, "timeSeries", FieldDefinition.isTimeSeries(field) ? true : false);
 
-	if(columnOption["parent"]) {
+	if(columnOption &amp;&amp; columnOption["parent"]) {
 		FieldDefinition.setFieldProperty(field, "timeSeriesChild", true);
 	}
 
-	this._isDefaultName = true;
 	this._updateContext("field", field);
 	if(this.isRealTimeField()) { // Only realtime field will have a formatted field
 		this._updateContext("formattedField", field + "_FORMATTED");
@@ -1158,6 +1151,14 @@ ColumnDefinition.prototype.setColumnInfo = function(obj) {
 */
 ColumnDefinition.prototype.getColumnInfo = function() {
 	return this._info;
+};
+
+/** @public
+* @ignore
+* @param {Object} obj
+*/
+ColumnDefinition.prototype._setCoreColumnDef = function(obj) {
+	this._coreColDef = obj || null;
 };
 
 

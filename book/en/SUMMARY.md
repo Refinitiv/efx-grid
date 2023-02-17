@@ -125,6 +125,7 @@
 	- [Updating Data](data/update.md)
 	- [Deleting Data](data/delete.md)
 	- [Data Conversion](data/data-conversion.md)
+	- [Columns and Data](data/columns-and-data.md)
 
 - Columns
 	- [Column Resetting](columns/column-resetting.md)

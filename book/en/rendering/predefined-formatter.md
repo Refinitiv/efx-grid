@@ -5,8 +5,8 @@
 Use `import` syntax to import the formatter into your app.
 
 ```js
-import EFButtonFormatter from "@refinitiv-ui/efx-grid/formatters/EFButtonFormatter";
-import EFSelectFormatter from "@refinitiv-ui/efx-grid/formatters/EFSelectFormatter";
+import { EFButtonFormatter } from "@refinitiv-ui/efx-grid/formatters/EFButtonFormatter";
+import { EFSelectFormatter } from "@refinitiv-ui/efx-grid/formatters/EFSelectFormatter";
 ```
 
 ## The basics

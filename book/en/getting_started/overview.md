@@ -15,7 +15,7 @@ EFX Grid is a [custom element](https://developer.mozilla.org/en-US/docs/Web/Web_
 </body>
 ```
 
-> For more available properties in EFX Grid element, see [Columns and Data Properties](./data/columns-and-data.html).
+> For more available properties in EFX Grid element, see [Columns and Data Properties](../data/columns-and-data.html).
 
 ## Grid APIs
 
@@ -35,7 +35,7 @@ grid.addEventListener("configured", function (e) {
 console.log(grid.api); // api instance will not be available immediately after configuration is set.
 ```
 
-> The document for the API instance can be found in the [Grid APIs page](./apis/rt_grid/Grid.html).
+> The document for the API instance can be found in the [Grid APIs page](../apis/rt_grid/Grid.html).
 
 ## Core Grid
 
@@ -51,7 +51,7 @@ grid.addEventListener("configured", function (e) {
 });
 ```
 
-> The document for the Core Grid can be found in the [Core APIs page](./apis/core/Grid.html).
+> The document for the Core Grid can be found in the [Core APIs page](../apis/core/Grid.html).
 
 ## Example
 

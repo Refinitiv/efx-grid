@@ -110,6 +110,7 @@ import { ElementWrapper } from "../../node_modules/@grid/core/es6/grid/component
 * @property {number=} adcPollingInterval=0 Length of polling interval for refreshing ADC data in milliseconds. The default value (0) means no polling.
 * @property {boolean=} fieldCaching=false If enabled, field definition will be caching internal mechanism
 * @property {string=} childDataField=CHILD_VALUES The given field will be used to store children's static data, such as row color assignment.
+* @property {boolean=} topSection=true If disabled, title section will not be rendered
 */
 
 /** @typedef {number|string|RowDefinition} Grid~RowReference
@@ -257,26 +258,6 @@ var compareNumber = function(rowDefA, rowDefB, sortOrder, fieldName) { // edit n
 * @param {ColumnDefinition} colDef
 * @return {string}
 */
-var _getId = function(colDef) {
-	if(colDef) {
-		return colDef.getId();
-	}
-	return "";
-};
-/** @private
-* @param {ColumnDefinition} colDef
-* @return {string}
-*/
-var _getField = function(colDef) {
-	if(colDef) {
-		return colDef.getField();
-	}
-	return "";
-};
-/** @private
-* @param {ColumnDefinition} colDef
-* @return {string}
-*/
 var _getName = function(colDef) {
 	if(colDef) {
 		return colDef.getName();
@@ -360,6 +341,9 @@ var Grid = function(placeholder, config) {
 		}
 		if(config["SortableTitle"]) { // Exception for built-in plugin
 			t._stp = config["SortableTitle"];
+		}
+		if(config["topSection"] === false) {
+			t._topSection = false;
 		}
 	}
 	if(!t._sharedDataSource) {
@@ -575,7 +559,10 @@ Grid.prototype._fieldCaching = false;
 * @private
 */
 Grid.prototype._childDataField = "";
-
+/** @type {boolean}
+* @private
+*/
+Grid.prototype._topSection = true;
 
 /** @public
 */
@@ -690,7 +677,11 @@ Grid.prototype.updateRowData = Grid.prototype._updateRowData;
  */
 Grid.prototype._addGridSections = function () {
 	var title = this._grid.addSection("title");
-	title.setRowCount(1);
+	if(this._topSection == false){
+		title.setRowCount(0);
+	} else {
+		title.setRowCount(1);
+	}
 	this._grid.addSection("content");
 
 	var titleSettings = this._grid.getSectionSettings("title");
@@ -1642,9 +1633,12 @@ Grid.prototype.setFields = Grid.prototype.setColumns;
 * @param {Object} e
 */
 Grid.prototype._onColumnAdded = function(e) {
-	var colDef = e.context[COL_DEF];
+	var colDef = /** @type{ColumnDefinition} */(e.context[COL_DEF]);
 	delete e.context[COL_DEF];
 	var idx = e.colIndex;
+
+	var coreColDef = this._grid._getColumnDef(idx);
+	colDef._setCoreColumnDef(coreColDef); // For column id and field
 
 	var colData = this._grid.getColumnData(idx);
 	if(!colData) { // Save column inside grid
@@ -1872,102 +1866,16 @@ Grid.prototype.moveColumn = function (fromColIndex, toColIndex) {
 * grid.moveColumnById("sourceColumnId", ""); // move to the last position
 */
 Grid.prototype.moveColumnById = function (srcCol, destCol) {
-	var colCount = this.getColumnCount();
-	var srcIndex = this.getColumnIndex(srcCol);
-	if(srcIndex &lt; 0 || srcIndex &gt;= colCount) {
-		return false;
-	}
-	var destIndex = this.getColumnIndex(destCol);
-	if(destIndex &lt; 0) {
-		destIndex = colCount;
-	}
-	return this._moveColumnByIndex(srcIndex, destIndex);
-};
-/** Move column without verification for better performance
-* @private
-* @param {number} srcIndex Column index
-* @param {number} destIndex Column index of the destination
-* @return {boolean} Return true if there is any change, and false otherwise
-*/
-Grid.prototype._moveColumnByIndex = function (srcIndex, destIndex) {
-	if(srcIndex &lt; destIndex) { // Ensure that the source column is put in front of the destination index
-		--destIndex;
-	}
-	if(srcIndex === destIndex) {
-		return false;
-	}
-	return this.moveColumn(srcIndex, destIndex);
+	return this._grid.moveColumnById(srcCol, destCol);
 };
 
 /** @public
 * @param {number|string|Array.&lt;number|string&gt;} colRefs List of column index or column id to be moved
-* @param {number|string} destCol Destination position where the moved columns will be placed BEFORE the specified position. This can be column id or index
+* @param {(number|string)=} destCol Destination position where the moved columns will be placed BEFORE the specified position. This can be column id or index
 * @return {boolean} Return true if there is any change, and false otherwise
 */
 Grid.prototype.reorderColumns = function (colRefs, destCol) {
-	var destId = (typeof destCol === "number") ? this.getColumnId(destCol) : destCol;
-
-	if(Array.isArray(colRefs)) {
-		var srcLen = colRefs.length;
-		if(srcLen &gt; 1) {
-			var colIds = this.getColumnIds();
-			var colCount = colIds.length;
-			var srcIds = [];
-			var invalidDest = false;
-			var i, srcId, srcIdx;
-			for(i = 0; i &lt; srcLen; ++i) {
-				var colRef = colRefs[i];
-				if(typeof colRef === "number") {
-					srcIdx = colRef;
-					srcId = colIds[colRef] || "";
-				} else {
-					srcId = colRef;
-					srcIdx = colIds.indexOf(srcId);
-				}
-				if(srcId &amp;&amp; srcIdx &gt;= 0) {
-					srcIds.push(srcId);
-					if(destId === srcId) {
-						invalidDest = true; // Destination must not exist in source columns
-					}
-				}
-			}
-
-			var destIdx;
-			srcLen = srcIds.length;
-			if(invalidDest) { // Find the next valid destination where it is not contained in the source columns
-				destIdx = this.getColumnIndex(destId);
-				if(destIdx &gt;= 0) {
-					while(++destIdx &lt; colCount) {
-						destId = colIds[destIdx];
-						if(srcIds.indexOf(destId) &lt; 0) {
-							break;
-						}
-					}
-				}
-				if(destIdx &lt; 0 || destIdx &gt;= colCount) {
-					destId = "";
-				}
-			}
-
-			var dirty = 0;
-			for(i = srcLen; --i &gt;= 0;) {
-				srcId = srcIds[i]; // Only valid source columns are left at this point
-				srcIdx = this.getColumnIndex(srcId);
-				destIdx = this.getColumnIndex(destId);
-				if(destIdx &lt; 0) { // Insert to the back when id is not found
-					destIdx = colCount;
-				}
-				dirty |= this._moveColumnByIndex(srcIdx, destIdx);
-				destId = srcId;
-			}
-			return dirty ? true : false;
-		} else {
-			return this.moveColumnById(colRefs[0], destId);
-		}
-	}
-
-	// colRefs will be a number or string
-	return this.moveColumnById(colRefs, destId);
+	return this._grid.reorderColumns(colRefs, destCol);
 };
 
 /** The hidden column still occupies the same index.
@@ -3006,30 +2914,19 @@ Grid.prototype._getRowId = function(rowRef) {
 * @return {number}
 */
 Grid.prototype.getColumnIndex = function(colRef) {
-	if(typeof colRef === "number") {
-		return colRef;
-	}
-
 	if(colRef) {
 		var colCount = this.getColumnCount();
-		var i, colDef;
 		if(colRef instanceof ColumnDefinition) {
-			for(i = 0; i &lt; colCount; ++i) {
-				colDef = this.getColumnDefinition(i);
+			for(var i = 0; i &lt; colCount; ++i) {
+				var colDef = this.getColumnDefinition(i);
 				if(colDef === colRef) {
 					return i;
 				}
 			}
-		} else if(typeof colRef === "string") {
-			for(i = 0; i &lt; colCount; ++i) {
-				colDef = this.getColumnDefinition(i);
-				if(_hasFieldOrId(colDef, colRef)) {
-					return i; // Return the first found field
-				}
-			}
+			return -1;
 		}
 	}
-	return -1;
+	return this._grid.getColumnIndex(colRef);
 };
 /** Any invalid column reference will be excluded from the output array
 * @public
@@ -3045,7 +2942,7 @@ Grid.prototype.getColumnIndices = function(colRefs) {
 	for(var i = 0; i &lt; len; ++i) {
 		var colIndex = this.getColumnIndex(inputAry[i]);
 		if(colIndex &gt;= 0 &amp;&amp; colIndex &lt; colCount) {
-			ary.push(colIndex); // WARNING: We have not check for duplication
+			ary.push(colIndex); // WARNING: We have not checked for duplication
 		}
 	}
 	return ary;
@@ -3057,14 +2954,14 @@ Grid.prototype.getColumnIndices = function(colRefs) {
 * @see {@link Grid#getColumnDefinition}
 */
 Grid.prototype.getColumnId = function(colIndex) {
-	return _getId(this.getColumnDefinition(colIndex));
+	return this._grid.getColumnId(colIndex);
 };
 /** Get ids from each column definition.
 * @public
 * @return {!Array.&lt;string&gt;} New array is created
 */
 Grid.prototype.getColumnIds = function() {
-	return this.getColumnDefinitions().map(_getId);
+	return this._grid.getColumnIds();
 };
 /** Return field defined in the column definition
 * @public
@@ -3073,14 +2970,14 @@ Grid.prototype.getColumnIds = function() {
 * @see {@link Grid#getColumnDefinition}
 */
 Grid.prototype.getColumnField = function(colIndex) {
-	return _getField(this.getColumnDefinition(colIndex));
+	return this._grid.getColumnField(colIndex);
 };
 /** Get fields from each column definition. Note that this does not include any required field or data fields. Duplicates may exist.
 * @public
 * @return {!Array.&lt;string&gt;} New array is created
 */
 Grid.prototype.getColumnFields = function() {
-	return this.getColumnDefinitions().map(_getField);
+	return this._grid.getColumnFields();
 };
 /** Get column name from each column definition. Note that this does not include any required field or data fields. Duplicates may exist.
 * @public
@@ -3538,6 +3435,32 @@ Grid.prototype.setClassification = function(rowRef, fields) {
 	return false;
 };
 
+/** Check element in the grid element
+ * @public
+ * @param {Element} elem
+ * @return {boolean}=true if an element from the parameter is inside a grid element
+ */
+Grid.prototype.contains = function(elem) {
+	if(elem) {
+		// This will impact the contents within the rt-grid element, but not those outside of it, such as the wrapper elements efx-grid and emerald-grid.
+		return this._topNode.contains(elem);
+	}
+	return false;
+};
+
+/** Check grid element is focused
+ * @public
+ * @return {boolean}
+ */
+Grid.prototype.isFocused = function() {
+	var activeElement = document.activeElement;
+	if(!activeElement || !activeElement.shadowRoot) {
+		// active element is not in the shadow DOM. try using contains method to check
+		return this.contains(activeElement);
+	}
+ 	// For wrapper scenarios, such as efx-grid or efx-grid
+	return  activeElement.shadowRoot === this._topNode.parentNode;
+};
 /** @description Focus grid element without moving window scrollbar
  * @public
  */
