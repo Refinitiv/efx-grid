@@ -115,6 +115,7 @@ The Select All (Check All) action will only perform `checked` to the data on the
 
 	var grid = document.getElementById("grid");
 	grid.config = configObj;
+</script>
 ```
 
 ```js

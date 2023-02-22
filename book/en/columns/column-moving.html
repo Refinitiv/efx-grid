@@ -29,7 +29,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="6d6fceb0-1b7c-43ed-8741-7290c4064eac">
+        <pandora-nav id="b76bb8d5-5d31-4591-9d2c-17d3dc1f9ad1">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -285,10 +285,9 @@
             <h1 id="column-moving"><a href="https://refinitiv.github.io/efx-grid/book/en/columns/column-moving.html" target="_top" class="link-icon"></a> Column Moving</h1>
             <h2 id="drag-and-drop">Drag and drop</h2>
             <p>The ability of drag and drop column is enabled by default. But it can be turned off by setting <code>noColumnDragging</code> to <em>true</em>. The default value is <em>false</em>. </p>
-            <h3 id="example">Example</h3>
-            <h4 id="enabled-default-">Enabled (default)</h4>
+            <h3 id="drag-and-drop-to-move-a-column-example-default-">Drag and drop to move a column example (default)</h3>
 
-            <div class="pandora-code-viewer" id="pid-120">
+            <div class="pandora-code-viewer" id="pid-122">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -355,9 +354,9 @@ grid.config = configObj;</pre>
               <link rel="prefetch" href="../node_modules/tr-grid-titlewrap/dist/tr-grid-titlewrap.min.js" type="script">
               <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
             </div>
-            <h4 id="disabled">Disabled</h4>
+            <h3 id="disabled-drag-and-drop-example">Disabled drag and drop example</h3>
 
-            <div class="pandora-code-viewer" id="pid-121">
+            <div class="pandora-code-viewer" id="pid-123">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -425,11 +424,13 @@ grid.config = configObj;</pre>
               <link rel="prefetch" href="../node_modules/tr-grid-titlewrap/dist/tr-grid-titlewrap.min.js" type="script">
               <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
             </div>
-            <h2 id="api">API</h2>
-            <p>Columns can be moved using the <code>grid.api.moveColumn(from, to)</code> API, which allows you to specify a column index or an array of column indices to be moved, and the target index position. See <a href="../apis/rt_grid/Grid.html">APIs</a> for more details of <code>moveColumn</code> API.</p>
+            <h2 id="using-apis-to-move-a-column">Using APIs to move a column</h2>
+            <p>Columns can be moved using the <code>grid.api.moveColumnById(sourceColumn, destinationPosition)</code> API, which allows you to move specified column by index or id to the position before the specified destination. If the specified destination is invalid or doesnot exist, the column will be moved to the end of Grid.</p>
+            <p>To move multiple columns at once, use <code>reorderColumns</code> API. </p>
+            <p>See <a href="../apis/rt_grid/Grid.html">available APIs</a> for more details.</p>
             <h3 id="example">Example</h3>
 
-            <div class="pandora-code-viewer" id="pid-122">
+            <div class="pandora-code-viewer" id="pid-124">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -442,37 +443,75 @@ grid.config = configObj;</pre>
                   </ul>
                 </div>
                 <div class="pandora-tab-container">
-                  <pre class="pandora-tab-view tab-html">&lt;button id="move_1"&gt;Move Index 0 -&amp;gt; 2&lt;/button&gt;
-&lt;button id="move_2"&gt;Move Index 3,4 -&amp;gt; 1&lt;/button&gt;
-&lt;br&gt;
+                  <pre class="pandora-tab-view tab-html">&lt;big&gt;Move&lt;/big&gt;
+&lt;select id="source_sel"&gt;&lt;/select&gt;
+&lt;big&gt;to the position before&lt;/big&gt;
+&lt;div id="destination_div"&gt;&lt;/div&gt;
+&lt;hr&gt;
 &lt;efx-grid id="grid"&gt;&lt;/efx-grid&gt;</pre>
                   <pre class="pandora-tab-view tab-js">var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
+var colNames = ["Company", "Market", "Last", "Net. Chng", "Industry"];
+var columns = fields.map(function(f, idx) {
+  var colName = colNames[idx];
+  var colId = "c" + idx;
+  return {
+    id: colId,
+    field: f,
+    name: colName
+  };
+});
+columns[1].width = 100;
+columns[2].width = 80;
+columns[3].width = 80;
+
+columns.forEach(function(col, idx) {
+  var opt = document.createElement("option");
+  opt.value = col.id;
+  opt.textContent = col.name + " column";
+  if (col.name === "Industry") {
+    opt.selected = true;
+  }
+  source_sel.appendChild(opt);
+
+  var btn = document.createElement("button");
+  btn.colId = col.id;
+  btn.textContent = col.name;
+  btn.addEventListener("click", onClickMoveBtn);
+  destination_div.appendChild(btn);
+});
+
+var lastBtn = document.createElement("button");
+lastBtn.textContent = "End of Grid";
+lastBtn.addEventListener("click", onClickMoveBtn);
+destination_div.appendChild(lastBtn);
+
+function onClickMoveBtn(e) {
+  var btn = e.currentTarget;
+  var destId = btn.colId;
+
+  var sourceOpt = source_sel.selectedOptions[0];
+  var srcId = sourceOpt.value;
+  grid.api.moveColumnById(srcId, destId);
+}
+
 var records = DataGenerator.generateRecords(fields, { numRows: 5 });
 var configObj = {
-  columns: [
-    { name: "Company", field: fields[0] },
-    { name: "Market", field: fields[1], width: 100 },
-    { name: "Last", field: fields[2], width: 80 },
-    { name: "Net. Chng", field: fields[3], width: 80 },
-    { name: "Industry", field: fields[4] }
-  ],
-  dataModel: {
-    data: records
-  }
+  columns: columns,
+  staticDataRows: records
 };
 
 var grid = document.getElementById("grid");
-grid.config = configObj;
-
-document.getElementById('move_1').addEventListener('click', function() {
-  grid.api.moveColumn(0, 2);
-});
-
-document.getElementById('move_2').addEventListener('click', function() {
-  grid.api.moveColumn([3, 4], 1);
-});</pre>
+grid.config = configObj;</pre>
                   <pre class="pandora-tab-view tab-css">efx-grid {
   height: 200px;
+}
+
+html hr {
+  margin: 5px;
+}
+
+button {
+  margin: 2px;
 }</pre>
                   <div class="pandora-console"></div>
                 </div>
@@ -508,11 +547,11 @@ document.getElementById('move_2').addEventListener('click', function() {
               <link rel="prefetch" href="../node_modules/tr-grid-titlewrap/dist/tr-grid-titlewrap.min.js" type="script">
               <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
             </div>
-            <h2 id="colum-move-prevention">Colum move prevention</h2>
-            <p>By setting a column to be a stationary column, all previous columns on the left (up to the stationary column) will be locked in position. A column can be added to or removed from the locked panel but still not be able to switch positions. All columns will be able to change their position only when the stationary column is unmarked. See <a href="../apis/rt_grid/ColumnDefinition.html">Column Definition</a> for more details of column options.</p>
+            <h2 id="preventing-a-column-from-moving">Preventing a column from moving</h2>
+            <p>By marking a column to be a <code>stationary</code> column, any column on the left and the stationary column will be locked in the position (i.e., columns cannot be moved). A column can still be added to or removed from the stationary section. Once stationary column is removed or unmarked as <code>stationary</code>, the columns in the section will be free to be moved. See <a href="../apis/rt_grid/ColumnDefinition.html">Column Definition</a> for more details of column options.</p>
             <h3 id="example">Example</h3>
 
-            <div class="pandora-code-viewer" id="pid-123">
+            <div class="pandora-code-viewer" id="pid-125">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -580,6 +619,7 @@ grid.config = configObj;</pre>
               <link rel="prefetch" href="../node_modules/tr-grid-titlewrap/dist/tr-grid-titlewrap.min.js" type="script">
               <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
             </div>
+            <h2 id="___">___</h2>
           </pandora-page>
           <div class="results"></div>
         </div>

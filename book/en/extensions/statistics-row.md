@@ -86,6 +86,8 @@ The Statistics Row Extension provides special rows to show various statistics fo
 
 	var grid = document.getElementById("grid");
 	grid.config = configObj;
+
+</script>
 ```
 
 ### Installation and importing to your project
@@ -117,10 +119,10 @@ statisticsRow: {
 		{statistic: "Average"},
 		{statistic: "sum", placement: "header"},
 		{statistic: "MyCustomStat"} // You will need to calculate the value in postCalculation event by yourself
-	]
+	],
 	postCalculation: function(e) {
 		// your custom logic
-	},
+	}
 },
 //...
 ```

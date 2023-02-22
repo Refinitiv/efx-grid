@@ -72,7 +72,6 @@ Installation examples and details of how to import the extension to a project ar
 
 ```js
 var gridConfig = {
-	...
 	columns: [
 		{ id: "c1", title: "Column 1" },
 		{ id: "c2", title: "Column 2" },
@@ -83,15 +82,13 @@ var gridConfig = {
 		{ id: "g1", title: "Group 1", children: ["c1", "c2"] },
 		{ id: "g2", title: "Group 2", children: ["c3"] },
 		{ id: "g3", title: "Group 3", children: ["c4", "g1", "g2"] },
-	],
-	...
+	]
 }
 ```
 You can also assign a nested `columnGrouping` object in the children.
 
 ```js
 var gridConfig = {
-	...
 	columns: [
 		{ id: "c1", title: "Column 1" },
 		{ id: "c2", title: "Column 2" },
@@ -106,8 +103,7 @@ var gridConfig = {
 				{ id: "g1", title: "Group 1", children: ["c1", "c2"] },
 			]
 		},
-	],
-	...
+	]
 }
 ```
 
@@ -117,7 +113,6 @@ To custom render the group header, you can pass the `render` configuration as a 
 
 ```js
 var gridConfig = {
-	...
 	columns: [
 		{ id: "c1", title: "Column 1" },
 		{ id: "c2", title: "Column 2" },
@@ -135,8 +130,7 @@ var gridConfig = {
 		},
 		{ id: "g2", title: "Group 2", children: ["c3"] },
 		{ id: "g3", title: "Group 3", children: ["c4", "g1", "g2"] },
-	],
-	...
+	]
 }
 ```
 
@@ -152,7 +146,6 @@ The differences between the legacy (built-in) version of column grouping and the
 
 ```js
 var gridConfig = {
-	...
 	columns: [
 		{ id: "c1", title: "Column 1", columnGroup: "g1" },
 		{ id: "c2", title: "Column 2", columnGroup: "g1" },
@@ -170,8 +163,7 @@ var gridConfig = {
 				}
 			}
 		},
-	],
-	...
+	]
 }
 ```
 As seen above, in the legacy version of Column Grouping you needed to specify the mandatory options in both `columns` and `columnGroups`, which can be confusing.
@@ -180,7 +172,6 @@ As seen above, in the legacy version of Column Grouping you needed to specify th
 
 ```js
 var gridConfig = {
-	...
 	columns: [
 		{ id: "c1", title: "Column 1" },
 		{ id: "c2", title: "Column 2" },
@@ -198,8 +189,7 @@ var gridConfig = {
 				e.cell.setStyle("color", "red");
 			}
 		},
-	],
-	...
+	]
 }
 ```
 
@@ -219,7 +209,7 @@ Also, note that the `render` config has moved out of the formatter config and re
 		margin: 5px;
 	}
 	select {
-		width:50px;   
+		width:50px;	 
 	}
 	#input_group, #input_grp {
 		width: 100px;
@@ -227,48 +217,48 @@ Also, note that the `render` config has moved out of the formatter config and re
 </style>
 <button id="move_to_group">Move Column</button>&nbsp;&nbsp;
 <label>From Index: </label>
-<select  id="input_column">
-  <option value="0">0</option>
-  <option value="1">1</option>
-  <option value="2">2</option>
-  <option value="3">3</option>
-  <option value="4">4</option>
-  <option value="5">5</option>
+<select	id="input_column">
+	<option value="0">0</option>
+	<option value="1">1</option>
+	<option value="2">2</option>
+	<option value="3">3</option>
+	<option value="4">4</option>
+	<option value="5">5</option>
 </select>&nbsp;&nbsp;
 <label>To Index: </label>
-<select  id="input_dest">
-  <option value="">null</option>
-  <option value="0">0</option>
-  <option value="1">1</option>
-  <option value="2">2</option>
-  <option value="3">3</option>
-  <option value="4">4</option>
-  <option value="5">5</option>
+<select	id="input_dest">
+	<option value="">null</option>
+	<option value="0">0</option>
+	<option value="1">1</option>
+	<option value="2">2</option>
+	<option value="3">3</option>
+	<option value="4">4</option>
+	<option value="5">5</option>
 </select>&nbsp;&nbsp;
 <label>Group: </label>
-<select  id="input_group">
-  <option value="">null</option>
-  <option value="g1">Group 1</option>
-  <option value="g2">Group 2</option>
-  <option value="g3">Group 3</option>
+<select	id="input_group">
+	<option value="">null</option>
+	<option value="g1">Group 1</option>
+	<option value="g2">Group 2</option>
+	<option value="g3">Group 3</option>
 </select><br>
 <hr>
 <button id="set_parent">Set Group</button>&nbsp;&nbsp;
 <label>Column Index: </label>
-<select  id="input_col">
-  <option value="0">0</option>
-  <option value="1">1</option>
-  <option value="2">2</option>
-  <option value="3">3</option>
-  <option value="4">4</option>
-  <option value="5">5</option>
+<select	id="input_col">
+	<option value="0">0</option>
+	<option value="1">1</option>
+	<option value="2">2</option>
+	<option value="3">3</option>
+	<option value="4">4</option>
+	<option value="5">5</option>
 </select>&nbsp;&nbsp;
 <label>Group: </label>
-<select  id="input_grp">
-  <option value="">null</option>
-  <option value="g1">Group 1</option>
-  <option value="g2">Group 2</option>
-  <option value="g3">Group 3</option>
+<select	id="input_grp">
+	<option value="">null</option>
+	<option value="g1">Group 1</option>
+	<option value="g2">Group 2</option>
+	<option value="g3">Group 3</option>
 </select><br>
 <hr>
 <atlas-blotter id="grid"></atlas-blotter>
@@ -332,9 +322,112 @@ Also, note that the `render` config has moved out of the formatter config and re
 ```
 
 In order to move column between group, it is recommended to use extension's column moving api instead of built-in `moveColumn`.
-For moving column between group or adding to a group, either `setColumnParent` and  `moveColumnIntoGroup` can be used to move a column to specific group.
+For moving column between group or adding to a group, either `setColumnParent` and	`moveColumnIntoGroup` can be used to move a column to specific group.
 
 > Note: If group is not specified when using `setColumnParent`, the column would be removed from current group and move the column to the last column of the grid.
+
+### Adding or removing group child at runtime
+
+```live
+<style>
+	html hr {
+		margin: 5px;
+	}
+	button {
+		margin: 2px;
+	}
+</style>
+<fieldset>
+	<legend>Setting Group</legend>
+	<div id="set_buttons"></div>
+</fieldset>
+<fieldset>
+	<legend>Adding child</legend>
+	<div id="add_buttons"></div>
+</fieldset>
+<fieldset>
+	<legend>Removing child</legend>
+	<div id="remove_buttons"></div>
+</fieldset>
+<hr>
+<atlas-blotter id="grid"></atlas-blotter>
+<script>
+	var ext = new tr.ColumnGroupingExtension();
+	var groupDef = {
+		id: "g1",
+		name: "Group 1"
+	};
+	var fields = ["companyName", "industry", "CF_LAST", "CF_NETCHNG", "market", "boolean"];
+	var columns = fields.map(function(f, idx) {
+		var id =  "c" + idx;
+		return {
+			id: id,
+			field: f,
+			name: id
+		};
+	});
+	columns[1].width = 100;
+	columns[2].width = 80;
+	columns[3].width = 80;
+	
+	columns.forEach(function(col) {
+		var btn = document.createElement("button");
+		btn.textContent = col.id;
+		btn.colId = col.id;
+		btn.addEventListener("click", onClickAddChild);
+		add_buttons.appendChild(btn);
+		
+		btn = document.createElement("button");
+		btn.textContent = col.id;
+		btn.colId = col.id;
+		btn.addEventListener("click", onClickRemoveChild);
+		remove_buttons.appendChild(btn);
+	});
+	var groupSets = [
+		["c1", "c3"],
+		["c5", "c2", "c4"],
+		[]
+	];
+	groupSets.forEach(function(groupSet) {
+		var btn = document.createElement("button");
+		btn.childIds = groupSet;
+		var str = groupSet.join(", ");
+		btn.textContent = str ? "Group " + str : "Ungroup";
+		btn.addEventListener("click", onClickSetGroup);
+		set_buttons.appendChild(btn);
+	});
+
+	function onClickAddChild(e) {
+		var btn = e.currentTarget;
+		var colId = btn.colId;
+		
+		ext.addGroupChild(groupDef.id, colId);
+	}
+	function onClickRemoveChild(e) {
+		var btn = e.currentTarget;
+		var colId = btn.colId;
+		
+		ext.removeGroupChild(groupDef.id, colId);
+	}
+	function onClickSetGroup(e) {
+		var btn = e.currentTarget;
+		groupDef.children = btn.childIds.slice();
+		
+		ext.setGroupDefinition(groupDef.id, groupDef);
+	}
+	
+	var records = tr.DataGenerator.generateRecords(fields, { numRows: 5 });
+	var configObj = {
+		columns: columns,
+		staticDataRows: records,
+		extensions: [ ext ]
+	};
+
+	var grid = document.getElementById("grid");
+	grid.config = configObj;
+</script>
+```
+
 
 <div></div>
 

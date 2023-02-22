@@ -4,9 +4,7 @@
 
 The ability of drag and drop column is enabled by default. But it can be turned off by setting `noColumnDragging` to *true*. The default value is *false*. 
 
-### Example
-
-#### Enabled (default)
+### Drag and drop to move a column example (default)
 
 ```live
 <style>
@@ -35,7 +33,7 @@ The ability of drag and drop column is enabled by default. But it can be turned 
 </script>
 ```
 
-#### Disabled
+### Disabled drag and drop example
 
 ```live
 <style>
@@ -65,9 +63,13 @@ The ability of drag and drop column is enabled by default. But it can be turned 
 </script>
 ```
 
-## API
+## Using APIs to move a column
 
-Columns can be moved using the `grid.api.moveColumn(from, to)` API, which allows you to specify a column index or an array of column indices to be moved, and the target index position. See [APIs](../apis/rt_grid/Grid.md) for more details of `moveColumn` API.
+Columns can be moved using the `grid.api.moveColumnById(sourceColumn, destinationPosition)` API, which allows you to move specified column by index or id to the position before the specified destination. If the specified destination is invalid or doesnot exist, the column will be moved to the end of Grid.
+
+To move multiple columns at once, use `reorderColumns` API. 
+
+See [available APIs](../apis/rt_grid/Grid.md) for more details.
 
 ### Example
 
@@ -76,44 +78,80 @@ Columns can be moved using the `grid.api.moveColumn(from, to)` API, which allows
 	atlas-blotter {
 		height: 200px;
 	}
+	html hr {
+		margin: 5px;
+	}
+	button {
+		margin: 2px;
+	}
 </style>
-<button id="move_1">Move Index 0 -&gt; 2</button>
-<button id="move_2">Move Index 3,4 -&gt; 1</button>
-<br>
+<big>Move</big>
+<select id="source_sel"></select>
+<big>to the position before</big>
+<div id="destination_div"></div>
+<hr>
 <atlas-blotter id="grid"></atlas-blotter>
 
 <script>
 	var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
+	var colNames = ["Company", "Market", "Last", "Net. Chng", "Industry"];
+	var columns = fields.map(function(f, idx) {
+		var colName = colNames[idx];
+		var colId = "c" + idx;
+		return {
+			id: colId,
+			field: f,
+			name: colName
+		};
+	});
+	columns[1].width = 100;
+	columns[2].width = 80;
+	columns[3].width = 80;
+	
+	columns.forEach(function(col, idx) {
+		var opt = document.createElement("option");
+		opt.value = col.id;
+		opt.textContent = col.name + " column";
+		if(col.name === "Industry") {
+			opt.selected = true;
+		}
+		source_sel.appendChild(opt);
+		
+		var btn = document.createElement("button");
+		btn.colId = col.id;
+		btn.textContent = col.name;
+		btn.addEventListener("click", onClickMoveBtn);
+		destination_div.appendChild(btn);
+	});
+	
+	var lastBtn = document.createElement("button");
+	lastBtn.textContent = "End of Grid";
+	lastBtn.addEventListener("click", onClickMoveBtn);
+	destination_div.appendChild(lastBtn);
+	
+	function onClickMoveBtn(e) {
+		var btn = e.currentTarget;
+		var destId = btn.colId;
+		
+		var sourceOpt = source_sel.selectedOptions[0];
+		var srcId = sourceOpt.value;
+		grid.api.moveColumnById(srcId, destId);
+	}
+	
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 5 });
 	var configObj = {
-		columns: [
-			{name: "Company", field: fields[0]},
-			{name: "Market", field: fields[1], width: 100},
-			{name: "Last", field: fields[2], width: 80},
-			{name: "Net. Chng", field: fields[3], width: 80},
-			{name: "Industry", field: fields[4]}
-		],
-		dataModel: {
-			data: records
-		}
+		columns: columns,
+		staticDataRows: records
 	};
 
 	var grid = document.getElementById("grid");
 	grid.config = configObj;
-
-	document.getElementById('move_1').addEventListener('click', function() {
-		grid.api.moveColumn(0, 2);
-	});
-
-	document.getElementById('move_2').addEventListener('click', function() {
-		grid.api.moveColumn([3,4], 1);
-	});
 </script>
 ```
 
-## Colum move prevention
+## Preventing a column from moving
 
-By setting a column to be a stationary column, all previous columns on the left (up to the stationary column) will be locked in position. A column can be added to or removed from the locked panel but still not be able to switch positions. All columns will be able to change their position only when the stationary column is unmarked. See [Column Definition](../apis/rt_grid/ColumnDefinition.md) for more details of column options.
+By marking a column to be a `stationary` column, any column on the left and the stationary column will be locked in the position (i.e., columns cannot be moved). A column can still be added to or removed from the stationary section. Once stationary column is removed or unmarked as `stationary`, the columns in the section will be free to be moved. See [Column Definition](../apis/rt_grid/ColumnDefinition.md) for more details of column options.
 
 ### Example
 
@@ -145,7 +183,4 @@ By setting a column to be a stationary column, all previous columns on the left 
 </script>
 ```
 
-
-
-
-
+## ___

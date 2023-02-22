@@ -157,6 +157,7 @@ Loading mask is not part of Grid. To follow the standard theme, the UI and funct
 
 	document.getElementById("fetch_btn").addEventListener("click", fetchData);
 	document.getElementById("clear_btn").addEventListener("click", clearData);
+</script>
 ```
 
 ## ___
