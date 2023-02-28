@@ -207,6 +207,11 @@ FieldDefinition._lang = 'en';
 * @private
 */
 FieldDefinition._caching = false;
+/**
+* @type {boolean}
+* @private
+*/
+FieldDefinition._timeSeriesExpansion = true;
 
 /**
  * @type {Object.&lt;string, boolean&gt;}
@@ -295,6 +300,14 @@ FieldDefinition.setFieldCaching = function (caching) {
 };
 
 /** @public
+* @function
+* @param {boolean} disabled=true if disable it, time series will not be expand
+*/
+FieldDefinition.disableTimeSeriesExpansion = function(disabled) {
+	FieldDefinition._timeSeriesExpansion = disabled != false ? false : true;
+};
+
+/** @public
 * @param {string} field
 * @return {boolean}
 */
@@ -326,7 +339,7 @@ FieldDefinition.isRealTimeField = function(field) {
 		return false;
 	}
 
-	if(FieldDefinition.getFieldProperty(field, "timeSeriesChild")) {
+	if(FieldDefinition.isTimeSeriesChild(field)) {
 		return false;
 	}
 
@@ -339,10 +352,23 @@ FieldDefinition.isRealTimeField = function(field) {
 
 /** @public
 * @param {string} field
+* @return {boolean}
+*/
+FieldDefinition.isTimeSeriesChild = function(field) {
+	return FieldDefinition.getFieldProperty(field, "timeSeriesChild") ? true : false;
+};
+
+/** @public
+* @param {string} field
 * @return {boolean}=true if field is time series field
 */
 FieldDefinition.isTimeSeries = function (field) {
 	if (!field) {
+		return false;
+	}
+
+	// If we disable time series expansion, the grid won't have a time series field.
+	if(!FieldDefinition._timeSeriesExpansion) {
 		return false;
 	}
 

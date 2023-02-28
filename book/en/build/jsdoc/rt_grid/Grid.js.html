@@ -109,6 +109,7 @@ import { ElementWrapper } from "../../node_modules/@grid/core/es6/grid/component
 * @property {boolean=} formulaEngine=false If enabled, field with leading equal sign will be treated as a formula and rows will be filled with the calculated values.
 * @property {number=} adcPollingInterval=0 Length of polling interval for refreshing ADC data in milliseconds. The default value (0) means no polling.
 * @property {boolean=} fieldCaching=false If enabled, field definition will be caching internal mechanism
+* @property {boolean=} timeSeriesExpansion=true If disabled, the time series field will be treated as a normal field and not expanded.
 * @property {string=} childDataField=CHILD_VALUES The given field will be used to store children's static data, such as row color assignment.
 * @property {boolean=} topSection=true If disabled, title section will not be rendered
 */
@@ -555,6 +556,11 @@ Grid.prototype._pollingEnabled = true;
 * @private
 */
 Grid.prototype._fieldCaching = false;
+/** @type {boolean}
+* @private
+*/
+Grid.prototype._timeSeriesExpansion = true;
+
 /** @type {string}
 * @private
 */
@@ -813,6 +819,11 @@ Grid.prototype.initialize = function(gridOption) {
 	if (gridOption["fieldCaching"]) {
 		t._fieldCaching = gridOption["fieldCaching"];
 		FieldDefinition.setFieldCaching(t._fieldCaching);
+	}
+
+	if(gridOption["timeSeriesExpansion"] != null) {
+		t._timeSeriesExpansion = gridOption["timeSeriesExpansion"];
+		FieldDefinition.disableTimeSeriesExpansion(!t._timeSeriesExpansion);
 	}
 
 	if (gridOption["icons"] &amp;&amp; gridOption["icons"]["rowGrouping"] &amp;&amp; gridOption["icons"]["rowGrouping"]["expander"]) {
@@ -1136,6 +1147,9 @@ Grid.prototype.getConfigObject = function (gridOptions) {
 	}
 	if(this._fieldCaching) {
 		obj["fieldCaching"] = this._fieldCaching;
+	}
+	if(this._timeSeriesExpansion != true) {
+		obj["timeSeriesExpansion"] = this._timeSeriesExpansion;
 	}
 
 	if(this._childDataField) {
