@@ -795,8 +795,9 @@ ColumnDefinition.prototype.getConfigObject = function(colOptions) {
 		obj["sort"] = this._initialOrder;
 	}
 
-	if(this._classes) {
-		obj["className"] = this._classes.join(" ");
+	var classes = this._classes;
+	if(classes &amp;&amp; classes.length &gt; 0) {
+		obj["className"] = classes.join(" ");
 	}
 
 	if(this._textSelect) {
@@ -814,14 +815,18 @@ ColumnDefinition.prototype.getConfigObject = function(colOptions) {
 	var core = this._eventArg["core"];
 	var grid = this._eventArg["grid"];
 	var colIndex = grid.getColumnIndex(this);
-	value = core.getColumnScalability(colIndex);
-	obj["scalable"] = value;
 
-	value = core.getColumnCustomLaneSize(colIndex);
-	obj["width"] = value;
+	// The scalable, width and minWidth cannot be shifted into core as getConfigObject is accessible from colDef.
+	var scalable = core.getColumnScalability(colIndex);
+	var width = core.getColumnCustomLaneSize(colIndex);
+
+	if (scalable !== true || width !== 1) {
+		obj["scalable"] = scalable;
+		obj["width"] = width;
+	}
 
 	value = core.getMinimumColumnWidth(colIndex);
-	if(value !== 32) {
+	if(value !== 0) {
 		obj["minWidth"] = value;
 	}
 
