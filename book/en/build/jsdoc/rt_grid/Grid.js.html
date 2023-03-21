@@ -29,7 +29,7 @@ import { Conflator } from "../../node_modules/tr-grid-util/es6/Conflator.js";
 import { Ext } from "../../node_modules/tr-grid-util/es6/Ext.js";
 import { EventDispatcher } from "../../node_modules/tr-grid-util/es6/EventDispatcher.js";
 import { Engine } from "../../node_modules/tr-grid-util/es6/formula/Engine.js";
-import { cloneObject, extendObject, arrayToObject, isEmptyObject } from "../../node_modules/tr-grid-util/es6/Util.js";
+import { cloneObject, extendObject, arrayToObject, isEmptyObject, deepEqual } from "../../node_modules/tr-grid-util/es6/Util.js";
 import { DateTime } from "../../node_modules/tr-grid-util/es6/DateTime.js";
 
 import { RowDefinition, ROW_DEF } from "./RowDefinition.js";
@@ -1661,6 +1661,79 @@ Grid.prototype.setColumns = function(columns) {
 		}
 	}
 };
+
+
+/** Remove, add and keep column based on the given column data
+* @public
+* @param {Array.&lt;Object&gt;} columns Array of column options
+*/
+Grid.prototype.restoreColumns = function(columns) {
+	var configObj = this.getConfigObject();
+	var previousColumns = configObj.columns;
+
+	var preColLen = previousColumns.length;
+	var newColLen = columns.length;
+
+	var removingFields = [];
+	var keepingColumns = [];
+	var columnOrdering = [];
+
+	var i, j, found;
+	// Slow, time complexity BigO(n ^ 2)
+	for (i = 0; i &lt; preColLen; i++) {
+		found = false;
+		for (j = 0; j &lt; newColLen; j++) {
+			if (deepEqual(previousColumns[i], columns[j])) {
+				keepingColumns.push(previousColumns[i]);
+				found = true;
+				break;
+			}
+		}
+		if (!found) {
+			removingFields.push(previousColumns[i].field);
+		}
+	}
+
+	var sortingStates;
+	var removeLen = removingFields.length;
+	if(removeLen &gt; 0 &amp;&amp; this._stp) {
+		sortingStates = this._stp.getSortingStates().slice(); // We need to clone array for avoid object reference in remove column
+	}
+
+	this.removeColumns(removingFields);
+
+	var keepingLen = keepingColumns.length;
+	var prevState = false;
+	if(newColLen &gt; 1) {
+		prevState = this._grid.freezeLayout(true); // Insert multiple columns can be a huge time consuming
+	}
+	for (i = 0; i &lt; newColLen; i++) {
+		found = false;
+		for (j = 0; j &lt; keepingLen; j++) { // loop only keeping column
+			if (deepEqual(columns[i], keepingColumns[j])) {
+				found = true;
+				var colIndex = this.getColumnIndex(columns[i].field); // We cannot use 'i' (colIndex) in this case, as it will sort the columns. Instead, we need to obtain a new column index from the field.
+				columnOrdering.push(this.getColumnId(colIndex));
+				break;
+			}
+		}
+		if (!found) {
+			this.insertColumn(columns[i], i);
+			columnOrdering.push(this.getColumnId(i)); // Use new insertion column index
+		}
+	}
+
+	if(newColLen &gt; 1) {
+		this._grid.freezeLayout(prevState);
+	}
+
+	if(removeLen &gt; 0 &amp;&amp; this._stp) {
+		this._stp.sortColumns(sortingStates);
+	}
+
+	this._grid.reorderColumns(columnOrdering);
+};
+
 /** Remove all existing columns and add new columns based on the given texts/fields
 * @public
 * @function
@@ -1805,10 +1878,11 @@ Grid.prototype.removeColumn = function(colRef) {
 			this._dc.removeStaticFields([colDef.getField()]);
 		}
 	}
-	colDef.dispose();
-	this._grid.removeColumnAt(colIndex);
 
+	this._grid.removeColumnAt(colIndex);
 	this._connector.removeFields(colDef);
+
+	colDef.dispose(); // Dispose at the last line to avoid making properties inaccessible
 	// TODO: Remove fields that are related to the column (e.g. fields for coloring)
 };
 /** Remove multiple columns through array. To remove all columns, use removeAllColumns() instead of this method

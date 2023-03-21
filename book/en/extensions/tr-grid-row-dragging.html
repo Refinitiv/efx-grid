@@ -29,7 +29,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="2afd8e5f-fe28-4d08-827b-74e025e26b88">
+        <pandora-nav id="3a3331ca-790b-42c8-9d4d-e004f04d99f2">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -628,6 +628,13 @@ grid.config = configObj;</pre>
                               <td class="default"> null </td>
                               <td class="description last">Function handler for dataMoved event</td>
                             </tr>
+                            <tr>
+                              <td class="name"><code>beforeDataMoved</code></td>
+                              <td class="type"> <span class="param-type">function</span> </td>
+                              <td class="attributes"> &lt;optional&gt;<br> </td>
+                              <td class="default"> null </td>
+                              <td class="description last">Function handler for beforeDataMoved event</td>
+                            </tr>
                           </tbody>
                         </table>
                       </div>
@@ -908,9 +915,121 @@ grid.config = configObj;</pre>
                     <h3 class="subsection-title">Events</h3>
                     <div class="item">
                       <div class="item-type">event</div>
-                      <h4 class="name" id="event:dataMoved">dataMoved</h4>
-                      <div class="description"> Fired when rows or data are moved by drag operation. </div>
+                      <h4 class="name" id="event:beforeDataMoved">beforeDataMoved</h4>
+                      <div class="description"> Fired after mouseup and before the data/row is about to be moved. You can check the current drag and drop states, cancel operation or apply custom tasks in this event. </div>
                       <h5>Type:</h5> <span class="param-type">Object</span>
+                      <h5>Properties:</h5>
+                      <div class="props">
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>Name</th>
+                              <th>Type</th>
+                              <th class="last">Description</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td class="name"><code>srcRowIndices</code></td>
+                              <td class="type"> <span class="param-type">Array.&lt;number&gt;</span> </td>
+                              <td class="description last">row indices of the selected rows</td>
+                            </tr>
+                            <tr>
+                              <td class="name"><code>srcRowIds</code></td>
+                              <td class="type"> <span class="param-type">Array.&lt;string&gt;</span> </td>
+                              <td class="description last">row ids of the selected rows</td>
+                            </tr>
+                            <tr>
+                              <td class="name"><code>srcRowTypes</code></td>
+                              <td class="type"> <span class="param-type">Array.&lt;string&gt;</span> </td>
+                              <td class="description last">row types of the selected rows</td>
+                            </tr>
+                            <tr>
+                              <td class="name"><code>consolidatedSrcRowType</code></td>
+                              <td class="type"> <span class="param-type">string</span> </td>
+                              <td class="description last">"MIXED" type is set if there are two or more row types in the srcRowTypes</td>
+                            </tr>
+                            <tr>
+                              <td class="name"><code>destRowIndex</code></td>
+                              <td class="type"> <span class="param-type">number</span> </td>
+                              <td class="description last">row index of the drop area</td>
+                            </tr>
+                            <tr>
+                              <td class="name"><code>destRowId</code></td>
+                              <td class="type"> <span class="param-type">string</span> </td>
+                              <td class="description last">row id of the drop area. This will be empty string for the end of grid</td>
+                            </tr>
+                            <tr>
+                              <td class="name"><code>destRowType</code></td>
+                              <td class="type"> <span class="param-type">number</span> </td>
+                              <td class="description last">row type of the drop area. This will be empty string for the end of grid</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div class="details"> </div>
+                      <h5>Example:</h5>
+                      <pre><code>beforeDataMoved: function(e) {
+  var srcRowType = e.srcRowTypes[0];
+  var destRowType = e.destRowType;
+  if(srcRowType === "GROUP_MEMBER" &amp;&amp; destRowType === "CONTENT") {
+    e.cancel = true; // Prevent a group member row from moving outside of its own group
+  }
+}</code></pre> </div>
+                    <div class="item">
+                      <div class="item-type">event</div>
+                      <h4 class="name" id="event:dataMoved">dataMoved</h4>
+                      <div class="description"> Fired when rows or data are moved by the drag operation. </div>
+                      <h5>Type:</h5> <span class="param-type">Object</span>
+                      <h5>Properties:</h5>
+                      <div class="props">
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>Name</th>
+                              <th>Type</th>
+                              <th class="last">Description</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td class="name"><code>srcRowIndices</code></td>
+                              <td class="type"> <span class="param-type">Array.&lt;number&gt;</span> </td>
+                              <td class="description last">row indices of the selected rows</td>
+                            </tr>
+                            <tr>
+                              <td class="name"><code>srcRowIds</code></td>
+                              <td class="type"> <span class="param-type">Array.&lt;string&gt;</span> </td>
+                              <td class="description last">row ids of the selected rows</td>
+                            </tr>
+                            <tr>
+                              <td class="name"><code>srcRowTypes</code></td>
+                              <td class="type"> <span class="param-type">Array.&lt;string&gt;</span> </td>
+                              <td class="description last">row types of the selected rows</td>
+                            </tr>
+                            <tr>
+                              <td class="name"><code>consolidatedSrcRowType</code></td>
+                              <td class="type"> <span class="param-type">string</span> </td>
+                              <td class="description last">"MIXED" type is set if there are two or more row types in the srcRowTypes</td>
+                            </tr>
+                            <tr>
+                              <td class="name"><code>destRowIndex</code></td>
+                              <td class="type"> <span class="param-type">number</span> </td>
+                              <td class="description last">row index of the drop area</td>
+                            </tr>
+                            <tr>
+                              <td class="name"><code>destRowId</code></td>
+                              <td class="type"> <span class="param-type">string</span> </td>
+                              <td class="description last">row id of the drop area. This will be empty string for the end of grid</td>
+                            </tr>
+                            <tr>
+                              <td class="name"><code>destRowType</code></td>
+                              <td class="type"> <span class="param-type">number</span> </td>
+                              <td class="description last">row type of the drop area. This will be empty string for the end of grid</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
                       <div class="details"> </div>
                     </div>
                     <div class="item">
