@@ -164,6 +164,7 @@
 	- [Default Sort](sorting/default-sorting.md)
 	- [Server Side Sorting](sorting/server-side-sorting.md)
 	- [Custom Sort Logic](sorting/custom-sort-logic.md)
+	- [Multi-Column / 3-States Sorting](sorting/multi-column-sorting.md)
 	- [Get Sort States / Reset All Sorting](sorting/sorting-get-reset.md)
 
 - Filtering

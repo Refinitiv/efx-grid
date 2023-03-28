@@ -23,91 +23,15 @@
     
     <section>
         <article>
-            <pre class="prettyprint source linenums"><code>/** @constructor
-*/
-var RowDefSorter = function() {
-	this._defaultSorter = this._defaultSorter.bind(this);
-	this._dataSorter = this._dataSorter.bind(this);
-	this._rowDefSorter = this._rowDefSorter.bind(this);
-
-	this._sortContext = {};
-};
-
-
-/** @type {string}
-* @private
-*/
-RowDefSorter.prototype._field = "";
-/** @type {!Object}
-* @private
-*/
-RowDefSorter.prototype._sortContext;
-/** @type {Function}
-* @private
-*/
-RowDefSorter.prototype._sortLogic = null;
-
-
-/** @public
-*/
-RowDefSorter.prototype.dispose = function() {
-	this._sortLogic = null;
-	this._sortContext = {}; // Clear any existing reference
-};
-
-/** @public
-* @param {boolean=} rowSorting=false
-* @return {Function}
-*/
-RowDefSorter.prototype.getSorter = function(rowSorting) {
-	if(this._sortLogic) {
-		return rowSorting ? this._rowDefSorter : this._dataSorter;
-	} else {
-		return this._defaultSorter;
-	}
-};
-/** @public
-* @param {Function=} func
-*/
-RowDefSorter.prototype.setSortLogic = function(func) {
-	this._sortLogic = (typeof func === "function") ? func : null;
-};
-
-
-/** @public
-* @param {string} field
-*/
-RowDefSorter.prototype.setField = function(field) {
-	if(!field) {
-		field = "";
-	}
-	this._sortContext["field"] = this._field = field;
-	this._sortContext["formattedField"] = field + "_FORMATTED";
-};
-/** @public
-* @param {string} key
-* @param {*} value
-*/
-RowDefSorter.prototype.setContext = function(key, value) {
-	this._sortContext[key] = value;
-};
+            <pre class="prettyprint source linenums"><code>import { cloneObject } from "../../node_modules/tr-grid-util/es6/Util.js";
 
 /** @private
-* @param {RowDefinition} rowDefA
-* @param {RowDefinition} rowDefB
+* @param {*} a
+* @param {*} b
 * @param {number} order
 * @return {number}
 */
-RowDefSorter.prototype._defaultSorter = function(rowDefA, rowDefB, order) {
-	var orderA = rowDefA.getGroupOrder();
-	var orderB = rowDefB.getGroupOrder();
-	if(orderA !== orderB) {
-		return orderA - orderB; // Regardless of sort order
-	}
-
-	var a = rowDefA.getData(this._field);
-	var b = rowDefB.getData(this._field);
-
+var _defaultCompare = function(a, b, order) {
 	if(a == null || a !== a) {
 		if(b == null || b !== b) {
 			return 0;
@@ -126,6 +50,148 @@ RowDefSorter.prototype._defaultSorter = function(rowDefA, rowDefB, order) {
 	}
 	return 0;
 };
+
+/** @constructor
+*/
+var RowDefSorter = function() {
+	this._defaultSorter = this._defaultSorter.bind(this);
+	this._dataSorter = this._dataSorter.bind(this);
+	this._rowDefSorter = this._rowDefSorter.bind(this);
+	this._multiColumnsSorter = this._multiColumnsSorter.bind(this);
+
+	this._globalContext = {};
+	this._sortParams = [];
+	this._ctxCaches = [];
+};
+
+/** @type {!Object}
+* @private
+*/
+RowDefSorter.prototype._globalContext;
+/** @type {!Array.&lt;Array&gt;}
+* @private
+*/
+RowDefSorter.prototype._sortParams;
+/** @type {!Array.&lt;Object&gt;}
+* @private
+*/
+RowDefSorter.prototype._ctxCaches;
+/** @type {Array}
+* @private
+*/
+RowDefSorter.prototype._primaryParams;
+
+
+/** @public
+*/
+RowDefSorter.prototype.dispose = function() {
+	this._globalContext = {}; // Clear any existing reference
+	this._sortParams.length = 0;
+	this._ctxCaches.length = 0;
+	this._primaryParams = null;
+};
+
+/** @public
+* @return {Function}
+*/
+RowDefSorter.prototype.getSorter = function() {
+	this._primaryParams = null;
+	var sortCount = this._sortParams.length;
+	if(sortCount === 1) {
+		var params = this._primaryParams = this._sortParams[0];
+		var sortLogic = params[1];
+		if(sortLogic) {
+			var rowSorting = params[3];
+			return rowSorting ? this._rowDefSorter : this._dataSorter;
+		} else {
+			return this._defaultSorter;
+		}
+	} else if(sortCount &gt; 1) {
+		return this._multiColumnsSorter;
+	}
+
+	return RowDefSorter._noSorting;
+};
+
+/** @public
+* @param {string} key
+* @param {*} value
+*/
+RowDefSorter.prototype.reset = function() {
+	if(this._sortParams.length) {
+		this._sortParams.length = 0;
+	}
+};
+/** @public
+* @param {string} key
+* @param {*} value
+*/
+RowDefSorter.prototype.setContext = function(key, value) {
+	this._globalContext[key] = value;
+};
+/** @public
+* @param {string} field
+* @param {Function} logic
+* @param {boolean} rowSorting
+* @param {string} order
+* @param {number} colIndex
+* @param {*} colDef
+*/
+RowDefSorter.prototype.addColumnContext = function(field, logic, rowSorting, order, colIndex, colDef) {
+	if(!field) {
+		field = "";
+	}
+	var sortPriority = this._sortParams.length;
+	var ctx = this._ctxCaches[sortPriority];
+	if(!ctx) {
+		ctx = this._ctxCaches[sortPriority] = cloneObject(this._globalContext);
+	}
+	var orderNum = 0;
+	if(order === "a") {
+		orderNum = 1;
+	} else if(order === "d") {
+		orderNum = -1;
+	}
+
+	var params = [
+		field, // 0
+		(typeof logic === "function") ? logic : null,  // 1
+		ctx, // 2
+		rowSorting, // 3
+		orderNum  // 4
+	];
+
+	ctx["colIndex"] = colIndex;
+	ctx["field"] = field;
+	ctx["formattedField"] = field + "_FORMATTED";
+	ctx["colDef"] = colDef;
+
+	this._sortParams.push(params);
+};
+
+/** @private
+* @param {RowDefinition} rowDefA
+* @param {RowDefinition} rowDefB
+* @param {number} order
+* @return {number}
+*/
+RowDefSorter._noSorting = function(rowDefA, rowDefB, order) {
+	return 0;
+};
+/** @private
+* @param {RowDefinition} rowDefA
+* @param {RowDefinition} rowDefB
+* @param {number} order
+* @return {number}
+*/
+RowDefSorter.prototype._defaultSorter = function(rowDefA, rowDefB, order) {
+	var field = this._primaryParams[0];
+	return _defaultCompare(
+		rowDefA.getData(field),
+		rowDefB.getData(field),
+		order
+	);
+};
 /** @private
 * @param {RowDefinition} rowDefA
 * @param {RowDefinition} rowDefB
@@ -133,15 +199,15 @@ RowDefSorter.prototype._defaultSorter = function(rowDefA, rowDefB, order) {
 * @return {number}
 */
 RowDefSorter.prototype._dataSorter = function(rowDefA, rowDefB, order) {
-	var orderA = rowDefA.getGroupOrder();
-	var orderB = rowDefB.getGroupOrder();
-	if(orderA !== orderB) {
-		return orderA - orderB; // Regardless of sort order
-	}
-
-	var a = rowDefA.getData(this._field);
-	var b = rowDefB.getData(this._field);
-	return this._sortLogic(a, b, order, this._sortContext);
+	var params = this._primaryParams;
+	var field = params[0];
+	var sortLogic = params[1];
+	return sortLogic(
+		rowDefA.getData(field),
+		rowDefB.getData(field),
+		order,
+		params[2]
+	);
 };
 /** @private
 * @param {RowDefinition} rowDefA
@@ -150,13 +216,41 @@ RowDefSorter.prototype._dataSorter = function(rowDefA, rowDefB, order) {
 * @return {number}
 */
 RowDefSorter.prototype._rowDefSorter = function(rowDefA, rowDefB, order) {
-	var orderA = rowDefA.getGroupOrder();
-	var orderB = rowDefB.getGroupOrder();
-	if(orderA !== orderB) {
-		return orderA - orderB; // Regardless of sort order
+	var params = this._primaryParams;
+	var sortLogic = params[1];
+	return sortLogic(rowDefA, rowDefB, order, params[2]);
+};
+/** @private
+* @param {RowDefinition} rowDefA
+* @param {RowDefinition} rowDefB
+* @param {number} primaryOrder
+* @return {number}
+*/
+RowDefSorter.prototype._multiColumnsSorter = function(rowDefA, rowDefB, primaryOrder) {
+	var sortParams = this._sortParams;
+	var sortCount = sortParams.length;
+	for(var i = 0; i &lt; sortCount; ++i) {
+		var params = sortParams[i];
+		var field = params[0];
+		var sortLogic = params[1];
+		var ctx = params[2];
+		var rowSorting = params[3];
+		var orderNum = params[4];
+		var ret = 0;
+		if(sortLogic) {
+			if(rowSorting) {
+				ret = sortLogic(rowDefA, rowDefB, orderNum, ctx);
+			} else {
+				ret = sortLogic(rowDefA.getData(field), rowDefB.getData(field), orderNum, ctx);
+			}
+		} else {
+			ret = _defaultCompare(rowDefA.getData(field), rowDefB.getData(field), orderNum);
+		}
+		if(ret) {
+			return ret;
+		}
 	}
-
-	return this._sortLogic(rowDefA, rowDefB, order, this._sortContext);
+	return 0;
 };
 
 export default RowDefSorter;

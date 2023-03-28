@@ -1551,8 +1551,11 @@ Grid.prototype.replaceColumn = function (columnOption, colRef) {
 	if(colDef.getChildren()) { // Parent time series field doesn't provide hidden property
 		colConfig["hidden"] = false;
 	}
+
+	this.grid.startBatch("reset");
 	this.insertColumn(colConfig, colIndex);
 	this.removeColumn(colIndex + 1); // remove existing column after insert
+	this.grid.stopBatch("reset");
 };
 
 /** to update column name when field info is loaded
@@ -1645,21 +1648,24 @@ Grid.prototype._shouldLoadFieldInfo = function (field) {
 * @param {Array.&lt;Object&gt;} columns Array of column options
 */
 Grid.prototype.setColumns = function(columns) {
+	var grid = this._grid;
 	var colCount = (columns) ? columns.length : 0;
 
+	grid.startBatch("reset");
 	this.removeAllColumns();
 	if(colCount &gt; 0) {
 		var prevState = false;
 		if(colCount &gt; 1) {
-			prevState = this._grid.freezeLayout(true); // Insert multiple columns can be a huge time consuming
+			prevState = grid.freezeLayout(true); // Insert multiple columns can be a huge time consuming
 		}
 		for(var i = 0; i &lt; colCount; ++i) {
 			this.insertColumn(columns[i], i);
 		}
 		if(colCount &gt; 1) {
-			this._grid.freezeLayout(prevState);
+			grid.freezeLayout(prevState);
 		}
 	}
+	grid.stopBatch("reset");
 };
 
 
@@ -1668,6 +1674,8 @@ Grid.prototype.setColumns = function(columns) {
 * @param {Array.&lt;Object&gt;} columns Array of column options
 */
 Grid.prototype.restoreColumns = function(columns) {
+	var grid = this._grid;
+	grid.startBatch("reset");
 	var configObj = this.getConfigObject();
 	var previousColumns = configObj.columns;
 
@@ -1731,7 +1739,8 @@ Grid.prototype.restoreColumns = function(columns) {
 		this._stp.sortColumns(sortingStates);
 	}
 
-	this._grid.reorderColumns(columnOrdering);
+	grid.reorderColumns(columnOrdering);
+	grid.stopBatch("reset");
 };
 
 /** Remove all existing columns and add new columns based on the given texts/fields
@@ -3424,33 +3433,34 @@ Grid.prototype._updateStreamingData = function() {
 * @param {Object} e
 */
 Grid.prototype._onPreDataSorting = function (e) {
-	var field = "";
-	var rowSorting = false;
-	var sortLogic = null;
+	var objs = this._stp.getSortedColumns();
 
-	var states = this._stp.getSortingStates(); // WARNING: Use of deprecated function
-	var state = states ? states[0] : null; // TODO: Support multi-column sorting
+	this._sorter.reset();
+	if(Array.isArray(objs)) {
+		var sortCount = objs.length;
+		for(var i = 0; i &lt; sortCount; ++i) {
+			var obj = objs[i];
+			var field = obj["field"] || "";
+			var colIndex = obj["colIndex"];
+			var colDef = (colIndex &gt;= 0) ? this.getColumnDefinition(colIndex) : null;
 
-	if(state) {
-		field = state["field"] || "";
-		var colIndex = this._stp.getSortedColumnIndex(0);
-		var colDef = (colIndex &gt;= 0) ? this.getColumnDefinition(colIndex) : null;
-		this._sorter.setContext("colIndex", colIndex);
-		this._sorter.setContext("colDef", colDef);
+			var rowSorting = false;
+			var sortLogic = null;
+			if(colDef) {
+				field = colDef.getField(); // WARNING: Field and logic could be out of sync
+				rowSorting = colDef.isRowSorting();
+				sortLogic = colDef.getSorter();
+			}
+			// TODO: get sortLogic from DataView
+			// if(!sortLogic &amp;&amp; field) {
+			// sortLogic = state["sortLogic"];
+			// }
 
-		if(colDef) {
-			field = colDef.getField(); // WARNING: Field and logic could be out of sync
-			sortLogic = colDef.getSorter();
-			rowSorting = colDef.isRowSorting();
+			this._sorter.addColumnContext(field, sortLogic, rowSorting, obj["sortOrder"], colIndex, colDef);
 		}
 	}
-	if(!sortLogic &amp;&amp; field) {
-		sortLogic = state["sortLogic"];
-	}
 
-	this._sorter.setField(field);
-	this._sorter.setSortLogic(sortLogic);
-	this._columnSorter = this._sorter.getSorter(rowSorting);
+	this._columnSorter = this._sorter.getSorter();
 };
 /** @private
 * @param {RowDefinition} rowDefA
