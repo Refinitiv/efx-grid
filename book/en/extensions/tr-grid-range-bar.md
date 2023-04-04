@@ -4,13 +4,257 @@
 
 The Range Bar Extension provides graphical bar for last value ranking visualization based on low and high value.
 
+```live
+<style>
+	atlas-blotter {
+		height: 208px;
+	}
+</style>
+
+<atlas-blotter id="grid"></atlas-blotter>
+
+<script>
+
+var fields = ["id", "CFLOW", "CF_LAST", "CFHIGH", "percent"];
+var records = [];
+
+var rangeBarExt = new tr.RangeBarExtension();
+
+var id = 0;
+for (let i = -150; i < 151; i += 10) {
+	records.push({
+		id: id++,
+		CFLOW: -100,
+		CF_LAST: i,
+		CFHIGH: 100,
+		percent: i
+	});
+}
+
+// N/A Case and without top value
+records.push({
+	id: records.length,
+	CFLOW: undefined,
+	CF_LAST: undefined,
+	CFHIGH: undefined,
+	percent: undefined
+});
+
+records.push({
+	id: records.length,
+	CFLOW: 1,
+	CF_LAST: undefined, // without middle value
+	CFHIGH: 50,
+	percent: undefined
+});
+
+records.push({
+	id: records.length,
+	CFLOW: undefined,
+	CF_LAST: 5,
+	CFHIGH: 50,
+	percent: 5
+});
+
+records.push({
+	id: records.length,
+	CFLOW: 3,
+	CF_LAST: 5,
+	CFHIGH: undefined,
+	percent: 5
+});
+
+records.push({
+	id: records.length,
+	CFLOW: undefined,
+	CF_LAST: 5,
+	CFHIGH: undefined,
+	percent: 5
+});
+
+// Low_value <High_value
+records.push({
+	id: records.length,
+	CFLOW: 1,
+	CF_LAST: 50,
+	CFHIGH: 99,
+	percent: 50
+});
+
+records.push({
+	id: records.length,
+	CFLOW: 50,
+	CF_LAST: 1,
+	CFHIGH: 99,
+	percent: 1
+});
+
+records.push({
+	id: records.length,
+	CFLOW: 1,
+	CF_LAST: 99,
+	CFHIGH: 50,
+	percent: 99
+});
+
+// High<Low
+records.push({
+	id: records.length,
+	CFLOW: 99,
+	CF_LAST: 50,
+	CFHIGH: 1,
+	percent: 50
+});
+
+records.push({
+	id: records.length,
+	CFLOW: 99,
+	CF_LAST: 1,
+	CFHIGH: 50,
+	percent: 1
+});
+
+records.push({
+	id: records.length,
+	CFLOW: 50,
+	CF_LAST: 99,
+	CFHIGH: 1,
+	percent: 99
+});
+
+// Two equal
+records.push({
+	id: records.length,
+	CFLOW: 1,
+	CF_LAST: 50,
+	CFHIGH: 1,
+	percent: 50
+});
+
+records.push({
+	id: records.length,
+	CFLOW: 50,
+	CF_LAST: 1,
+	CFHIGH: 50,
+	percent: 1
+});
+
+records.push({
+	id: records.length,
+	CFLOW: 1,
+	CF_LAST: 1,
+	CFHIGH: 50,
+	percent: 1
+});
+
+records.push({
+	id: records.length,
+	CFLOW: 50,
+	CF_LAST: 50,
+	CFHIGH: 1,
+	percent: 50
+});
+
+records.push({
+	id: records.length,
+	CFLOW: 50,
+	CF_LAST: 1,
+	CFHIGH: 1,
+	percent: 1
+});
+
+records.push({
+	id: records.length,
+	CFLOW: 1,
+	CF_LAST: 50,
+	CFHIGH: 50,
+	percent: 50
+});
+
+// Three equal 
+records.push({
+	id: records.length,
+	CFLOW: 1,
+	CF_LAST: 1,
+	CFHIGH: 1,
+	percent: 1
+});
+
+var configObj = {
+	scrollbar: true,
+	columns: [{
+		title: "ID",
+		field: fields[0],
+		width: 60
+	},
+	{
+		title: "Low",
+		field: fields[1],
+		width: 60
+	},
+	{
+		title: "Last",
+		field: fields[2],
+		width: 60
+	},
+	{
+		title: "High",
+		field: fields[3],
+		width: 60
+	},
+	{
+		title: "Range (Low, Last, High)",
+		field: fields[2],
+		alignment: "c",
+		rangeBar: {
+			low: "CFLOW",
+			high: "CFHIGH",
+			last: "CF_LAST"
+		}
+	},
+	{
+		title: "Percent",
+		field: fields[4],
+		width: 60
+	},
+	{
+		title: "Percent (Without low, last, high)",
+		field: fields[4],
+		rangeBar: {
+			field: fields[4]
+		}
+	},
+	{
+		title: "Percent (start 30, end 70)",
+		field: fields[4],
+		rangeBar: {
+			field: fields[4],
+			start: 30, // default 0
+			end: 70 // default 100
+		}
+	}],
+	staticDataRows: records,
+	extensions: [rangeBarExt]
+};
+
+var grid = window.grid = document.getElementById("grid");
+grid.config = configObj;
+</script>
+```
+
 ### Installation and how to import to a project
 
 Installation examples and details of how to import the extension to a project are available on the [Overview](README.md) page.
-
 ### Additional dependencies
 
 Details of additional dependencies for this extension are available on the [Overview](README.md) page.
+
+### Price Graph
+
+The Range Bar Extension provides a powerful solution for integrating the last trade price or value, displayed in relation to the current day's high, low, and Volume Weighted Average Price (VWAP), into a visually comprehensive price graph. This functionality can significantly enhance the capabilities of financial charting applications and tools.
+
+To make the most of the Range Bar Extension, you can simply map the pertinent fields to the range bar options for each individual column. This process enables the effective illustration of price movements and trends, resulting in an easily understandable format that can be seamlessly integrated into their applications. Consequently, users of these applications can gain valuable insights into market behavior, empowering them to make more informed decisions in their trading and investment activities.
+
 
 ```live
 <style>
@@ -23,230 +267,120 @@ Details of additional dependencies for this extension are available on the [Over
 
 <script>
 
-	var fields = ["id", "CFLOW", "CF_LAST", "CFHIGH", "percent"];
-	var records = [];
+var rangeBarExt = new tr.RangeBarExtension();
 
-	var rangeBarExt = new tr.RangeBarExtension();
-
-	var id = 0;
-	for (let i = -150; i < 151; i += 10) {
-		records.push({
-			id: id++,
-			CFLOW: -100,
-			CF_LAST: i,
-			CFHIGH: 100,
-			percent: i
-		});
-	}
-
-	// N/A Case and without top value
-	records.push({
-		id: records.length,
-		CFLOW: undefined,
-		CF_LAST: undefined,
-		CFHIGH: undefined,
-		percent: undefined
-	});
-
-	records.push({
-		id: records.length,
-		CFLOW: 1,
-		CF_LAST: undefined, // without middle value
-		CFHIGH: 50,
-		percent: undefined
-	});
-
-	records.push({
-		id: records.length,
-		CFLOW: undefined,
-		CF_LAST: 5,
-		CFHIGH: 50,
-		percent: 5
-	});
-
-	records.push({
-		id: records.length,
-		CFLOW: 3,
-		CF_LAST: 5,
-		CFHIGH: undefined,
-		percent: 5
-	});
-
-	records.push({
-		id: records.length,
-		CFLOW: undefined,
-		CF_LAST: 5,
-		CFHIGH: undefined,
-		percent: 5
-	});
-
-	// Low_value <High_value
-	records.push({
-		id: records.length,
-		CFLOW: 1,
-		CF_LAST: 50,
-		CFHIGH: 99,
-		percent: 50
-	});
-
-	records.push({
-		id: records.length,
-		CFLOW: 50,
-		CF_LAST: 1,
-		CFHIGH: 99,
-		percent: 1
-	});
-
-	records.push({
-		id: records.length,
-		CFLOW: 1,
-		CF_LAST: 99,
-		CFHIGH: 50,
-		percent: 99
-	});
-
-	// High<Low
-	records.push({
-		id: records.length,
-		CFLOW: 99,
-		CF_LAST: 50,
-		CFHIGH: 1,
-		percent: 50
-	});
-
-	records.push({
-		id: records.length,
-		CFLOW: 99,
-		CF_LAST: 1,
-		CFHIGH: 50,
-		percent: 1
-	});
-
-	records.push({
-		id: records.length,
-		CFLOW: 50,
-		CF_LAST: 99,
-		CFHIGH: 1,
-		percent: 99
-	});
-
-	// Two equal
-	records.push({
-		id: records.length,
-		CFLOW: 1,
-		CF_LAST: 50,
-		CFHIGH: 1,
-		percent: 50
-	});
-
-	records.push({
-		id: records.length,
-		CFLOW: 50,
-		CF_LAST: 1,
-		CFHIGH: 50,
-		percent: 1
-	});
-
-	records.push({
-		id: records.length,
-		CFLOW: 1,
-		CF_LAST: 1,
-		CFHIGH: 50,
-		percent: 1
-	});
-
-	records.push({
-		id: records.length,
-		CFLOW: 50,
-		CF_LAST: 50,
-		CFHIGH: 1,
-		percent: 50
-	});
-
-	records.push({
-		id: records.length,
-		CFLOW: 50,
-		CF_LAST: 1,
-		CFHIGH: 1,
-		percent: 1
-	});
-
-	records.push({
-		id: records.length,
-		CFLOW: 1,
-		CF_LAST: 50,
-		CFHIGH: 50,
-		percent: 50
-	});
-
-	// Three equal 
-	records.push({
-		id: records.length,
-		CFLOW: 1,
-		CF_LAST: 1,
-		CFHIGH: 1,
-		percent: 1
-	});
-
-	var configObj = {
-		scrollbar: true,
-		columns: [{
-			title: "ID",
-			field: fields[0],
-			width: 60
-		},
+var columns = [
+	{
+        field: "id",
+        name: "id"
+    },
+	{
+		field: "CF_LOW",
+		name: "LOW"
+	},
 		{
-			title: "Low",
-			field: fields[1],
-			width: 60
-		},
+		field: "CF_HIGH",
+		name: "HIGH"
+	},
 		{
-			title: "Last",
-			field: fields[2],
-			width: 60
-		},
+		field: "CF_LAST",
+		name: "LAST"
+	},
 		{
-			title: "High",
-			field: fields[3],
-			width: 60
-		},
+		field: "CF_CLOSE",
+		name: "CLOSE"
+	},
 		{
-			title: "Range (Low, Last, High)",
-			field: fields[2],
-			alignment: "c",
-			rangeBar: {
-			low: "CFLOW",
-			high: "CFHIGH",
-			last: "CF_LAST"
-			}
-		},
+		field: "TR.TSVWAP",
+		name: "VWAP"
+	},
 		{
-			title: "Percent",
-			field: fields[4],
-			width: 60
-		},
-		{
-			title: "Percent (Without low, last, high)",
-			field: fields[4],
-			rangeBar: {
-				field: fields[4]
-			}
-		},
-		{
-			title: "Percent (start 30, end 70)",
-			field: fields[4],
-			rangeBar: {
-			field: fields[4],
-			start: 30, // default 0
-			end: 70 // default 100
-			}
-		}],
-		staticDataRows: records,
-		extensions: [ rangeBarExt ]
-	};
+		field: "CF_TICK",
+		name: "TICK"
+	},
+    {
+        name: "Price Graph(Low, Last, High, Close, VWAP)",
+        alignment: "c",
+        rangeBar: {
+            low: "CF_LOW",
+            high: "CF_HIGH",
+            last: "CF_LAST",
+            close: "CF_CLOSE",
+            vwap: "TR.TSVWAP",
+            tick: "CF_TICK",
+        },
+        width: 200
+    }
+];
 
-	var grid = window.grid = document.getElementById("grid");
-	grid.config = configObj;
+var records = [];
+
+for (var i = 0; i < 10; i++) {
+    var values = {
+        CF_LOW: 5,
+        CF_HIGH: 100,
+        "TR.TSVWAP": 30,
+        CF_LAST: 50,
+        CF_CLOSE: i * 10,
+        CF_TICK: 1
+    };
+    records.push(values);
+}
+
+for (var i = 0; i < 10; i++) {
+    var values = {
+        CF_LOW: 5,
+        CF_HIGH: 100,
+        "TR.TSVWAP": 30,
+        CF_LAST: 50,
+        CF_CLOSE: i * 10,
+        CF_TICK: 2
+    };
+    records.push(values);
+}
+
+// N/A Cases
+records.push({
+    CF_LOW: 5,
+    "TR.TSVWAP": 20,
+    CF_LAST: 50,
+    CF_CLOSE:  5,
+    CF_TICK: 2
+});
+records.push({
+    CF_LOW: 200,
+    CF_HIGH: 100,
+    "TR.TSVWAP": 20,
+    CF_LAST: 50,
+    CF_CLOSE:  5,
+    CF_TICK: 2
+});
+
+records.push({
+    CF_LOW: 5,
+    CF_HIGH: 100,
+    "TR.TSVWAP": 49,
+    CF_LAST: 50,
+    CF_CLOSE:  5,
+    CF_TICK: 2
+});
+
+records = records.map(function (obj, index) {
+	obj["id"] = index;
+	return obj;
+})
+
+var configObj = {
+	scrollbar: true,
+	columns: columns,
+	staticDataRows: records,
+	extensions: [
+		rangeBarExt
+	],
+};
+
+var grid = window.grid = document.getElementById("grid");
+grid.config = configObj;
 </script>
 ```
 
@@ -265,277 +399,278 @@ For adding condition of tooltip you can import `addConditionTooltip` from the to
 
 <script>
 
-	var fields = ["id", "CFLOW", "CF_LAST", "CFHIGH", "percent"];
-	var records = [];
 
-	var rangeBarExt = new tr.RangeBarExtension();
+var fields = ["id", "CFLOW", "CF_LAST", "CFHIGH", "percent"];
+var records = [];
 
-	var id = 0;
-	for (let i = -150; i < 151; i += 10) {
-		records.push({
-			id: id++,
-			CFLOW: -100,
-			CF_LAST: i,
-			CFHIGH: 100,
-			percent: i
-		});
-	}
+var rangeBarExt = new tr.RangeBarExtension();
 
-	// N/A Case and without top value
+var id = 0;
+for (let i = -150; i < 151; i += 10) {
 	records.push({
-		id: records.length,
-		CFLOW: undefined,
-		CF_LAST: undefined,
-		CFHIGH: undefined,
-		percent: undefined
+		id: id++,
+		CFLOW: -100,
+		CF_LAST: i,
+		CFHIGH: 100,
+		percent: i
 	});
+}
 
-	records.push({
-		id: records.length,
-		CFLOW: 1,
-		CF_LAST: undefined, // without middle value
-		CFHIGH: 50,
-		percent: undefined
-	});
+// N/A Case and without top value
+records.push({
+	id: records.length,
+	CFLOW: undefined,
+	CF_LAST: undefined,
+	CFHIGH: undefined,
+	percent: undefined
+});
 
-	records.push({
-		id: records.length,
-		CFLOW: undefined,
-		CF_LAST: 5,
-		CFHIGH: 50,
-		percent: 5
-	});
+records.push({
+	id: records.length,
+	CFLOW: 1,
+	CF_LAST: undefined, // without middle value
+	CFHIGH: 50,
+	percent: undefined
+});
 
-	records.push({
-		id: records.length,
-		CFLOW: 3,
-		CF_LAST: 5,
-		CFHIGH: undefined,
-		percent: 5
-	});
+records.push({
+	id: records.length,
+	CFLOW: undefined,
+	CF_LAST: 5,
+	CFHIGH: 50,
+	percent: 5
+});
 
-	records.push({
-		id: records.length,
-		CFLOW: undefined,
-		CF_LAST: 5,
-		CFHIGH: undefined,
-		percent: 5
-	});
+records.push({
+	id: records.length,
+	CFLOW: 3,
+	CF_LAST: 5,
+	CFHIGH: undefined,
+	percent: 5
+});
 
-	// Low_value <High_value
-	records.push({
-		id: records.length,
-		CFLOW: 1,
-		CF_LAST: 50,
-		CFHIGH: 99,
-		percent: 50
-	});
+records.push({
+	id: records.length,
+	CFLOW: undefined,
+	CF_LAST: 5,
+	CFHIGH: undefined,
+	percent: 5
+});
 
-	records.push({
-		id: records.length,
-		CFLOW: 50,
-		CF_LAST: 1,
-		CFHIGH: 99,
-		percent: 1
-	});
+// Low_value <High_value
+records.push({
+	id: records.length,
+	CFLOW: 1,
+	CF_LAST: 50,
+	CFHIGH: 99,
+	percent: 50
+});
 
-	records.push({
-		id: records.length,
-		CFLOW: 1,
-		CF_LAST: 99,
-		CFHIGH: 50,
-		percent: 99
-	});
+records.push({
+	id: records.length,
+	CFLOW: 50,
+	CF_LAST: 1,
+	CFHIGH: 99,
+	percent: 1
+});
 
-	// High<Low
-	records.push({
-		id: records.length,
-		CFLOW: 99,
-		CF_LAST: 50,
-		CFHIGH: 1,
-		percent: 50
-	});
+records.push({
+	id: records.length,
+	CFLOW: 1,
+	CF_LAST: 99,
+	CFHIGH: 50,
+	percent: 99
+});
 
-	records.push({
-		id: records.length,
-		CFLOW: 99,
-		CF_LAST: 1,
-		CFHIGH: 50,
-		percent: 1
-	});
+// High<Low
+records.push({
+	id: records.length,
+	CFLOW: 99,
+	CF_LAST: 50,
+	CFHIGH: 1,
+	percent: 50
+});
 
-	records.push({
-		id: records.length,
-		CFLOW: 50,
-		CF_LAST: 99,
-		CFHIGH: 1,
-		percent: 99
-	});
+records.push({
+	id: records.length,
+	CFLOW: 99,
+	CF_LAST: 1,
+	CFHIGH: 50,
+	percent: 1
+});
 
-	// Two equal
-	records.push({
-		id: records.length,
-		CFLOW: 1,
-		CF_LAST: 50,
-		CFHIGH: 1,
-		percent: 50
-	});
+records.push({
+	id: records.length,
+	CFLOW: 50,
+	CF_LAST: 99,
+	CFHIGH: 1,
+	percent: 99
+});
 
-	records.push({
-		id: records.length,
-		CFLOW: 50,
-		CF_LAST: 1,
-		CFHIGH: 50,
-		percent: 1
-	});
+// Two equal
+records.push({
+	id: records.length,
+	CFLOW: 1,
+	CF_LAST: 50,
+	CFHIGH: 1,
+	percent: 50
+});
 
-	records.push({
-		id: records.length,
-		CFLOW: 1,
-		CF_LAST: 1,
-		CFHIGH: 50,
-		percent: 1
-	});
+records.push({
+	id: records.length,
+	CFLOW: 50,
+	CF_LAST: 1,
+	CFHIGH: 50,
+	percent: 1
+});
 
-	records.push({
-		id: records.length,
-		CFLOW: 50,
-		CF_LAST: 50,
-		CFHIGH: 1,
-		percent: 50
-	});
+records.push({
+	id: records.length,
+	CFLOW: 1,
+	CF_LAST: 1,
+	CFHIGH: 50,
+	percent: 1
+});
 
-	records.push({
-		id: records.length,
-		CFLOW: 50,
-		CF_LAST: 1,
-		CFHIGH: 1,
-		percent: 1
-	});
+records.push({
+	id: records.length,
+	CFLOW: 50,
+	CF_LAST: 50,
+	CFHIGH: 1,
+	percent: 50
+});
 
-	records.push({
-		id: records.length,
-		CFLOW: 1,
-		CF_LAST: 50,
-		CFHIGH: 50,
-		percent: 50
-	});
+records.push({
+	id: records.length,
+	CFLOW: 50,
+	CF_LAST: 1,
+	CFHIGH: 1,
+	percent: 1
+});
 
-	// Three equal 
-	records.push({
-		id: records.length,
-		CFLOW: 1,
-		CF_LAST: 1,
-		CFHIGH: 1,
-		percent: 1
-	});
+records.push({
+	id: records.length,
+	CFLOW: 1,
+	CF_LAST: 50,
+	CFHIGH: 50,
+	percent: 50
+});
 
-	var configObj = {
-		scrollbar: true,
-		columns: [{
-			title: "ID",
-			field: fields[0],
-			width: 60
-		},
-		{
-			title: "Low",
-			field: fields[1],
-			width: 60
-		},
-		{
-			title: "Last",
-			field: fields[2],
-			width: 60
-		},
-		{
-			title: "High",
-			field: fields[3],
-			width: 60
-		},
-		{
-			title: "Range (Low, Last, High)",
-			field: fields[2],
-			alignment: "c",
-			rangeBar: {
+// Three equal 
+records.push({
+	id: records.length,
+	CFLOW: 1,
+	CF_LAST: 1,
+	CFHIGH: 1,
+	percent: 1
+});
+
+var configObj = {
+	scrollbar: true,
+	columns: [{
+		title: "ID",
+		field: fields[0],
+		width: 60
+	},
+	{
+		title: "Low",
+		field: fields[1],
+		width: 60
+	},
+	{
+		title: "Last",
+		field: fields[2],
+		width: 60
+	},
+	{
+		title: "High",
+		field: fields[3],
+		width: 60
+	},
+	{
+		title: "Range (Low, Last, High)",
+		field: fields[2],
+		alignment: "c",
+		rangeBar: {
 			low: "CFLOW",
 			high: "CFHIGH",
 			last: "CF_LAST"
-			}
-		},
-		{
-			title: "Percent",
-			field: fields[4],
-			width: 60
-		},
-		{
-			title: "Percent (Without low, last, high)",
-			field: fields[4],
-			rangeBar: {
-				field: fields[4]
-			}
-		},
-		{
-			title: "Percent (start 30, end 70)",
-			field: fields[4],
-			rangeBar: {
+		}
+	},
+	{
+		title: "Percent",
+		field: fields[4],
+		width: 60
+	},
+	{
+		title: "Percent (Without low, last, high)",
+		field: fields[4],
+		rangeBar: {
+			field: fields[4]
+		}
+	},
+	{
+		title: "Percent (start 30, end 70)",
+		field: fields[4],
+		rangeBar: {
 			field: fields[4],
 			start: 30, // default 0
 			end: 70 // default 100
-			}
-		}],
-		staticDataRows: records,
-		extensions: [ rangeBarExt ]
-	};
-
-	var grid = window.grid = document.getElementById("grid");
-	grid.config = configObj;
-
-	// Create tooltip container section, we reused element for avoid create element multiple times
-	// This container will be show the user
-	var LEDTooltipUI = document.createElement("div");
-	LEDTooltipUI.style.textTransform = "capitalize"; // To title case
-	var keys = ["low", "last", "high"];
-	for (var i = 0; i < keys.length; i++) {
-		var key = keys[i];
-		var elem = document.createElement("div");
-		LEDTooltipUI[key] = elem;
-		LEDTooltipUI.appendChild(elem);
-	}
-	// End tooltip container creation
-
-	// in application side need to import addTooltipCondition from tooltip component
-	// For example import { addTooltipCondition } from "@elf/coral-tooltip"; // for elf v4
-	// import { addTooltipCondition } from '@refinitiv-ui/elements/tooltip'; // for elf v6
-	tr.addTooltipCondition(LEDGuageTooltipCondition, LEDGuageTooltipRenderer);
-
-	function LEDGuageTooltipCondition(target, paths) {
-		var relPos = grid.api.getRelativePosition(target);
-		if (!relPos.hit) {
-			return false;
 		}
-		if (relPos.sectionType !== "content") {
-			return false;
-		}
-		if (rangeBarExt.isRangeBarColumn(relPos.colIndex)) {
-			LEDTooltipUI._relPos = relPos; // We need to cache the relative position in the container element for use when renderer in the tooltip to avoid calling getRelativePosition multiple times.
-			return true;
-		}
+	}],
+	staticDataRows: records,
+	extensions: [rangeBarExt]
+};
+
+var grid = window.grid = document.getElementById("grid");
+grid.config = configObj;
+
+// Create tooltip container section, we reused element for avoid create element multiple times
+// This container will be show the user
+var LEDTooltipUI = document.createElement("div");
+LEDTooltipUI.style.textTransform = "capitalize"; // To title case
+var keys = ["low", "last", "high"];
+for (var i = 0; i < keys.length; i++) {
+	var key = keys[i];
+	var elem = document.createElement("div");
+	LEDTooltipUI[key] = elem;
+	LEDTooltipUI.appendChild(elem);
+}
+// End tooltip container creation
+
+// in application side need to import addTooltipCondition from tooltip component
+// For example import { addTooltipCondition } from "@elf/coral-tooltip"; // for elf v4
+// import { addTooltipCondition } from '@refinitiv-ui/elements/tooltip'; // for elf v6
+tr.addTooltipCondition(LEDGuageTooltipCondition, LEDGuageTooltipRenderer);
+
+function LEDGuageTooltipCondition(target, paths) {
+	var relPos = grid.api.getRelativePosition(target);
+	if (!relPos.hit) {
 		return false;
 	}
-
-	function LEDGuageTooltipRenderer(target) {
-		var relPos = LEDTooltipUI._relPos;
-		var colIndex = relPos.colIndex;
-		var lowLastHigh = rangeBarExt.getValue(colIndex, relPos["rowIndex"]);
-		if (lowLastHigh) {
-			// update value into tooltip UI
-			LEDTooltipUI["low"].textContent = "Low: " + (lowLastHigh["low"] != null ? lowLastHigh["low"] : "--");
-			LEDTooltipUI["last"].textContent = "Last: " + (lowLastHigh["last"] != null ? lowLastHigh["last"] : "--");
-			LEDTooltipUI["high"].textContent = "High: " + (lowLastHigh["high"] != null ? lowLastHigh["high"] : "--");
-		}
-		// else {} // Currenlty, we don't have the rangeBar field that can't getValue, even if the N/A case getValue will be return object (with undefiend value)
-		return LEDTooltipUI;
+	if (relPos.sectionType !== "content") {
+		return false;
 	}
+	if (rangeBarExt.isRangeBarColumn(relPos.colIndex)) {
+		LEDTooltipUI._relPos = relPos; // We need to cache the relative position in the container element for use when renderer in the tooltip to avoid calling getRelativePosition multiple times.
+		return true;
+	}
+	return false;
+}
+
+function LEDGuageTooltipRenderer(target) {
+	var relPos = LEDTooltipUI._relPos;
+	var colIndex = relPos.colIndex;
+	var lowLastHigh = rangeBarExt.getValue(colIndex, relPos["rowIndex"]);
+	if (lowLastHigh) {
+		// update value into tooltip UI
+		LEDTooltipUI["low"].textContent = "Low: " + (lowLastHigh["low"] != null ? lowLastHigh["low"] : "--");
+		LEDTooltipUI["last"].textContent = "Last: " + (lowLastHigh["last"] != null ? lowLastHigh["last"] : "--");
+		LEDTooltipUI["high"].textContent = "High: " + (lowLastHigh["high"] != null ? lowLastHigh["high"] : "--");
+	}
+	// else {} // Currenlty, we don't have the rangeBar field that can't getValue, even if the N/A case getValue will be return object (with undefiend value)
+	return LEDTooltipUI;
+}
 
 </script>
 ```

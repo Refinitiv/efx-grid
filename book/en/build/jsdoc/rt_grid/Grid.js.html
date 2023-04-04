@@ -351,6 +351,7 @@ var Grid = function(placeholder, config) {
 		t._dc = new DataCache();
 		t._dc.listen("dataChanged", t._onDataChanged);
 		t._dc.listen("dataComposed", t._onDataComposed);
+		t._dc.addStaticFields([ROW_DEF, SUB_ID]); // Static fields are deprecated, set fields to be ignore during clone in DataCache
 
 		t._dt = new DataTable();
 		t._dt.setSortingLogic(/** @type{Function} */(t._mainSorter));
@@ -1552,10 +1553,10 @@ Grid.prototype.replaceColumn = function (columnOption, colRef) {
 		colConfig["hidden"] = false;
 	}
 
-	this.grid.startBatch("reset");
+	this._grid.startBatch("reset");
 	this.insertColumn(colConfig, colIndex);
 	this.removeColumn(colIndex + 1); // remove existing column after insert
-	this.grid.stopBatch("reset");
+	this._grid.stopBatch("reset");
 };
 
 /** to update column name when field info is loaded
@@ -1816,11 +1817,6 @@ Grid.prototype._onColumnAdded = function(e) {
 		this._grid.enableColumnClass(idx, classes[i]);
 	}
 	var colField = colDef.getField();
-	if (!colDef.isRealTimeField()) {
-		if(this._dc) {
-			this._dc.addStaticFields([colField]);
-		}
-	}
 	this._grid.setDataColumnName(idx, ROW_DEF); // This make ColumnDefinition renderer work
 	var fields = colDef.getAllFields();
 	var referrer = colDef.getId();
