@@ -39,40 +39,6 @@ var SYNAPSE_URL =
 	+ 'hits=1' // search only 1 result
 	+ '&amp;profile=' + encodeURIComponent('Field Selector');
 
-/** @function
-* @private
-* @param {Object} e
-*/
-function xRicNameRenderer(e) {
-	e.cell.setContent(e.rowDef.getDisplayText());
-}
-/** @function
-* @private
-* @param {RowDefinition} rowA
-* @param {RowDefinition} rowB
-* @param {number} order
-* @returns {number}
-*/
-function xRicNameSorter(rowA, rowB, order) {
-	var A = rowA.getDisplayText();
-	var B = rowB.getDisplayText();
-	if(A === B) {
-		return 0;
-	}
-	if(!A) {
-		return 1;
-	}
-	if(!B) {
-		return -1;
-	}
-	if(A &lt; B) {
-		return -order;
-	}
-
-	return order;
-}
-
-
 /* @namespace */
 var FieldDefinition = {};
 
@@ -80,13 +46,6 @@ var FieldDefinition = {};
 * @private
 */
 FieldDefinition._defs = {
-	"X_RIC_NAME": {
-		name: "RIC",
-		IsRealtimeField: false,
-		width: 100,
-		binding: xRicNameRenderer,
-		sortLogic: xRicNameSorter
-	},
 	"CF_NAME": {
 		name: "Name",
 		rank: 2800003,
