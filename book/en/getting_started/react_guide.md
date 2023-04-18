@@ -81,12 +81,14 @@ function gridConfigured(e: any) {
 }
 
 function App() {
+	//Extensions are recommended to use with useState to prevent multiple re-initializatioin
+	const [colResizingExt, setColResizingExt] = React.useState<ColumnResizing>(new ColumnResizing())
 	const [configObj, setConfigObj] = React.useState<RealtimeGrid.GridOptions>(
 		{
 			columns: columns,
 			staticDataRows: records,
 			extensions: [
-				new ColumnResizing()
+				colResizingExt
 			]
 		}
 	)

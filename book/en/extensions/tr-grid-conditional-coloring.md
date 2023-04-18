@@ -233,6 +233,142 @@ For required scenarios, there are features to deal with real-time data. For exam
 </script>
 ```
 
+### Predefined color mode
+
+The extension also allows you select text and background colors from a set of predefined colors. To do so, add a preset color object to the `predefinedColors` property and then set the condition object's `cssClass` properties to the color name rather than the background and color value.
+
+```live
+<style>
+	atlas-blotter {
+		height: 169px;
+	}
+	fieldset {
+		margin:  10px 0;
+		line-height: 16px;
+	}
+	fieldset * {
+		vertical-align: middle;
+	}
+	label {
+		vertical-align: middle;
+		text-align: center;
+		margin-right: 5px;
+		height: 20px;
+		width: 50px;
+		display: inline-block;
+		line-height: 20px;
+		margin-left: 5px;
+	}
+</style>
+
+<fieldset><legend>Apply color</legend>
+	<div class="">
+		<button id="set_color_1_btn">Set #1</button>
+		<label style="background-color: #FF2848;"> > 40 </label>
+		<label style="background-color: #FFB27B;"> > 0 </label>
+		<label style="background-color: #EEF3B4;"> < 0 </label>
+	</div>
+	<div class="">
+		<button id="set_color_2_btn">Set #2</button>
+		<label style="background-color: #64864A; color: #FFFFFF;"> > 40 </label>
+		<label style="background-color: #F56093;"> > 0 </label>
+		<label style="background-color: #FFCCCD;"> < 0 </label>
+	</div>
+</fieldset>
+<hr>
+<atlas-blotter id="grid"></atlas-blotter>
+
+<script>
+	var predefinedColorsSet1 = {
+		"color-1": {
+			backgroundColor: "#FF2848"
+		},
+		"color-2": {
+			backgroundColor: "#FFB27B"
+		},
+		"color-3": {
+			backgroundColor: "#EEF3B4"
+		}
+	};
+
+	var predefinedColorsSet2 = {
+		"color-1": {
+			color: "#FFFFFF",
+			backgroundColor: "#64864A"
+		},
+		"color-2": {
+			backgroundColor: "#F56093"
+		},
+		"color-3": {
+			backgroundColor: "#FFCCCD"
+		}
+	};
+
+	var conditions = [{
+		expression: "[CF_NETCHNG] > 40",
+		cssClass: "color-1"
+	},{
+		expression: "[CF_NETCHNG] > 0",
+		cssClass: "color-2"
+	}, {
+		expression: "[CF_NETCHNG] < 0",
+		cssClass: "color-3"
+	}];
+
+	var conditionalColoringExt = new tr.ConditionalColoringExtension();
+	
+	var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry", "id"];
+	var records = tr.DataGenerator.generateRecords(fields, { seed: 10, numRows: 10 });
+	var configObj = {
+		columns: [
+			{
+				title: "Company",
+				field: fields[0]
+			},
+			{
+				title: "Market",
+				field: fields[1],
+				width: 120
+			},
+			{
+				title: "Last",
+				field: fields[2],
+				width: 100
+			},
+			{
+				title: "Net. Chng",
+				field: fields[3],
+				width: 100,
+				blinking: true,
+				conditions: conditions
+			},
+			{
+				title: "Industry",
+				field: fields[4]
+			}
+		],
+		staticDataRows: records,
+		conditionalColoring: {
+			predefinedColors: predefinedColorsSet1
+		},
+		extensions: [
+			conditionalColoringExt
+		]
+	};
+
+	var grid = document.getElementById("grid");
+	grid.config = configObj;
+	
+	document.getElementById("set_color_1_btn").addEventListener("click" , function(e) {
+		conditionalColoringExt.setPredefinedColors(predefinedColorsSet1);
+	});
+
+	document.getElementById("set_color_2_btn").addEventListener("click" , function(e) {
+		conditionalColoringExt.setPredefinedColors(predefinedColorsSet2);
+	});
+</script>
+```
+
 ### Updating the movement color theme
 
 Call the ```reloadThemeColor``` function to update the theme color after the movement color theme has changed.

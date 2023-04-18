@@ -119,7 +119,7 @@ RowDefinition.prototype._permId = "";
 /** @type {string|null}
 * @private
 */
-RowDefinition.prototype._label = null; // Label overrides _ric and _displayText
+RowDefinition.prototype._label = null; // Label overrides _ric and _permId
 /** @type {boolean|null}
 * @private
 */
@@ -286,15 +286,15 @@ RowDefinition.prototype.initialize = function(rowOptions) {
 
 	var expanded = this._expanded;
 	var symbol = this._ric || this._chainRic;
-	var asChain = rowOptions["asChain"] || !!this._chainRic;
+	var asChain = this._isChain || !!this._chainRic;
 	if(this._ric &amp;&amp; this._ric.indexOf("0#") &gt;= 0){
 		asChain = true;
 		expanded = true;
 	}
-	if(rowOptions["asChain"] === false){
+	if(this._isChain === false){
 		asChain = false;
 	}
-	if(rowOptions["collapsed"] === true){
+	if(this._expanded === false){
 		expanded = false;
 	}
 	if(symbol || this._permId){
@@ -309,7 +309,7 @@ RowDefinition.prototype._initializeAsConstituent = function(rowOptions) {
 	var parentDef = /** @type{RowDefinition} */(rowOptions["parent"]);
 	if(this.setParent(parentDef)) {
 		this._dataId = /** @type{string} */(rowOptions["dataId"]); // Constituent will have the same subId as its parent but with different ric
-
+		this._ric = /** @type{string} */(rowOptions["ric"]);
 		this._dc = parentDef._dc; // Parent chain must have data cache
 		if(this._dc) {
 			var rowData = this.getRowData(); // Do not trigger any data update
@@ -364,7 +364,7 @@ RowDefinition.prototype.setContent = function(userInput, permId, asChain, expand
 			if(asChain === false){
 				this._ric = this._userInput;
 			} else {
-				this._ric = expanded ? this._userInput.replace("0#", "") : this._userInput;
+				this._ric = expanded === false ? this._userInput : this._userInput.replace("0#", "");
 				this._expanded = expanded;
 				this._isChain = true; // Only chain can be expanded by 0#
 				this._chainRic = this._userInput;
