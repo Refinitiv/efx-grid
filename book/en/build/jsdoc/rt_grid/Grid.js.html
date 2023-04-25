@@ -1553,6 +1553,9 @@ Grid.prototype.replaceColumn = function (columnOption, colRef) {
 		colConfig["hidden"] = false;
 	}
 
+	if(colConfig.id == null) {
+		colConfig.id =  colDef.getId(); // retain ID
+	}
 	this._grid.startBatch("reset");
 	this.insertColumn(colConfig, colIndex);
 	this.removeColumn(colIndex + 1); // remove existing column after insert
@@ -1703,12 +1706,6 @@ Grid.prototype.restoreColumns = function(columns) {
 		}
 	}
 
-	var sortingStates;
-	var removeLen = removingFields.length;
-	if(removeLen &gt; 0 &amp;&amp; this._stp) {
-		sortingStates = this._stp.getSortingStates().slice(); // We need to clone array for avoid object reference in remove column
-	}
-
 	this.removeColumns(removingFields);
 
 	var keepingLen = keepingColumns.length;
@@ -1734,10 +1731,6 @@ Grid.prototype.restoreColumns = function(columns) {
 
 	if(newColLen &gt; 1) {
 		this._grid.freezeLayout(prevState);
-	}
-
-	if(removeLen &gt; 0 &amp;&amp; this._stp) {
-		this._stp.sortColumns(sortingStates);
 	}
 
 	grid.reorderColumns(columnOrdering);

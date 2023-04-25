@@ -55,7 +55,8 @@ import Engine from "../../node_modules/tr-grid-util/es6/formula/Engine.js";
 * @property {ColumnDefinition~SortLogic=} sorter=null Alias to `sortLogic`
 * @property {boolean=} rowSorting=null If set to true, RowDefinition object will be used for sorting comparison. If set to false, data from the given `field` will be used for sorting comparison.
 * @property {boolean=} sortable=true If disabled, the column cannot be sorted by user click
-* @property {string=} sort="" This column will be sorted at the initialization in the specified order (e.g. "asc", "desc")
+* @property {string=} sort="" Deprecated Alias to `sortOrder`
+* @property {string=} sortOrder="" The column can be sorted in ascending and descending order by specifying the order "a", "d". This option will sort the column when it is initialized or inserted at runtime.
 * @property {Object=} styles=null Key/value pair Object specifying CSS styles
 * @property {number=} width=NaN If specified, column will have a fixed width in pixel
 * @property {number=} minWidth=NaN If specified, column will have a minimum width in pixel
@@ -433,7 +434,7 @@ ColumnDefinition.prototype.initialize = function(columnOption) {
 	}
 
 	// Deprecate
-	val = columnOption["sort"];
+	val = columnOption["sortOrder"] || columnOption["sort"];
 	if(val) {
 		this._initialOrder = val;
 	}
@@ -683,11 +684,13 @@ ColumnDefinition.prototype.isScalable = function() {
 	var colIndex = grid.getColumnIndex(this);
 	return core.getColumnScalability(colIndex);
 };
-/** @public
- * @deprecated
+/** Deprecated, this function will be return initial sort order of this column, The current sort state may be different from initial sort state.
+* @public
+* @deprecated
 * @return {string}
 */
 ColumnDefinition.prototype.getInitialSortOrder = function() {
+	// WARNING: This state is different from `sortOrder`, it is the state when grid is initialized.
 	return this._initialOrder;
 };
 /** @public
@@ -791,10 +794,6 @@ ColumnDefinition.prototype.getConfigObject = function(colOptions) {
 		obj["sortable"] = false;
 	}
 
-	if(this._initialOrder) {
-		obj["sort"] = this._initialOrder;
-	}
-
 	var classes = this._classes;
 	if(classes &amp;&amp; classes.length &gt; 0) {
 		obj["className"] = classes.join(" ");
@@ -830,10 +829,11 @@ ColumnDefinition.prototype.getConfigObject = function(colOptions) {
 		obj["minWidth"] = value;
 	}
 
-	value = core.isColumnVisible(colIndex);
 	// If "hidden" property already available from core/extensions, don't override this property
-	if(!value &amp;&amp; obj["hidden"] == null) {
-		obj["hidden"] = true;
+	if(obj["hidden"] == null) {
+		if(!core.getColumnVisibility(colIndex, 0)) {
+			obj["hidden"] = true;
+		}
 	}
 
 	value = core.getColumnAlignment(colIndex);
