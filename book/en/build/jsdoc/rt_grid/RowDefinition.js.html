@@ -40,7 +40,7 @@ import { DataTable } from "../../node_modules/@grid/core/es6/data/DataTable.js";
 * @property {boolean=} collapsed=true Chain is collapsed by default
 * @property {(string|null)=} label=null
 * @property {boolean=} hidden=true When this row is hidden
-* @pro // realTime
+* @property {boolean=} realTime=true Realtime row, able to request for JET/RTK
 */
 
 /** @typedef {Object} RowDefinition~RowTypes
@@ -242,6 +242,8 @@ RowDefinition.prototype.initialize = function(rowOptions) {
 		return;
 	}
 
+	var extractedOptions = RowDefinition.extractRowOptions(rowOptions);
+
 	var val = rowOptions["permId"];
 	if(val != null) {
 		this._permId = val;
@@ -259,13 +261,8 @@ RowDefinition.prototype.initialize = function(rowOptions) {
 	if(val != null) {
 		this._chainRic = val;
 	}
-	val = rowOptions["values"];
-	// eslint-disable-next-line no-undefined
-	if(val !== undefined) {
-		this.setStaticRowData(val, rowOptions["fields"]);
-	}
 
-	val = rowOptions["asChain"];
+	val = extractedOptions["asChain"];
 	if(val !== null) {
 		this._isChain = val;
 	}
@@ -277,28 +274,22 @@ RowDefinition.prototype.initialize = function(rowOptions) {
 
 	val = rowOptions["collapsed"];
 	if(val != null){
-		this._expanded = !val;
+		this._expanded = extractedOptions["collapsed"];
 	}
 	val = rowOptions["keepModel"];
 	if(val) {
 		this._userModel = rowOptions;
 	}
 
-	var expanded = this._expanded;
 	var symbol = this._ric || this._chainRic;
-	var asChain = this._isChain || !!this._chainRic;
-	if(this._ric &amp;&amp; this._ric.indexOf("0#") &gt;= 0){
-		asChain = true;
-		expanded = true;
-	}
-	if(this._isChain === false){
-		asChain = false;
-	}
-	if(this._expanded === false){
-		expanded = false;
-	}
 	if(symbol || this._permId){
-		this.setContent(symbol, this._permId, asChain, expanded); // this._dataId is modified
+		this.setContent(symbol, this._permId, this._isChain, this._expanded); // this._dataId is modified
+	}
+
+	val = rowOptions["values"];
+	// eslint-disable-next-line no-undefined
+	if(val !== undefined) {
+		this.setStaticRowData(val, rowOptions["fields"]);
 	}
 };
 /** @private
@@ -325,11 +316,11 @@ RowDefinition.prototype._initializeAsConstituent = function(rowOptions) {
 	}
 };
 /** @public
+* @ignore
 * @param {string} userInput RIC
 * @param {string=} permId=null Organization PermId, which use for getting ADC data for private  company
 * @param {boolean=} asChain
 * @param {boolean=} expanded
-* @param {boolean=} realTime
 * @return {boolean} True if there is any change otherwise false
 */
 RowDefinition.prototype.setContent = function(userInput, permId, asChain, expanded) {
@@ -352,32 +343,39 @@ RowDefinition.prototype.setContent = function(userInput, permId, asChain, expand
 		return false;
 	}
 
-	this.unsubscribeForUpdates();
+	if(!this.unsubscribeForUpdates()){
+		this._clearStaticData();
+	}
 	this.resetUpdates(); // Remove all previous data updates because a new content is just entered
 
-	// TODO: handle changing between chain and ric row
 	this._userInput = userInput;
 	if(this._userInput.charAt(0) === "'") { // This is a row header
 		this._ric = this._chainRic = ""; // No ric for realtime request
 	} else {
-		if(this._userInput.indexOf("0#") &gt;= 0) {
-			if(asChain === false){
-				this._ric = this._userInput;
-			} else {
-				this._ric = expanded === false ? this._userInput : this._userInput.replace("0#", "");
-				this._expanded = expanded;
-				this._isChain = true; // Only chain can be expanded by 0#
-				this._chainRic = this._userInput;
-				if(this._view) {
-					this._view.setSegmentSeparator(this._rowId);
-					this.expandChain();
-				}
-			}
+		if(asChain === true){
+			this._ric = expanded === false ? this._userInput : this._userInput.replace("0#", "");
+			this._expanded = expanded;
+			this._isChain = true; // Only chain can be expanded by 0#
+			this._chainRic = this._userInput;
 		} else {
 			this._ric = this._userInput;
-			if(asChain){
-				this._isChain = true;
+			this._isChain = asChain;
+		}
+	}
+
+	if(this._view) {
+		if(this._isChain){
+			var rid = this.getRowId();
+			var segmentId = this._view.getSegmentParentRowId(rid);
+			if(segmentId){
+				this._view.removeSegmentChild(segmentId, rid);
 			}
+		}
+		this._view.setSegmentSeparator(this._rowId, !!this._isChain);
+		if(this._expanded &amp;&amp; this.isChainCollapsed()){
+			this.expandChain();
+		} else if (!this._expanded &amp;&amp; this.isChainExpanded()){
+			this.collapseChain();
 		}
 	}
 
@@ -823,7 +821,7 @@ RowDefinition.prototype.unsubscribeForUpdates = function() {
 	this.resetUpdates();
 	// TODO: Reset only if this is the last ric
 	this._dc.setRowData(this._dataId, null); // Trigger data update immediately
-	// TODO: Handle static values
+	this._clearStaticData();
 	// eslint-disable-next-line consistent-return
 	return prevRowData;
 };
@@ -1234,6 +1232,40 @@ RowDefinition.prototype.getUserModel = function() {
 */
 RowDefinition.toRowId = function(rowDef) {
 	return rowDef.getRowId();
+};
+/** For transforming row options into standard format
+* @public
+* @ignore
+* @function
+* @param {RowDefinition~Options} rowOptions
+* @return {RowDefinition~Options}
+*/
+RowDefinition.extractRowOptions = function(rowOptions) {
+	var ric = rowOptions["ric"];
+	var chainRic = rowOptions["chainRic"];
+	var collapsed = rowOptions["collapsed"];
+	var asChain = rowOptions["asChain"];
+	if(asChain == null &amp;&amp; chainRic){
+		asChain = true;
+	}
+	var expanded = null;
+	if(ric &amp;&amp; ric.indexOf("0#") &gt;= 0){
+		if(asChain == null){
+			asChain = true;
+		}
+		expanded = true;
+	}
+
+	var extractedOptions = {};
+	if(collapsed == null) {
+		extractedOptions["collapsed"] = !expanded;
+	} else {
+		extractedOptions["collapsed"] = collapsed;
+	}
+	extractedOptions["ric"] = ric;
+	extractedOptions["chainRic"] = chainRic;
+	extractedOptions["asChain"] = asChain;
+	return extractedOptions;
 };
 /** For mapping row Id by Array.map()
 * @public

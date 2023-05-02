@@ -143,6 +143,23 @@ The Row Dragging Extension can be used together with the `RowSelectionPlugin` to
 </script>
 ```
 
+### Forbidden drag and drop behavior
+
+The Row Dragging extension has a default behavior for row dragging, which is accompanied by a `void` icon when a user attempts to drag a row to another location. However, there are certain restrictions in place that forbidden the dragging of certain row types to other locations. For instance, some row types cannot be dragged, while others cannot be dragged to certain areas. To ensure seamless navigation, it is essential to be mindful of these restrictions. Therefore, we have compiled a list of available [Row Types](../apis/rt_grid/RowDefinition.md), which can be found in the table below.
+
+[comment]: <> ( &#x2713; = Check Mark, &#x2717; = Cross Mark)
+
+| From/To Row types   | CONTENT  | CHAIN    | CONSTITUENT | GROUP_HEADER | GROUP_MEMBER | SUBGROUP_HEADER     
+|---------------------|:--------:|:--------:|:-----------:|:------------:|:------------:|:--------------------:|
+| CONTENT             | &#x2713; | &#x2713; | &#x2717;    | &#x2713;     | &#x2713;     |         &#x2717;            
+| CHAIN               | &#x2713; | &#x2713; | &#x2717;    | &#x2713;     | &#x2717;     |         &#x2717;            
+| CONSTITUENT         | &#x2717; | &#x2717; | &#x2717;    | &#x2717;     | &#x2717;     |         &#x2717;            
+| GROUP_HEADER        | &#x2713; | &#x2713; | &#x2717;    | &#x2713;     | &#x2717;     |         &#x2717;            
+| GROUP_MEMBER        | &#x2713; | &#x2713; | &#x2717;    | &#x2713;     | &#x2713;     |         &#x2717;            
+| SUBGROUP_HEADER     | &#x2717; | &#x2717; | &#x2717;    | &#x2717;     | &#x2717;     |         &#x2717;            
+
+> Note: Members of the `SUBGROUP_HEADER` type can only be moved within their group.
+
 ### Migrating from built-in column grouping 
 
 Due to the built-in libraries being migrated out from the `Core Grid` to extensions, built-in column grouping will be deprecated and will no longer be maintained.
