@@ -255,6 +255,45 @@ var compareNumber = function(rowDefA, rowDefB, sortOrder, fieldName) { // edit n
 	return (rowDefA.getData(fieldName) - rowDefB.getData(fieldName)) * sortOrder; // for numeric comparison
 };
 
+/**
+ * @private
+* @param {string} rowDefA
+* @param {string} rowDefB
+* @param {string} sortOrder
+* @return {number} The outcome of the value comparison
+*/
+var _sortChildrenOfChain =  function (rowDefA, rowDefB, sortOrder) {
+	var parentA = rowDefA.getParent();
+
+	if (!parentA) {
+	  return 0;
+	}
+
+	var parentB = rowDefB.getParent();
+
+	if (!parentB) {
+	  return 0;
+	}
+
+	if (parentA !== parentB) {
+	  return 0;
+	}
+
+	var a = rowDefA.getData('CHILD_ORDER');
+
+	if (a == null) {
+	  return 0;
+	}
+
+	var b = rowDefB.getData('CHILD_ORDER');
+
+	if (b == null) {
+	  return 0;
+	}
+
+	return ( a - b ) * sortOrder;
+};
+
 /** @private
 * @param {ColumnDefinition} colDef
 * @return {string}
@@ -283,6 +322,7 @@ var Grid = function(placeholder, config) {
 	var t = this; // This is to primarily reduce file size
 
 	t._onDataChanged = t._onDataChanged.bind(t);
+	t._onQuote2PostUpdate = t._onQuote2PostUpdate.bind(t);
 	t._onDataComposed = t._onDataComposed.bind(t);
 	t._onSubSegmentChanged = t._onSubSegmentChanged.bind(t);
 	t._recalculateFormulas = t._recalculateFormulas.bind(t);
@@ -641,6 +681,7 @@ Grid.prototype.initSubscription = function() {
 	this._subs = s;
 	this._subs["start"]();
 	this._dc.setSubscriptions(s);
+	this._subs.addEventListener("postUpdate", this._onQuote2PostUpdate);
 
 	// TODO: Subscriptions should be registered per row.
 	// However, chain subscription cannot be integrated with DataConnector in this current implementation.
@@ -2633,13 +2674,7 @@ Grid.prototype.setRic = function(rowRef, str, options) {
 		options["ric"] = str;
 		var extractedOptions = RowDefinition.extractRowOptions(options);
 		var oldRic = rowDef.getSymbol();
-		var permId = options["permId"];
-		var expanded = null;
-		var collapsed = options["collapsed"];
-		if(collapsed != null){
-			expanded = !extractedOptions["collapsed"];
-		}
-		if(rowDef.setContent(str, permId, extractedOptions["asChain"], expanded)) { // The given string may not be a RIC
+		if(rowDef.setContent(str, extractedOptions)) { // The given string may not be a RIC
 			this._connector.removeRic(rowDef, oldRic);
 			this._initDuplicateRicData(rowDef);
 			this._connector.addRic(rowDef);
@@ -3351,6 +3386,19 @@ Grid.prototype.getSortOrder = function() {
 */
 Grid.prototype.clearSort = function() {
 	this._stp.clearSortState(); // WARNING: No event is dispatched
+};
+
+/**
+* @private
+* @param {Object} e Event object from quote2
+*/
+Grid.prototype._onQuote2PostUpdate = function (e) {
+	if(e.childOrderChange) { // For dynamic chain when CHILD_ORDER from the server change, it will be call sort children
+		if(!this.isSorting()) {
+			// Use rowDef for get CHILD_ORDER to sort
+			this._dt.sortOnce("ROW_DEF", "a", _sortChildrenOfChain);
+		}
+	}
 };
 
 /** @private
