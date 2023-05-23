@@ -165,21 +165,17 @@ import { ElementWrapper } from "../../node_modules/@grid/core/es6/grid/component
 * @description Fired after ADC data or response received from the server
 * @property {Array.&lt;Array&gt;} data Data part of the server response
 */
-
 /** @event Grid#pageIndexChanged
 * @description Fired after page index in the data view is changed during the active pagination mode
 */
-
 /** @event Grid#pageCountChanged
 * @description Fired after page count in the data view is changed during the active pagination mode
 */
-
 /** @event Grid#dataComposed
 * @description Trigger before dataChanged. Perform any data update during the event will NOT cause more dataChanged events
 * @property {Grid} grid
 * @property {RowDefinition} rowDef
 */
-
 /** @event Grid#beforeRowRemoved
 * @description Fired only when a row will be removed through Grid's API and before occurring of the actual removal
 */
@@ -3946,6 +3942,7 @@ Grid.prototype._logData = function(rowDefs, options) {
 
 	console.table(tbl); // eslint-disable-line
 };
+
 /** @public
 * @description Replace existing row with a new row. Row ID would be changed, after row is replaced.
 * @param {Grid~RowReference} rowRef Reference (i.e. row index, row id, or row definition) of the insert position
@@ -3967,6 +3964,96 @@ Grid.prototype.replaceRow = function(rowRef, rowOption) {
 		this.removeRow(rowId);
 		return insertedRow;
 	}
+};
+
+/** Scroll the view to the specified column. If the column is already in the view, nothing happens. If the column is outside of the view, the view will be moved to the column with some additional offsets
+* @public
+* @param {number} colIndex
+* @param {boolean=} leftOfView Default is false. If true, the specified column will be put at the leftmost of the view (no offset)
+* @returns {boolean} Return true, if there is any change
+*/
+Grid.prototype.scrollToColumn = function (colIndex, leftOfView) {
+	return this._grid.scrollToColumn(colIndex, leftOfView);
+};
+/** Scroll the view to the specified row. If the row is already in the view, nothing happens. If the row is outside of the view, the view will be moved to the row with some additional offsets
+* @public
+* @param {number} rowIndex
+* @param {boolean=} topOfView=false If true, the specified row will be put at the top of the view (no offset)
+*/
+Grid.prototype.scrollToRow = function (rowIndex, topOfView) {
+	this._grid.scrollToRow("content", rowIndex, topOfView);
+};
+
+/** Get scroll value in pixel from the horizontal scrollbar
+* @public
+* @returns {number} pixels
+*/
+Grid.prototype.getScrollLeft = function () {
+	return this._grid.getScrollLeft();
+};
+/** Get scroll value in pixel from the vertical scrollbar
+* @public
+* @returns {number} pixels
+*/
+Grid.prototype.getScrollTop = function () {
+	return this._grid.getScrollTop();
+};
+
+/** Set scroll value to the horizontal scrollbar. This will move the scrollbar to specific position
+* @public
+* @param {number} pixels
+* @see {@link Grid.scrollRight}
+*/
+Grid.prototype.setScrollLeft = function (pixels) {
+	this._grid.setScrollLeft(pixels);
+};
+/**  Set scroll value to the vertical scrollbar. This will move the scrollbar to specific position
+* @public
+* @param {number} pixels
+* @see {@link Grid.scrollDown}
+*/
+Grid.prototype.setScrollTop = function (pixels) {
+	this._grid.setScrollTop(pixels);
+};
+
+/** Scroll the view to the right by the specified value. Use negative value to scroll the view to the left
+* @public
+* @param {number} pixels
+* @see {@link Grid.setScrollLeft}
+*/
+Grid.prototype.scrollRight = function (pixels) {
+	this._grid.scrollRight(pixels);
+};
+/** Scroll the view down by the specified value. Use negative value to scroll the view to the top
+* @public
+* @param {number} pixels
+* @see {@link Grid.setScrollTop}
+*/
+Grid.prototype.scrollDown = function (pixels) {
+	this._grid.scrollDown(pixels);
+};
+
+/** Get width of scrollable area from the horizontal scrollbar. This is useful for determining the end of scrollbar
+* @public
+* @returns {number}
+*/
+Grid.prototype.getScrollWidth = function () {
+	return this._grid.getScrollWidth();
+};
+/** Get height of scrollable area from the vertical scrollbar. This is useful for determining the end of scrollbar
+* @public
+* @returns {number}
+*/
+Grid.prototype.getScrollHeight = function () {
+	return this._grid.getScrollHeight();
+};
+
+/** Get information about current grid's view and the vertical scrollbar
+* @public
+* @returns {Object} Returns null, if vertical scrollbar does not exists
+*/
+Grid.prototype.getVScrollView = function () {
+	return this._grid.getVScrollView();
 };
 
 export { Grid };
