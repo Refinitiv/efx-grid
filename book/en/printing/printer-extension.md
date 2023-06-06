@@ -12,23 +12,23 @@ To solve this, you need to update the grid's configuration to show all hidden in
 
 ```js
 var config = {
-    // ... See column options for available options
+  // ... See column options for available options
 };
 
-var grid = document.getElementById('grid');
+var grid = document.getElementById("grid");
 grid.config = config;
 ```
 
-### 2. Adjust the grid's resolution
+### 2. Adjust the Grid's resolution
 
-Adjust the grid's resolution to reflect the paper size (for example, A3, A4, A5).
+Adjust the Grid's resolution to reflect the paper size (for example, A3, A4, A5).
 
 > `@media print` CSS properties cannot be used to adjust Grid's style, as Grid will not re-render itself with CSS properties. They can only be used to adjust the layout before the print preview.
 
 ```js
 function beforePrint() {
-    grid.style.width = "180mm"; // A4 width
-    grid.style.height = "unset";
+  grid.style.width = "180mm"; // A4 width
+  grid.style.height = "unset";
 }
 ```
 
@@ -38,10 +38,10 @@ Grid needs approximately 300ms to recalculate and re-render itself. So you need 
 
 ```js
 function print() {
-    beforePrint();
-    setTimeout(function () {
-        window.print();
-    }, 500); // Grid needs at least 300ms  to recalculate and repaint itself.
+  beforePrint();
+  setTimeout(function () {
+    window.print();
+  }, 500); // Grid needs at least 300ms  to recalculate and repaint itself.
 }
 ```
 
@@ -51,8 +51,8 @@ Lastly, the grid's configuration needs to be restored to its initial state. For 
 
 ```js
 window.onafterprint = function () {
-    grid.style.width = "100%";
-    grid.style.height = "500px";
+  grid.style.width = "100%";
+  grid.style.height = "500px";
 }
 ```
 
@@ -72,11 +72,11 @@ Basically, the utility creates a new grid DOM dynamically and copies its data in
 <atlas-blotter id="grid"></atlas-blotter>
 <script>
 	var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry", "icon"];
-	tr.DataGenerator.addFieldInfo("icon", {
-  		type: "set",
-  		members: ["up", "down", "phone", "calendar", "flame"]
+	DataGenerator.addFieldInfo("icon", {
+		type: "set",
+		members: ["up", "down", "phone", "calendar", "flame"]
 	});
-	var records = tr.DataGenerator.generateRecords(fields, { numRows: 20 });
+	var records = DataGenerator.generateRecords(fields, { numRows: 20 });
 	var configObj = {
 		columns: [
 			{title: "Company", field: fields[0]},
@@ -84,7 +84,7 @@ Basically, the utility creates a new grid DOM dynamically and copies its data in
 			{title: "Last", field: fields[2], width: 80},
 			{title: "Net. Chng", field: fields[3], width: 80},
 			{title: "Industry", field: fields[4]},
-			{title: "Icon", field: fields[5], binding: tr.CoralIconFormatter.create()}
+			{title: "Icon", field: fields[5], binding: EFIconFormatter.create()}
 		],
 		staticDataRows: records
 	};
@@ -98,73 +98,26 @@ Basically, the utility creates a new grid DOM dynamically and copies its data in
 </script>
 ```
 
-### Traditional usage
-
-To use the utility as an external static library, install it from npm.
+First, install package from npm.
 
 ```bash
-npm install tr-grid-printer
-```
-
-Then, include the `script` in your HTML page. The path may vary depending on your project structure.
-
-```html
-<head>
-  <script src="node_modules/tr-grid-printer/dist/tr-grid-printer.min.js"></script>
-</head>
-<body>
-  <atlas-blotter id="grid"></atlas-blotter>
-</body>
-```
-
-Finally, add the utility to the configuration object.
-
-```js
-var config = {
-    // ... See column options for available options
-};
-
-var grid = document.getElementById('grid');
-grid.config = config;
-
-GridPrinter.print(grid);
-```
-
-### ES6 module usage
-
-To use the utility this way, install it from npm and deduplicate the installed packages.
-
-```bash
-npm install tr-grid-printer
-npm dedupe
+npm install @refinitiv-ui/efx-grid
 ```
 
 Then, use `import` syntax for importing the utility into your app.
 
 ```js
-import GridPrinter from 'tr-grid-printer/es6';
+import { GridPrinter } from "@refinitiv-ui/efx-grid/utils";
 ```
 
-Or use default import from the utility file.
-
-```js
-import GridPrinter from 'tr-grid-printer/es6/GridPrinter.js';
-```
-
-Or use import from the utility file with full file path (this is good to use for direct importing in browsers).
-
-```js
-import { GridPrinter } from './node_modules/tr-grid-printer/es6/GridPrinter.js';
-```
-
-Finally, add the utility to the configuration object.
+Finally, send Grid into the GridPrinter utility.
 
 ```js
 var config = {
-    // ... See column options for available options
+	// ... See column options for available options
 };
 
-var grid = document.getElementById('grid');
+var grid = document.getElementById("grid");
 grid.config = config;
 
 GridPrinter.print(grid);

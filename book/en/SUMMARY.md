@@ -193,6 +193,7 @@
 	- [50,000 Rows Handling](misc/fifty-thosand-rows.md)
 	- [Row Span](misc/row-span.md)
 	- [Row Expansion](misc/row-expansion.md)
+	- [Multi-table](misc/multi-table.md)
 	- [Text Selection](misc/text-selection.md)
 	
 - Migrating to EFX Grid

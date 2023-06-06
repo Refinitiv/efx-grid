@@ -29,7 +29,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="37ddc89c-e3f6-4fb7-b640-5408823359ab">
+        <pandora-nav id="298a559e-b570-4cef-a156-c593f9f8fa28">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -267,6 +267,7 @@
                 <li><a href="../misc/fifty-thosand-rows.html">50,000 Rows Handling</a></li>
                 <li><a href="../misc/row-span.html">Row Span</a></li>
                 <li><a href="../misc/row-expansion.html">Row Expansion</a></li>
+                <li><a href="../misc/multi-table.html">Multi-table</a></li>
                 <li><a href="../misc/text-selection.html">Text Selection</a></li>
               </ul>
             </li>
@@ -290,33 +291,33 @@
             <p>To solve this, you need to update the grid's configuration to show all hidden information before you preview it. See the steps below.</p>
             <h3 id="1-initialize-grid">1. Initialize Grid</h3>
             <pre><code><span class="hljs-keyword">var</span> config = {
-    <span class="hljs-comment">// ... See column options for available options</span>
+  <span class="hljs-comment">// ... See column options for available options</span>
 };
 
-<span class="hljs-keyword">var</span> grid = <span class="hljs-built_in">document</span>.getElementById(<span class="hljs-string">'grid'</span>);
+<span class="hljs-keyword">var</span> grid = <span class="hljs-built_in">document</span>.getElementById(<span class="hljs-string">"grid"</span>);
 grid.config = config;</code></pre>
-            <h3 id="2-adjust-the-grid-s-resolution">2. Adjust the grid's resolution</h3>
-            <p>Adjust the grid's resolution to reflect the paper size (for example, A3, A4, A5).</p>
+            <h3 id="2-adjust-the-grid-s-resolution">2. Adjust the Grid's resolution</h3>
+            <p>Adjust the Grid's resolution to reflect the paper size (for example, A3, A4, A5).</p>
             <blockquote>
               <p><code>@media print</code> CSS properties cannot be used to adjust Grid's style, as Grid will not re-render itself with CSS properties. They can only be used to adjust the layout before the print preview.</p>
             </blockquote>
             <pre><code><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">beforePrint</span>(<span class="hljs-params"></span>) </span>{
-    grid.style.width = <span class="hljs-string">"180mm"</span>; <span class="hljs-comment">// A4 width</span>
-    grid.style.height = <span class="hljs-string">"unset"</span>;
+  grid.style.width = <span class="hljs-string">"180mm"</span>; <span class="hljs-comment">// A4 width</span>
+  grid.style.height = <span class="hljs-string">"unset"</span>;
 }</code></pre>
             <h3 id="3-delayed-window-print">3. Delayed <code>window.print</code></h3>
             <p>Grid needs approximately 300ms to recalculate and re-render itself. So you need to make sure Grid has enough time to update its state before the print preview appears.</p>
             <pre><code><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">print</span>(<span class="hljs-params"></span>) </span>{
-    beforePrint();
-    setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
-        <span class="hljs-built_in">window</span>.print();
-    }, <span class="hljs-number">500</span>); <span class="hljs-comment">// Grid needs at least 300ms  to recalculate and repaint itself.</span>
+  beforePrint();
+  setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+    <span class="hljs-built_in">window</span>.print();
+  }, <span class="hljs-number">500</span>); <span class="hljs-comment">// Grid needs at least 300ms  to recalculate and repaint itself.</span>
 }</code></pre>
             <h3 id="4-after-printing">4. After printing</h3>
             <p>Lastly, the grid's configuration needs to be restored to its initial state. For this, the <code>window.onafterprint</code> hook will be triggered once printing is finished.</p>
             <pre><code><span class="hljs-built_in">window</span>.onafterprint = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
-    grid.style.width = <span class="hljs-string">"100%"</span>;
-    grid.style.height = <span class="hljs-string">"500px"</span>;
+  grid.style.width = <span class="hljs-string">"100%"</span>;
+  grid.style.height = <span class="hljs-string">"500px"</span>;
 }</code></pre>
             <h2 id="using-the-printing-utility">Using the Printing Utility</h2>
             <p>Unlike the native printer above, the Printing Utility has been created to help print the grid without other components. Rows and columns will not be truncated when using the utility.</p>
@@ -397,44 +398,17 @@ document.getElementById("print").addEventListener("click", function() {
               <link rel="prefetch" href="../node_modules/tr-grid-textformatting/dist/tr-grid-textformatting.min.js" type="script">
               <link rel="prefetch" href="../node_modules/tr-grid-titlewrap/dist/tr-grid-titlewrap.min.js" type="script">
               <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
-              <link rel="prefetch" href="../node_modules/tr-grid-printer/dist/tr-grid-printer.min.js" type="script">
-              <link rel="prefetch" href="../node_modules/tr-grid-printer/dist/tr-grid-printer.css" type="style">
             </div>
-            <h3 id="traditional-usage">Traditional usage</h3>
-            <p>To use the utility as an external static library, install it from npm.</p>
-            <pre><code>npm install tr-grid-printer</code></pre>
-            <p>Then, include the <code>script</code> in your HTML page. The path may vary depending on your project structure.</p>
-            <pre><code><span class="hljs-tag">&lt;<span class="hljs-name">head</span>&gt;</span>
-  <span class="hljs-tag">&lt;<span class="hljs-name">script</span> <span class="hljs-attr">src</span>=<span class="hljs-string">"node_modules/tr-grid-printer/dist/tr-grid-printer.min.js"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">script</span>&gt;</span>
-<span class="hljs-tag">&lt;/<span class="hljs-name">head</span>&gt;</span>
-<span class="hljs-tag">&lt;<span class="hljs-name">body</span>&gt;</span>
-  <span class="hljs-tag">&lt;<span class="hljs-name">efx-grid</span> <span class="hljs-attr">id</span>=<span class="hljs-string">"grid"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">efx-grid</span>&gt;</span>
-<span class="hljs-tag">&lt;/<span class="hljs-name">body</span>&gt;</span></code></pre>
-            <p>Finally, add the utility to the configuration object.</p>
-            <pre><code><span class="hljs-keyword">var</span> config = {
-    <span class="hljs-comment">// ... See column options for available options</span>
-};
-
-<span class="hljs-keyword">var</span> grid = <span class="hljs-built_in">document</span>.getElementById(<span class="hljs-string">'grid'</span>);
-grid.config = config;
-
-GridPrinter.print(grid);</code></pre>
-            <h3 id="es6-module-usage">ES6 module usage</h3>
-            <p>To use the utility this way, install it from npm and deduplicate the installed packages.</p>
-            <pre><code>npm install tr-grid-printer
-npm dedupe</code></pre>
+            <p>First, install package from npm.</p>
+            <pre><code>npm install @refinitiv-ui/efx-grid</code></pre>
             <p>Then, use <code>import</code> syntax for importing the utility into your app.</p>
-            <pre><code><span class="hljs-keyword">import</span> GridPrinter <span class="hljs-keyword">from</span> <span class="hljs-string">'tr-grid-printer/es6'</span>;</code></pre>
-            <p>Or use default import from the utility file.</p>
-            <pre><code><span class="hljs-keyword">import</span> GridPrinter <span class="hljs-keyword">from</span> <span class="hljs-string">'tr-grid-printer/es6/GridPrinter.js'</span>;</code></pre>
-            <p>Or use import from the utility file with full file path (this is good to use for direct importing in browsers).</p>
-            <pre><code><span class="hljs-keyword">import</span> { GridPrinter } <span class="hljs-keyword">from</span> <span class="hljs-string">'./node_modules/tr-grid-printer/es6/GridPrinter.js'</span>;</code></pre>
-            <p>Finally, add the utility to the configuration object.</p>
+            <pre><code><span class="hljs-keyword">import</span> { GridPrinter } <span class="hljs-keyword">from</span> <span class="hljs-string">"@refinitiv-ui/efx-grid/utils"</span>;</code></pre>
+            <p>Finally, send Grid into the GridPrinter utility.</p>
             <pre><code><span class="hljs-keyword">var</span> config = {
     <span class="hljs-comment">// ... See column options for available options</span>
 };
 
-<span class="hljs-keyword">var</span> grid = <span class="hljs-built_in">document</span>.getElementById(<span class="hljs-string">'grid'</span>);
+<span class="hljs-keyword">var</span> grid = <span class="hljs-built_in">document</span>.getElementById(<span class="hljs-string">"grid"</span>);
 grid.config = config;
 
 GridPrinter.print(grid);</code></pre>

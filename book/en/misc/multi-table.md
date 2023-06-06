@@ -18,7 +18,7 @@ MultiTableManager is still in development and support only some basic features a
 
 ## Usage 
 
-To use multi-table feature, you need to import `MultiTableManager`, a helper, from our utility package. Then, initialize the helper by supplying Grid element. The element will be used as a primary table for creating another table. Lastly, initialize the Grid element by using `setGridConfig` method from the helper to specify configuration. 
+To use multi-table feature, you need to import `MultiTableManager`, a helper, from package. Then, initialize the helper by supplying Grid element. The element will be used as a primary table for creating another table. Lastly, initialize the Grid element by using `setGridConfig` method from the helper to specify configuration. 
 
 To adjust number of tables, use `setTableCount` method. 
 
@@ -27,7 +27,7 @@ To get Grid element, use `getTable` method.
 The basic setup process is shown in the example below:
 
 ```js
-import MultiTableManager from "../node_modules/tr-grid-util/es6/MultiTableManager.js";
+import MultiTableManager from "@refinitiv-ui/efx-grid/utils";
 
 var gridElement = document.getElementById("grid");
 var mgr = new MultiTableManager(gridElement);
@@ -47,7 +47,7 @@ mgr.setTableCount(3); // Or any other number
 	html hr {
 		margin: 5px;
 	}
-	atlas-blotter {
+	efx-grid {
 		margin: 0 5px 5px;
 		vertical-align: top;
 	}
@@ -63,13 +63,13 @@ mgr.setTableCount(3); // Or any other number
 <hr>
 <div id="v_scrollbar_host">
 	<div id="h_scrollbar_host">
-		<atlas-blotter id="grid"></atlas-blotter>
+		<efx-grid id="grid"></efx-grid>
 	</div>
 </div>
 
 <script>
 	var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
-	var records = tr.DataGenerator.generateRecords(fields, { numRows: 5 });
+	var records = DataGenerator.generateRecords(fields, { numRows: 5 });
 	
 	var configObj = {
 		columns: [
@@ -79,20 +79,20 @@ mgr.setTableCount(3); // Or any other number
 		],
 		staticDataRows: records,
 		extensions: [
-			new tr.RowSelectionExtension(),
-			new tr.ColumnSelectionExtension(),
-			new tr.ColumnResizingExtension(),
-			new tr.ColumnFitterExtension(),
-			new tr.ColumnDraggingExtension()
+			new RowSelection(),
+			new ColumnSelection(),
+			new ColumnResizing(),
+			new ColumnFitter(),
+			new ColumnDragging()
 		]
 	};
 
 	var grid = document.getElementById("grid");
-	var mgr = new tr.MultiTableManager(grid);
+	var mgr = new MultiTableManager(grid);
 	// You can place grids side by side by using the following commands
 	// var vScrollbarHost = document.getElementById("v_scrollbar_host");
 	// var hScrollbarHost = document.getElementById("h_scrollbar_host");
-	// tr.MultiTableManager.synchronizeVScrollbar(vScrollbarHost, hScrollbarHost, grid);
+	// MultiTableManager.synchronizeVScrollbar(vScrollbarHost, hScrollbarHost, grid);
 
 	mgr.setGridConfig(configObj);
 	mgr.setTableCount(3);
@@ -120,8 +120,8 @@ mgr.setTableCount(3); // Or any other number
 				break;
 			}
 			for(var r = 0; r < rowCount; ++r) {
-				if(!tr.DataGenerator.randInt(0, 4)) {
-					var record = tr.DataGenerator.generateRecord(fields);
+				if(!DataGenerator.randInt(0, 4)) {
+					var record = DataGenerator.generateRecord(fields);
 					tbl.api.setRowData(r, record);
 				}
 			}
@@ -149,7 +149,7 @@ If you are in wrap mode, `setTableCount` method will automatically disable wrap-
 	html hr {
 		margin: 5px;
 	}
-	atlas-blotter {
+	efx-grid {
 		margin: 0 5px 5px;
 		vertical-align: top;
 	}
@@ -173,13 +173,13 @@ If you are in wrap mode, `setTableCount` method will automatically disable wrap-
 <hr>
 <div id="v_scrollbar_host">
 	<div id="h_scrollbar_host">
-		<atlas-blotter id="grid"></atlas-blotter>
+		<efx-grid id="grid"></efx-grid>
 	</div>
 </div>
 
 <script>
 	var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
-	var records = tr.DataGenerator.generateRecords(fields, { numRows: 10 });
+	var records = DataGenerator.generateRecords(fields, { numRows: 10 });
 	
 	var configObj = {
 		sorting: {
@@ -195,16 +195,16 @@ If you are in wrap mode, `setTableCount` method will automatically disable wrap-
 		],
 		staticDataRows: records,
 		extensions: [
-			new tr.RowSelectionExtension(),
-			new tr.ColumnSelectionExtension(),
-			new tr.ColumnResizingExtension(),
-			new tr.ColumnFitterExtension(),
-			new tr.ColumnDraggingExtension()
+			new RowSelection(),
+			new ColumnSelection(),
+			new ColumnResizing(),
+			new ColumnFitter(),
+			new ColumnDragging()
 		]
 	};
 
 	var grid = document.getElementById("grid");
-	var mgr = new tr.MultiTableManager(grid);
+	var mgr = new MultiTableManager(grid);
 	mgr.setGridConfig(configObj);
 	
 	wrap_btn1.addEventListener("click", function() {
@@ -257,7 +257,7 @@ If you are in wrap mode, `setTableCount` method will automatically disable wrap-
 			if(Math.random() > 0.7) {
 				var rowDef = tbl.api.getRowDefinition(i);
 				if(rowDef) {
-					rowDef.setRowData(tr.DataGenerator.generateRecord(fields));
+					rowDef.setRowData(DataGenerator.generateRecord(fields));
 				}
 			}
 		}
@@ -274,8 +274,8 @@ To link multiple grids together and have only one single vertical scrollbar, use
 ```html
 <div id="v_scrollbar_host">
 	<div id="h_scrollbar_host">
-		<atlas-blotter></atlas-blotter>
-		<atlas-blotter></atlas-blotter>
+		<efx-grid></efx-grid>
+		<efx-grid></efx-grid>
 	</div>
 </div>
 ```
@@ -286,7 +286,7 @@ The height for the grid can be specified on the vertical scrollbar host. If so, 
 
 ```live
 <style>
-	atlas-blotter+atlas-blotter {
+	efx-grid+efx-grid {
 		margin-left: 5px;
 	}
 	#v_scrollbar_host {
@@ -302,14 +302,14 @@ The height for the grid can be specified on the vertical scrollbar host. If so, 
 
 <div id="v_scrollbar_host">
 	<div id="h_scrollbar_host">
-		<atlas-blotter id="grid_1"></atlas-blotter>
-		<atlas-blotter id="grid_2"></atlas-blotter>
+		<efx-grid id="grid_1"></efx-grid>
+		<efx-grid id="grid_2"></efx-grid>
 	</div>
 </div>
 <hr>
 
 <script>
-	var gen = tr.DataGenerator;
+	var gen = DataGenerator;
 	var fields = ["companyName","percent", "number_2", "bid", "ask"];
 
 	var records1 = gen.generateRecords(fields, {seed: 1, rowCount: 20});
@@ -355,7 +355,7 @@ The height for the grid can be specified on the vertical scrollbar host. If so, 
 	grid1.config = configObj1;
 	grid2.config = configObj2;
 	
-	tr.MultiTableManager.synchronizeVScrollbar(
+	MultiTableManager.synchronizeVScrollbar(
 		document.getElementById("v_scrollbar_host"),
 		document.getElementById("h_scrollbar_host"),
 		[grid1, grid2]
