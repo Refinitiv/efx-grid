@@ -110,13 +110,13 @@ import '@refinitiv-ui/elements/led-gauge/themes/halo/dark'; // Can be any theme
 
 The Filter Input extension supports various types of input elements. These can be archived by specifying the `type` property through `FilterInputPlugin options`. The EF component for each type of inputs is shown below:
 
-| Type     |  Required EF Element   |
-|----------|------------------------|
-| default  | ef-search-field        |
-| number   | ef-number-field        |
-| select   | ef-select              |
-| dropdown | ef-select              |
-| date     | ef-datetime-picker     |
+| Type     | Import Name   |  Required EF Element   |
+|----------|---------------|------------------------|
+| default  |search-field   | ef-search-field        |
+| number   |number-field   | ef-number-field        |
+| select   |select         | ef-select              |
+| dropdown |select         | ef-select              |
+| date     |datetime-picker| ef-datetime-picker     |
 
 > Note: there is no need to specify a type for the default input element.
 

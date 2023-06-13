@@ -304,6 +304,107 @@ dialog.config = {
 > Note: `availableItems` is deprecated.
 
 
+### Restoring columns with retaining sorting and filtering states
+
+The Column Selection Dialog only provides column information to the user. If you wish to retain certain states, such as sorting and filtering, you will need to utilize the grid API to restore the updated data back to the grid from your side.
+
+In the example below, we will demonstrate how to retain the sorting and filtering state in the grid when confirming the column selection dialog.
+
+
+```live
+<style>
+	html hr {
+		margin: 5px;
+	}
+
+	efx-grid {
+		height: 450px;
+	}
+</style>
+<button id="open_btn">Open Dialog</button>
+<efx-grid id="grid"></efx-grid>
+<script>
+  
+  var rowFilteringExt = new RowFiltering();
+  
+  var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry", "CF_VOLUMN", "date", "PCTCHNG2"];
+  var records = tr.DataGenerator.generateRecords(fields, { numRows: 6 });
+  var allColumns = [
+    {title: "Company", field: fields[0], disabled: true},
+    {title: "Market", field: fields[1], width: 100},
+    {title: "Last", field: fields[2], width: 80, alignment: "right"},
+    {title: "Net. Chng", field: fields[3], width: 80, alignment: "right"},
+    {title: "Industry", field: fields[4]},
+    {title: "Volumn", field: fields[5], alignment: "right"},
+    {title: "IPO Date", field: fields[6]},
+    {title: "Pct. Chng", field: fields[7], alignment: "right"}
+  ];
+
+  var configObj = {
+		dataModel: {
+			data: records
+		},
+		extensions: [rowFilteringExt],
+		rowFiltering: {
+			iconActivation: "always"
+		},
+	};
+
+	var grid = document.getElementById("grid");
+	grid.config = configObj;
+
+	grid.columns = [
+		allColumns[0],
+		allColumns[1],
+		allColumns[2],
+		allColumns[3],
+		allColumns[4]
+	];
+
+	var dialog = document.createElement("column-selection-dialog");
+	dialog.config = {
+		data: allColumns,
+		defaultItems: grid.columns
+	};
+
+	dialog.addEventListener("confirm", function (e) {
+		var selectedCols = e.detail.data; // new columns
+		var gridConfigObj = grid.api.getConfigObject(); // Currently, grid columns
+		var currentSortingState;
+		if(gridConfigObj.sorting) {
+			currentSortingState = gridConfigObj.sorting.initialSort;		
+		}
+		var colIdToColObj = gridConfigObj.columns.reduce(function (acc, item) {
+			// create new map object
+			var id = item.id;
+			acc[id] = item;
+			return acc;
+		}, {});
+
+		var arr = []; // Create the new array, We need to use new object for prevent refer the allColumns
+		for (var i = 0; i < selectedCols.length; i++) {
+			var col = selectedCols[i];
+			var id = col.id;
+			if (colIdToColObj[id]) {
+				arr.push(colIdToColObj[id]);
+			} else {
+				arr.push(col);
+			}
+		}
+
+		grid.api.restoreColumns(arr);
+		if (currentSortingState) {
+			grid.api.getCoreGrid().getPlugin("SortableTitle").sortColumns(currentSortingState);
+		}
+	});
+
+	document.getElementById("open_btn").addEventListener("click", function () {
+		dialog.visibleItems = grid.api.getConfigObject().columns;
+		dialog.show();
+	});
+</script>
+```
+
 <div></div>
 
 <h2 style="margin-bottom:5px" id="api-refs">API Reference</h2>

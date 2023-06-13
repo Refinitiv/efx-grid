@@ -1095,22 +1095,25 @@ ColumnDefinition.prototype._retrieveNestedFields = function(fields) {
 */
 ColumnDefinition.prototype._defaultRenderer = function(e) {
 	var rowDef = /** @type{RowDefinition} */(e["dataValue"]);
-	var data = rowDef.getData(this._field);
-	e["cell"].setContent(data);
+	e["cell"].setContent(rowDef ? rowDef.getData(this._field) : null);
 };
 /** @private
 * @param {Object} e
 */
 ColumnDefinition.prototype._customRenderer = function(e) {
 	var rowDef = /** @type{RowDefinition} */(e["dataValue"]);
-	var rowData = rowDef.getRowData();
 
 	var arg = this._eventArg; // Reuse the same object
-	arg["rowDef"] = rowDef;
-	arg["rowData"] = rowData;
-	arg["rowIndex"] = e["rowIndex"];
-	if(rowData) {
-		arg["data"] = rowData[this._field];
+	if(rowDef) {
+		var rowData = rowDef.getRowData();
+		arg["rowDef"] = rowDef;
+		arg["rowData"] = rowData;
+		arg["rowIndex"] = e["rowIndex"];
+		if(rowData) {
+			arg["data"] = rowData[this._field];
+		} else {
+			arg["data"] = null;
+		}
 	} else {
 		arg["data"] = null;
 	}

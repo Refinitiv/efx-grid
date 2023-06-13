@@ -29,7 +29,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="298a559e-b570-4cef-a156-c593f9f8fa28">
+        <pandora-nav id="3184ad51-187b-45a6-81cd-0ac84ef1bdae">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -287,8 +287,8 @@
             <h1 id="event-listeners"><a href="https://refinitiv.github.io/efx-grid/book/en/general_concept/event-listeners.html" target="_top" class="link-icon"></a> Event Listeners</h1>
             <p>Since Grid is element, you can directly listen for events from it. It's recommended to listen for native events and then use the <code>getRelativePosition()</code> method to resolve which cell, area, or position are the target of the event. This is because Grid does not render every cell, and the cells are being reused across different rows. So it's important to resolve the position inside the event handler (such as, runtime resolving). You can use any native event and resolve the position by using the <code>getRelativePosition()</code> method.</p>
             <h2 id="click">Click</h2>
-            <p>For example, if you want to do something on the click event you could do the following:</p>
-            <pre><code><span class="hljs-keyword">var</span> grid = <span class="hljs-built_in">document</span>.getElementById(<span class="hljs-string">'grid_id'</span>);
+            <p>If you want to do something on the click event, you could do the following code snippet:</p>
+            <pre><code><span class="hljs-keyword">var</span> grid = <span class="hljs-built_in">document</span>.getElementById(<span class="hljs-string">"grid_id"</span>);
 
 grid.addEventListener(<span class="hljs-string">"click"</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{ <span class="hljs-comment">// Notice that api property is not required here</span>
     <span class="hljs-keyword">var</span> pos = grid.api.getRelativePosition(e); <span class="hljs-comment">// Resolve the position at runtime</span>
@@ -296,24 +296,255 @@ grid.addEventListener(<span class="hljs-string">"click"</span>, <span class="hlj
     <span class="hljs-built_in">console</span>.log(pos.sectionType, pos.colIndex, pos.rowIndex); <span class="hljs-comment">// pos object contains a lot of information</span>
 });</code></pre>
             <h2 id="right-click">Right click</h2>
-            <pre><code><span class="hljs-keyword">var</span> grid = <span class="hljs-built_in">document</span>.getElementById(<span class="hljs-string">'grid_id'</span>);
-
-grid.addEventListener(<span class="hljs-string">"contextmenu"</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{ <span class="hljs-comment">// Notice that api property is not required here</span>
-    <span class="hljs-keyword">var</span> pos = grid.api.getRelativePosition(e);
-
-    <span class="hljs-built_in">console</span>.log(pos.sectionType, pos.colIndex, pos.rowIndex);
-});</code></pre>
-            <h2 id="mouse-move">Mouse move</h2>
-            <pre><code><span class="hljs-keyword">var</span> grid = <span class="hljs-built_in">document</span>.getElementById(<span class="hljs-string">'grid_id'</span>);
-
-grid.addEventListener(<span class="hljs-string">"mousemove"</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{ <span class="hljs-comment">// Notice that api property is not required here</span>
-    <span class="hljs-keyword">var</span> pos = grid.api.getRelativePosition(e);
-
-    <span class="hljs-built_in">console</span>.log(pos.sectionType, pos.colIndex, pos.rowIndex);
-});</code></pre>
+            <p>Simply use native <code>contextmenu</code> event to detect right click on the grid element. Use <code>preventDefault()</code> method to prevent default context menu behaviors from triggering.</p>
+            <h2 id="mouse-events">Mouse events</h2>
+            <p>The common native events, such as <code>mousemove</code>, <code>mouseup</code>, and <code>mousedown</code>, can be listened on the grid element.</p>
             <blockquote>
               <p>Note: Grid internally divides itself into several sections. The top section is called <code>title</code> and the lower part is called <code>content</code>. So the <code>sectionType</code> from the position object can be one of the following values: <code>title</code>, <code>content</code>, <code>footer</code>.</p>
             </blockquote>
+            <h2 id="listening-to-native-events-example">Listening to native events example</h2>
+
+            <div class="pandora-code-viewer" id="pid-5">
+              <div class="pandora-viewer">
+                <button>&lt;/&gt;</button>
+              </div>
+              <div class="pandora-code-view">
+                <div class="pandora-toolbar">
+                  <ul>
+                    <li class="pandora-tab-selected" data-toggle="tab-html">HTML</li>
+                    <li data-toggle="tab-js">JS</li>
+                    <li data-toggle="tab-css">CSS</li>
+                  </ul>
+                </div>
+                <div class="pandora-tab-container">
+                  <pre class="pandora-tab-view tab-html">&lt;textarea id="msg_ta"&gt;&lt;/textarea&gt;
+&lt;hr&gt;
+&lt;efx-grid&gt;&lt;/efx-grid&gt;</pre>
+                  <pre class="pandora-tab-view tab-js">var fields = ["id", "companyName", "market", "CF_NETCHNG", "CF_VOLUME"];
+var columnNames = ["Id", "Company Name", "Market", "Net Chng.", "Volume"];
+var columns = fields.map(function(f, idx) {
+  return {
+    field: f,
+    name: columnNames[idx]
+  }
+});
+var records = DataGenerator.generateRecords(fields, { seed: 1, rowCount: 20 });
+
+var configObj = {
+  columns: columns,
+  staticDataRows: records
+};
+var grid = document.getElementsByTagName("efx-grid")[0];
+grid.config = configObj;
+
+grid.addEventListener("click", function(e) {
+  var pos = grid.api.getRelativePosition(e);
+  var ary = [
+    "Clicked",
+    "Section: " + pos.sectionType,
+    "Col Idx: " + pos.colIndex,
+    "Row Idx: " + pos.rowIndex
+  ];
+  alert(ary.join("\n"));
+});
+grid.addEventListener("contextmenu", function(e) {
+  var pos = grid.api.getRelativePosition(e);
+  var ary = [
+    "Right clicked",
+    "Section: " + pos.sectionType,
+    "Col Idx: " + pos.colIndex,
+    "Row Idx: " + pos.rowIndex
+  ];
+  alert(ary.join("\n"));
+
+  e.preventDefault();
+  e.stopPropagation();
+});
+grid.addEventListener("mousemove", function(e) {
+  var pos = grid.api.getRelativePosition(e);
+  var ary = [
+    "Section: " + pos.sectionType,
+    "Col Idx: " + pos.colIndex,
+    "Row Idx: " + pos.rowIndex
+  ];
+  msg_ta.value = ary.join("\n");
+});</pre>
+                  <pre class="pandora-tab-view tab-css">html hr {
+  margin: 5px;
+}
+
+textarea {
+  width: 100%;
+  height: 80px;
+  font-size: 20px;
+}
+
+efx-grid {
+  height: 300px;
+}</pre>
+                  <div class="pandora-console"></div>
+                </div>
+              </div>
+              <link rel="prefetch" href="../node_modules/tr-grid-test-resource-v6/dist/elf-halo-light.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-auto-tooltip/dist/tr-grid-auto-tooltip.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-cell-selection/dist/tr-grid-cell-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-checkbox/dist/tr-grid-checkbox.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/column-dragging/dist/column-dragging.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-fitter/dist/tr-grid-column-fitter.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-formatting/dist/tr-grid-column-formatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-grouping/dist/tr-grid-column-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-resizing/dist/tr-grid-column-resizing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-selection/dist/tr-grid-column-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-stack/dist/tr-grid-column-stack.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-conditional-coloring/dist/tr-grid-conditional-coloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-content-wrap/dist/tr-grid-content-wrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-contextmenu/dist/tr-grid-contextmenu.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-filter-input/dist/tr-grid-filter-input.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-heat-map/dist/tr-grid-heat-map.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-in-cell-editing/dist/tr-grid-in-cell-editing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-pagination/dist/tr-grid-pagination.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-percent-bar/dist/tr-grid-percent-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-range-bar/dist/tr-grid-range-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-dragging/dist/tr-grid-row-dragging.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-filtering/dist/tr-grid-row-filtering.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-grouping/dist/tr-grid-row-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/row-segmenting/dist/row-segmenting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-selection/dist/tr-grid-row-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-rowcoloring/dist/tr-grid-rowcoloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/statistics-row/dist/statistics-row.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-textformatting/dist/tr-grid-textformatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-titlewrap/dist/tr-grid-titlewrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
+            </div>
+            <h1 id="getting-a-cell-and-its-content">Getting a cell and its content</h1>
+            <p>With row virtualization and column virtualization, Grid only renders cells that are on the current view. So, only cells and their content that are in range of the current view can be retrieved. To retrieve cell content, use <code>getCoreGrid</code> to get core grid instance first. Then, use <code>getCell(section, colIndex, rowIndex)</code> from the core to get cell object. Finally, use <code>getContent()</code> from the cell object to get the cell content. If you want all the data content (not the content elements), please use grid <a href="../data/read.html">data related APIs</a> instead.</p>
+            <p>If you are inside an event listener, the corresponding cell object is already provided from the returned value of <code>getRelativePosition</code> method. You can then get cell content from the cell object using <code>getContent()</code> method. Alternatively, you can use <a href="https://developer.mozilla.org/en-US/docs/Web/API/Event/composedPath" target="_blank">composedPath</a> method from native event argument to get a path to actual target element.</p>
+            <blockquote>
+              <p>Note: Grid is a custom element which encapusulate all of its content under its shadow root. Hence, <code>target</code> property from the native Event argument will always return Grid element and not actual target element inside the grid.</p>
+            </blockquote>
+            <h2 id="getting-cell-content-example">Getting cell content example</h2>
+
+            <div class="pandora-code-viewer" id="pid-6">
+              <div class="pandora-viewer">
+                <button>&lt;/&gt;</button>
+              </div>
+              <div class="pandora-code-view">
+                <div class="pandora-toolbar">
+                  <ul>
+                    <li class="pandora-tab-selected" data-toggle="tab-html">HTML</li>
+                    <li data-toggle="tab-js">JS</li>
+                    <li data-toggle="tab-css">CSS</li>
+                  </ul>
+                </div>
+                <div class="pandora-tab-container">
+                  <pre class="pandora-tab-view tab-html">&lt;div&gt;
+  &lt;button id="get_btn"&gt;Get cell content&lt;/button&gt;
+  &lt;label for="col_in"&gt;Column index:&lt;/label&gt;
+  &lt;input id="col_in" value="2" type="number"&gt;
+  &lt;i&gt;&lt;/i&gt;
+  &lt;label for="row_in"&gt;Row index:&lt;/label&gt;
+  &lt;input id="row_in" value="2" type="number"&gt;
+&lt;/div&gt;
+&lt;hr&gt;
+&lt;textarea id="msg_ta"&gt;&lt;/textarea&gt;
+&lt;hr&gt;
+&lt;efx-grid&gt;&lt;/efx-grid&gt;</pre>
+                  <pre class="pandora-tab-view tab-js">get_btn.addEventListener("click", function(e) {
+  var colIndex = +col_in.value || 0;
+  var rowIndex = +row_in.value || 0;
+
+  var core = grid.api.getCoreGrid();
+  var cell = core.getCell("content", colIndex, rowIndex);
+  var cellContent = cell ? cell.getContent() : null;
+  var ary = [
+    "Getting cell: " + colIndex + ", " + rowIndex,
+    "Cell content: " + (cellContent ? cellContent.textContent : "")
+  ];
+  alert(ary.join("\n"));
+});
+
+var fields = ["id", "companyName", "market", "CF_NETCHNG", "CF_VOLUME"];
+var columnNames = ["Id", "Company Name", "Market", "Net Chng.", "Volume"];
+var columns = fields.map(function(f, idx) {
+  return {
+    field: f,
+    name: columnNames[idx]
+  }
+});
+var records = DataGenerator.generateRecords(fields, { seed: 1, rowCount: 20 });
+
+var configObj = {
+  columns: columns,
+  staticDataRows: records
+};
+var grid = document.getElementsByTagName("efx-grid")[0];
+grid.config = configObj;
+
+grid.addEventListener("mousemove", function(e) {
+  var pos = grid.api.getRelativePosition(e);
+  var cell = pos.cell;
+  var cellContent = cell ? cell.getContent() : null;
+  msg_ta.value = cellContent ? cellContent.textContent : "null";
+});</pre>
+                  <pre class="pandora-tab-view tab-css">html hr {
+  margin: 5px;
+}
+
+textarea {
+  width: 100%;
+  height: 30px;
+  font-size: 20px;
+}
+
+input[type="number"] {
+  width: 60px;
+}
+
+i:empty {
+  padding-left: 10px;
+}
+
+efx-grid {
+  height: 300px;
+}</pre>
+                  <div class="pandora-console"></div>
+                </div>
+              </div>
+              <link rel="prefetch" href="../node_modules/tr-grid-test-resource-v6/dist/elf-halo-light.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-auto-tooltip/dist/tr-grid-auto-tooltip.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-cell-selection/dist/tr-grid-cell-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-checkbox/dist/tr-grid-checkbox.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/column-dragging/dist/column-dragging.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-fitter/dist/tr-grid-column-fitter.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-formatting/dist/tr-grid-column-formatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-grouping/dist/tr-grid-column-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-resizing/dist/tr-grid-column-resizing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-selection/dist/tr-grid-column-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-stack/dist/tr-grid-column-stack.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-conditional-coloring/dist/tr-grid-conditional-coloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-content-wrap/dist/tr-grid-content-wrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-contextmenu/dist/tr-grid-contextmenu.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-filter-input/dist/tr-grid-filter-input.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-heat-map/dist/tr-grid-heat-map.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-in-cell-editing/dist/tr-grid-in-cell-editing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-pagination/dist/tr-grid-pagination.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-percent-bar/dist/tr-grid-percent-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-range-bar/dist/tr-grid-range-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-dragging/dist/tr-grid-row-dragging.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-filtering/dist/tr-grid-row-filtering.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-grouping/dist/tr-grid-row-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/row-segmenting/dist/row-segmenting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-selection/dist/tr-grid-row-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-rowcoloring/dist/tr-grid-rowcoloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/statistics-row/dist/statistics-row.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-textformatting/dist/tr-grid-textformatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-titlewrap/dist/tr-grid-titlewrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
+            </div><br>
+            <br>
+            <br>
+
+
           </pandora-page>
           <div class="results"></div>
         </div>

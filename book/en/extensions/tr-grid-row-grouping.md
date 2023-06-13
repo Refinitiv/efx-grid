@@ -794,6 +794,214 @@ The extension supports color from the predefined colors. To do this you need to 
 </script>
 
 ```
+### Statistic Calculation with Row Grouping
+
+The Row Grouping Extension offers comprehensive support for statistic calculation with row grouping, allowing users to customize binding for header and footer rows seamlessly.
+
+In the example below, we demonstrate how to leverage the power of row grouping to perform detailed statistical analysis within the grid. By incorporating both header and footer rows, users can easily access relevant group statistics. We achieve optimal performance by utilizing the `beforeContentBinding` event, which triggers whenever there are data changes. This approach ensures efficient row virtualization, displaying only the necessary data visible to the user. As a result, the application's speed and responsiveness are significantly improved, especially when working with large datasets.
+
+Additionally, the `beforeContentBinding` feature plays a crucial role in optimizing performance. Whenever there are changes in the underlying data, this event is triggered, allowing you to perform necessary calculations or updates before the content is rendered. This approach enhances efficiency and provides real-time updates, ensuring that users always have access to the most accurate and up-to-date information.
+
+```live(test-resource)
+<style> 
+	html body {
+	padding: 20px;
+	box-sizing: border-box;
+	}
+	hr {
+	margin: 5px;
+	}
+
+	efx-grid {
+	height: 400px;
+	}
+</style>
+
+<fieldset>
+  <legend> Operations </legend>
+  <span> Position (rowIndex) : </span> <input value="1" id="rowIndex_txt">
+  <button id="add_row"> Add row </button>
+  <button id="remove_row"> Remove row </button>
+  <button id="update_row"> Change row data </button>
+  <button id="change_group"> Change Group </button>
+</fieldset>
+<hr>  
+<atlas-blotter id="grid"></atlas-blotter>
+
+<script> 
+
+
+var rowGrouping= new tr.RowGroupingExtension();
+var statisticRows = new tr.StatisticsRowExtension();
+
+tr.DataGenerator.addFieldInfo("industry", {
+  type: "set",
+  members: ["Chemicals", "Auto", "Finance", "Electric", "Biotechnology"]
+});
+
+var fields = ["industry", "words", "PRICECLOSE", "PRICELAST"];
+const SUMMATIONFIELDS = ["PRICECLOSE", "PRICELAST"];
+const GROUPFIELD = "industry";
+
+function onGroupBinding(e) {
+  // row header binding only called when cell colIndex = 0 (so for another column we need to  loop colCount to set another cell)
+  var groupId = e.groupId;
+  var rows = e.dataSource.getAllRowData();
+  var rowCount = rows.length;
+  var colCount = e.api.getColumnCount();
+  var section = e.section;
+  var footerRow = e.footerRow;
+  for (let c = 0; c < colCount; c++) {
+    var field = e.api.getColumnField(c);
+
+    if (field === GROUPFIELD) {
+      var cell = section.getCell(c, e.rowIndex);
+      var prefix = footerRow ? "FOOTER: " : "HEADER: ";
+      cell.setContent(prefix + groupId + " (" + rowCount + ")");
+    }
+
+    if (SUMMATIONFIELDS.indexOf(field) >= 0) {
+      var cell = section.getCell(c, e.rowIndex);
+      var statData = stats[field][groupId];
+      cell.setContent(addSymbol(statData || 0));
+    }
+  }
+}
+
+var records = tr.DataGenerator.generateRecords(fields, { seed: 0, numRows: 6 });
+var configObj = {
+  rowGrouping: {
+    groupBy: fields[0],
+    headerSpanning: false,
+    groupHeaderBinding: onGroupBinding,
+    groupFooterBinding: onGroupBinding,
+    nonGroupBinding: function (e) {}
+  },
+  columns: [
+    {
+      title: "Industry",
+      field: fields[0],
+      statistics: "label"
+    },
+    {
+      title: "Describe",
+      field: fields[1]
+    },
+    {
+      title: "Price Close",
+      field: fields[2],
+      alignment: "right",
+      binding: currencyBinding,
+      statistics: "currencyStat"
+    },
+    {
+      title: "Price Last",
+      field: fields[3],
+      alignment: "center",
+      binding: currencyBinding,
+      statistics: "currencyStat"
+    }
+  ],
+  staticDataRows: records,
+  extensions: [rowGrouping, statisticRows],
+  statisticsRow: {
+    rows: [{ statistic: "currencyStat", label: "Footer Summation" }],
+    postCalculation: postCalculationCurrency
+  }
+};
+
+var grid = (window.grid = document.getElementById("grid"));
+grid.config = configObj;
+
+grid.addEventListener("configured", function (e) {
+  grid.api.listen("beforeContentBinding", onBeforeContentBinding);
+});
+
+var stats = (window.stats = {});
+var summationFieldLen = SUMMATIONFIELDS.length;
+initializeStates();
+
+function initializeStates() {
+  for (let f = 0; f < summationFieldLen; f++) {
+    var field = SUMMATIONFIELDS[f];
+    if (!stats[field]) {
+      stats[field] = {};
+    }
+  }
+}
+
+function onBeforeContentBinding(e) {
+  if (!e.actualUpdate) {
+    return;
+  }
+  var rows = grid.api.getAllRowDefinitions();
+
+  var len = rows.length;
+
+  for (let c = 0; c < summationFieldLen; c++) {
+    var field = SUMMATIONFIELDS[c];
+    stats[field] = {}; // Assign new values
+    for (let r = 0; r < len; r++) {
+      var rowDef = rows[r];
+      var rowData = rowDef.getRowData();
+      var groupId = rowData[GROUPFIELD];
+      var sum = rowData[field] || 0; // for row doens't contains the summation field
+      stats[field][groupId] = (stats[field][groupId] || 0) + sum;
+    }
+  }
+}
+
+function postCalculationCurrency(e) {
+  e.statistics[2].currencyStat = addSymbol(e.statistics[2]["sum"]);
+  e.statistics[3].currencyStat = addSymbol(e.statistics[3]["sum"]);
+}
+
+function currencyBinding(e) {
+  var cell = e.cell;
+  var data = e.data;
+  cell.setContent(addSymbol(data));
+}
+
+function addSymbol(data) {
+  var symbol = "$";
+  return symbol + data;
+}
+
+document.getElementById("change_group").addEventListener("click", function (e) {
+  var rowIndex = +document.getElementById("rowIndex_txt").value;
+  var rowDef = grid.api.getRowDefinition(rowIndex);
+  if (rowDef) {
+    rowDef.updateRowData({ industry: "Electric" });
+  }
+});
+
+document.getElementById("add_row").addEventListener("click", function (e) {
+  var rowIndex = +document.getElementById("rowIndex_txt").value;
+  var record = tr.DataGenerator.generateRecord(fields);
+  record["industry"] = "Chemicals";
+  grid.api.insertRow({ values: record }, rowIndex);
+});
+
+document.getElementById("remove_row").addEventListener("click", function (e) {
+  var rowIndex = +document.getElementById("rowIndex_txt").value;
+  grid.api.removeRow(rowIndex);
+});
+
+document.getElementById("update_row").addEventListener("click", function (e) {
+  var rowIndex = +document.getElementById("rowIndex_txt").value;
+  var record = tr.DataGenerator.generateRecord(fields);
+  record["industry"] = "Chemicals"; // FORCE assign to Chemicals
+  var rowDef = grid.api.getRowDefinition(rowIndex);
+  if (rowDef) {
+    rowDef.updateRowData(record);
+  }
+});
+
+
+
+</script>
+
+```
 
 <div></div>
 

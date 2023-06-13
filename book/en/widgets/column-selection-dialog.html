@@ -29,7 +29,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="298a559e-b570-4cef-a156-c593f9f8fa28">
+        <pandora-nav id="3184ad51-187b-45a6-81cd-0ac84ef1bdae">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -296,7 +296,7 @@
             <h3 id="demo">Demo</h3>
             <p>Click on <code>Open Dialog</code> button to see the dialog.</p>
 
-            <div class="pandora-code-viewer" id="pid-162">
+            <div class="pandora-code-viewer" id="pid-167">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -448,7 +448,7 @@ dialog.config = {
             <p>For more information about internationalization and how is it applied in different contexts see <a href="language-support.html">Language Support</a>.</p>
             <h3 id="multi-level-with-column-selection">Multi Level with Column Selection</h3>
 
-            <div class="pandora-code-viewer" id="pid-163">
+            <div class="pandora-code-viewer" id="pid-168">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -625,6 +625,143 @@ dialog.config = {
             <blockquote>
               <p>Note: <code>availableItems</code> is deprecated.</p>
             </blockquote>
+            <h3 id="restoring-columns-with-retaining-sorting-and-filtering-states">Restoring columns with retaining sorting and filtering states</h3>
+            <p>The Column Selection Dialog only provides column information to the user. If you wish to retain certain states, such as sorting and filtering, you will need to utilize the grid API to restore the updated data back to the grid from your side.</p>
+            <p>In the example below, we will demonstrate how to retain the sorting and filtering state in the grid when confirming the column selection dialog.</p>
+
+            <div class="pandora-code-viewer" id="pid-169">
+              <div class="pandora-viewer">
+                <button>&lt;/&gt;</button>
+              </div>
+              <div class="pandora-code-view">
+                <div class="pandora-toolbar">
+                  <ul>
+                    <li class="pandora-tab-selected" data-toggle="tab-html">HTML</li>
+                    <li data-toggle="tab-js">JS</li>
+                    <li data-toggle="tab-css">CSS</li>
+                  </ul>
+                </div>
+                <div class="pandora-tab-container">
+                  <pre class="pandora-tab-view tab-html">&lt;button id="open_btn"&gt;Open Dialog&lt;/button&gt;
+&lt;efx-grid id="grid"&gt;&lt;/efx-grid&gt;</pre>
+                  <pre class="pandora-tab-view tab-js">var rowFilteringExt = new RowFiltering();
+
+var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry", "CF_VOLUMN", "date", "PCTCHNG2"];
+var records = DataGenerator.generateRecords(fields, { numRows: 6 });
+var allColumns = [
+  { title: "Company", field: fields[0], disabled: true },
+  { title: "Market", field: fields[1], width: 100 },
+  { title: "Last", field: fields[2], width: 80, alignment: "right" },
+  { title: "Net. Chng", field: fields[3], width: 80, alignment: "right" },
+  { title: "Industry", field: fields[4] },
+  { title: "Volumn", field: fields[5], alignment: "right" },
+  { title: "IPO Date", field: fields[6] },
+  { title: "Pct. Chng", field: fields[7], alignment: "right" }
+];
+
+var configObj = {
+  dataModel: {
+    data: records
+  },
+  extensions: [rowFilteringExt],
+  rowFiltering: {
+    iconActivation: "always"
+  },
+};
+
+var grid = document.getElementById("grid");
+grid.config = configObj;
+
+grid.columns = [
+  allColumns[0],
+  allColumns[1],
+  allColumns[2],
+  allColumns[3],
+  allColumns[4]
+];
+
+var dialog = document.createElement("column-selection-dialog");
+dialog.config = {
+  data: allColumns,
+  defaultItems: grid.columns
+};
+
+dialog.addEventListener("confirm", function(e) {
+  var selectedCols = e.detail.data; // new columns
+  var gridConfigObj = grid.api.getConfigObject(); // Currently, grid columns
+  var currentSortingState;
+  if (gridConfigObj.sorting) {
+    currentSortingState = gridConfigObj.sorting.initialSort;
+  }
+  var colIdToColObj = gridConfigObj.columns.reduce(function(acc, item) {
+    // create new map object
+    var id = item.id;
+    acc[id] = item;
+    return acc;
+  }, {});
+
+  var arr = []; // Create the new array, We need to use new object for prevent refer the allColumns
+  for (var i = 0; i &lt; selectedCols.length; i++) {
+    var col = selectedCols[i];
+    var id = col.id;
+    if (colIdToColObj[id]) {
+      arr.push(colIdToColObj[id]);
+    } else {
+      arr.push(col);
+    }
+  }
+
+  grid.api.restoreColumns(arr);
+  if (currentSortingState) {
+    grid.api.getCoreGrid().getPlugin("SortableTitle").sortColumns(currentSortingState);
+  }
+});
+
+document.getElementById("open_btn").addEventListener("click", function() {
+  dialog.visibleItems = grid.api.getConfigObject().columns;
+  dialog.show();
+});</pre>
+                  <pre class="pandora-tab-view tab-css">html hr {
+  margin: 5px;
+}
+
+efx-grid {
+  height: 450px;
+}</pre>
+                  <div class="pandora-console"></div>
+                </div>
+              </div>
+              <link rel="prefetch" href="../node_modules/tr-grid-test-resource-v6/dist/elf-halo-light.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-auto-tooltip/dist/tr-grid-auto-tooltip.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-cell-selection/dist/tr-grid-cell-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-checkbox/dist/tr-grid-checkbox.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/column-dragging/dist/column-dragging.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-fitter/dist/tr-grid-column-fitter.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-formatting/dist/tr-grid-column-formatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-grouping/dist/tr-grid-column-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-resizing/dist/tr-grid-column-resizing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-selection/dist/tr-grid-column-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-stack/dist/tr-grid-column-stack.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-conditional-coloring/dist/tr-grid-conditional-coloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-content-wrap/dist/tr-grid-content-wrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-contextmenu/dist/tr-grid-contextmenu.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-filter-input/dist/tr-grid-filter-input.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-heat-map/dist/tr-grid-heat-map.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-in-cell-editing/dist/tr-grid-in-cell-editing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-pagination/dist/tr-grid-pagination.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-percent-bar/dist/tr-grid-percent-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-range-bar/dist/tr-grid-range-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-dragging/dist/tr-grid-row-dragging.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-filtering/dist/tr-grid-row-filtering.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-grouping/dist/tr-grid-row-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/row-segmenting/dist/row-segmenting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-selection/dist/tr-grid-row-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-rowcoloring/dist/tr-grid-rowcoloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/statistics-row/dist/statistics-row.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-textformatting/dist/tr-grid-textformatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-titlewrap/dist/tr-grid-titlewrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
+            </div>
             <div></div>
 
             <h2 style="margin-bottom:5px" id="api-refs">API Reference</h2>
