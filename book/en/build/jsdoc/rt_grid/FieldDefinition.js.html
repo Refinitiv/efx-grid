@@ -35,9 +35,9 @@ import { Deferred } from "../../node_modules/tr-grid-util/es6/Deferred.js";
 * @const
 */
 var SYNAPSE_URL =
-	'/synapse/service/suggestions/suggest/?'
-	+ 'hits=1' // search only 1 result
-	+ '&amp;profile=' + encodeURIComponent('Field Selector');
+	"/synapse/service/suggestions/suggest/?"
+	+ "hits=1" // search only 1 result
+	+ "&amp;profile=" + encodeURIComponent("Field Selector");
 
 /* @namespace */
 var FieldDefinition = {};
@@ -154,18 +154,13 @@ FieldDefinition._timeSeriesChildren = {};
 * @private
 * @const
 */
-FieldDefinition._synapse = '';
+FieldDefinition._synapse = "";
 /**
 * @type {string}
 * @private
 * @const
 */
-FieldDefinition._lang = 'en';
-/**
-* @type {boolean}
-* @private
-*/
-FieldDefinition._caching = false;
+FieldDefinition._lang = "en";
 /**
 * @type {boolean}
 * @private
@@ -192,17 +187,22 @@ FieldDefinition.set = function(field, def) {
 		}
 	}
 };
-/** @public
+/** Get field definition object
+* @public
 * @function
 * @param {string} field
 * @return {Object}
 */
 FieldDefinition.get = function(field) {
-	if(this._caching) {
-		return FieldDefinition._defs[field];
-	}
-	return null;
+	return FieldDefinition._defs[field] || null;
 };
+/** Get field definition object
+* @public
+* @function
+* @param {string} field
+* @return {Object}
+*/
+FieldDefinition.getFieldInfo = FieldDefinition.get;
 
 /** @public
 * @function
@@ -211,7 +211,7 @@ FieldDefinition.get = function(field) {
 */
 FieldDefinition.hasFieldInfo = function(field) {
 	var val = FieldDefinition.get(field);
-	return val &amp;&amp; val.field; // Already preventing an error caused by accessing a property on a null value
+	return (val &amp;&amp; val.field) ? true : false; // Already preventing an error caused by accessing a property on a null value
 };
 
 /** @public
@@ -247,15 +247,6 @@ FieldDefinition.remove = function(field) {
 */
 FieldDefinition.setSynapseConfig = function (config) {
 	FieldDefinition._synapse = config;
-
-};
-
-/** @public
-* @function
-* @param {boolean} caching
-*/
-FieldDefinition.setFieldCaching = function (caching) {
-	FieldDefinition._caching = caching;
 };
 
 /** @public
@@ -380,7 +371,7 @@ FieldDefinition.getFieldProperty = function(field, propertyName) {
 	return null;
 };
 
-/** to get more info about field via synapse service
+/** To get more info about field via synapse service
 * @private
 * @param {string} field
 * @returns {Promise}
@@ -412,12 +403,12 @@ FieldDefinition.loadFieldInfo = function (field) {
 	// everything fine, call synapse service
 	else {
 		var queryUrl = SYNAPSE_URL
-			+ '&amp;api-key=' + encodeURIComponent(synapse.apiKey)
-			+ '&amp;contextApp=' + encodeURIComponent(synapse.contextApp)
-			+ '&amp;language=' + encodeURIComponent(FieldDefinition._lang)
-			+ '&amp;query=' + encodeURIComponent(field);
+			+ "&amp;api-key=" + encodeURIComponent(synapse.apiKey)
+			+ "&amp;contextApp=" + encodeURIComponent(synapse.contextApp)
+			+ "&amp;language=" + encodeURIComponent(FieldDefinition._lang)
+			+ "&amp;query=" + encodeURIComponent(field);
 		if (synapse.auth) {
-			queryUrl += '&amp;auth=' + encodeURIComponent(synapse.auth);
+			queryUrl += "&amp;auth=" + encodeURIComponent(synapse.auth);
 		}
 		// TODO: handle client timeout
 		var xmr = new XMLHttpRequest();
@@ -426,9 +417,9 @@ FieldDefinition.loadFieldInfo = function (field) {
 		FieldDefinition._loadingField[field] = defer;
 
 		// for now we care only successful case
-		xmr.addEventListener('loadend', onLoadEnd);
-		xmr.addEventListener('timeout', onError);
-		xmr.addEventListener('error', onError);
+		xmr.addEventListener("loadend", onLoadEnd);
+		xmr.addEventListener("timeout", onError);
+		xmr.addEventListener("error", onError);
 		xmr.open("GET", queryUrl, true); // true for asynchronous
 		xmr.send();
 	}
@@ -456,7 +447,7 @@ FieldDefinition._mockOnLoadEndData = function (field, defer) {
 	var fieldUpperCase = field.toUpperCase();
 	var fieldLowerCase = fieldUpperCase.toLowerCase();
 	var label;
-	if (fieldLowerCase.indexOf('_') === 2) { // transform XX_ABCD -&gt; Abcd
+	if (fieldLowerCase.indexOf("_") === 2) { // transform XX_ABCD -&gt; Abcd
 		label = fieldUpperCase[3] + fieldLowerCase.substring(4);
 	} else {
 		label = fieldUpperCase[0] + fieldLowerCase.substring(1);
@@ -518,49 +509,49 @@ FieldDefinition._mockOnLoadEndData = function (field, defer) {
 function onLoadEnd(e) {
 	var xmr = e.currentTarget;
 	var defer = xmr._defer;
-	var resolve = defer.resolve;
-	var reject = defer.reject;
+	var field = xmr._field;
 
-	delete FieldDefinition._loadingField[xmr._field];
+	delete FieldDefinition._loadingField[field];
 
 	if (xmr.status === 200) { // case success
-		var returnObj = {
-			field: xmr._field,
-			fieldDefinition: null
-		};
 		var res = JSON.parse(xmr.responseText);
+		var fieldDef = null;
 
 		var result = res.result &amp;&amp; res.result[0];
 		if (result) {
 			var item = result.hits &amp;&amp; result.hits[0];
 			if (item &amp;&amp; item.p) {
 				var profile = item.p;
-				if (profile.fn.toUpperCase() === xmr._field.toUpperCase()) {
-					var fieldDef = FieldDefinition.get(xmr._field) || {};
+				if (profile.fn.toUpperCase() === field.toUpperCase()) {
+					fieldDef = FieldDefinition.get(field) || {};
 
 					fieldDef.field = profile.fn; // name
+					fieldDef.name = profile.fl; // label
 					fieldDef.rank = profile.Rank;
 					fieldDef.fieldDataType = profile.fdt; // data type
+					fieldDef.id = profile.fid;
 					fieldDef.IsMonitorOnlyField = profile.fimo;
 					fieldDef.IsRealtimePortfolioField = profile.firp;
 					fieldDef.IsRealtimeField = profile.firt;
-					fieldDef.name = profile.fl; // label
 					fieldDef.source = profile.fsrc;
 					fieldDef.sourceRank = profile.fsrnk;
 					fieldDef.description = item.title;
 
-					FieldDefinition.set(xmr._field, fieldDef);
-					returnObj.fieldDefinition = fieldDef;
+					FieldDefinition.set(field, fieldDef);
 				}
 			}
 		}
-		resolve(returnObj);
+		if(fieldDef) {
+			defer.resolve(fieldDef);
+		} else {
+			defer.reject("No definition for " + field);
+		}
 	} else if (xmr._error) { // case error &amp;&amp; time out
-		xmr._error.field = xmr._field;
-		reject(xmr._error);
+		xmr._error.field = field;
+		defer.reject(xmr._error);
 	} else { // case status not 200
-		reject({
-			field: xmr._field,
+		defer.reject({
+			field: field,
 			status: xmr.status,
 			statusText: xmr.statusText,
 			request: xmr
