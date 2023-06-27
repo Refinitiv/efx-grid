@@ -250,6 +250,260 @@ By default, group header rows are rendered by their group value. To override def
 
 By default, group header rows are displayed as a single cell that spans across multiple columns. It works by stretching existing cells from the first column to fill entire grid's width. You can turn off cell spanning by setting `headerSpanning` to false in the configuration. The option can be useful, if you want to show some content, such as statistics, on group header rows for every column. You can also specify which cells to be stretched by setting `displayColumn` to other column (default is the first column).
 
+#### Example custom style in group header rows
+In the example below, we demonstrate how to customize the style of group header rows. With this customization, you can add elements to the group header rows and include additional information from your side.
+```live
+<style>
+	hr {
+	margin: 5px;
+	}
+
+	atlas-blotter {
+		height: 600px;
+	}
+</style>
+
+	<atlas-blotter id="grid"></atlas-blotter>
+
+<script>
+	tr.DataGenerator.addFieldInfo("industry", {
+		type: "set",
+		members: ["Chemicals", "Auto", "Finance", "Electric", "Biotechnology"]
+	});
+
+	tr.DataGenerator.addFieldInfo("status", {
+		type: "set",
+		members: ["GROUP_1", "GROUP_2", "GROUP_3", "GROUP_4", "GROUP_5", "GROUP_6"]
+	});
+	var rowGrouping = new tr.RowGroupingExtension();
+	var fields = ["industry", "words", "PRICECLOSE", "PRICELAST", "status", "id"];
+
+	var predefinedColorsSet = {
+		yellow: {
+			backgroundColor: "#FF9900"
+		},
+		red: {
+			backgroundColor: "#FF0000"
+		},
+		green: {
+			backgroundColor: "#00FF00"
+		}
+	};
+
+	var statusMapping = {
+	// Pending
+	GROUP_1: {
+		statusName: "Pending Register",
+		detail: "Buy TASLA.O 5,000 @ 145.11 (gs)",
+		color: predefinedColorsSet["yellow"].backgroundColor,
+		icon: "info",
+		status: "pending"
+	},
+	GROUP_2: {
+		statusName: "Pending Send",
+		detail: "Buy TASLA.O 5,000 @ 145.11 (gs)",
+		color: predefinedColorsSet["yellow"].backgroundColor,
+		icon: "info",
+		status: "pending"
+	},
+
+	// Denined
+	GROUP_3: {
+		statusName: "Denined Amend",
+		detail: "Buy TASLA.O 5,000 @ 145.11 (gs)",
+		color: predefinedColorsSet["red"].backgroundColor,
+		icon: "warning-circle",
+		status: "denined"
+	},
+	GROUP_4: {
+		statusName: "Denined Register",
+		detail: "Buy TASLA.O 5,000 @ 145.11 (gs)",
+		color: predefinedColorsSet["red"].backgroundColor,
+		icon: "warning-circle",
+		status: "denined"
+	},
+
+	// Approved
+	GROUP_5: {
+		statusName: "Approved Register",
+		detail: "Buy TASLA.O 5,000 @ 145.11 (gs)",
+		color: predefinedColorsSet["green"].backgroundColor,
+		status: "approved"
+	},
+	GROUP_6: {
+		statusName: "Approved Send",
+		detail: "Buy TASLA.O 5,000 @ 145.11 (gs)",
+		color: predefinedColorsSet["green"].backgroundColor,
+		status: "approved"
+	}
+	};
+
+	function onContinueClicked(status, e) {
+		alert("CONTINUE current status is : " + status);
+		e.stopPropagation(); // Prevent collapsing/expanding grouop when click header
+	}
+
+	function onAbortClicked(status, e) {
+		alert("Abort current status is : " + status);
+		e.stopPropagation(); // Prevent collapsing/expanding grouop when click header
+	}
+
+	function onGroupBinding(e) {
+		// row header binding only called when cell colIndex = 0 (so for another column we need to  loop colCount to set another cell)
+		var groupId = e.groupId;
+		var cell = e.cell;
+
+		var content = cell.getContent();
+		if (!content || !content._customHeader) {
+			content = document.createElement("div");
+			content._customHeader = content;
+
+			var iconEl = document.createElement("coral-icon");
+			iconEl.style.paddingRight = "6px";
+			content._icon = iconEl;
+
+			var statusEl = document.createElement("span");
+			statusEl.style.alignSelf = "center";
+			content._statusName = statusEl;
+
+			var descriptionEl = document.createElement("span");
+			descriptionEl.style.alignSelf = "center";
+			descriptionEl.style.paddingLeft = "24px";
+			content._description = descriptionEl;
+
+			var divButtonEl = document.createElement("div");
+			var continueButtonEl = document.createElement("coral-button");
+			continueButtonEl.textContent = "CONTINUE";
+			content._continueButton = continueButtonEl;
+
+			var abortButtonEl = document.createElement("coral-button");
+			abortButtonEl.textContent = "ABORT";
+			abortButtonEl.style.marginLeft = "12px";
+			content._abortButton = abortButtonEl;
+
+			divButtonEl.appendChild(continueButtonEl);
+			divButtonEl.appendChild(abortButtonEl);
+
+			content.style.display = "flex";
+			content.style.alignItems = "center";
+			content.style.justifyContent = "space-between";
+
+			var leftDiv = document.createElement("div");
+			leftDiv.style.display = "flex";
+
+			leftDiv.appendChild(iconEl);
+			leftDiv.appendChild(statusEl);
+			leftDiv.appendChild(descriptionEl);
+
+			var rightDiv = document.createElement("div");
+			rightDiv.appendChild(divButtonEl);
+
+			content.appendChild(leftDiv);
+			content.appendChild(rightDiv);
+		}
+
+		content._icon.icon = statusMapping[groupId].icon; // All icon for elf element https://elf.int.refinitiv.com/styles/icons.html for another icon you can use .src to ref svg file
+		content._icon.style.color = statusMapping[groupId].color;
+		content._icon.style.display = statusMapping[groupId].status !== "approved" ? "block" : "none";
+
+		content._statusName.textContent = statusMapping[groupId].statusName;
+		content._statusName.style.color = statusMapping[groupId].color;
+
+		content._description.textContent = statusMapping[groupId].detail;
+
+		content._continueButton.addEventListener(
+			"click",
+			onContinueClicked.bind(this, groupId)
+		);
+		content._abortButton.addEventListener(
+			"click",
+			onAbortClicked.bind(this, groupId)
+		);
+
+		cell.setContent(content);
+	}
+
+	var records = tr.DataGenerator.generateRecords(fields, { seed: 3, numRows: 12 });
+	var configObj = {
+	rowGrouping: {
+		groupBy: fields[4],
+		headerSpanning: true,
+		groupHeaderBinding: onGroupBinding,
+		predefinedColors: predefinedColorsSet,
+		groupSortLogic: groupSortingASC,
+		groupColors: {
+		GROUP_1: "yellow",
+		GROUP_2: "yellow",
+
+		GROUP_3: "red",
+		GROUP_4: "red",
+
+		GROUP_5: "green",
+		GROUP_6: "green"
+		}
+	},
+	columns: [
+		{
+			title: "Industry",
+			field: fields[0],
+			statistics: "label"
+		},
+		{
+			title: "Describe",
+			field: fields[1]
+		},
+		{
+			title: "Price Close",
+			field: fields[2],
+			alignment: "right",
+			binding: currencyBinding,
+			statistics: "currencyStat"
+		},
+		{
+			title: "Price Last",
+			field: fields[3],
+			alignment: "center",
+			binding: currencyBinding,
+			statistics: "currencyStat"
+		}
+	],
+	staticDataRows: records,
+	extensions: [rowGrouping]
+	};
+
+	var grid = (window.grid = document.getElementById("grid"));
+	grid.config = configObj;
+
+	grid.addEventListener("beforeContentBinding", onBeforeContentBinding);
+	function onBeforeContentBinding(e) {
+		if (!e.actualUpdate) {
+			return;
+		}
+		var rows = grid.api.getAllRowDefinitions();
+		console.log(rows);
+	}
+
+	function currencyBinding(e) {
+		var cell = e.cell;
+		var data = e.data;
+		cell.setContent(addSymbol(data));
+	}
+
+	function addSymbol(data) {
+		var symbol = "$";
+		return symbol + data;
+	}
+
+	function groupSortingASC(grp1, grp2) {
+		// Sort in ascending order (A -> Z)
+		if (grp1 < grp2) return -1;
+		if (grp1 > grp2) return 1;
+		return 0;
+	}
+</script>
+```
+#### Example summation row in group header rows
+In the example below, we demonstrate how to calculate the summation of row data for each column and display it in the group header rows.
 ```live
 <style>
 	atlas-blotter {

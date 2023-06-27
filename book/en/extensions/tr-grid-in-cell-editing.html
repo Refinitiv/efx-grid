@@ -29,7 +29,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="b18d169e-3e1b-46e6-be1b-bb567381e72b">
+        <pandora-nav id="0f5579b8-4937-4070-b6ba-94a211988ec4">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -559,6 +559,18 @@ efx-grid {
             </div>
             <h3 id="editor-types">Editor types</h3>
             <p>There are 6 editor types you can use to edit your data. They are "text", "number", "dropdown", "date", "checkbox", and "combobox". To change editor type, set <code>inCellEditing</code> on the column configuration to an object with <code>type</code> property. In case of dropdown or combobox, <code>entries</code> property on the object can be used to specified possible item entries.</p>
+            <p>Type "combobox" also support <code>multiple</code> mode which can be enable by passing <code>multiple</code> to <code>attributes</code> property</p>
+            <pre><code>{ 
+    <span class="hljs-attr">title</span>: <span class="hljs-string">"Column Title"</span>, 
+    <span class="hljs-attr">field</span>: <span class="hljs-string">"Column Field"</span>, 
+    <span class="hljs-attr">inCellEditing</span>: {
+        <span class="hljs-attr">type</span>: <span class="hljs-string">"combobox"</span>,
+        <span class="hljs-attr">entries</span>: [<span class="hljs-string">"1"</span>, <span class="hljs-string">"2"</span>, <span class="hljs-string">"3"</span>, <span class="hljs-string">"4"</span>],
+        <span class="hljs-attr">attributes</span>: {
+            <span class="hljs-attr">multiple</span>: <span class="hljs-literal">true</span>
+        }
+    } 
+}</code></pre>
             <blockquote>
               <p>Note: some basic data type conversion is automatically applied for different editor types.</p>
             </blockquote>
@@ -582,7 +594,12 @@ efx-grid {
                   <pre class="pandora-tab-view tab-html">&lt;efx-grid id="grid"&gt;
 
 &lt;/efx-grid&gt;</pre>
-                  <pre class="pandora-tab-view tab-js">var fields = ["companyName", "market", "CF_LAST", "boolean", "date", "industry"];
+                  <pre class="pandora-tab-view tab-js">var currencies = ["AUD", "THB", "TWD", "JPY", "USD"];
+DataGenerator.addFieldInfo("currency", {
+  type: "set",
+  members: currencies
+});
+var fields = ["companyName", "market", "CF_LAST", "boolean", "date", "industry", "currency"];
 var records = DataGenerator.generateRecords(fields, { numRows: 5, seed: 0 });
 
 var configObj = {
@@ -607,6 +624,17 @@ var configObj = {
         type: "combobox",
         entries: ["Specialty Chemicals", "Investment Managers", "Sample"]
       }
+    },
+    {
+      title: "Currency",
+      field: fields[6],
+      inCellEditing: {
+        type: "combobox",
+        entries: currencies,
+        attributes: {
+          multiple: true
+        }
+      }
     }
   ],
   staticDataRows: records,
@@ -621,7 +649,7 @@ var configObj = {
 var grid = document.getElementById("grid");
 grid.config = configObj;</pre>
                   <pre class="pandora-tab-view tab-css">efx-grid {
-  height: 200px;
+  height: 280px;
 }</pre>
                   <div class="pandora-console"></div>
                 </div>

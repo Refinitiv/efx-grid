@@ -55,3 +55,12 @@ The purpose of this formatter is creating a generic element for further modifica
 	grid.config = configObj;
 </script>
 ```
+## Formatting predefined formatter using Text Formatting Extension
+
+When using Text Formatting Extension, by default, predefined formatter will be overwritten due to the need for rendering a formatted text by the extension. To format the text inside predefined formatter and avoid the overriding, you will need to instruct the extension on how and where to do the formatting. See [this page](../../extensions/tr-grid-textformatting.md) for more information.
+
+In this case, you can use `onElementRendered` and Text Formatting Extension to do the formatting.
+
+<br>
+<br>
+<br>

@@ -157,6 +157,21 @@ Once the editing is completed, you may need to validate the data and convert the
 
 There are 6 editor types you can use to edit your data. They are "text", "number", "dropdown", "date", "checkbox", and "combobox". To change editor type, set `inCellEditing` on the column configuration to an object with `type` property. In case of dropdown or combobox, `entries` property on the object can be used to specified possible item entries.
 
+Type "combobox" also support `multiple` mode which can be enable by passing `multiple` to `attributes` property
+```js
+{ 
+	title: "Column Title", 
+	field: "Column Field", 
+	inCellEditing: {
+		type: "combobox",
+		entries: ["1", "2", "3", "4"],
+		attributes: {
+			multiple: true
+		}
+	} 
+}
+```
+
 > Note: some basic data type conversion is automatically applied for different editor types.
 
 > Note: each editor, except for simple text input, requires different ELF elements to be loaded. See the list of required dependencies on [this page](README.md). 
@@ -164,14 +179,19 @@ There are 6 editor types you can use to edit your data. They are "text", "number
 ```live
 <style>
 	atlas-blotter {
-		height: 200px;
+		height: 280px;
 	}
 </style>
 
 <atlas-blotter id="grid"></atlas-blotter>
 
 <script>
-	var fields = ["companyName", "market", "CF_LAST", "boolean", "date", "industry"];
+	var currencies = ["AUD", "THB", "TWD", "JPY", "USD"];
+	tr.DataGenerator.addFieldInfo("currency", {
+		type: "set",
+		members: currencies
+	});
+	var fields = ["companyName", "market", "CF_LAST", "boolean", "date", "industry", "currency"];
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 5, seed: 0 });
 
 	var configObj = {
@@ -190,6 +210,15 @@ There are 6 editor types you can use to edit your data. They are "text", "number
 				inCellEditing: {
 					type: "combobox",
 					entries: ["Specialty Chemicals", "Investment Managers", "Sample"]
+				} 
+			},
+			{ title: "Currency", field: fields[6], 
+				inCellEditing: {
+					type: "combobox",
+					entries: currencies,
+					attributes: {
+						multiple: true
+					}
 				} 
 			}
 		],

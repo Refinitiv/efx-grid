@@ -267,6 +267,10 @@ Click the green button on the bottom right corner of the live example to see the
 </script>
 ```
 
+# Formatting custom content with Text Formatting Extension
+
+When using Text Formatting Extension, by default, custom content will be overwritten due to the need for rendering a formatted text by the extension. To format the text inside the custom content and avoid the overriding, you will need to instruct the extension on how and where to do the formatting. See [this page](../extensions/tr-grid-textformatting.md) for more information.
+
 # Writing a good formatter
 
 Be mindful that the `binding` method will be executed repeatedly and multiple times during data updates and scrolling. Performance is crucial, so you should write the code with caution. See the following guidelines for writing a good formatter.

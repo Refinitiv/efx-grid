@@ -5,7 +5,7 @@ There are two possible channels:
 - [Stack Overflow](https://lseg.stackenterprise.co/posts/tagged/1102)
 - [MS Team](https://teams.microsoft.com/l/channel/19%3ad514a7251da6436699c306fcb5710fca%40thread.tacv2/Grids%2520and%2520Blotters?groupId=8900d5cb-b36d-406a-9101-c9830b069f19&tenantId=287e9f0e-91ec-4cf0-b7a4-c63898072181)
 
-# Creating live example
+# Creating a live example
 
 Grid's dependencies are available for CodeSandbox, making it simple to create your own live demonstration. The live example imitated issues are very significant because it helps us in our investigation and save us time. To create a live example page you can follow the below instructions:
 - Sign up for a [CodeSandbox](https://codesandbox.io/) account or log in if you already have one.
@@ -18,3 +18,11 @@ Grid's dependencies are available for CodeSandbox, making it simple to create yo
 - Send us the URL.
 
 > Note: To change the theme while editing live example, change the theme name in the `Import` section between `light` and `dark`.
+
+# Existing live examples
+
+All existing live examples can be found [here](https://gitlab.dx1.lseg.com/groups/204090/grid/-/wikis/home). You may fork or use some of the examples to illustrate your issue, if those examples have suitable setup for your use cases.
+
+<br>
+<br>
+<br>
