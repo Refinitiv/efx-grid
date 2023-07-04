@@ -29,7 +29,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="0f5579b8-4937-4070-b6ba-94a211988ec4">
+        <pandora-nav id="a18bc11e-b4da-4fa1-949a-e9c8911f44a4">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -363,34 +363,13 @@ var configObj = {
     }
   ],
   columnStack: {
-    clicked: onStackIconClicked
+    menuElement: document.getElementById("popup_menu")
   },
   staticDataRows: records,
   extensions: [
     columnStackExt
   ]
 };
-
-var popupMenu = document.getElementById("popup_menu");
-popupMenu.addEventListener("item-trigger", function(e) {
-  var val = e.detail.value;
-  if (popupMenu.values[0] !== val) { // If different item is selected, swap the column
-    columnStackExt.swapColumn(popupMenu._colIndex, +val);
-  }
-  popupMenu.opened = false;
-});
-
-function onStackIconClicked(e) {
-  if (!e.spreading) {
-    popupMenu.data = e.menuData;
-    popupMenu.values = [e.activeIndex]; // Select the active menu item
-    popupMenu._colIndex = e.activeColIndex; // Cache for later referencing
-
-    var button = e.event.srcElement;
-    popupMenu.positionTarget = button;
-    popupMenu.opened = true;
-  }
-}
 
 var grid = document.getElementById("grid");
 grid.config = configObj;</pre>
@@ -437,18 +416,12 @@ grid.config = configObj;</pre>
             <p>This extension supports two modes for displaying grouped columns, which are stacking mode and collapsing mode.</p>
             <h4 id="stacking-mode">Stacking mode</h4>
             <p>With stacking mode, grouped columns will be displayed as only one column per group, so other columns will be invisible.</p>
-            <p>You need to listen to the event "clicked", which is triggered when the stack icon near the stacked column's title is clicked.</p>
-            <pre><code>columnStackExt.listen(<span class="hljs-string">"clicked"</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
-    <span class="hljs-keyword">if</span> (!e.spreading) {
-        <span class="hljs-comment">// Do something here, eg. show drop down menu for another columns selection</span>
-        <span class="hljs-keyword">var</span> menuData = e.menuData;
-        <span class="hljs-keyword">var</span> activeMenuIndex = e.activeIndex;
-        <span class="hljs-keyword">var</span> columnIndices = e.columnIndices;
-        <span class="hljs-keyword">var</span> activeColIndex = e.activeColIndex;
+            <p>Simply define the element for the popup menu using <code>menuElement</code>, an extension option.</p>
+            <pre><code><span class="hljs-keyword">var</span> gridConfig = {
+    <span class="hljs-attr">columnStack</span>: {
+        <span class="hljs-attr">menuElement</span>: <span class="hljs-built_in">document</span>.getElementById(<span class="hljs-string">"popup_menu"</span>)
     }
-});</code></pre>
-            <p>When a new column is selected, use the extension's API to swap selected column.</p>
-            <pre><code>columnStackExt.swapColumn(activeColIndex, selectedIndex);</code></pre>
+}</code></pre>
             <h4 id="collapsing-mode">Collapsing mode</h4>
             <p>In collapsing mode, grouped columns will be expanded or collapsed. The stack icon in the header row becomes a trigger button that can be used to collapse or expand a group.</p>
             <blockquote>
@@ -572,29 +545,10 @@ var configObj = {
   columns: columns,
   staticDataRows: records,
   columnStack: {
-    clicked: onStackIconClicked
+    menuElement: document.getElementById("popup_menu")
   },
   extensions: [ext]
 };
-
-var popupMenu = document.getElementById("popup_menu");
-popupMenu.addEventListener("item-trigger", function(e) {
-  var val = e.detail.value;
-  if (popupMenu.values[0] !== val) {
-    ext.swapColumn(popupMenu._colIndex, +val);
-  }
-  popupMenu.opened = false;
-});
-
-function onStackIconClicked(e) {
-  popupMenu.data = e.menuData;
-  popupMenu.values = [e.activeIndex];
-  popupMenu._colIndex = e.activeColIndex;
-
-  var button = e.event.srcElement;
-  popupMenu.positionTarget = button;
-  popupMenu.opened = true;
-}
 
 var grid = document.getElementById("grid");
 grid.config = configObj;</pre>
@@ -704,7 +658,7 @@ button {
                               <td class="type"> <span class="param-type">Array.&lt;string&gt;</span> </td>
                               <td class="attributes"> </td>
                               <td class="default"> </td>
-                              <td class="description last">Fields for stacking. The minimum is 2 fields.</td>
+                              <td class="description last">Fields for stacking. The minimum is 2 fields</td>
                             </tr>
                             <tr>
                               <td class="name"><code>stacks</code></td>
@@ -726,6 +680,20 @@ button {
                               <td class="attributes"> &lt;optional&gt;<br> </td>
                               <td class="default"> null </td>
                               <td class="description last">Event handler when user clicks on stack/expanding icon</td>
+                            </tr>
+                            <tr>
+                              <td class="name"><code>menuElement</code></td>
+                              <td class="type"> <span class="param-type">Element</span> </td>
+                              <td class="attributes"> &lt;optional&gt;<br> </td>
+                              <td class="default"> </td>
+                              <td class="description last">Element used to display a column selection list</td>
+                            </tr>
+                            <tr>
+                              <td class="name"><code>menuItemClicked</code></td>
+                              <td class="type"> <span class="param-type">function</span> </td>
+                              <td class="attributes"> &lt;optional&gt;<br> </td>
+                              <td class="default"> </td>
+                              <td class="description last">When the menuElement is specified and menu item is clicked, an event handler is called</td>
                             </tr>
                           </tbody>
                         </table>

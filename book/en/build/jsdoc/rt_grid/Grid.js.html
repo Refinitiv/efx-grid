@@ -638,6 +638,14 @@ Grid.prototype.dispose = function() {
 	this._grid.dispose();
 	this._connector.reset();
 
+	if(!this._sharedDataSource) { // make sure that it is the final grid, and that it will be dispose data
+		if(this._dt) {
+			this._dt.dispose();
+		}
+		if(this._dv) {
+			this._dv.dispose();
+		}
+	}
 	this._mainGrid = this._dt = this._dv = null;
 
 	if(this._subs) {
@@ -1598,16 +1606,16 @@ Grid.prototype.replaceColumn = function (columnOption, colRef) {
 	}
 
 	var colDef = this.getColumnDefinition(colIndex);
-	if(colDef.getChildren()) { // Parent time series field doesn't provide hidden property
+	if(colDef &amp;&amp; colDef.getChildren().length &gt; 0) { // Parent time series field doesn't provide hidden property
 		colConfig["hidden"] = false;
 	}
 
-	if(colConfig.id == null) {
+	if(colDef &amp;&amp; colConfig.id == null) {
 		colConfig.id =  colDef.getId(); // retain ID
 	}
 	this._grid.startBatch("reset");
+	this.removeColumn(colIndex);
 	this.insertColumn(colConfig, colIndex);
-	this.removeColumn(colIndex + 1); // remove existing column after insert
 	this._grid.stopBatch("reset");
 };
 
@@ -2312,9 +2320,9 @@ Grid.prototype._initDuplicateRicData = function(rowDef) {
 	}
 };
 /** @public
-* @param {Object=} rowOption
+* @param {(RowDefinition~Options|string)=} rowOption
 * @param {Grid~RowReference=} rowRef Reference (i.e. row index, row id, or row definition) of the insert position
-* @returns {Object}
+* @returns {RowDefinition}
 * @example
 * var grid = new rt.Grid(grid_div, options);
 * grid.insertRow({"ric": "RIC"}, 0); // A new row is added at the top
@@ -2345,7 +2353,7 @@ Grid.prototype.insertRow = function(rowOption, rowRef) {
 	return rowDef;
 };
 /** @public
-* @param {Array.&lt;Object&gt;} rowOptions Array of row option object
+* @param {Array.&lt;RowDefinition~Options|string&gt;} rowOptions Array of row option object
 * @param {Grid~RowReference=} rowRef Reference (i.e. row index, row id, or row definition) of the insert position
 * @param {Array.&lt;string&gt;=} opt_fields
 * @example
@@ -3995,8 +4003,8 @@ Grid.prototype._logData = function(rowDefs, options) {
 /** @public
 * @description Replace existing row with a new row. Row ID would be changed, after row is replaced.
 * @param {Grid~RowReference} rowRef Reference (i.e. row index, row id, or row definition) of the insert position
-* @param {Object=} rowOption
-* @returns {Object}
+* @param {(RowDefinition~Options|string)=} rowOption
+* @returns {RowDefinition}
 */
 Grid.prototype.replaceRow = function(rowRef, rowOption) {
 	var rowId = this._getRowId(rowRef);
