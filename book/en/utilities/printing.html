@@ -8,10 +8,10 @@
       margin-left: -26px;
     }
   </style>
-  <title>In-Cell Editing</title>
+  <title>Printing Grid</title>
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <meta name="x-pandora-base" content="../">
-  <meta name="x-pandora-location" content="editing/in-cell-editor.html">
+  <meta name="x-pandora-location" content="utilities/printing.html">
   <link rel="stylesheet" href="../../../resources/styles/book.css">
   <script defer src="../../../resources/scripts/book.js"></script>
   <script defer src="../search.index.js"></script>
@@ -29,7 +29,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="a18bc11e-b4da-4fa1-949a-e9c8911f44a4">
+        <pandora-nav id="c6929953-216b-4499-9280-ca5b1f52f4f5">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -237,19 +237,15 @@
               </ul>
             </li>
             <li parent="" id="cid-15" collapsible="" collapsed="">
-              <div collapser="">Editing</div>
+              <div collapser="">Utilities</div>
               <ul>
-                <li selected><a href="../editing/in-cell-editor.html">In-Cell Editing</a></li>
-                <li><a href="../editing/custom-editor.html">Custom Editor</a></li>
+                <li selected><a href="../utilities/printing.html">Printing Grid</a></li>
+                <li><a href="../utilities/multi-table.html">Multi-table</a></li>
+                <li><a href="../utilities/native-table.html">Native HTML table</a></li>
+                <li><a href="../utilities/data-generator.html">Data genarator</a></li>
               </ul>
             </li>
             <li parent="" id="cid-16" collapsible="" collapsed="">
-              <div collapser="">Printing</div>
-              <ul>
-                <li><a href="../printing/printer-extension.html">Native Print and Extensions</a></li>
-              </ul>
-            </li>
-            <li parent="" id="cid-17" collapsible="" collapsed="">
               <div collapser="">Widgets</div>
               <ul>
                 <li><a href="../widgets/column-format-dialog.html">Column Format Dialog</a></li>
@@ -258,7 +254,7 @@
                 <li><a href="../widgets/language-support.html">Language Support</a></li>
               </ul>
             </li>
-            <li parent="" id="cid-18" collapsible="" collapsed="">
+            <li parent="" id="cid-17" collapsible="" collapsed="">
               <div collapser="">Miscellaneous</div>
               <ul>
                 <li><a href="../misc/core-apis.html">Using Core APIs</a></li>
@@ -267,11 +263,10 @@
                 <li><a href="../misc/fifty-thosand-rows.html">50,000 Rows Handling</a></li>
                 <li><a href="../misc/row-span.html">Row Span</a></li>
                 <li><a href="../misc/row-expansion.html">Row Expansion</a></li>
-                <li><a href="../misc/multi-table.html">Multi-table</a></li>
                 <li><a href="../misc/text-selection.html">Text Selection</a></li>
               </ul>
             </li>
-            <li parent="" id="cid-19" collapsible="" collapsed="">
+            <li parent="" id="cid-18" collapsible="" collapsed="">
               <div collapser="">Migrating to EFX Grid</div>
               <ul>
                 <li><a href="../migrating/from-emerald-grid.html">Emerald Grid</a></li>
@@ -284,15 +279,134 @@
       <div class="main">
         <div class="reader">
           <pandora-page>
-            <h1 id="in-cell-editing"><a href="https://refinitiv.github.io/efx-grid/book/en/editing/in-cell-editor.html" target="_top" class="link-icon"></a> In-Cell Editing</h1>
-            <p><a href="../extensions/tr-grid-in-cell-editing.html">In-Cell Editing Extension</a> provides full editing abilities for your grid, including content and title editing in cell. It means data in each cell can be edited directly.</p>
-            <ul>
-              <li>To enable the editor at title section, set <code>editableTitle</code> to <code>true</code> in <code>inCellEditing</code> property</li>
-              <li>Double click to open it</li>
-              <li>The editing feature disables all columns by default. Set <code>editableContent</code> to <code>true</code> in a specific column to enable it.</li>
-              <li>Use the API <code>openRowEditor</code> to edit all columns in a row</li>
-            </ul>
-            <p>See more details at <a href="../extensions/tr-grid-in-cell-editing.html">In-Cell Editing Extension API Documentation</a>.</p>
+            <h1 id="printing"><a href="https://refinitiv.github.io/efx-grid/book/en/utilities/printing.html" target="_top" class="link-icon"></a> Printing</h1>
+            <p>You can print Grid using the Printing Utility or the native printer feature within a browser. The native printer is more difficult to use, however.</p>
+            <h2 id="using-a-native-printer">Using a native printer</h2>
+            <p>Since content can scroll inside Grid, native printers do not work well with it, as the final print preview truncates any components that are not currently visible on the screen.</p>
+            <p>To solve this, you need to update the grid's configuration to show all hidden information before you preview it. See the steps below.</p>
+            <h3 id="1-initialize-grid">1. Initialize Grid</h3>
+            <pre><code><span class="hljs-keyword">var</span> config = {
+  <span class="hljs-comment">// ... See column options for available options</span>
+};
+
+<span class="hljs-keyword">var</span> grid = <span class="hljs-built_in">document</span>.getElementById(<span class="hljs-string">"grid"</span>);
+grid.config = config;</code></pre>
+            <h3 id="2-adjust-the-grid-s-resolution">2. Adjust the Grid's resolution</h3>
+            <p>Adjust the Grid's resolution to reflect the paper size (for example, A3, A4, A5).</p>
+            <blockquote>
+              <p><code>@media print</code> CSS properties cannot be used to adjust Grid's style, as Grid will not re-render itself with CSS properties. They can only be used to adjust the layout before the print preview.</p>
+            </blockquote>
+            <pre><code><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">beforePrint</span>(<span class="hljs-params"></span>) </span>{
+  grid.style.width = <span class="hljs-string">"180mm"</span>; <span class="hljs-comment">// A4 width</span>
+  grid.style.height = <span class="hljs-string">"unset"</span>;
+}</code></pre>
+            <h3 id="3-delayed-window-print">3. Delayed <code>window.print</code></h3>
+            <p>Grid needs approximately 300ms to recalculate and re-render itself. So you need to make sure Grid has enough time to update its state before the print preview appears.</p>
+            <pre><code><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">print</span>(<span class="hljs-params"></span>) </span>{
+  beforePrint();
+  setTimeout(<span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+    <span class="hljs-built_in">window</span>.print();
+  }, <span class="hljs-number">500</span>); <span class="hljs-comment">// Grid needs at least 300ms  to recalculate and repaint itself.</span>
+}</code></pre>
+            <h3 id="4-after-printing">4. After printing</h3>
+            <p>Lastly, the grid's configuration needs to be restored to its initial state. For this, the <code>window.onafterprint</code> hook will be triggered once printing is finished.</p>
+            <pre><code><span class="hljs-built_in">window</span>.onafterprint = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+  grid.style.width = <span class="hljs-string">"100%"</span>;
+  grid.style.height = <span class="hljs-string">"500px"</span>;
+}</code></pre>
+            <h2 id="using-the-printing-utility">Using the Printing Utility</h2>
+            <p>Unlike the native printer above, the Printing Utility has been created to help print the grid without other components. Rows and columns will not be truncated when using the utility.</p>
+            <p>Basically, the utility creates a new grid DOM dynamically and copies its data into this newly created grid. It will be destroyed automatically when printing is finished.</p>
+
+            <div class="pandora-code-viewer" id="pid-166">
+              <div class="pandora-viewer">
+                <button>&lt;/&gt;</button>
+              </div>
+              <div class="pandora-code-view">
+                <div class="pandora-toolbar">
+                  <ul>
+                    <li class="pandora-tab-selected" data-toggle="tab-html">HTML</li>
+                    <li data-toggle="tab-js">JS</li>
+                    <li data-toggle="tab-css">CSS</li>
+                  </ul>
+                </div>
+                <div class="pandora-tab-container">
+                  <pre class="pandora-tab-view tab-html">&lt;button id="print"&gt;print&lt;/button&gt;
+&lt;efx-grid id="grid"&gt;&lt;/efx-grid&gt;</pre>
+                  <pre class="pandora-tab-view tab-js">var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry", "icon"];
+DataGenerator.addFieldInfo("icon", {
+  type: "set",
+  members: ["up", "down", "phone", "calendar", "flame"]
+});
+var records = DataGenerator.generateRecords(fields, { numRows: 20 });
+var configObj = {
+  columns: [
+    { title: "Company", field: fields[0] },
+    { title: "Market", field: fields[1], width: 100 },
+    { title: "Last", field: fields[2], width: 80 },
+    { title: "Net. Chng", field: fields[3], width: 80 },
+    { title: "Industry", field: fields[4] },
+    { title: "Icon", field: fields[5], binding: EFIconFormatter.create() }
+  ],
+  staticDataRows: records
+};
+
+var grid = document.getElementById("grid");
+grid.config = configObj;
+
+document.getElementById("print").addEventListener("click", function() {
+  GridPrinter.print(grid);
+});</pre>
+                  <pre class="pandora-tab-view tab-css">efx-grid {
+  height: 300px;
+}</pre>
+                  <div class="pandora-console"></div>
+                </div>
+              </div>
+              <link rel="prefetch" href="../node_modules/tr-grid-test-resource-v6/dist/elf-halo-light.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-auto-tooltip/dist/tr-grid-auto-tooltip.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-cell-selection/dist/tr-grid-cell-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-checkbox/dist/tr-grid-checkbox.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/column-dragging/dist/column-dragging.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-fitter/dist/tr-grid-column-fitter.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-formatting/dist/tr-grid-column-formatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-grouping/dist/tr-grid-column-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-resizing/dist/tr-grid-column-resizing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-selection/dist/tr-grid-column-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-stack/dist/tr-grid-column-stack.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-conditional-coloring/dist/tr-grid-conditional-coloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-content-wrap/dist/tr-grid-content-wrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-contextmenu/dist/tr-grid-contextmenu.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-filter-input/dist/tr-grid-filter-input.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-heat-map/dist/tr-grid-heat-map.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-in-cell-editing/dist/tr-grid-in-cell-editing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-pagination/dist/tr-grid-pagination.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-percent-bar/dist/tr-grid-percent-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-range-bar/dist/tr-grid-range-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-dragging/dist/tr-grid-row-dragging.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-filtering/dist/tr-grid-row-filtering.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-grouping/dist/tr-grid-row-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/row-segmenting/dist/row-segmenting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-selection/dist/tr-grid-row-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-rowcoloring/dist/tr-grid-rowcoloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/statistics-row/dist/statistics-row.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-textformatting/dist/tr-grid-textformatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-titlewrap/dist/tr-grid-titlewrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
+            </div>
+            <p>First, install package from npm.</p>
+            <pre><code>npm install @refinitiv-ui/efx-grid</code></pre>
+            <p>Then, use <code>import</code> syntax for importing the utility into your app.</p>
+            <pre><code><span class="hljs-keyword">import</span> { GridPrinter } <span class="hljs-keyword">from</span> <span class="hljs-string">"@refinitiv-ui/efx-grid/utils"</span>;</code></pre>
+            <p>Finally, send Grid into the GridPrinter utility.</p>
+            <pre><code><span class="hljs-keyword">var</span> config = {
+    <span class="hljs-comment">// ... See column options for available options</span>
+};
+
+<span class="hljs-keyword">var</span> grid = <span class="hljs-built_in">document</span>.getElementById(<span class="hljs-string">"grid"</span>);
+grid.config = config;
+
+GridPrinter.print(grid);</code></pre>
           </pandora-page>
           <div class="results"></div>
         </div>

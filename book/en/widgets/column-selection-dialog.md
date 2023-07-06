@@ -2,26 +2,27 @@
 
 ## Column Selection Dialog
 
-The Column Selection Dialog is a widget that can be used to manage Grid's columns.
+The Column Selection Dialog is UI for managing Grid's columns.
 
 ### Features
 
-* Allow users to show/hide columns and change order of the visible columns
-* Allow users to search columns by name to show/hide
+* Allow users to show/hide columns and change order of the visible columns.
+* Allow users to search columns by name.
+* Allow users to add a tag and search only for columns with the specified tags.
 
 ### Demo
 
 Click on `Open Dialog` button to see the dialog.
 
-```live(test-resource)
+```live
 <style>
-  html hr {
-    margin: 5px;
-  }
+	html hr {
+		margin: 5px;
+	}
 
-  efx-grid {
-    height: 450px;
-  }
+	efx-grid {
+		height: 500px;
+	}
 </style>
 Language:
 <select id="lang_selector">
@@ -151,24 +152,23 @@ For more information about internationalization and how is it applied in differe
 
 ### Multi Level with Column Selection
 
-```live(test-resource)
+```live
 <style>
-  html hr {
-    margin: 5px;
-  }
-
-  efx-grid {
-    height: 450px;
-  }
+	html hr {
+		margin: 5px;
+	}
+	efx-grid {
+		height: 500px;
+	}
 </style>
 
-<ef-button id="open_btn">Open Dialog</ef-button>
+<button id="open_btn">Open Dialog</button>
 <hr>
 <efx-grid id="grid"></efx-grid>
 
 <script>
-  var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry", "CF_VOLUMN", "date", "PCTCHNG2"];
-  var records = DataGenerator.generateRecords(fields, { numRows: 10 });
+	var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry", "CF_VOLUMN", "date", "PCTCHNG2"];
+  var records = DataGenerator.generateRecords(fields, 20);
 
   var allColumns = [
     {title: "Company", field: fields[0], disabled: true},
@@ -182,63 +182,66 @@ For more information about internationalization and how is it applied in differe
   ];
 
   var configObj = {
-    dataModel: {
-      data: records
-    }
-  };
+		dataModel: {
+			data: records
+		}
+	};
 
-  var grid = document.getElementById("grid");
-  grid.config = configObj;
+	var grid = document.getElementById("grid");
+	grid.config = configObj;
 
-  grid.columns = [
-    allColumns[0],
-    allColumns[1],
-    allColumns[2],
-    allColumns[3],
-    allColumns[4]
-  ];
+	grid.columns = [
+		allColumns[0],
+		allColumns[1],
+		allColumns[2],
+		allColumns[3],
+		allColumns[4]
+	];
 
-  var columnTree = [
-    allColumns[0],
-    {
-      label: 'Basic Info',
-      items: [
-        allColumns[1],
-        allColumns[4],
-        allColumns[6]
-      ]
-    },
-    {
-      label: 'Trading Info',
-      items: [
-        {
-          label: 'Net.',
-          items: [
-            allColumns[2],
-            allColumns[3],
-            allColumns[5]
-          ]
-        },
-        {
-          label: 'Percent',
-          items: [
-            allColumns[7]
-          ]
-        }
-      ]
-    }
-  ];
+	var columnTree = [
+		allColumns[0],
+		{
+			label: 'Basic Info',
+			items: [
+				allColumns[1],
+				allColumns[4],
+				allColumns[6]
+			]
+		},
+		{
+			label: 'Trading Info',
+			items: [
+				{
+					label: 'Net.',
+					items: [
+						allColumns[2],
+						allColumns[3],
+						allColumns[5]
+					]
+				},
+				{
+					label: 'Percent',
+					items: [
+						allColumns[7]
+					]
+				}
+			]
+		}
+	];
 
-  var dialog = document.createElement("column-selection-dialog");
-  dialog.data = columnTree;
-  dialog.addEventListener("confirm", function (e) {
-      grid.columns = e.detail.value;
-  });
+	var dialog = document.createElement("column-selection-dialog");
+	dialog.config = {
+		data: columnTree
+	};
 
-  document.getElementById("open_btn").addEventListener("click", function () {
-    dialog.visibleItems = grid.api.getConfigObject().columns;
-    dialog.show();
-  });
+	dialog.addEventListener("confirm", function (e) {
+			grid.columns = e.detail.value;
+	});
+
+	document.getElementById("open_btn").addEventListener("click", function () {
+		dialog.visibleItems = grid.api.getConfigObject().columns;
+		dialog.show();
+	});
 </script>
 ```
 
@@ -248,14 +251,14 @@ In case you do not want specific columns to move out of the grid, you can set th
 
 ```js
 var columns = [/* Grid Column Option */];
-var grid = document.getElementById("grid");
+var grid = document.getElementById("grid_id");
 grid.config = {/* Grid Option */};
 grid.columns = columns; // Explicitly set columns, otherwise it will be undefined
 
 columns[1].disabled = true; // To prevent this column from moving between the lists
 dialog.config = {
-  data: columns, // All columns
-  visibleItems: columns// Currently visible columns
+	data: columns, // All columns
+	visibleItems: columns// Currently visible columns
 };
 ```
 
@@ -269,13 +272,13 @@ In case you are having pinned columns, and you do not want pinned columns to be 
 	}
 </style>
 
-<coral-button id="open_btn">Open Dialog</coral-button>
+<button id="open_btn">Open Dialog</button>
 <hr>
-<atlas-blotter id="grid"></atlas-blotter>
+<efx-grid id="grid"></efx-grid>
 
 <script>
 	var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry", "CF_VOLUMN", "date", "PCTCHNG2"];
-  var records = DataGenerator.generateRecords(fields, { numRows: 10 });
+  var records = DataGenerator.generateRecords(fields, 20);
 
   var allColumns = [
     {title: "Company", field: fields[0], width: 250, leftPinned: true, stationary: true},
@@ -357,13 +360,12 @@ In case you are having pinned columns, and you do not want pinned columns to be 
 
 ### Hide Columns in Visible Columns
 
-There is a use case where you might not want some columns to be moved. You can disable the number of columns in the visible columns using `excludedLeftColumns` config.
+There is a use case where you might not want some columns to be moved. You can disable the number of columns in the visible columns using `excludedColumns` config.
 
 ```js
 dialog.config = {
-  // Other dialog config
-  excludedLeftColumns: 2, // This will make 2 of left columns hidden in the Visible Columns.
-  excludedRightColumns: 2, // This will make 2 of right columns hidden in the Visible Columns.
+	// Other dialog config
+	excludedColumns: 2, // This will make column index 0-1 hidden in the Visible Columns.
 };
 ```
 
@@ -399,7 +401,6 @@ dialog.config = {
 
 > Note: `availableItems` is deprecated.
 
-
 ### Restoring columns with retaining sorting and filtering states
 
 The Column Selection Dialog only provides column information to the user. If you wish to retain certain states, such as sorting and filtering, you will need to utilize the grid API to restore the updated data back to the grid from your side.
@@ -412,19 +413,19 @@ In the example below, we will demonstrate how to retain the sorting and filterin
 	html hr {
 		margin: 5px;
 	}
-
 	efx-grid {
-		height: 450px;
+		height: 500px;
 	}
 </style>
 <button id="open_btn">Open Dialog</button>
+<hr>
 <efx-grid id="grid"></efx-grid>
 <script>
   
   var rowFilteringExt = new RowFiltering();
-  
+
   var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry", "CF_VOLUMN", "date", "PCTCHNG2"];
-  var records = DataGenerator.generateRecords(fields, { numRows: 6 });
+  var records = DataGenerator.generateRecords(fields, 20);
   var allColumns = [
     {title: "Company", field: fields[0], disabled: true},
     {title: "Market", field: fields[1], width: 100},
@@ -500,6 +501,93 @@ In the example below, we will demonstrate how to retain the sorting and filterin
 	});
 </script>
 ```
+
+### Tag searching
+
+To add available tag list to the dialog, set an array of tags to `tags` property on the dialog configuration object. `tags` property can also be set on column configuration object for matching. 
+
+```live
+<style>
+	html hr {
+		margin: 5px;
+	}
+	efx-grid {
+		height: 500px;
+	}
+</style>
+<button id="open_btn">Open Dialog</button>
+<hr>
+<big id="msg_big"></big>
+<hr>
+<efx-grid id="grid"></efx-grid>
+
+<script>
+	var availableTags = ["Runner", "Swimmer", "Flier", "red", "green", "blue"];
+	var fieldDefs = [
+		["Red Dog", ["red", "runner", "running"]],
+		["Red Snake", ["red"]],
+		["Blue Penguin", ["Blue", "Runner", "Running", "Swimmer"]],
+		["Blue Bird", ["Blue", "Flier"]],
+		["Blue Chicken", ["Blue", "runner", "running"]],
+		["Green Lion", ["Green", "Runner", "running"]],
+		["Red Bat", ["red", "Flier"]],
+		["Green Frog", ["Green", "Swimmer"]],
+		["Blue Rabbit", ["Blue", "Runner", "running"]],
+		["Red Fish", ["red", "Swimmer"]]
+	];
+	document.getElementById("msg_big").textContent = "Available tags: " + availableTags.join(", ");
+	var columnDefMap = fieldDefs.reduce(function(obj, def) { 
+		var field = def[0];
+		var tag = def[1];
+		obj[field] = {
+			field: field,
+			id: field,
+			tags: tag
+		};
+		return obj;
+	}, {});
+	function idToColumnDef(colId) {
+		return columnDefMap[colId] || null;
+	}
+	
+	var fields = Object.keys(columnDefMap);
+	var availableColumns = Object.values(columnDefMap);
+
+	var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 20 });
+	var configObj = {
+		staticDataRows: records
+	};
+	
+	var grid = document.getElementById("grid");
+	grid.config = configObj;
+	grid.columns = availableColumns.slice(0, 4);
+
+	function onConfirm(e) {
+		grid.columns = e.detail.value;
+	}
+	
+	var dialog = null;
+	document.getElementById("open_btn").addEventListener("click", function () {
+		if (!dialog) {
+			dialog = document.createElement("column-selection-dialog");
+
+			dialog.config = {
+				data: availableColumns,
+				confirm: onConfirm,
+				tags: availableTags,
+				infoTooltip: "Search Column to add to the right list. Press Tab to add a Tag. Available tags for Search: Red, Blue, Green, Runner, Swimmer, and Flier",
+				searchPlaceholder: "Search Column. Press Tab to add a Tag"
+			};
+		}
+		
+		var columnIds = grid.api.getColumnIds();
+		dialog.visibleItems = columnIds.map(idToColumnDef);
+		
+		dialog.show();
+	});
+</script>
+```
+
 
 <div></div>
 

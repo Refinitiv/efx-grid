@@ -173,12 +173,11 @@
 	- [Custom Filter UI](filtering/custom-filter.md)
 	- [Get Filter States / Reset All](filtering/filtering-get-reset.md)
 
-- Editing
-	- [In-Cell Editing](editing/in-cell-editor.md)
-	- [Custom Editor](editing/custom-editor.md)
-
-- Printing
-	- [Native Print and Extensions](printing/printer-extension.md)
+- Utilities
+	- [Printing Grid](utilities/printing.md)
+	- [Multi-table](utilities/multi-table.md)
+	- [Native HTML table](utilities/native-table.md)
+	- [Data genarator](utilities/data-generator.md)
 
 - Widgets
 	- [Column Format Dialog](widgets/column-format-dialog.md)
@@ -193,7 +192,6 @@
 	- [50,000 Rows Handling](misc/fifty-thosand-rows.md)
 	- [Row Span](misc/row-span.md)
 	- [Row Expansion](misc/row-expansion.md)
-	- [Multi-table](misc/multi-table.md)
 	- [Text Selection](misc/text-selection.md)
 	
 - Migrating to EFX Grid

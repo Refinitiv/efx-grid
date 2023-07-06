@@ -29,7 +29,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="a18bc11e-b4da-4fa1-949a-e9c8911f44a4">
+        <pandora-nav id="c6929953-216b-4499-9280-ca5b1f52f4f5">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -237,19 +237,15 @@
               </ul>
             </li>
             <li parent="" id="cid-15" collapsible="" collapsed="">
-              <div collapser="">Editing</div>
+              <div collapser="">Utilities</div>
               <ul>
-                <li><a href="../editing/in-cell-editor.html">In-Cell Editing</a></li>
-                <li><a href="../editing/custom-editor.html">Custom Editor</a></li>
+                <li><a href="../utilities/printing.html">Printing Grid</a></li>
+                <li><a href="../utilities/multi-table.html">Multi-table</a></li>
+                <li><a href="../utilities/native-table.html">Native HTML table</a></li>
+                <li><a href="../utilities/data-generator.html">Data genarator</a></li>
               </ul>
             </li>
             <li parent="" id="cid-16" collapsible="" collapsed="">
-              <div collapser="">Printing</div>
-              <ul>
-                <li><a href="../printing/printer-extension.html">Native Print and Extensions</a></li>
-              </ul>
-            </li>
-            <li parent="" id="cid-17" collapsible="" collapsed="">
               <div collapser="">Widgets</div>
               <ul>
                 <li><a href="../widgets/column-format-dialog.html">Column Format Dialog</a></li>
@@ -258,7 +254,7 @@
                 <li><a href="../widgets/language-support.html">Language Support</a></li>
               </ul>
             </li>
-            <li parent="" id="cid-18" collapsible="" collapsed="">
+            <li parent="" id="cid-17" collapsible="" collapsed="">
               <div collapser="">Miscellaneous</div>
               <ul>
                 <li><a href="../misc/core-apis.html">Using Core APIs</a></li>
@@ -267,11 +263,10 @@
                 <li><a href="../misc/fifty-thosand-rows.html">50,000 Rows Handling</a></li>
                 <li><a href="../misc/row-span.html">Row Span</a></li>
                 <li><a href="../misc/row-expansion.html">Row Expansion</a></li>
-                <li><a href="../misc/multi-table.html">Multi-table</a></li>
                 <li><a href="../misc/text-selection.html">Text Selection</a></li>
               </ul>
             </li>
-            <li parent="" id="cid-19" collapsible="" collapsed="">
+            <li parent="" id="cid-18" collapsible="" collapsed="">
               <div collapser="">Migrating to EFX Grid</div>
               <ul>
                 <li><a href="../migrating/from-emerald-grid.html">Emerald Grid</a></li>
@@ -287,7 +282,14 @@
             <link rel="stylesheet" href="../resources/styles/elf-template.css">
 
             <h2 id="in-cell-editing"><a href="https://refinitiv.github.io/efx-grid/book/en/extensions/tr-grid-in-cell-editing.html" target="_top" class="link-icon"></a> In-Cell Editing</h2>
-            <p>The In-Cell Editing Extension provides full editing abilities for your grid, including content and title editing in cell.</p>
+            <p>The In-Cell Editing Extension provides full editing abilities for your grid, including content and title editing in cell. This means data in each cell can be edited directly.</p>
+            <ul>
+              <li>The editing feature is disabled for all columns by default. Set <code>editableContent</code> to <code>true</code> in a specific column to enable it.</li>
+              <li>To enable editing for all columns, set <code>editableContent</code> to <code>true</code> in the extension configuration object (i.e., <code>inCellEditing</code> property).</li>
+              <li>Use <code>editableTitle</code> to enable editing on the title/header section.</li>
+              <li>Once editing is enabled, editor can be opened by double click on the grid and closed by clicking anywhere outside of the editor.</li>
+              <li>Use <code>openRowEditor</code> API to edit all cells in a row.</li>
+            </ul>
 
             <div class="pandora-code-viewer" id="pid-39">
               <div class="pandora-viewer">
@@ -686,7 +688,7 @@ grid.config = configObj;</pre>
               <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
             </div>
             <h3 id="row-editor">Row editor</h3>
-            <p>Use the function <code>openRowEditor(rowIndex, option_grid)</code> to open the row editor at specific rowIndex. If another editor is open, this function will close that editor without committing changes.</p>
+            <p>Use the function <code>openRowEditor(rowIndex)</code> to open the row editor at specific rowIndex. If another editor is open, this function will close that editor without committing changes.</p>
             <p>Use the function <code>closeRowEditor(isCommit)</code> to close an open row editor. If <code>isCommit = true</code> then all changes that have been made will be saved in the row data.</p>
             <p>Use the function <code>toggleRowEditor(rowIndex, isCommit, option_grid)</code> to open row editor at specific rowIndex. If that row already has an editor open, this function will close the row editor instead. If another rowIndex has a row editor open, this function will close that row editor and open a row editor at a specific rowIndex instead. If <code>isCommit = true</code> all changes that have been made will be saved when the row editor closes. It does not have any effect if a row editor was not already open.</p>
             <p>Using the event <code>beforeRowCommit</code> to allow a developer verify the user input before an actual commit process occurs. A developer can mutate the user input or decide to cancel the commit process if the verifying process fails.</p>
@@ -764,6 +766,127 @@ var grid = document.getElementById("grid");
 grid.config = configObj;</pre>
                   <pre class="pandora-tab-view tab-css">efx-grid {
   height: 170px;
+}</pre>
+                  <div class="pandora-console"></div>
+                </div>
+              </div>
+              <link rel="prefetch" href="../node_modules/tr-grid-test-resource-v6/dist/elf-halo-light.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-auto-tooltip/dist/tr-grid-auto-tooltip.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-cell-selection/dist/tr-grid-cell-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-checkbox/dist/tr-grid-checkbox.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/column-dragging/dist/column-dragging.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-fitter/dist/tr-grid-column-fitter.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-formatting/dist/tr-grid-column-formatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-grouping/dist/tr-grid-column-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-resizing/dist/tr-grid-column-resizing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-selection/dist/tr-grid-column-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-stack/dist/tr-grid-column-stack.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-conditional-coloring/dist/tr-grid-conditional-coloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-content-wrap/dist/tr-grid-content-wrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-contextmenu/dist/tr-grid-contextmenu.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-filter-input/dist/tr-grid-filter-input.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-heat-map/dist/tr-grid-heat-map.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-in-cell-editing/dist/tr-grid-in-cell-editing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-pagination/dist/tr-grid-pagination.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-percent-bar/dist/tr-grid-percent-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-range-bar/dist/tr-grid-range-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-dragging/dist/tr-grid-row-dragging.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-filtering/dist/tr-grid-row-filtering.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-grouping/dist/tr-grid-row-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/row-segmenting/dist/row-segmenting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-selection/dist/tr-grid-row-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-rowcoloring/dist/tr-grid-rowcoloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/statistics-row/dist/statistics-row.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-textformatting/dist/tr-grid-textformatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-titlewrap/dist/tr-grid-titlewrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
+            </div>
+            <h3 id="custom-cell-editor">Custom cell editor</h3>
+            <p>Apart from the default and predefined editors, a custom editor can be easily created by implementing it from the event <code>editorOpened</code>. Since the custom editor is not directly wired to the extension, you will need to commit user input through <code>commitText</code> API. </p>
+            <p>The example below show how to create an editor with <code>yes</code>, <code>no</code> and <code>none</code> options. Note that the predefined "dropdown" editor can be used instead of the custom editor shown in this example. </p>
+
+            <div class="pandora-code-viewer" id="pid-44">
+              <div class="pandora-viewer">
+                <button>&lt;/&gt;</button>
+              </div>
+              <div class="pandora-code-view">
+                <div class="pandora-toolbar">
+                  <ul>
+                    <li class="pandora-tab-selected" data-toggle="tab-html">HTML</li>
+                    <li data-toggle="tab-js">JS</li>
+                    <li data-toggle="tab-css">CSS</li>
+                  </ul>
+                </div>
+                <div class="pandora-tab-container">
+                  <pre class="pandora-tab-view tab-html">&lt;efx-grid id="grid"&gt;
+&lt;/efx-grid&gt;</pre>
+                  <pre class="pandora-tab-view tab-js">var extension = new InCellEditing();
+var onEditorOpened = function(e) {
+  var ed = e.editor;
+
+  while (ed.lastChild) {
+    ed.removeChild(ed.lastChild);
+  }
+
+  var elem;
+  if (e.colIndex === 2) {
+    elem = ed.selectButton;
+
+    if (!elem) {
+      elem = ed.selectButton = document.createElement("select");
+      elem.style.width = "100%";
+      elem.style.height = "100%";
+      elem.style.maxHeight = "unset";
+
+      var items = ["true", "false", "none"];
+      for (var i = 0; i &lt; items.length; ++i) {
+        var opt = document.createElement("option");
+        opt.textContent = opt.value = items[i];
+        elem.appendChild(opt);
+      }
+
+      elem.addEventListener("change", function(e) {
+        var tgt = e.currentTarget;
+        var selectedItem = tgt.options[tgt.selectedIndex];
+        var selectedValue = selectedItem.value;
+        extension.commitText(selectedValue);
+      });
+    }
+
+    elem.value = e["initialText"];
+  } else {
+    elem = e.inputElement;
+  }
+
+  ed.appendChild(elem);
+};
+
+var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry", "boolean"];
+var records = DataGenerator.generateRecords(fields, { numRows: 6 });
+var configObj = {
+  columns: [
+    { title: "Company", field: fields[0] },
+    { title: "Market (editable)", field: fields[1], width: 150, editableContent: true },
+    { title: "Watch (editable)", field: fields[5], with: 150, editableContent: true },
+    { title: "Last", field: fields[2], width: 150 },
+    { title: "Net. Chng", field: fields[3], width: 80 },
+    { title: "Industry", field: fields[4] }
+  ],
+  staticDataRows: records,
+  inCellEditing: {
+    editableTitle: false,
+    editorOpened: onEditorOpened,
+    balloonMode: true
+  },
+  extensions: [
+    extension
+  ]
+};
+
+var grid = document.getElementById("grid");
+grid.config = configObj;</pre>
+                  <pre class="pandora-tab-view tab-css">efx-grid {
+  height: 200px;
 }</pre>
                   <div class="pandora-console"></div>
                 </div>

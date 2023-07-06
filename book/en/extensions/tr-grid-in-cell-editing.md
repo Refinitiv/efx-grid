@@ -2,7 +2,13 @@
 
 ## In-Cell Editing
 
-The In-Cell Editing Extension provides full editing abilities for your grid, including content and title editing in cell.
+The In-Cell Editing Extension provides full editing abilities for your grid, including content and title editing in cell. This means data in each cell can be edited directly.
+
+- The editing feature is disabled for all columns by default. Set `editableContent` to `true` in a specific column to enable it.
+- To enable editing for all columns, set `editableContent` to `true` in the extension configuration object (i.e., `inCellEditing` property).
+- Use `editableTitle` to enable editing on the title/header section.
+- Once editing is enabled, editor can be opened by double click on the grid and closed by clicking anywhere outside of the editor.
+- Use `openRowEditor` API to edit all cells in a row.
 
 ```live
 <style>
@@ -238,7 +244,7 @@ Type "combobox" also support `multiple` mode which can be enable by passing `mul
 
 ### Row editor
 
-Use the function `openRowEditor(rowIndex, option_grid)` to open the row editor at specific rowIndex. If another editor is open, this function will close that editor without committing changes.
+Use the function `openRowEditor(rowIndex)` to open the row editor at specific rowIndex. If another editor is open, this function will close that editor without committing changes.
 
 Use the function `closeRowEditor(isCommit)` to close an open row editor. If `isCommit = true` then all changes that have been made will be saved in the row data.
 
@@ -307,6 +313,89 @@ The live demo below demonstrates how to control the row editor with the `openRow
 		},
 		extensions: [
 			inCellEditingExt
+		]
+	};
+
+	var grid = document.getElementById("grid");
+	grid.config = configObj;
+</script>
+```
+
+### Custom cell editor
+
+Apart from the default and predefined editors, a custom editor can be easily created by implementing it from the event `editorOpened`. Since the custom editor is not directly wired to the extension, you will need to commit user input through `commitText` API. 
+
+The example below show how to create an editor with `yes`, `no` and `none` options. Note that the predefined "dropdown" editor can be used instead of the custom editor shown in this example. 
+
+```live
+<style>
+	atlas-blotter {
+		height: 200px;
+	}
+</style>
+<atlas-blotter id="grid"></atlas-blotter>
+
+<script>
+	var extension = new tr.InCellEditingExtension();
+	var onEditorOpened = function (e) {
+		var ed = e.editor;
+
+		while (ed.lastChild) {
+			ed.removeChild(ed.lastChild);
+		}
+
+		var elem;
+		if (e.colIndex === 2) {
+			elem = ed.selectButton;
+
+			if (!elem) {
+				elem = ed.selectButton = document.createElement("select");
+				elem.style.width = "100%";
+				elem.style.height = "100%";
+				elem.style.maxHeight = "unset";
+
+				var items = ["true", "false", "none"];
+				for(var i = 0; i < items.length; ++i) {
+					var opt = document.createElement("option");
+					opt.textContent = opt.value = items[i];
+					elem.appendChild(opt);
+				}
+
+				elem.addEventListener("change", function(e) {
+					var tgt = e.currentTarget;
+					var selectedItem = tgt.options[tgt.selectedIndex];
+					var selectedValue = selectedItem.value;
+					extension.commitText(selectedValue);
+				});
+			}
+
+			elem.value = e["initialText"];
+		} else {
+			elem = e.inputElement;
+		}
+
+		ed.appendChild(elem);
+	};
+
+	var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry", "boolean"];
+	var records = tr.DataGenerator.generateRecords(fields, { numRows: 6 });
+	var configObj = {
+		columns: [
+			{title: "Company", field: fields[0]},
+			{title: "Market (editable)", field: fields[1], width: 150, editableContent: true},
+			{title: "Watch (editable)", field: fields[5], with: 150, editableContent: true},
+			{title: "Last", field: fields[2], width: 150},
+			{title: "Net. Chng", field: fields[3], width: 80},
+			{title: "Industry", field: fields[4]}
+		],
+		staticDataRows: records,
+		inCellEditing: {
+			editableTitle: false,
+			editorOpened: onEditorOpened,
+			balloonMode: true
+		},
+		extensions: [
+			extension
 		]
 	};
 

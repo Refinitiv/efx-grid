@@ -29,7 +29,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="a18bc11e-b4da-4fa1-949a-e9c8911f44a4">
+        <pandora-nav id="c6929953-216b-4499-9280-ca5b1f52f4f5">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -237,19 +237,15 @@
               </ul>
             </li>
             <li parent="" id="cid-15" collapsible="" collapsed="">
-              <div collapser="">Editing</div>
+              <div collapser="">Utilities</div>
               <ul>
-                <li><a href="../editing/in-cell-editor.html">In-Cell Editing</a></li>
-                <li><a href="../editing/custom-editor.html">Custom Editor</a></li>
+                <li><a href="../utilities/printing.html">Printing Grid</a></li>
+                <li><a href="../utilities/multi-table.html">Multi-table</a></li>
+                <li><a href="../utilities/native-table.html">Native HTML table</a></li>
+                <li><a href="../utilities/data-generator.html">Data genarator</a></li>
               </ul>
             </li>
             <li parent="" id="cid-16" collapsible="" collapsed="">
-              <div collapser="">Printing</div>
-              <ul>
-                <li><a href="../printing/printer-extension.html">Native Print and Extensions</a></li>
-              </ul>
-            </li>
-            <li parent="" id="cid-17" collapsible="" collapsed="">
               <div collapser="">Widgets</div>
               <ul>
                 <li><a href="../widgets/column-format-dialog.html">Column Format Dialog</a></li>
@@ -258,7 +254,7 @@
                 <li><a href="../widgets/language-support.html">Language Support</a></li>
               </ul>
             </li>
-            <li parent="" id="cid-18" collapsible="" collapsed="">
+            <li parent="" id="cid-17" collapsible="" collapsed="">
               <div collapser="">Miscellaneous</div>
               <ul>
                 <li><a href="../misc/core-apis.html">Using Core APIs</a></li>
@@ -267,11 +263,10 @@
                 <li><a href="../misc/fifty-thosand-rows.html">50,000 Rows Handling</a></li>
                 <li><a href="../misc/row-span.html">Row Span</a></li>
                 <li><a href="../misc/row-expansion.html">Row Expansion</a></li>
-                <li><a href="../misc/multi-table.html">Multi-table</a></li>
                 <li><a href="../misc/text-selection.html">Text Selection</a></li>
               </ul>
             </li>
-            <li parent="" id="cid-19" collapsible="" collapsed="">
+            <li parent="" id="cid-18" collapsible="" collapsed="">
               <div collapser="">Migrating to EFX Grid</div>
               <ul>
                 <li><a href="../migrating/from-emerald-grid.html">Emerald Grid</a></li>
@@ -769,6 +764,39 @@ label {
               <link rel="prefetch" href="../node_modules/tr-grid-titlewrap/dist/tr-grid-titlewrap.min.js" type="script">
               <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
             </div>
+            <h3 id="defining-coloring-condition-as-a-text-expression">Defining coloring condition as a text expression</h3>
+            <p>Since there are security risks associate with parsing text into a JavaScript function, Conditional Coloring Extension supports parsing a text expression with only simple arithematic and logical operators. The following operators are supported by the extension:</p>
+            <ul>
+              <li><code>+</code></li>
+              <li><code>-</code></li>
+              <li><code>*</code></li>
+              <li><code>/</code></li>
+              <li><code>%</code></li>
+              <li><code>&lt;</code></li>
+              <li><code>&gt;</code></li>
+              <li><code>&lt;=</code></li>
+              <li><code>&gt;=</code></li>
+              <li><code>==</code></li>
+              <li><code>!=</code></li>
+              <li><code>&amp;&amp;</code></li>
+              <li><code>||</code></li>
+            </ul>
+            <p>The following text expressions can be parsed by the extension:</p>
+            <pre><code><span class="hljs-string">"[field 1] &gt;= 0 &amp;&amp; [field 1] &lt;= 1"</span>
+<span class="hljs-string">"([field 1] + [field 2]) / 2 &gt;= 0"</span>
+<span class="hljs-string">"[field 1] == 'text'"</span>
+<span class="hljs-string">"[field 1]"</span> <span class="hljs-comment">// The value can be used as the condition</span></code></pre>
+            <p>Native JavaScript functions or non number or string values can not be parsed by the extension. The following text expressions are considered invalid:</p>
+            <pre><code><span class="hljs-string">"Number([field 1]) &gt; 0"</span> <span class="hljs-comment">// Native JavaScript method cannot be parsed </span>
+<span class="hljs-string">"[field 1] === undefined"</span> <span class="hljs-comment">// undefined, null, true, and false values are not supported</span>
+<span class="hljs-string">"![field 1]"</span> <span class="hljs-comment">// Logical not operator is not supported</span></code></pre>
+            <h3 id="defining-coloring-condition-as-a-function-complex-expression-">Defining coloring condition as a function (complex expression)</h3>
+            <p>Since text expression support is very limited, the extension allows the expression to be defined by a function. The expression function takes one parameter which is row data object, and should return boolean value. The code snippet below shows how to define expression as a function:</p>
+            <pre><code><span class="hljs-keyword">var</span> invalidExpression = <span class="hljs-string">"[field1] != null"</span>; <span class="hljs-comment">// This kind of expression is not supported</span>
+
+<span class="hljs-keyword">var</span> validExpression = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">rowData</span>) </span>{
+    <span class="hljs-keyword">return</span> rowData[<span class="hljs-string">"field1"</span>] != <span class="hljs-literal">null</span>;
+};</code></pre>
             <h3 id="updating-the-movement-color-theme">Updating the movement color theme</h3>
             <p>Call the <code>reloadThemeColor</code> function to update the theme color after the movement color theme has changed.</p>
             <div></div>
@@ -1089,11 +1117,6 @@ label {
                           <div class="description"> Name/Value pair object </div>
                         </div>
                       </div>
-                      <div class="details"> </div>
-                    </div>
-                    <div class="item">
-                      <div class="item-type">function</div>
-                      <h4 class="name" id="_afterInit"><span class="type-signature"></span>_afterInit<span class="signature">()</span><span class="type-signature"></span></h4>
                       <div class="details"> </div>
                     </div>
                     <div class="item">
