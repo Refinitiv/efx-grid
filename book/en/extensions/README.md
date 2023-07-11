@@ -65,7 +65,7 @@ grid.config = {
 };
 ```
 
-## Additional dependencies
+## Required dependencies
 
 For details on how to install and use the EF-element see the [Element Framework - Quick Start document](https://ui.refinitiv.com/quick-start).
 

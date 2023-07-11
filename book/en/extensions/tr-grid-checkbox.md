@@ -39,9 +39,9 @@ The Checkbox Extension adds a column with checkboxes to Grid for selecting singl
 
 Installation examples and details of how to import the extension to a project are available on the [Overview](README.md) page.
 
-### Additional dependencies
+### Required dependencies
 
-Details of additional dependencies for this extension are available on the [Overview](README.md) page.
+Details of Required dependencies for this extension are available on the [Overview](README.md) page.
 
 ### Default display
 
