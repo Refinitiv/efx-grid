@@ -3,7 +3,7 @@
 For using `EFX Grid` with React, first you are required to install `@refinitiv-ui/efx-grid` and `@lit-labs/react` in your project.
 
 ```sh
-npm install @refinitiv-ui/efx-grid --save-dev
+npm install @refinitiv-ui/efx-grid
 npm install @lit-labs/react
 ```
 

@@ -3,7 +3,7 @@
 For using `EFX Grid` with Angular, first you are required to install `@refinitiv-ui/efx-grid` in your project.
 
 ```sh
-npm install @refinitiv-ui/efx-grid --save-dev
+npm install @refinitiv-ui/efx-grid
 ```
 
 In component logic file, for example `src/app/app.component.ts`, use `import` syntax to import the Grid and theme into your app.

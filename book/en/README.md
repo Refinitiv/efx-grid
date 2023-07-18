@@ -7,13 +7,13 @@ Grid has been created to handle a large number of rows. It achieves high perform
 EFX Grid element and extensions are published under single package.
 
 ```sh
-npm install @refinitiv-ui/efx-grid --save-dev
+npm install @refinitiv-ui/efx-grid
 ```
 
 The element is required theme to instantiate itself in the app. Refinitiv's design system is called Halo theme and you can install it from npm command.
 
 ```sh
-npm install @refinitiv-ui/halo-theme --save-dev
+npm install @refinitiv-ui/halo-theme
 ```
 
 ## Setup guide

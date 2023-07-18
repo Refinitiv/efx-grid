@@ -5,7 +5,7 @@
 To apply Typescript for `EFX Grid`, first you are required to install `@refinitiv-ui/efx-grid` in your project.
 
 ```sh
-npm install @refinitiv-ui/efx-grid --save-dev
+npm install @refinitiv-ui/efx-grid
 ```
 
 Use `import` syntax to import the Grid and theme into your app.
