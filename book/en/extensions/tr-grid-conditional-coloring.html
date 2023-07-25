@@ -29,7 +29,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="deacab8b-5f2c-43c6-8e7f-06a280bc29d0">
+        <pandora-nav id="02073865-7c65-4916-929f-8359af9e684e">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -282,8 +282,21 @@
             <link rel="stylesheet" href="../resources/styles/elf-template.css">
 
             <h2 id="conditional-coloring"><a href="https://refinitiv.github.io/efx-grid/book/en/extensions/tr-grid-conditional-coloring.html" target="_top" class="link-icon"></a> Conditional Coloring</h2>
-            <p>The Conditional Coloring Extension provides a conditional coloring for a column's field, which will be triggered when a condition is met. For example, fill green when the value is more than zero.</p>
-
+            <p>The Conditional Coloring Extension provides a conditional coloring for a column's field, which will be triggered when a condition is met. Use <code>conditions</code> property to define how styles will be applied to a cell by what condition. The following code snippet shows how <code>conditions</code> might be defined:</p>
+            <pre><code><span class="hljs-keyword">var</span> conditions = [ <span class="hljs-comment">// For example, fill green when the value is more than zero. </span>
+    { <span class="hljs-comment">// If a field value is greater than 0, set text color to green</span>
+        <span class="hljs-attr">expression</span>: [<span class="hljs-string">"GT"</span>, <span class="hljs-number">0</span>], 
+        <span class="hljs-attr">color</span>: <span class="hljs-string">"green"</span>
+    },
+    { <span class="hljs-comment">// If a field value is less than 0, set cell background color to red</span>
+        <span class="hljs-attr">expression</span>: [<span class="hljs-string">"LT"</span>, <span class="hljs-number">0</span>], 
+        <span class="hljs-attr">backgroundColor</span>: <span class="hljs-string">"red"</span>
+    },
+    { <span class="hljs-comment">// If a field value contains "inc" text, set the given CSS to the cell </span>
+        <span class="hljs-attr">expression</span>: [<span class="hljs-string">"CONT"</span>, <span class="hljs-string">"inc"</span>], 
+        <span class="hljs-attr">cssClass</span>: <span class="hljs-string">"predefinedColors"</span>
+    }
+];</code></pre>
             <div class="pandora-code-viewer" id="pid-31">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
@@ -764,6 +777,36 @@ label {
               <link rel="prefetch" href="../node_modules/tr-grid-titlewrap/dist/tr-grid-titlewrap.min.js" type="script">
               <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
             </div>
+            <h3 id="defining-coloring-condition-as-an-array-expression">Defining coloring condition as an array expression</h3>
+            <p>The expression can take form of an Array or two dimentional Array for defining multiple conditions. However, the array has to be in specific format for extension to parse it. The array must contains two or three items. The first item is operator id. The second item is a operand value. The third item is a connector which can be either "AND" or "OR" connector. The connector is optional, if there is only one coloring condition.</p>
+            <p>This array form is useful for constructing a complex condition as there can be unlimited number of conditions in a single expression. It can also be serialized as a text which is good for saving and restoring. </p>
+            <p>The following operator ids are supported in the array format:</p>
+            <ul>
+              <li>"EQ" - Equal to</li>
+              <li>"NEQ" - Not equal to</li>
+              <li>"NUMEQ" - Number equal to</li>
+              <li>"NUMNEQ" - Number not equal to</li>
+              <li>"GT" - Greater than</li>
+              <li>"GTE" - Greater than or equal to</li>
+              <li>"LT" - Less than</li>
+              <li>"LTE" - Less than or equal to</li>
+              <li>"BEGIN" - Begin with</li>
+              <li>"NBEGIN" - Not begin with</li>
+              <li>"END" - End with</li>
+              <li>"NEND" - Not end with</li>
+              <li>"CONT" - Contain</li>
+              <li>"NCONT" - Not contain</li>
+              <li>"EQ_BLANK" - Equal to blank value</li>
+              <li>"EQ_NBLANK" - Equal to non blank value</li>
+            </ul>
+            <p>The following array expressions can be parsed by the extension:</p>
+            <pre><code><span class="hljs-keyword">var</span> expression1 = [<span class="hljs-string">"GT"</span>, <span class="hljs-number">10</span>];
+
+<span class="hljs-comment">// The below condition will be satisfied when a value is greater than or equal to 10 and less than or equal to 20</span>
+<span class="hljs-keyword">var</span> expression2 = [ 
+    [<span class="hljs-string">"GTE"</span>, <span class="hljs-number">10</span>, <span class="hljs-string">"AND"</span>],
+    [<span class="hljs-string">"LTE"</span>, <span class="hljs-number">20</span>]
+];</code></pre>
             <h3 id="defining-coloring-condition-as-a-text-expression">Defining coloring condition as a text expression</h3>
             <p>Since there are security risks associate with parsing text into a JavaScript function, Conditional Coloring Extension supports parsing a text expression with only simple arithematic and logical operators. The following operators are supported by the extension:</p>
             <ul>
@@ -780,18 +823,20 @@ label {
               <li><code>!=</code></li>
               <li><code>&amp;&amp;</code></li>
               <li><code>||</code></li>
+              <li><code>!</code></li>
             </ul>
             <p>The following text expressions can be parsed by the extension:</p>
             <pre><code><span class="hljs-string">"[field 1] &gt;= 0 &amp;&amp; [field 1] &lt;= 1"</span>
 <span class="hljs-string">"([field 1] + [field 2]) / 2 &gt;= 0"</span>
 <span class="hljs-string">"[field 1] == 'text'"</span>
-<span class="hljs-string">"[field 1]"</span> <span class="hljs-comment">// The value can be used as the condition</span></code></pre>
+<span class="hljs-string">"![field 1]"</span> <span class="hljs-comment">// The value can be used as the condition</span></code></pre>
             <p>Native JavaScript functions or non number or string values can not be parsed by the extension. The following text expressions are considered invalid:</p>
-            <pre><code><span class="hljs-string">"Number([field 1]) &gt; 0"</span> <span class="hljs-comment">// Native JavaScript method cannot be parsed </span>
+            <pre><code><span class="hljs-string">"Number([field 1]) &gt; 0"</span> <span class="hljs-comment">// Native JavaScript class cannot be parsed</span>
+<span class="hljs-string">'[field 1].indexOf("text") &gt;= 0'</span> <span class="hljs-comment">// Native JavaScript method cannot be parsed</span>
 <span class="hljs-string">"[field 1] === undefined"</span> <span class="hljs-comment">// undefined, null, true, and false values are not supported</span>
-<span class="hljs-string">"![field 1]"</span> <span class="hljs-comment">// Logical not operator is not supported</span></code></pre>
+<span class="hljs-string">"[field 1] + ()"</span> <span class="hljs-comment">// insufficient parameter</span></code></pre>
             <h3 id="defining-coloring-condition-as-a-function-complex-expression-">Defining coloring condition as a function (complex expression)</h3>
-            <p>Since text expression support is very limited, the extension allows the expression to be defined by a function. The expression function takes one parameter which is row data object, and should return boolean value. The code snippet below shows how to define expression as a function:</p>
+            <p>Since text expression support is very limited, the extension allows the expression to be defined by a function. The expression function takes one parameter which is row data object, and should return boolean value. The code snippet below shows how to define expression in a function form:</p>
             <pre><code><span class="hljs-keyword">var</span> invalidExpression = <span class="hljs-string">"[field1] != null"</span>; <span class="hljs-comment">// This kind of expression is not supported</span>
 
 <span class="hljs-keyword">var</span> validExpression = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">rowData</span>) </span>{
@@ -860,6 +905,13 @@ label {
                               <td class="default"> </td>
                               <td class="description last">CSS color (e.g. #33333, grey). If false value is specified, blinking for level color is disabled.</td>
                             </tr>
+                            <tr>
+                              <td class="name"><code>duration</code></td>
+                              <td class="type"> <span class="param-type">number</span> </td>
+                              <td class="attributes"> &lt;optional&gt;<br> </td>
+                              <td class="default"> </td>
+                              <td class="description last">If specified, this will override blinking duration from extension option. Blinking duration in milliseconds</td>
+                            </tr>
                           </tbody>
                         </table>
                       </div>
@@ -914,7 +966,7 @@ label {
                     <div class="item">
                       <div class="item-type">typedef</div>
                       <h4 class="name" id="~ColumnOptions">ColumnOptions</h4>
-                      <div class="description"> Extension column options that can be specified on each individual grid's column option:</div>
+                      <div class="description"> Extension column options that can be specified on each Grid column configuration object</div>
                       <h5>Type:</h5> <span class="param-type">Object</span>
                       <h5>Properties:</h5>
                       <div class="props">
@@ -962,7 +1014,7 @@ label {
                               <td class="type"> <span class="param-type">string</span> </td>
                               <td class="attributes"> &lt;optional&gt;<br> </td>
                               <td class="default"> </td>
-                              <td class="description last"></td>
+                              <td class="description last">Field for Grid column configuration object</td>
                             </tr>
                           </tbody>
                         </table>
@@ -972,7 +1024,7 @@ label {
                     <div class="item">
                       <div class="item-type">typedef</div>
                       <h4 class="name" id="~Condition">Condition</h4>
-                      <div class="description"> Available options describing `condition` object</div>
+                      <div class="description"> Properties defining colors and conditioning</div>
                       <h5>Type:</h5> <span class="param-type">Object</span>
                       <h5>Properties:</h5>
                       <div class="props">
@@ -989,10 +1041,10 @@ label {
                           <tbody>
                             <tr>
                               <td class="name"><code>expression</code></td>
-                              <td class="type"> <span class="param-type">string</span> | <span class="param-type">function</span> </td>
+                              <td class="type"> <span class="param-type">string</span> | <span class="param-type">function</span> | <span class="param-type">Array</span> </td>
                               <td class="attributes"> &lt;optional&gt;<br> </td>
                               <td class="default"> </td>
-                              <td class="description last">Expression could be `[FIELD_1] &gt; 0`</td>
+                              <td class="description last">The expression can be in the following forms: text, function, and 2 dimentional array</td>
                             </tr>
                             <tr>
                               <td class="name"><code>backgroundColor</code></td>
@@ -1015,15 +1067,38 @@ label {
                               <td class="default"> </td>
                               <td class="description last">cssClass="" Predefined color class name</td>
                             </tr>
+                            <tr>
+                              <td class="name"><code>field</code></td>
+                              <td class="type"> <span class="param-type">string</span> </td>
+                              <td class="attributes"> &lt;optional&gt;<br> </td>
+                              <td class="default"> </td>
+                              <td class="description last">Field to be used for this specific condition, overriding the field defined in ConditionalColoringOptions</td>
+                            </tr>
                           </tbody>
                         </table>
                       </div>
                       <div class="details"> </div>
+                      <h5>Example:</h5>
+                      <pre><code>var conditions1 = [ // Add cssClass for any value that is greater than or equal to 10, and less than or equal to 20
+  {expression: [["GTE", 10, "AND"], ["LTE", 20]], cssClass: "predefinedColors"}
+];
+var conditions2 = [ // Add background color for any fieldA value that is not blank value (e.g., null, undefined, 0, false, empty string)
+  {
+    expression: function(rowData) {
+      return rowData["fieldA"] ? true : false;
+    },
+    backgroundColor: "blue",
+    field: "fieldA"
+  }
+];
+var conditions3 = [ // Add text color for any fieldA value that is not equal to 10
+  {expression: "[fieldA] != 10", color: "red"}
+];</code></pre>
                     </div>
                     <div class="item">
                       <div class="item-type">typedef</div>
                       <h4 class="name" id="~ConditionalColoringOptions">ConditionalColoringOptions</h4>
-                      <div class="description"> Extension column options that can be specified on each individual grid's column option:</div>
+                      <div class="description"> Available options for changing conditional coloring at runtime</div>
                       <h5>Type:</h5> <span class="param-type">Object</span>
                       <h5>Properties:</h5>
                       <div class="props">
@@ -1057,14 +1132,14 @@ label {
                               <td class="type"> <span class="param-type">string</span> | <span class="param-type">boolean</span> | <span class="param-type"><a href="#~ColorText">ConditionalColoringPlugin~ColorText</a></span> </td>
                               <td class="attributes"> &lt;optional&gt;<br> </td>
                               <td class="default"> null </td>
-                              <td class="description last">Alias of colorText.</td>
+                              <td class="description last">Alias of colorText</td>
                             </tr>
                             <tr>
                               <td class="name"><code>field</code></td>
                               <td class="type"> <span class="param-type">string</span> </td>
                               <td class="attributes"> &lt;optional&gt;<br> </td>
                               <td class="default"> </td>
-                              <td class="description last"></td>
+                              <td class="description last">Field to be used for all conditions, overriding the field defined in ColumnOptions</td>
                             </tr>
                           </tbody>
                         </table>
@@ -1084,6 +1159,7 @@ label {
                               <th>Name</th>
                               <th>Type</th>
                               <th>Attributes</th>
+                              <th>Default</th>
                               <th class="last">Description</th>
                             </tr>
                           </thead>
@@ -1092,7 +1168,22 @@ label {
                               <td class="name"><code>predefinedColors</code></td>
                               <td class="type"> <span class="param-type">Object</span> </td>
                               <td class="attributes"> &lt;optional&gt;<br> </td>
+                              <td class="default"> </td>
                               <td class="description last">Predefined color object map for conditional coloring</td>
+                            </tr>
+                            <tr>
+                              <td class="name"><code>blinkingDuration</code></td>
+                              <td class="type"> <span class="param-type">number</span> </td>
+                              <td class="attributes"> &lt;optional&gt;<br> </td>
+                              <td class="default"> 250 </td>
+                              <td class="description last">Blinking duration in milliseconds</td>
+                            </tr>
+                            <tr>
+                              <td class="name"><code>insertionBlinking</code></td>
+                              <td class="type"> <span class="param-type">boolean</span> </td>
+                              <td class="attributes"> &lt;optional&gt;<br> </td>
+                              <td class="default"> false </td>
+                              <td class="description last">Blinking when a row is added to a grid</td>
                             </tr>
                           </tbody>
                         </table>
@@ -1371,8 +1462,21 @@ var columnOptions2 = {
                         </div>
                         <div class="param">
                           <div class="name">coloringOptions</div>
-                          <div class="type"> <span class="param-type"><a href="#~ConditionalColoringOptions">ConditionalColoringPlugin~ConditionalColoringOptions</a></span> | <span class="param-type">null</span> </div>
+                          <div class="type"> <span class="param-type"><a href="#~ConditionalColoringOptions">ConditionalColoringPlugin~ConditionalColoringOptions</a></span> </div>
                           <div class="attributes"> &lt;optional&gt; </div>
+                        </div>
+                      </div>
+                      <div class="details"> </div>
+                    </div>
+                    <div class="item">
+                      <div class="item-type">function</div>
+                      <h4 class="name" id="setInsertionBlinking"><span class="type-signature"></span>setInsertionBlinking<span class="signature">(blinking)</span><span class="type-signature"></span></h4>
+                      <h5>Parameters:</h5>
+                      <div class="params">
+                        <div class="param">
+                          <div class="name">blinking</div>
+                          <div class="type"> <span class="param-type">boolean</span> </div>
+                          <div class="description"> enable blinking on row insertion </div>
                         </div>
                       </div>
                       <div class="details"> </div>

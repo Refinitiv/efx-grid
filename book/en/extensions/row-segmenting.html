@@ -29,7 +29,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="deacab8b-5f2c-43c6-8e7f-06a280bc29d0">
+        <pandora-nav id="02073865-7c65-4916-929f-8359af9e684e">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -284,7 +284,7 @@
             <h2 id="row-segmenting"><a href="https://refinitiv.github.io/efx-grid/book/en/extensions/row-segmenting.html" target="_top" class="link-icon"></a> Row Segmenting</h2>
             <p>The Row Segmenting Extension provides a way to group row content based on row index. By specifying a row index, the row becomes a group header. Any row below the group header can then be added as a group member. This provides more flexibility in how you define a group, unlike Row Grouping Extension where groups are based on strictly defined criteria. </p>
 
-            <div class="pandora-code-viewer" id="pid-67">
+            <div class="pandora-code-viewer" id="pid-68">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -412,7 +412,7 @@ document.getElementById("unset_btn").addEventListener("click", function(e) {
             <h3 id="segment-classification-multi-level-nested-grouping-">Segment Classification (multi-level/nested grouping)</h3>
             <p>With Row Segmenting Extension, you can specify classfication on individual segment to add nested segments. The criteria can be defined by using <code>setSegmentClassification</code> method with array of fields as its parameter. </p>
 
-            <div class="pandora-code-viewer" id="pid-68">
+            <div class="pandora-code-viewer" id="pid-69">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -548,7 +548,7 @@ efx-grid {
               </ul>
             </blockquote>
 
-            <div class="pandora-code-viewer" id="pid-69">
+            <div class="pandora-code-viewer" id="pid-70">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -674,7 +674,7 @@ document.getElementById("original_sort_segment").addEventListener("click", funct
             <h3 id="predefined-color-on-the-color-tags">Predefined color on the color tags</h3>
             <p>The extension supports color from the predefined colors. To do this you need to assign predefined class object to the <code>predefinedColors</code> property then specify field name of the <code>cssField</code> property.</p>
 
-            <div class="pandora-code-viewer" id="pid-70">
+            <div class="pandora-code-viewer" id="pid-71">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -888,7 +888,7 @@ button {
             <p>You can follow in below example for implement save/load functionality.<br>The first example it will be grid that can be change data with click "Save config".<br>And then you can paste this config on the example 2 and click "Start Grid" and both grids look the same. </p>
             <h4 id="example-1-saving-segment-configuration-from-grid">Example 1: saving segment configuration from grid</h4>
 
-            <div class="pandora-code-viewer" id="pid-71">
+            <div class="pandora-code-viewer" id="pid-72">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -1115,7 +1115,7 @@ input[type="number"] {
             </div>
             <h4 id="example-2-restoring-segments">Example 2: restoring segments</h4>
 
-            <div class="pandora-code-viewer" id="pid-72">
+            <div class="pandora-code-viewer" id="pid-73">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -1209,10 +1209,11 @@ efx-grid {
             <h3 id="segmentid-field">SegmentId field</h3>
             <p>If you intend to apply a segment separator using the <code>segmentId</code> field during runtime, whenever the row data is updated, it is necessary to call the <code>requestSeparatorRefresh</code> function to forcefully render the user interface (UI). This step ensures that the changes are reflected in the UI, allowing for an accurate representation of the updated segment separators.</p>
             <p>Currently, you can set the segment separator for the grid in two ways. The first method is by using the grid API through the <code>setSegmentSeparator</code> function. The second method involves setting the <code>segmentId</code> field in the row data. However, we strongly advise against using both methods simultaneously. Please choose one approach that suits your needs, keeping in mind that the user interface will appear similar regardless of the method chosen.</p>
-            <h3 id="empty-segment-filtering">Empty segment filtering</h3>
+            <h3 id="empty-segment-filtering-and-separator-filtering">Empty segment filtering and separator filtering</h3>
             <p>By default, segment header cannot be filtered out. However, Row Filtering Extension has <code>emptySegmentFiltering</code> option that allows empty segment to be filtered out. With the option turned on, any segment whose all of its members are not present by filtering will also be hidden. Empty segment will still be visible, if there is no active filter. Collapsing of the segment does not count as having an active filter.</p>
+            <p><code>separatorFiltering</code> option from Row Filtering Extension also allow separator rows to be filtered as if they were a normal row. Note that the separator rows can be filtered out, while their child rows may ramain visible. </p>
 
-            <div class="pandora-code-viewer" id="pid-73">
+            <div class="pandora-code-viewer" id="pid-74">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -1226,12 +1227,19 @@ efx-grid {
                 </div>
                 <div class="pandora-tab-container">
                   <pre class="pandora-tab-view tab-html">&lt;label&gt;Empty segment filtering: &lt;input id="empty_segment_chk" type="checkbox" checked&gt;&lt;/label&gt;
+&lt;i&gt;&lt;/i&gt;
+&lt;label&gt;Separator filtering: &lt;input id="separator_chk" type="checkbox" checked&gt;&lt;/label&gt;
 &lt;hr&gt;
 &lt;efx-grid&gt;&lt;/efx-grid&gt;</pre>
                   <pre class="pandora-tab-view tab-js">var chkBox = document.getElementById("empty_segment_chk");
 chkBox.addEventListener("change", function(e) {
   var checked = e.currentTarget.checked;
   rfExt.enableEmptySegmentFiltering(checked); // Changing mode at runtime
+});
+chkBox = document.getElementById("separator_chk");
+chkBox.addEventListener("change", function(e) {
+  var checked = e.currentTarget.checked;
+  rfExt.enableSeparatorFiltering(checked); // Changing mode at runtime
 });
 
 var fields = ["id", "companyName", "index4", "percent", "market"];
@@ -1245,6 +1253,8 @@ columns[0].width = 80;
 
 var segmentId = "SegmentId";
 var records = DataGenerator.generateRecords(fields, { seed: 0, rowCount: 15 });
+records[1][segmentId] = "0"; // To illustrate empty segment
+
 records[3][segmentId] = "1";
 records[4][segmentId] = "1";
 records[5][segmentId] = "1";
@@ -1260,7 +1270,8 @@ var rfExt = new RowFiltering();
 var configObj = {
   columns: columns,
   rowFiltering: {
-    emptySegmentFiltering: true
+    emptySegmentFiltering: true,
+    separatorFiltering: true
   },
   rowSegmenting: {
     segmentIdField: segmentId
@@ -1277,6 +1288,10 @@ grid.config = configObj;</pre>
 
 efx-grid {
   height: 300px;
+}
+
+i:empty {
+  padding-right: 20px;
 }</pre>
                   <div class="pandora-console"></div>
                 </div>

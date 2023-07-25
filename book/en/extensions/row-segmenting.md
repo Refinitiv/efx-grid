@@ -725,9 +725,12 @@ And then you can paste this config on the example 2 and click "Start Grid" and b
 If you intend to apply a segment separator using the `segmentId` field during runtime, whenever the row data is updated, it is necessary to call the `requestSeparatorRefresh` function to forcefully render the user interface (UI). This step ensures that the changes are reflected in the UI, allowing for an accurate representation of the updated segment separators.
 
 Currently, you can set the segment separator for the grid in two ways. The first method is by using the grid API through the `setSegmentSeparator` function. The second method involves setting the `segmentId` field in the row data. However, we strongly advise against using both methods simultaneously. Please choose one approach that suits your needs, keeping in mind that the user interface will appear similar regardless of the method chosen.
-### Empty segment filtering
+
+### Empty segment filtering and separator filtering
 
 By default, segment header cannot be filtered out. However, Row Filtering Extension has `emptySegmentFiltering` option that allows empty segment to be filtered out. With the option turned on, any segment whose all of its members are not present by filtering will also be hidden. Empty segment will still be visible, if there is no active filter. Collapsing of the segment does not count as having an active filter.
+
+`separatorFiltering` option from Row Filtering Extension also allow separator rows to be filtered as if they were a normal row. Note that the separator rows can be filtered out, while their child rows may ramain visible.  
 
 ```live
 <style>
@@ -737,8 +740,13 @@ By default, segment header cannot be filtered out. However, Row Filtering Extens
 	atlas-blotter {
 		height: 300px;
 	}
+	i:empty {
+		padding-right: 20px;
+	}
 </style>
 <label>Empty segment filtering: <input id="empty_segment_chk" type="checkbox" checked></label>
+<i></i>
+<label>Separator filtering: <input id="separator_chk" type="checkbox" checked></label>
 <hr>
 <atlas-blotter></atlas-blotter>
 
@@ -747,6 +755,11 @@ By default, segment header cannot be filtered out. However, Row Filtering Extens
 	chkBox.addEventListener("change", function (e) {
 		var checked = e.currentTarget.checked;
 		rfExt.enableEmptySegmentFiltering(checked); // Changing mode at runtime
+	});
+	chkBox = document.getElementById("separator_chk");
+	chkBox.addEventListener("change", function (e) {
+		var checked = e.currentTarget.checked;
+		rfExt.enableSeparatorFiltering(checked); // Changing mode at runtime
 	});
 
 	var fields = ["id", "companyName", "index4", "percent", "market"];
@@ -760,6 +773,8 @@ By default, segment header cannot be filtered out. However, Row Filtering Extens
 
 	var segmentId = "SegmentId";
 	var records = tr.DataGenerator.generateRecords(fields, { seed: 0, rowCount: 15 });
+	records[1][segmentId] = "0"; // To illustrate empty segment
+	
 	records[3][segmentId] = "1";
 	records[4][segmentId] = "1";
 	records[5][segmentId] = "1";
@@ -775,7 +790,8 @@ By default, segment header cannot be filtered out. However, Row Filtering Extens
 	var configObj = {
 		columns: columns,
 		rowFiltering: {
-			emptySegmentFiltering: true
+			emptySegmentFiltering: true,
+			separatorFiltering: true
 		},
 		rowSegmenting: {
 			segmentIdField: segmentId

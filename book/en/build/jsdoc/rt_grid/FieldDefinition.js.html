@@ -305,7 +305,7 @@ FieldDefinition.isRealTimeField = function(field) {
 * @return {boolean}
 */
 FieldDefinition.isTimeSeriesChild = function(field) {
-	return FieldDefinition.getFieldProperty(field, "timeSeriesChild") ? true : false;
+	return FieldDefinition.getFieldProperty(field, "timeSeriesParent") ? true : false;
 };
 
 /** @public
@@ -333,12 +333,12 @@ FieldDefinition.isTimeSeries = function (field) {
 		[\w]+                   =&gt; any field with string and value
 		[\(]                    =&gt; open bucket (
 		[\w\-\=\,]*             =&gt; any property name and follow by = EX. SDATE=2011-11-11, PRIOD=123123
-		EDATE\=+                =&gt; EDATE in bucket
+		(?:EDATE|SDATE )		=&gt; non-capturing group match EDATE or SDATE
 		[\w\-\=\,]+             =&gt; another propertie param
 		[\)]$                   =&gt; end with only )
 		i						=&gt; for match both upper and lower cases
 	*/
-	var timeSeriesRegex = /^TR.[\w]+[\(][\w\-\=\,]*EDATE\=+[\w\-\=\,]+[\)]$/i;
+	var timeSeriesRegex = /^TR\.[\w]+\([\w\-\=\,]*(?:EDATE|SDATE)\=+[\w\-\=\,]*[ \w]*\)$/i;
 	return timeSeriesRegex.test(field);
 };
 

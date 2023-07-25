@@ -68,6 +68,52 @@ var config = {
 };
 ```
 
+### Initial collapsing state
+
+The initial groups created by the extension are expanded by default. To initially collapse all groups by default, set `defaultCollapse` property to `true`
+
+```live
+<style>
+	atlas-blotter {
+		height: 225px;
+	}
+</style>
+
+<atlas-blotter id="grid"></atlas-blotter>
+
+<script>
+	tr.DataGenerator.addFieldInfo("companyName", {
+		type: "set",
+		members: ["Kunze LLC", "Rohan-Kohler", "Bosco-Terry", "Prohaska", "Ziemann Group"]
+	});
+	tr.DataGenerator.addFieldInfo("industry", {
+		type: "set",
+		members: ["Chemicals", "Auto", "Finance", "Electric", "Biotechnology"]
+	});
+	var fields = ["companyName", "market", "industry", "CF_NETCHNG", "date1"];
+	var records = tr.DataGenerator.generateRecords(fields, { numRows: 20 });
+	var configObj = {
+		columns: [
+			{ title: "Company", field: fields[0] },
+			{ title: "Industry", field: fields[2] },
+			{ title: "Net. Chng", field: fields[3], width: 100, alignment: "right" },
+			{ title: "Updated", field: fields[4] }
+		],
+		staticDataRows: records,
+		rowGrouping: {
+			defaultCollapse: true,
+			groupBy: fields[1]
+		},
+		extensions: [
+			new tr.RowGroupingExtension()
+		]
+	};
+
+	var grid = document.getElementById("grid");
+	grid.config = configObj;
+</script>
+```
+
 ### Data sorting
 
 This extension can work with the [Sorting Extension](../sorting/sorting.md) out-of-the-box. But only the data within the group will be sorted, not the columns which are grouped.

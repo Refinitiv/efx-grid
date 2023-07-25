@@ -15,7 +15,7 @@ The Row Selection Extension will add the ability to select a single row or multi
 
 <script>
 	var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
-	var records = tr.DataGenerator.generateRecords(fields, { numRows: 5 });
+	var records = tr.DataGenerator.generateRecords(fields, { numRows: 15 });
 	var configObj = {
 		sorting: {
 			sortableColumns: true
@@ -55,7 +55,7 @@ For actual result, try to select one or more rows, then click the column header 
 
 <script>
 	var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
-	var records = tr.DataGenerator.generateRecords(fields, { numRows: 5 });
+	var records = tr.DataGenerator.generateRecords(fields, { numRows: 15 });
 	var configObj = {
 		sorting: {
 			sortableColumns: true

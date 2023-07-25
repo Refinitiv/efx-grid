@@ -75,6 +75,43 @@ SnapshotFiller.prototype.setRTK = function (rtk) {
 	this._rtk = rtk;
 };
 
+/** 
+* @public
+* @type {Object}
+*/
+SnapshotFiller._mockAdc = null;
+
+/**
+* @public
+* @param {string} str 
+* @param {*} value 
+*/
+SnapshotFiller.setMockAdc = function(str, value) {
+	if(!SnapshotFiller._mockAdc) {
+		SnapshotFiller._mockAdc  = {};
+	}
+	SnapshotFiller._mockAdc[str] = value;
+};
+
+/**
+* @public
+* @param {string} str 
+* @return {*} 
+*/
+SnapshotFiller.getMockAdc = function(str) {
+	if(!SnapshotFiller._mockAdc) {
+		return null;
+	}
+	return SnapshotFiller._mockAdc[str];
+};
+
+/**
+* @public
+*/
+SnapshotFiller.clearMockAdc = function() {
+	SnapshotFiller._mockAdc = null;
+}
+
 /** @public
 * @param {Grid~ADCOptions} adcOptions ADC requesting level parameter options
 */
@@ -240,12 +277,19 @@ SnapshotFiller.prototype._onRequest = function () {
 				"output": "Col,date|,Row,In|,va,T,NoEmptyTickers" // For customize output server, for more information please visit "https://confluence.refinitiv.com/display/ADC/Data+Cloud+Output+Format"
 			};
 			onSuccess = this._onRTKTimeSeriesSuccess.bind(this, timeSeriesFields);
-			this._rtk.Data.Adc
+			var responseMockAdc = SnapshotFiller.getMockAdc(payload.formula);
+			if(responseMockAdc) {
+				setTimeout(function() {
+					onSuccess(responseMockAdc);
+				}, 10); // Mock Async operation
+			} else {
+				this._rtk.Data.Adc
 				.request(payload)
 				.then(onSuccess)
 				.catch(function (err) {
 					console.log(err);
 				});
+			}
 		}
 
 		// Request normal adc field
@@ -446,61 +490,66 @@ SnapshotFiller.prototype._onRTKTimeSeriesSuccess = function (fields, serverResul
 	if (!Array.isArray(data2D) || !Array.isArray(svHeaders)) {
 		return; // TODO: Return Promise.reject(errMsg);
 	}
-
-	var headerLen = svHeaders.length;
-
-	var headerDates = [];
-	var i, j;
-
-	for (i = 2; i &lt; headerLen; i++) { // Start with 2 (Skip instrunment and date header)
-		headerDates.push(svHeaders[i].v);
-	}
-
-	var ric, j, field;
-	var len = data2D.length;
-	var ricMap = {};
-	var childrenFieldToParent = {};
-
+	// Extract header dates
+	var headerDates = svHeaders.slice(2).map(header =&gt; header.v);
+	// Create necessary variables
 	var fileNameToTSField = {};
 	var count = 0;
-	for (let i = 1; i &lt; len; i++) {
+	// Convert map to fieldMap
+	var data2DLength = data2D.length;
+	for (var i = 1; i &lt; data2DLength; i++) {
 		var dataRow = data2D[i];
 		var fieldName = dataRow[1];
-		if(!fileNameToTSField[fieldName]) {
+		if (!fileNameToTSField[fieldName]) {
 			fileNameToTSField[fieldName] = fields[count++];
-		}   	
+		}
 	}
-
-	// TODO: Freeze the data view before setting multiple data
-	for (i = 1; i &lt; len; i++) { // to skip column header index, use i = 1
+	// Process data and populate ricMap and childrenFieldToParent
+	var ricMap = {};
+	var childrenFieldToParent = {};
+	for (var i = 1; i &lt; data2DLength; i++) {
 		var dataRow = data2D[i];
-		ric = dataRow[0];
-		var fieldName = dataRow[1]; // ex. PRICECLOSE
-		if(!ricMap[ric]) {
+		var ric = dataRow[0];
+		var fieldName = dataRow[1];
+
+		if (!ricMap[ric]) {
 			ricMap[ric] = {};
 		}
 		var snapData = ricMap[ric];
-		for (var k = 0; k &lt; headerDates.length; k++) {
-			field = fileNameToTSField[fieldName].replace("TR.", "") + "_"  + headerDates[k]; // TODO: make support time series field definition cache
-			childrenFieldToParent[field] = fileNameToTSField[fieldName];
-			snapData[field] = dataRow[2 + k]; // Start with field value
+		if (headerDates.length === 1) {
+			// Time series with only 1 column, it will be a normal adc field
+			snapData[fileNameToTSField[fieldName]] = dataRow[2];
+		} else {
+			// Multiple columns, it will be a time series field
+			for (var k = 0; k &lt; headerDates.length; k++) {
+				var field = fileNameToTSField[fieldName].replace("TR.", "") + "_" + headerDates[k];
+				var celLData =  dataRow[2 + k];
+				if(celLData !== null) {
+					childrenFieldToParent[field] = fileNameToTSField[fieldName];
+					snapData[field] = celLData;
+				}
+			}
 		}
 	}
 
-	// return result only ric that has update data
+	// Return result only for ric that has updated data
 	var dataMapping = {};
-	for (ric in ricMap) {
+	for (var ric in ricMap) {
 		var obj = ricMap[ric];
 		if (!isEmptyObject(obj)) {
 			dataMapping[ric] = obj;
 		}
 	}
 
-	this._dispatch("dataChanged", {
+	// Dispatch events based on the header length
+	var eventData = {
 		data: dataMapping,
-		timeSeries: true,
-		childrenFieldToParent: childrenFieldToParent
-	});
+	};
+	if (headerDates.length &gt; 1) {
+		eventData.timeSeries = true;
+		eventData.childrenFieldToParent = childrenFieldToParent;
+	}
+	this._dispatch("dataChanged", eventData);
 };
 
 export { SnapshotFiller };

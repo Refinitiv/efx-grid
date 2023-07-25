@@ -149,7 +149,6 @@ var ColumnDefinition = function(columnOption, hostGrid) {
 	this._classes = [];
 	this._requiredFields = [];
 	this._children = [];
-	this._parent = [];
 
 	if(columnOption) {
 		if(columnOption["parent"]) { // WARNING: This assume time series child, when have a parent
@@ -301,7 +300,7 @@ ColumnDefinition.prototype.dispose = function() {
 	// TODO: Remove any related reference from this._fnEngine
 };
 
-/** @public
+/** @private
 * @param {ColumnDefinition~Options|string=} columnOption
 */
 ColumnDefinition.prototype._initializeTimeSeriesChild = function(columnOption) {
@@ -1055,8 +1054,9 @@ ColumnDefinition.prototype._setField = function(field, columnOption) {
 	// We need to cache time series in field definition for improve performance of checking methond
 	FieldDefinition.setFieldProperty(field, "timeSeries", FieldDefinition.isTimeSeries(field) ? true : false);
 
-	if(columnOption &amp;&amp; columnOption["parent"]) {
-		FieldDefinition.setFieldProperty(field, "timeSeriesChild", true);
+	var parentColDef = columnOption["parent"];
+	if(columnOption &amp;&amp; parentColDef) {
+		FieldDefinition.setFieldProperty(field, "timeSeriesParent", parentColDef.getField());
 	}
 
 	this._updateContext("field", field);
