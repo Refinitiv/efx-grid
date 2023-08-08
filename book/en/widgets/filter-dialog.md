@@ -2,28 +2,166 @@
 
 ## Filter Dialog
 
-The Filter Dialog is a user-friendly interface for filtering and sorting.
+The Filter Dialog is a user-friendly interface for filtering and sorting. The example below shows how Filter Dialog can be used in conjunction with [Row Filtering Extension](../extensions/tr-grid-row-filtering.md). Users can hover over column header to show filter icon. Clicking on the icon will open Filter Dialog.
 
-### Features
-
-* Allow users to filter grid column values
-* Allow users to sort grid column values
-
-### Demo
-
-`Right-click` on each column header to see the dialog.
-
-```live(test-resource)
+```live
 <style>
-	textarea {
-		width: 100%;
-		height: 100px;
-	}
-	efx-grid {
-		min-height: 500px;
-	}
 	html hr {
 		margin: 5px;
+	}
+	html body {
+		padding: 20px;
+	}
+	efx-grid {
+		height: 500px;
+	}
+</style>
+
+<efx-grid id="grid"></efx-grid>
+
+<script>
+	var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
+	var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 20 });
+	var configObj = {
+		columns: [
+			{ name: "Company", field: fields[0] },
+			{ name: "Market", field: fields[1], width: 120 },
+			{ name: "Last", field: fields[2], width: 100 },
+			{ name: "Net. Chng", field: fields[3], width: 100 },
+			{ name: "Industry", field: fields[4] }
+		],
+		staticDataRows: records,
+		rowFiltering:{
+			iconActivation: "onHover"
+		},
+		extensions: [
+			new RowFiltering()
+		]
+	};
+
+	var grid = document.getElementById("grid");
+	grid.config = configObj;
+</script>
+```
+
+### Setup guide
+
+```js
+ // efx-grid
+import "@refinitiv-ui/efx-grid";
+import "@refinitiv-ui/efx-grid/themes/halo/light";
+
+// Extensions
+import { RowFiltering } from "@refinitiv-ui/efx-grid/extensions";
+
+// Filter Dialog module
+import "@refinitiv-ui/efx-grid/filter-dialog";
+import "@refinitiv-ui/efx-grid/filter-dialog/themes/halo/light";  // !Important. Theme must be imported.
+
+```
+
+The dialog cannot be used without Row Filtering Extension. So, initialize Row Filtering Extension instance and add it to `extensions` property on the grid configuration object. To open the dialog, you can either use `iconActivation` property or `openDialog` method from the extension.
+
+```js
+var rowFilteringExt = new RowFiltering();
+
+var configObj = {
+	extensions: [
+		rowFilteringExt
+	],
+	rowFiltering:{
+		iconActivation: "onHover"
+	},
+	columns: columns, // Columns config
+	staticDataRows: records
+};
+
+var grid = document.getElementById("grid_id");
+grid.config = configObj;
+
+function onClickButton(e) {
+  rowFilteringExt.openDialog(columnIndex);
+}
+```
+
+### Advanced condition tab
+
+Filter dialog has three types of condition tabs: generic value condition (default), numeric value condition, and date time value condition. Each type has a different list of available operators. For example, numeric value condition contains only nemeric operators, such as Less than or Greater than operators. To specify the type for the dialog, define `fieldDataType` property on the column configuration object to one of the following values: "number", "datetime", and "generic" or nothing (default). 
+
+```live
+<style>
+	html hr {
+		margin: 5px;
+	}
+	html body {
+		padding: 20px;
+	}
+	efx-grid {
+		height: 500px;
+	}
+</style>
+
+<efx-grid id="grid"></efx-grid>
+
+<script>
+	var fields = ["companyName", "CF_NETCHNG", "ISODate"];
+	var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 20 });
+	var configObj = {
+		columns: [
+			{ name: "Company", field: "companyName" },
+			{ name: "Date (generic)", field: "ISODate", width: 180 },
+			{ name: "Date (datetime)", field: "ISODate", width: 180, fieldDataType: "datetime" },
+			{ name: "Change (generic)", field: "CF_NETCHNG", width: 130 },
+			{ name: "Change (number)", field: "CF_NETCHNG", width: 130, fieldDataType: "number" }
+		],
+		staticDataRows: records,
+		rowFiltering:{
+			iconActivation: "onHover"
+		},
+		extensions: [
+			new RowFiltering()
+		]
+	};
+
+	var grid = document.getElementById("grid");
+	grid.config = configObj;
+</script>
+```
+
+### Dialog options
+
+Filter Dialog can be customized by setting `dialogOptions` property on the Row Filtering Extension configuration object as shown in the following code snippet:
+
+```js
+var configObj = {
+	rowFiltering: {
+		dialogOptions: {
+			sortUI: false
+		}
+	}
+};
+```
+
+### Changing dialog language
+
+For more information about internationalization and how is it applied in different contexts see [Language Support](language-support.md).
+
+### Opening Filter Dialog using an API
+
+The dialog can be openned from anywhere, not just from filter icon on the column header. Use `openDialog` method from Row Filtering extension instance, so that the dialog can be openned for specific column and linked up with grid instance. 
+
+The following example illustrates how the dialog can be opened from context menu using [Context Menu Extension](../extensions/tr-grid-contextmenu.md). Right click on the column header to see the dialog.
+
+```live
+<style>
+	html hr {
+		margin: 5px;
+	}
+	html body {
+		padding: 20px;
+	}
+	efx-grid {
+		height: 500px;
 	}
 </style>
 Language:
@@ -44,11 +182,11 @@ Language:
 	var records = DataGenerator.generateRecords(fields, { numRows: 10 });
 	var configObj = {
 		columns: [
-			{title: "Company", field: fields[0], sortable: true, dataType: 'text'},
-			{title: "Market", field: fields[1], width: 100, sortable: true, dataType: 'text'},
-			{title: "Last", field: fields[2], width: 100, sortable: true, dataType: 'number'},
-			{title: "Net. Chng", field: fields[3], width: 100, sortable: true, dataType: 'number'},
-			{title: "IPO Date", field: fields[4], sortable: true, dataType: 'datetime'}
+			{title: "Company", field: fields[0], sortable: true, fieldDataType: "text"},
+			{title: "Market", field: fields[1], width: 100, sortable: true, fieldDataType: "text"},
+			{title: "Last", field: fields[2], width: 100, sortable: true, fieldDataType: "number"},
+			{title: "Net. Chng", field: fields[3], width: 100, sortable: true, fieldDataType: "number"},
+			{title: "IPO Date", field: fields[4], sortable: true, fieldDataType: "datetime"}
 		],
 		dataModel: {
 			data: records
@@ -56,22 +194,22 @@ Language:
 		contextMenu: {
 			items: {
 				MENU_1: {
-					text: 'Filter',
+					text: "Filter",
 					callback: function (e) {
 						var colIndex = e.colIndex;
 						var lang = document.getElementById("lang_selector").value;
-						var options = {
+						var dialogOptions = {
 							sortUI: true, // Show sorting section
 							filterUI: true, // Show filtering section
 							lang: lang,
 							fieldDataType: grid.api.getColumnDataType(colIndex)
 						};
-						rowFilteringExt.openDialog(colIndex, options);
+						rowFilteringExt.openDialog(colIndex, dialogOptions);
 					}
 				},
 			},
 			onMenu: function (e) {
-				e.menu.addItem('MENU_1');
+				e.menu.addItem("MENU_1");
 			}
 		},
 		extensions: [
@@ -85,108 +223,28 @@ Language:
 </script>
 ```
 
-### Setup guide
+### Listening an event
+
+If you want to do a custom task after the dialog has been commited, you can listen for `dialogCommitted` event from Row Filtering Extension. The change from the dialog will be passed as `value` property in the event argument. 
 
 ```js
- // efx-grid
-import '@refinitiv-ui/efx-grid';
-import '@refinitiv-ui/efx-grid/themes/halo/light';
+var onDialogCommitted = function (e) {
+	if(e.value) { // When user confirm dialog
+		console.log(e)
+	} else { // When user sort data from dialog
+		console.log(e);
+	}
+}
 
-// Extensions
-import { RowFiltering } from '@refinitiv-ui/efx-grid/extensions';
-
-// Filter Dialog module
-import '@refinitiv-ui/efx-grid/filter-dialog';
-import '@refinitiv-ui/efx-grid/filter-dialog/themes/halo/light';  // !Important. Theme must be imported.
-
-```
-
-Create a new Row Filtering Extension instance and push it to an `extensions` configuration.
-
-```js
-var rfe = new RowFiltering();
-
-var configObj = {
-	extensions: [
-		rfe,
-	],
-	columns: columns, // Columns config
-	dataModel: { // Data config
-		fields: fields,
-		data: dataRows
-	},
+var gridConfig = {
+	rowFiltering: {
+		dialogCommitted: onDialogCommitted
+	}
 };
 
-var grid = document.getElementById("grid");
-grid.config = configObj;
+// Alternatively
+rowFilteringExt.addEventListener("dialogCommitted", onDialogCommitted);
 ```
-
-To open the dialog, you need to call `openDialog()` method on the extension object.
-
-```js
-var filterChanged = function(e) {
-	console.log('filterChanged', e.detail);
-}
-
-var confirm = function(e) {
-	console.log('confirm', e.detail);
-}
-
-var sortChanged = function(e) {
-	console.log('sortChanged', e.detail);
-}
-rfe.openDialog(0); // Change "0" to any column index.
-```
-
-### Changing Language
-
-For more information about internationalization and how is it applied in different contexts see [Language Support](language-support.md).
-
-## Using with the [Context Menu Extension](../extensions/tr-grid-contextmenu.md)
-
-For most cases, you will want the dialog button to appear when the user right-clicks on the column header (known as the context menu).
-
-To do this simply import the `Context Menu` extension and its configurations.
-
-```js
-import {
-  ContextMenu,
-  RowFiltering
-} from '@refinitiv-ui/efx-grid/extensions';
-
-var rfe = new RowFiltering();
-
-var configObj = {
-	extensions: [
-		rfe,
-		new ContextMenu(),
-	],
-	columns: columns, // Columns config
-	dataModel: { // Data config
-		fields: fields,
-		data: dataRows
-	},
-	contextMenu: {
-		items: {
-			MENU_1: {
-				text: "Format",
-				callback: function (e) {
-					// Open the dialog when click on the "Format" menu
-					rfe.openDialog(e.colIndex);
-				}
-			},
-		},
-		onMenu: function (e) {
-				e.menu.addItem("MENU_1");
-		}
-	},
-};
-
-var grid = document.getElementById("grid");
-grid.config = configObj;
-```
-
-And that's it!
 
 
 <div></div>

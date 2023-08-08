@@ -410,6 +410,9 @@ The following operator ids are supported in the array format:
 - "NCONT" - Not contain
 - "EQ_BLANK" - Equal to blank value
 - "EQ_NBLANK" - Equal to non blank value
+- "DT" - Date is
+- "DTA" - Date is after
+- "DTB" - Date is before
 
 The following array expressions can be parsed by the extension:
 

@@ -101,7 +101,6 @@ import { ElementWrapper } from "../../node_modules/@grid/core/es6/grid/component
 * @property {number=} contentRightPadding=0 Padding that is added next to the right most column. The padding is still a part of scrollable content.
 * @property {number=} contentBottomPadding=0 Padding that is added below the last section. The padding is still a part of scrollable content.
 * @property {number=} dataConflationRate=0 set delay for data to avoid to much sorting operation when data changed
-* @property {Function=} dataComposed Handler for dataComposed event
 * @property {boolean=} autoDateConversion=false If enabled, date-time field with numeric value will be automatically converted to native date object.
 * @property {boolean=} textSelect=false If enabled, user can select content text by using mouse drag.
 * @property {string=} lang laguage for config localization date time, if null the default language is "en"
@@ -113,6 +112,10 @@ import { ElementWrapper } from "../../node_modules/@grid/core/es6/grid/component
 * @property {string=} childDataField=CHILD_VALUES The given field will be used to store children's static data, such as row color assignment.
 * @property {boolean=} topSection=true If disabled, title section will not be rendered
 * @property {SortableTitlePlugin~Options=} sorting Options for sorting
+* @property {Function=} dataComposed Handler for dataComposed event
+* @property {Function=} beforeContentBinding Handler for beforeContentBinding event
+* @property {Function=} firstRendered Handler for firstRendered event
+* @property {Function=} afterContentBinding Handler for afterContentBinding event
 */
 
 /** @typedef {number|string|RowDefinition} Grid~RowReference
@@ -181,6 +184,16 @@ import { ElementWrapper } from "../../node_modules/@grid/core/es6/grid/component
 /** @event Grid#beforeContentBinding
 * @property {Object} e Event of beforeContentBinding,  We can use e.actualUpdate to check the actual data update, otherwise It will be empty when it is rendered by row virtualization or only the UI changes.
 * @description Trigger before content binding.
+*/
+
+/** @event Grid#firstRendered
+* @property {Object} e Event of firstRendered
+* @description This event is triggered when the content is rendered for the first time.
+*/
+
+/** @event Grid#afterContentBinding
+* @property {Object} e Event of afterContentBinding
+* @description Trigger after content binding.
 */
 
 /** @event Grid#beforeRowRemoved
@@ -337,7 +350,6 @@ var Grid = function(placeholder, config) {
 	t.updateColumnTitle = t.updateColumnTitle.bind(t);
 	t._populateTimeSeriesChildren = t._populateTimeSeriesChildren.bind(t);
 
-	t._onBeforeContentBinding = t._onBeforeContentBinding.bind(t);
 	t._onPostSectionDataBinding = t._onPostSectionDataBinding.bind(t);
 	t._asyncClearDataUpdates = t._asyncClearDataUpdates.bind(t);
 	t._clearDataUpdates = t._clearDataUpdates.bind(t);
@@ -430,9 +442,11 @@ var Grid = function(placeholder, config) {
 		t._grid.loadPlugin(t._stp, config);
 	}
 
-	t._grid.listen("beforeContentBinding", t._onBeforeContentBinding);
+	t._grid.listen("beforeContentBinding", t._dispatch.bind(t, "beforeContentBinding"));
 	t._grid.listen("preSectionRender", t._onColumnHeaderBinding);
 	t._grid.listen("postSectionDataBinding", t._onPostSectionDataBinding);
+	t._grid.listen("firstRendered", t._dispatch.bind(t, "firstRendered"));
+	t._grid.listen("afterContentBinding", t._dispatch.bind(t, "afterContentBinding"));
 
 	t._grid.enableRowHighlighting(true);
 
@@ -840,6 +854,7 @@ Grid.prototype.initialize = function(gridOption) {
 	var t = this; // For minimizing file size
 	t._initializing = true;
 	var grid = t._grid; // core grid
+	grid.resetInternalState();
 	gridOption = grid.normalizeConfig(gridOption);
 
 	var exts = gridOption["plugins"] || gridOption["extensions"];
@@ -946,10 +961,10 @@ Grid.prototype.initialize = function(gridOption) {
 		t.listen("rowExpansionBinding", rowExpansionBinding);
 	}
 
-	var dataComposedHandler = gridOption["dataComposed"];
-	if(typeof dataComposedHandler === "function") {
-		t.listen("dataComposed", dataComposedHandler);
-	}
+	this.addListener(gridOption, "dataComposed");
+	this.addListener(gridOption, "beforeContentBinding");
+	this.addListener(gridOption, "firstRendered");
+	this.addListener(gridOption, "afterContentBinding");
 
 	if(gridOption["autoDateConversion"]) {
 		t._autoDateConversion = true;
@@ -2605,7 +2620,6 @@ Grid.prototype.removeAllRows = function() {
 
 	// TODO: This logic should also be in the core grid
 	this._grid.getVScrollbar().setScrollTop(0);
-	this._grid.getHScrollbar().setScrollLeft(0);
 };
 /** WARNING: This does not remove data stored in the data cache
 * @private
@@ -3566,13 +3580,6 @@ Grid.prototype._mainSorter = function (rowDefA, rowDefB, order) {
 /** @private
 * @param {Object} e
 */
-Grid.prototype._onBeforeContentBinding = function(e) {
-	this._dispatch("beforeContentBinding", e);
-};
-
-/** @private
-* @param {Object} e
-*/
 Grid.prototype._onPostSectionDataBinding = function(e) {
 	if(e["actualUpdate"]) {
 		this._asyncClearDataUpdates();
@@ -4101,7 +4108,7 @@ export default Grid;
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="ColumnDefinition.html">ColumnDefinition</a></li><li><a href="DataConnector.html">DataConnector</a></li><li><a href="Grid.html">Grid</a></li><li><a href="ReferenceCounter.html">ReferenceCounter</a></li><li><a href="RowDefinition.html">RowDefinition</a></li><li><a href="RowDefSorter.html">RowDefSorter</a></li><li><a href="SnapshotFiller.html">SnapshotFiller</a></li><li><a href="StyleLoader.html">StyleLoader</a></li></ul><h3>Events</h3><ul><li><a href="Grid.html#event:adcDataReceived">adcDataReceived</a></li><li><a href="Grid.html#event:beforeContentBinding">beforeContentBinding</a></li><li><a href="Grid.html#event:beforeRowRemoved">beforeRowRemoved</a></li><li><a href="Grid.html#event:dataComposed">dataComposed</a></li><li><a href="Grid.html#event:fieldAdded">fieldAdded</a></li><li><a href="Grid.html#event:fieldRemoved">fieldRemoved</a></li><li><a href="Grid.html#event:pageCountChanged">pageCountChanged</a></li><li><a href="Grid.html#event:pageIndexChanged">pageIndexChanged</a></li><li><a href="Grid.html#event:ricAdded">ricAdded</a></li><li><a href="Grid.html#event:ricRemoved">ricRemoved</a></li></ul><h3>Global</h3><ul><li><a href="global.html#COL_DEF">COL_DEF</a></li><li><a href="global.html#ROW_DEF">ROW_DEF</a></li><li><a href="global.html#ROW_TYPES">ROW_TYPES</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="ColumnDefinition.html">ColumnDefinition</a></li><li><a href="DataConnector.html">DataConnector</a></li><li><a href="Grid.html">Grid</a></li><li><a href="ReferenceCounter.html">ReferenceCounter</a></li><li><a href="RowDefinition.html">RowDefinition</a></li><li><a href="RowDefSorter.html">RowDefSorter</a></li><li><a href="SnapshotFiller.html">SnapshotFiller</a></li><li><a href="StyleLoader.html">StyleLoader</a></li></ul><h3>Events</h3><ul><li><a href="Grid.html#event:adcDataReceived">adcDataReceived</a></li><li><a href="Grid.html#event:afterContentBinding">afterContentBinding</a></li><li><a href="Grid.html#event:beforeContentBinding">beforeContentBinding</a></li><li><a href="Grid.html#event:beforeRowRemoved">beforeRowRemoved</a></li><li><a href="Grid.html#event:dataComposed">dataComposed</a></li><li><a href="Grid.html#event:fieldAdded">fieldAdded</a></li><li><a href="Grid.html#event:fieldRemoved">fieldRemoved</a></li><li><a href="Grid.html#event:firstRendered">firstRendered</a></li><li><a href="Grid.html#event:pageCountChanged">pageCountChanged</a></li><li><a href="Grid.html#event:pageIndexChanged">pageIndexChanged</a></li><li><a href="Grid.html#event:ricAdded">ricAdded</a></li><li><a href="Grid.html#event:ricRemoved">ricRemoved</a></li></ul><h3>Global</h3><ul><li><a href="global.html#COL_DEF">COL_DEF</a></li><li><a href="global.html#ROW_DEF">ROW_DEF</a></li><li><a href="global.html#ROW_TYPES">ROW_TYPES</a></li></ul>
 </nav>
 
 

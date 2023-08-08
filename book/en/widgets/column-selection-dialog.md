@@ -465,34 +465,7 @@ In the example below, we will demonstrate how to retain the sorting and filterin
 	};
 
 	dialog.addEventListener("confirm", function (e) {
-		var selectedCols = e.detail.data; // new columns
-		var gridConfigObj = grid.api.getConfigObject(); // Currently, grid columns
-		var currentSortingState;
-		if(gridConfigObj.sorting) {
-			currentSortingState = gridConfigObj.sorting.initialSort;		
-		}
-		var colIdToColObj = gridConfigObj.columns.reduce(function (acc, item) {
-			// create new map object
-			var id = item.id;
-			acc[id] = item;
-			return acc;
-		}, {});
-
-		var arr = []; // Create the new array, We need to use new object for prevent refer the allColumns
-		for (var i = 0; i < selectedCols.length; i++) {
-			var col = selectedCols[i];
-			var id = col.id;
-			if (colIdToColObj[id]) {
-				arr.push(colIdToColObj[id]);
-			} else {
-				arr.push(col);
-			}
-		}
-
-		grid.api.restoreColumns(arr);
-		if (currentSortingState) {
-			grid.api.getCoreGrid().getPlugin("SortableTitle").sortColumns(currentSortingState);
-		}
+		grid.api.restoreColumns(e.detail.data, true);
 	});
 
 	document.getElementById("open_btn").addEventListener("click", function () {

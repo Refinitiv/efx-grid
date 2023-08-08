@@ -29,7 +29,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="d08baaba-31fe-40a4-81a5-2062ac38b341">
+        <pandora-nav id="312a0788-8321-4e20-aaa4-6eb4b9be91cb">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -282,9 +282,342 @@
             <link rel="stylesheet" href="../resources/styles/elf-template.css">
 
             <h2 id="row-filtering"><a href="https://refinitiv.github.io/efx-grid/book/en/extensions/tr-grid-row-filtering.html" target="_top" class="link-icon"></a> Row Filtering</h2>
-            <p>The Row Filtering Extension provides filtering rows according expression that uses to filter. The extension also supports multiple columns for filtering.</p>
+            <p>The Row Filtering Extension provides filtering rows based on specific condition. The extension also supports defining column filter on multiple columns. The following example allows a user to click on the filter icon, appeared on the top of the column header, to open <a href="../widgets/filter-dialog.html">Filter Dialog</a>. </p>
+            <blockquote>
+              <p>Note that this extension does not provide any UI to do filtering. If you want to have UIs for end users to do filtering, you need to include either <a href="./tr-grid-filter-input.html">Row Filtering Extension</a> or <a href="../widgets/filter-dialog.html">Filter Dialog Widget</a> in addition to this extension.</p>
+            </blockquote>
 
             <div class="pandora-code-viewer" id="pid-52">
+              <div class="pandora-viewer">
+                <button>&lt;/&gt;</button>
+              </div>
+              <div class="pandora-code-view">
+                <div class="pandora-toolbar">
+                  <ul>
+                    <li class="pandora-tab-selected" data-toggle="tab-html">HTML</li>
+                    <li data-toggle="tab-js">JS</li>
+                    <li data-toggle="tab-css">CSS</li>
+                  </ul>
+                </div>
+                <div class="pandora-tab-container">
+                  <pre class="pandora-tab-view tab-html">&lt;efx-grid id="grid"&gt;
+
+&lt;/efx-grid&gt;</pre>
+                  <pre class="pandora-tab-view tab-js">var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 50 });
+var configObj = {
+  columns: [
+    { name: "Company", field: fields[0] },
+    { name: "Market", field: fields[1], width: 120 },
+    { name: "Last", field: fields[2], width: 100 },
+    { name: "Net. Chng", field: fields[3], width: 100 },
+    { name: "Industry", field: fields[4] }
+  ],
+  staticDataRows: records,
+  rowFiltering: {
+    iconActivation: "onHover"
+  },
+  extensions: [
+    new RowFiltering()
+  ]
+};
+
+var grid = document.getElementById("grid");
+grid.config = configObj;</pre>
+                  <pre class="pandora-tab-view tab-css">html hr {
+  margin: 5px;
+}
+
+html body {
+  padding: 20px;
+}
+
+efx-grid {
+  height: 500px;
+}</pre>
+                  <div class="pandora-console"></div>
+                </div>
+              </div>
+              <link rel="prefetch" href="../node_modules/tr-grid-test-resource-v6/dist/elf-halo-light.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-auto-tooltip/dist/tr-grid-auto-tooltip.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-cell-selection/dist/tr-grid-cell-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-checkbox/dist/tr-grid-checkbox.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/column-dragging/dist/column-dragging.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-fitter/dist/tr-grid-column-fitter.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-formatting/dist/tr-grid-column-formatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-grouping/dist/tr-grid-column-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-resizing/dist/tr-grid-column-resizing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-selection/dist/tr-grid-column-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-stack/dist/tr-grid-column-stack.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-conditional-coloring/dist/tr-grid-conditional-coloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-content-wrap/dist/tr-grid-content-wrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-contextmenu/dist/tr-grid-contextmenu.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-filter-input/dist/tr-grid-filter-input.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-heat-map/dist/tr-grid-heat-map.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-in-cell-editing/dist/tr-grid-in-cell-editing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-pagination/dist/tr-grid-pagination.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-percent-bar/dist/tr-grid-percent-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-range-bar/dist/tr-grid-range-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-dragging/dist/tr-grid-row-dragging.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-filtering/dist/tr-grid-row-filtering.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-grouping/dist/tr-grid-row-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/row-segmenting/dist/row-segmenting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-selection/dist/tr-grid-row-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-rowcoloring/dist/tr-grid-rowcoloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/statistics-row/dist/statistics-row.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-textformatting/dist/tr-grid-textformatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-titlewrap/dist/tr-grid-titlewrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
+            </div>
+            <h3 id="installation-and-how-to-import-to-a-project">Installation and how to import to a project</h3>
+            <p>Installation examples and details of how to import the extension to a project are available on the <a href="README.html">Overview</a> page.</p>
+            <h3 id="initializing-grid-with-a-column-filter">Initializing Grid with a column filter</h3>
+            <p>You can define a column filter on <code>filter</code> property on the column configuration object. The expression for the filter can be written in 4 different formats:</p>
+            <ul>
+              <li>Object map (e.g., <code>{NTSE: true, DJI: true}</code>, <code>{12: true, 34: true, 56: true}</code>)</li>
+              <li>2 dimensional array (e.g., <code>[["LT", 0]]</code>, <code>[["GTE", 10, "AND"], ["LTE", 20]]</code>)</li>
+              <li>Text (e.g., <code>"[PCTCHNG] &lt; 0"</code>)</li>
+              <li>Function (e.g., <code>function(rowData) { return rowData["PCTCHNG"] &lt; 0}</code>)</li>
+            </ul>
+            <p>The first two formats are recommended for most of the use cases as they are serializable and well understood by both Row Filtering Extension and <a href="../widgets/filter-dialog.html">Filter Dialog</a>.</p>
+
+            <div class="pandora-code-viewer" id="pid-53">
+              <div class="pandora-viewer">
+                <button>&lt;/&gt;</button>
+              </div>
+              <div class="pandora-code-view">
+                <div class="pandora-toolbar">
+                  <ul>
+                    <li class="pandora-tab-selected" data-toggle="tab-html">HTML</li>
+                    <li data-toggle="tab-js">JS</li>
+                    <li data-toggle="tab-css">CSS</li>
+                  </ul>
+                </div>
+                <div class="pandora-tab-container">
+                  <pre class="pandora-tab-view tab-html">&lt;efx-grid id="grid"&gt;
+
+&lt;/efx-grid&gt;</pre>
+                  <pre class="pandora-tab-view tab-js">var objMapFilter = {
+  HKEX: true,
+  NASDAQ: true
+};
+var ary2DFilter = [
+  ["GT", 100, "AND"],
+  ["LT", 400]
+];
+var textFilter = "[CF_NETCHNG] &gt; 0";
+var funcFilter = function(rowData) {
+  return rowData["industry"].indexOf("a") &gt;= 0;
+};
+
+var rowFilterExt = new RowFiltering();
+var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 50 });
+var configObj = {
+  columns: [
+    { title: "Company", field: fields[0] },
+    { title: "Market", field: fields[1], width: 120, filter: objMapFilter },
+    { title: "Last", field: fields[2], width: 100, filter: ary2DFilter },
+    { title: "Net. Chng", field: fields[3], width: 100, filter: textFilter },
+    { title: "Industry", field: fields[4], filter: funcFilter }
+  ],
+  staticDataRows: records,
+  rowFiltering: {
+    iconActivation: "onHover"
+  },
+  extensions: [
+    rowFilterExt
+  ]
+};
+
+var grid = document.getElementById("grid");
+grid.config = configObj;</pre>
+                  <pre class="pandora-tab-view tab-css">html hr {
+  margin: 5px;
+}
+
+efx-grid {
+  height: 500px;
+}</pre>
+                  <div class="pandora-console"></div>
+                </div>
+              </div>
+              <link rel="prefetch" href="../node_modules/tr-grid-test-resource-v6/dist/elf-halo-light.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-auto-tooltip/dist/tr-grid-auto-tooltip.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-cell-selection/dist/tr-grid-cell-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-checkbox/dist/tr-grid-checkbox.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/column-dragging/dist/column-dragging.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-fitter/dist/tr-grid-column-fitter.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-formatting/dist/tr-grid-column-formatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-grouping/dist/tr-grid-column-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-resizing/dist/tr-grid-column-resizing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-selection/dist/tr-grid-column-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-stack/dist/tr-grid-column-stack.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-conditional-coloring/dist/tr-grid-conditional-coloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-content-wrap/dist/tr-grid-content-wrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-contextmenu/dist/tr-grid-contextmenu.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-filter-input/dist/tr-grid-filter-input.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-heat-map/dist/tr-grid-heat-map.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-in-cell-editing/dist/tr-grid-in-cell-editing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-pagination/dist/tr-grid-pagination.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-percent-bar/dist/tr-grid-percent-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-range-bar/dist/tr-grid-range-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-dragging/dist/tr-grid-row-dragging.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-filtering/dist/tr-grid-row-filtering.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-grouping/dist/tr-grid-row-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/row-segmenting/dist/row-segmenting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-selection/dist/tr-grid-row-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-rowcoloring/dist/tr-grid-rowcoloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/statistics-row/dist/statistics-row.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-textformatting/dist/tr-grid-textformatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-titlewrap/dist/tr-grid-titlewrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
+            </div>
+            <h3 id="managing-column-filter-at-runtime">Managing column filter at runtime</h3>
+            <p>To add or remove column filter at runtime, use <code>setColumnFilter</code> method from the extension. </p>
+            <p>To retrieve current serializable expression of the column filter, use <code>getConfigObject</code> from Grid instance.</p>
+            <h3 id="defining-column-filter-as-an-array-expression">Defining column filter as an array expression</h3>
+            <p>The expression can take form of an Array or two dimentional Array for defining multiple conditions. However, the array has to be in specific format for extension to parse it. The array must contains two or three items. The first item is operator id. The second item is a operand value. The third item is a connector which can be either "AND" or "OR" connector. The connector is optional, if there is only one coloring condition.</p>
+            <p>This array form is useful for constructing a complex filter as there can be unlimited number of conditions in a single expression. It can also be serialized as a text which is good for saving and restoring. </p>
+            <p>The following operator ids are supported in the array format:</p>
+            <ul>
+              <li>"EQ" - Equal to</li>
+              <li>"NEQ" - Not equal to</li>
+              <li>"NUMEQ" - Number equal to</li>
+              <li>"NUMNEQ" - Number not equal to</li>
+              <li>"GT" - Greater than</li>
+              <li>"GTE" - Greater than or equal to</li>
+              <li>"LT" - Less than</li>
+              <li>"LTE" - Less than or equal to</li>
+              <li>"BEGIN" - Begin with</li>
+              <li>"NBEGIN" - Not begin with</li>
+              <li>"END" - End with</li>
+              <li>"NEND" - Not end with</li>
+              <li>"CONT" - Contain</li>
+              <li>"NCONT" - Not contain</li>
+              <li>"EQ_BLANK" - Equal to blank value</li>
+              <li>"EQ_NBLANK" - Equal to non blank value</li>
+              <li>"DT" - Date is</li>
+              <li>"DTA" - Date is after</li>
+              <li>"DTB" - Date is before</li>
+            </ul>
+            <h3 id="grid-level-filtering">Grid level filtering</h3>
+            <p>You can add a grid level filter which is independent from columns or column filters. Use <code>addGridFilter</code> method from the extension instance to add a grid level filter. If you want to refresh the filter when some context has been changed, use <code>refresh</code> method from the extension to reapply the filter. To clear all existing filters, you can use <code>removeAllFilters</code> method.</p>
+            <h4 id="filtering-with-a-search-box-example">Filtering with a search box example</h4>
+            <p>It is normal to tie the filter functionality with a search box. In order to do this, you can listen a <code>keyup</code> event on the search input. Then you can call <code>refresh</code> method in the event callback.</p>
+            <p>For below example, the search input will be passed in the second parameter. Then, in the filter function you can retrieve a value from search input to perform a comparison.</p>
+            <blockquote>
+              <p>The <code>addGridFilter</code> can recieve any type in the second parameter. The given input will be passed to the third argument in filter function.</p>
+            </blockquote>
+
+            <div class="pandora-code-viewer" id="pid-54">
+              <div class="pandora-viewer">
+                <button>&lt;/&gt;</button>
+              </div>
+              <div class="pandora-code-view">
+                <div class="pandora-toolbar">
+                  <ul>
+                    <li class="pandora-tab-selected" data-toggle="tab-html">HTML</li>
+                    <li data-toggle="tab-js">JS</li>
+                    <li data-toggle="tab-css">CSS</li>
+                  </ul>
+                </div>
+                <div class="pandora-tab-container">
+                  <pre class="pandora-tab-view tab-html">&lt;input id="search_input" placeholder="Search Anything..." type="search"&gt;
+
+&lt;hr&gt;
+&lt;efx-grid id="grid"&gt;&lt;/efx-grid&gt;</pre>
+                  <pre class="pandora-tab-view tab-js">var rowFilterExt = new RowFiltering();
+var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 50 });
+var configObj = {
+  columns: [
+    { title: "Company", field: fields[0] },
+    { title: "Market", field: fields[1], width: 120 },
+    { title: "Last", field: fields[2], width: 100 },
+    { title: "Net. Chng", field: fields[3], width: 100 },
+    { title: "Industry", field: fields[4] }
+  ],
+  staticDataRows: records,
+  extensions: [
+    rowFilterExt
+  ]
+};
+
+var grid = document.getElementById("grid");
+grid.config = configObj;
+
+var searchInput = document.getElementById("search_input");
+searchInput.addEventListener("keyup", function(e) {
+  var input = e.currentTarget;
+  if (input._prevValue !== input.value) {
+    input._prevValue = input.value;
+    rowFilterExt.refresh(); // Force filter triggering
+  }
+});
+
+function filterFunc(rowData, rowId, context) {
+  var str = "";
+  var val = context.input.value.toLowerCase();
+  for (var key in rowData) {
+    str += rowData[key] + " ";
+  }
+  return str.toLowerCase().indexOf(val) &gt; -1;
+};
+
+var context = {
+  input: searchInput
+};
+rowFilterExt.addGridFilter(filterFunc, context);</pre>
+                  <pre class="pandora-tab-view tab-css">html hr {
+  margin: 5px;
+}
+
+efx-grid {
+  height: 280px;
+}
+
+#search_input {
+  margin: 5px;
+  width: 250px;
+}</pre>
+                  <div class="pandora-console"></div>
+                </div>
+              </div>
+              <link rel="prefetch" href="../node_modules/tr-grid-test-resource-v6/dist/elf-halo-light.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-auto-tooltip/dist/tr-grid-auto-tooltip.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-cell-selection/dist/tr-grid-cell-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-checkbox/dist/tr-grid-checkbox.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/column-dragging/dist/column-dragging.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-fitter/dist/tr-grid-column-fitter.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-formatting/dist/tr-grid-column-formatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-grouping/dist/tr-grid-column-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-resizing/dist/tr-grid-column-resizing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-selection/dist/tr-grid-column-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-stack/dist/tr-grid-column-stack.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-conditional-coloring/dist/tr-grid-conditional-coloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-content-wrap/dist/tr-grid-content-wrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-contextmenu/dist/tr-grid-contextmenu.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-filter-input/dist/tr-grid-filter-input.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-heat-map/dist/tr-grid-heat-map.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-in-cell-editing/dist/tr-grid-in-cell-editing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-pagination/dist/tr-grid-pagination.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-percent-bar/dist/tr-grid-percent-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-range-bar/dist/tr-grid-range-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-dragging/dist/tr-grid-row-dragging.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-filtering/dist/tr-grid-row-filtering.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-grouping/dist/tr-grid-row-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/row-segmenting/dist/row-segmenting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-selection/dist/tr-grid-row-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-rowcoloring/dist/tr-grid-rowcoloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/statistics-row/dist/statistics-row.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-textformatting/dist/tr-grid-textformatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-titlewrap/dist/tr-grid-titlewrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
+            </div>
+            <h4 id="basic-filtering-example">Basic filtering example</h4>
+
+            <div class="pandora-code-viewer" id="pid-55">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -402,163 +735,18 @@ efx-grid {
               <link rel="prefetch" href="../node_modules/tr-grid-titlewrap/dist/tr-grid-titlewrap.min.js" type="script">
               <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
             </div>
-            <h3 id="installation-and-how-to-import-to-a-project">Installation and how to import to a project</h3>
-            <p>Installation examples and details of how to import the extension to a project are available on the <a href="README.html">Overview</a> page.</p>
-            <h3 id="basic-filtering">Basic filtering</h3>
-            <p>First, create a new <code>RowFilteringExtension</code> instance and then push it to the <code>extensions</code> array config.</p>
-            <pre><code><span class="hljs-keyword">var</span> filterExt = <span class="hljs-keyword">new</span> tr.RowFilteringExtension();
-<span class="hljs-keyword">var</span> config = {
+            <h3 id="filter-icon-activation-modes">Filter icon activation modes</h3>
+            <p>Filter icon activation controls the behavior on how to render filter icon in header cells of the grid. You can specify the mode on <code>iconActivation</code> property on the extension configuration object (<code>rowFiltering</code>). If <code>iconActivation</code> is not specified, the <code>onActiveFilter</code> will be used.</p>
+            <pre><code><span class="hljs-keyword">var</span> gridConfig = {
     <span class="hljs-comment">// ... other config</span>
+    <span class="hljs-attr">rowFiltering</span>: {
+        <span class="hljs-attr">iconActivation</span>: <span class="hljs-string">"onHover"</span>
+    },
     <span class="hljs-attr">extensions</span>: [
         filterExt
     ]
-}
-grid.config = config;</code></pre>
-            <p>A <code>filterExt</code> instance can be used to apply a filter when an action is occurring (for example, a button click) using the <code>addGridFilter</code> method.</p>
-            <p>It receives a compare function as a first argument and will immediately trigger the Grid to perform the filter after the call. This function should return as a boolean.</p>
-            <pre><code><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">filterFunc</span>(<span class="hljs-params">data</span>) </span>{
-    <span class="hljs-comment">// Filter logic here</span>
-    <span class="hljs-keyword">return</span> data.field &gt; <span class="hljs-number">1</span>;
-};
-
-filterExt.addGridFilter(filterFunc);</code></pre>
-            <p>To clear a filter, you can use <code>removeAllFilters</code> method.</p>
-            <pre><code>filterExt.removeAllFilters();</code></pre>
-            <h3 id="filtering-with-a-search-box">Filtering with a search box</h3>
-
-            <div class="pandora-code-viewer" id="pid-53">
-              <div class="pandora-viewer">
-                <button>&lt;/&gt;</button>
-              </div>
-              <div class="pandora-code-view">
-                <div class="pandora-toolbar">
-                  <ul>
-                    <li class="pandora-tab-selected" data-toggle="tab-html">HTML</li>
-                    <li data-toggle="tab-js">JS</li>
-                    <li data-toggle="tab-css">CSS</li>
-                  </ul>
-                </div>
-                <div class="pandora-tab-container">
-                  <pre class="pandora-tab-view tab-html">&lt;input id="search_input" placeholder="Search Anything..." type="search"&gt;
-
-&lt;hr&gt;
-&lt;efx-grid id="grid"&gt;&lt;/efx-grid&gt;</pre>
-                  <pre class="pandora-tab-view tab-js">var rowFilterExt = new RowFiltering();
-var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
-var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 50 });
-var configObj = {
-  columns: [
-    { title: "Company", field: fields[0] },
-    { title: "Market", field: fields[1], width: 120 },
-    { title: "Last", field: fields[2], width: 100 },
-    { title: "Net. Chng", field: fields[3], width: 100 },
-    { title: "Industry", field: fields[4] }
-  ],
-  staticDataRows: records,
-  extensions: [
-    rowFilterExt
-  ]
-};
-
-var grid = document.getElementById("grid");
-grid.config = configObj;
-
-var searchInput = document.getElementById("search_input");
-searchInput.addEventListener("keyup", function(e) {
-  var input = e.currentTarget;
-  if (input._prevValue !== input.value) {
-    input._prevValue = input.value;
-    rowFilterExt.refresh(); // Force filter triggering
-  }
-});
-
-function filterFunc(rowData, rowId, context) {
-  var str = "";
-  var val = context.input.value.toLowerCase();
-  for (var key in rowData) {
-    str += rowData[key] + " ";
-  }
-  return str.toLowerCase().indexOf(val) &gt; -1;
-};
-
-var context = {
-  input: searchInput
-};
-rowFilterExt.addGridFilter(filterFunc, context);</pre>
-                  <pre class="pandora-tab-view tab-css">html hr {
-  margin: 5px;
-}
-
-efx-grid {
-  height: 280px;
-}
-
-#search_input {
-  margin: 5px;
-  width: 250px;
-}</pre>
-                  <div class="pandora-console"></div>
-                </div>
-              </div>
-              <link rel="prefetch" href="../node_modules/tr-grid-test-resource-v6/dist/elf-halo-light.js" type="script">
-              <link rel="prefetch" href="../node_modules/tr-grid-auto-tooltip/dist/tr-grid-auto-tooltip.min.js" type="script">
-              <link rel="prefetch" href="../node_modules/tr-grid-cell-selection/dist/tr-grid-cell-selection.min.js" type="script">
-              <link rel="prefetch" href="../node_modules/tr-grid-checkbox/dist/tr-grid-checkbox.min.js" type="script">
-              <link rel="prefetch" href="../node_modules/@grid/column-dragging/dist/column-dragging.min.js" type="script">
-              <link rel="prefetch" href="../node_modules/tr-grid-column-fitter/dist/tr-grid-column-fitter.min.js" type="script">
-              <link rel="prefetch" href="../node_modules/tr-grid-column-formatting/dist/tr-grid-column-formatting.min.js" type="script">
-              <link rel="prefetch" href="../node_modules/tr-grid-column-grouping/dist/tr-grid-column-grouping.min.js" type="script">
-              <link rel="prefetch" href="../node_modules/tr-grid-column-resizing/dist/tr-grid-column-resizing.min.js" type="script">
-              <link rel="prefetch" href="../node_modules/tr-grid-column-selection/dist/tr-grid-column-selection.min.js" type="script">
-              <link rel="prefetch" href="../node_modules/tr-grid-column-stack/dist/tr-grid-column-stack.min.js" type="script">
-              <link rel="prefetch" href="../node_modules/tr-grid-conditional-coloring/dist/tr-grid-conditional-coloring.min.js" type="script">
-              <link rel="prefetch" href="../node_modules/tr-grid-content-wrap/dist/tr-grid-content-wrap.min.js" type="script">
-              <link rel="prefetch" href="../node_modules/tr-grid-contextmenu/dist/tr-grid-contextmenu.min.js" type="script">
-              <link rel="prefetch" href="../node_modules/tr-grid-filter-input/dist/tr-grid-filter-input.min.js" type="script">
-              <link rel="prefetch" href="../node_modules/tr-grid-heat-map/dist/tr-grid-heat-map.min.js" type="script">
-              <link rel="prefetch" href="../node_modules/tr-grid-in-cell-editing/dist/tr-grid-in-cell-editing.min.js" type="script">
-              <link rel="prefetch" href="../node_modules/tr-grid-pagination/dist/tr-grid-pagination.min.js" type="script">
-              <link rel="prefetch" href="../node_modules/tr-grid-percent-bar/dist/tr-grid-percent-bar.min.js" type="script">
-              <link rel="prefetch" href="../node_modules/tr-grid-range-bar/dist/tr-grid-range-bar.min.js" type="script">
-              <link rel="prefetch" href="../node_modules/tr-grid-row-dragging/dist/tr-grid-row-dragging.min.js" type="script">
-              <link rel="prefetch" href="../node_modules/tr-grid-row-filtering/dist/tr-grid-row-filtering.min.js" type="script">
-              <link rel="prefetch" href="../node_modules/tr-grid-row-grouping/dist/tr-grid-row-grouping.min.js" type="script">
-              <link rel="prefetch" href="../node_modules/@grid/row-segmenting/dist/row-segmenting.min.js" type="script">
-              <link rel="prefetch" href="../node_modules/tr-grid-row-selection/dist/tr-grid-row-selection.min.js" type="script">
-              <link rel="prefetch" href="../node_modules/tr-grid-rowcoloring/dist/tr-grid-rowcoloring.min.js" type="script">
-              <link rel="prefetch" href="../node_modules/@grid/statistics-row/dist/statistics-row.min.js" type="script">
-              <link rel="prefetch" href="../node_modules/tr-grid-textformatting/dist/tr-grid-textformatting.min.js" type="script">
-              <link rel="prefetch" href="../node_modules/tr-grid-titlewrap/dist/tr-grid-titlewrap.min.js" type="script">
-              <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
-            </div>
-            <p>It is normal to tie the filter functionality with a search box. In order to do this, you can listen a <code>keyup</code> event on the search input. Then you can call <code>refresh</code> method in the event callback.</p>
-            <p>This will trigger <code>RowFilteringExtension</code> to apply a filter function every keyup event.</p>
-            <pre><code><span class="hljs-keyword">var</span> searchInput = <span class="hljs-built_in">document</span>.getElementById(<span class="hljs-string">"search_input"</span>);
-
-searchInput.addEventListener(<span class="hljs-string">"keyup"</span>, <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
-    filterExt.refresh(); <span class="hljs-comment">// Force filter triggering</span>
-});</code></pre>
-            <p>For below example, the search input will be passed in the second parameter. Then, in the filter function you can retrieve a value from search input to perform a comparison.</p>
-            <blockquote>
-              <p>The <code>addGridFilter</code> can recieve any type in the second parameter. The given input will be passed to the third argument in filter function.</p>
-            </blockquote>
-            <pre><code><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">filterFunc</span>(<span class="hljs-params">rowData, rowId, context</span>) </span>{
-    <span class="hljs-comment">// context is an object passed from a second parameter of addGridFilter()</span>
-    <span class="hljs-keyword">var</span> str = <span class="hljs-string">""</span>;
-    <span class="hljs-keyword">var</span> val = context.input.value.toLowerCase();
-    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> key <span class="hljs-keyword">in</span> rowData) {
-        str += rowData[key] + <span class="hljs-string">" "</span>;
-    }
-    <span class="hljs-keyword">return</span> str.toLowerCase().indexOf(val) &gt;= <span class="hljs-number">0</span>;
-};
-
-<span class="hljs-comment">// Here we can pass search input to the second parameter.</span>
-<span class="hljs-keyword">var</span> context = {
-    <span class="hljs-attr">input</span>: searchInput
-};
-filterExt.addGridFilter(filterFunc, context);</code></pre>
-            <h3 id="filter-icon-activation-modes">Filter icon activation modes</h3>
-            <p>Filter icon activation controls the behavior on how to render filter icon in header cells of the grid.</p>
+};</code></pre>
+            <p>All available icon activation modes are shown in the below table:</p>
             <table>
               <thead>
                 <tr>
@@ -577,7 +765,7 @@ filterExt.addGridFilter(filterFunc, context);</code></pre>
                 </tr>
                 <tr>
                   <td>"onActiveFilter"</td>
-                  <td>Show filter icon when the column has an active filter.</td>
+                  <td>Show filter icon when the column has an active filter. This is the default mode</td>
                 </tr>
                 <tr>
                   <td>"none"</td>
@@ -586,7 +774,7 @@ filterExt.addGridFilter(filterFunc, context);</code></pre>
               </tbody>
             </table>
 
-            <div class="pandora-code-viewer" id="pid-54">
+            <div class="pandora-code-viewer" id="pid-56">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -690,21 +878,6 @@ efx-grid {
               <link rel="prefetch" href="../node_modules/tr-grid-titlewrap/dist/tr-grid-titlewrap.min.js" type="script">
               <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
             </div>
-            <p>For applying the filter icon activation, it can be done by add <code>iconActivation</code> field to <code>rowFiltering</code> config object.</p>
-            <pre><code><span class="hljs-keyword">var</span> filterExt = <span class="hljs-keyword">new</span> tr.RowFilteringExtension();
-<span class="hljs-keyword">var</span> config = {
-    <span class="hljs-comment">// ... other config</span>
-    <span class="hljs-attr">rowFiltering</span>: {
-        <span class="hljs-attr">iconActivation</span>: <span class="hljs-string">"onHover"</span>
-    },
-    <span class="hljs-attr">extensions</span>: [
-        filterExt
-    ]
-}
-grid.config = config;</code></pre>
-            <blockquote>
-              <p>Note: If there is no specified <code>iconActivation</code> value within <code>rowFiltering</code> option, the default mode (onActiveFilter) would be applied to the grid.</p>
-            </blockquote>
             <div></div>
 
             <h2 style="margin-bottom:5px" id="api-refs">API Reference</h2>
@@ -831,7 +1004,7 @@ grid.config = config;</code></pre>
                     <div class="item">
                       <div class="item-type">typedef</div>
                       <h4 class="name" id="~FilterExpression">FilterExpression</h4>
-                      <div class="description"> FilterExpression contains all data used for saving and restoring filter in a column</div>
+                      <div class="description"> Deprecated. FilterExpression contains all data used for saving and restoring filter in a column</div>
                       <h5>Type:</h5> <span class="param-type">Object</span>
                       <h5>Properties:</h5>
                       <div class="props">
@@ -1146,11 +1319,11 @@ grid.config = config;</code></pre>
                     <div class="item">
                       <div class="item-type">function</div>
                       <h4 class="name" id="getAllColumnFilters"><span class="type-signature"></span>getAllColumnFilters<span class="signature">()</span><span class="type-signature"> → {Array.&lt;function()&gt;}</span></h4>
-                      <div class="description"> Return filter functions. Use getFilterExpressions for saving and loading instead of this function </div>
+                      <div class="description"> Returns filter functions. Use getConfigObject for saving and loading instead of this function </div>
                       <div class="details"> <dt class="tag-see">See:</dt>
                         <dd class="tag-see">
                           <ul>
-                            <li>RowFilteringPlugin.getFilterExpressions</li>
+                            <li>RowFilteringPlugin.getConfigObject</li>
                           </ul>
                         </dd>
                       </div>
@@ -1192,11 +1365,11 @@ grid.config = config;</code></pre>
                     <div class="item">
                       <div class="item-type">function</div>
                       <h4 class="name" id="getColumnFilterStates"><span class="type-signature"></span>getColumnFilterStates<span class="signature">()</span><span class="type-signature"> → {Array}</span></h4>
-                      <div class="description"> Get the stored user context from all columns. The column with no filter will return null value </div>
+                      <div class="description"> Deprecated in favor of getConfigObject(). Get the stored user context from all columns. The column with no filter will return null value </div>
                       <div class="details"> <dt class="tag-see">See:</dt>
                         <dd class="tag-see">
                           <ul>
-                            <li>RowFilteringPlugin.getFilterExpressions</li>
+                            <li>RowFilteringPlugin.getConfigObject</li>
                           </ul>
                         </dd>
                       </div>
@@ -1222,11 +1395,11 @@ grid.config = config;</code></pre>
                     <div class="item">
                       <div class="item-type">function</div>
                       <h4 class="name" id="getFilterExpressions"><span class="type-signature"></span>getFilterExpressions<span class="signature">()</span><span class="type-signature"> → {Array.&lt;<a href="#~FilterExpression">RowFilteringPlugin~FilterExpression</a>&gt;}</span></h4>
-                      <div class="description"> Get existing filter expressions for saving and restoring. </div>
+                      <div class="description"> Deprecated in favor of getConfigObject(). Get existing filter expressions for saving and restoring. </div>
                       <div class="details"> <dt class="tag-see">See:</dt>
                         <dd class="tag-see">
                           <ul>
-                            <li>RowFilteringPlugin.setFilterExpressions</li>
+                            <li>RowFilteringPlugin.getConfigObject</li>
                           </ul>
                         </dd>
                       </div>
@@ -1251,7 +1424,7 @@ grid.config = config;</code></pre>
                     </div>
                     <div class="item">
                       <div class="item-type">function</div>
-                      <h4 class="name" id="getUniqueValues"><span class="type-signature"></span>getUniqueValues<span class="signature">(field, formatter<span class="signature-attributes">opt</span>, fmtField<span class="signature-attributes">opt</span>, rawDataAccessor<span class="signature-attributes">opt</span>, formattedDataAccessor<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Object}</span></h4>
+                      <h4 class="name" id="getUniqueValues"><span class="type-signature"></span>getUniqueValues<span class="signature">(field, formatter<span class="signature-attributes">opt</span>, fmtField<span class="signature-attributes">opt</span>, rawDataAccessor<span class="signature-attributes">opt</span>, formattedDataAccessor<span class="signature-attributes">opt</span>, filterFuncs<span class="signature-attributes">opt</span>, selectedItems<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Object}</span></h4>
                       <h5>Parameters:</h5>
                       <div class="params">
                         <div class="param">
@@ -1283,6 +1456,16 @@ grid.config = config;</code></pre>
                           <div class="type"> <span class="param-type">function</span> </div>
                           <div class="attributes"> &lt;optional&gt; </div>
                           <div class="description"> Data getter to retrieve formatted value. This paramter will override formatted and fmtField parameters </div>
+                        </div>
+                        <div class="param">
+                          <div class="name">filterFuncs</div>
+                          <div class="type"> <span class="param-type">function</span> </div>
+                          <div class="attributes"> &lt;optional&gt; </div>
+                        </div>
+                        <div class="param">
+                          <div class="name">selectedItems</div>
+                          <div class="type"> <span class="param-type">Object</span> </div>
+                          <div class="attributes"> &lt;optional&gt; </div>
                         </div>
                       </div>
                       <div class="details"> </div>
@@ -1357,6 +1540,8 @@ grid.config = config;</code></pre>
                       <h4 class="name" id="removeAllColumnFilters"><span class="type-signature"></span>removeAllColumnFilters<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>
                       <div class="description"> Remove all column filters from all columns, excluding global filters </div>
                       <div class="details"> </div>
+                      <h5>Fires:</h5>
+                      <div class="sub-content"><a href="#event:filterChanged">RowFilteringPlugin#event:filterChanged</a></div>
                       <h5>Returns:</h5>
                       <div class="sub-content"> <span class="param-type">boolean</span> </div>
                       <div class="sub-content-desc"> Return true if there is any change</div>
@@ -1379,6 +1564,8 @@ grid.config = config;</code></pre>
                         </div>
                       </div>
                       <div class="details"> </div>
+                      <h5>Fires:</h5>
+                      <div class="sub-content"><a href="#event:filterChanged">RowFilteringPlugin#event:filterChanged</a></div>
                       <h5>Returns:</h5>
                       <div class="sub-content"> <span class="param-type">boolean</span> </div>
                       <div class="sub-content-desc"> True if there is any change</div>
@@ -1395,6 +1582,8 @@ grid.config = config;</code></pre>
                         </div>
                       </div>
                       <div class="details"> </div>
+                      <h5>Fires:</h5>
+                      <div class="sub-content"><a href="#event:filterChanged">RowFilteringPlugin#event:filterChanged</a></div>
                       <h5>Returns:</h5>
                       <div class="sub-content"> <span class="param-type">boolean</span> </div>
                       <div class="sub-content-desc"> True if there is any change</div>
@@ -1459,7 +1648,18 @@ grid.config = config;</code></pre>
                       <h5>Returns:</h5>
                       <div class="sub-content"> <span class="param-type">boolean</span> </div>
                       <div class="sub-content-desc"> True If there is any change</div>
-                    </div>
+                      <h5>Example:</h5>
+                      <pre><code>extension.setColumnFilter(colIndex1,
+ [["GT", 0]]
+);
+extension.setColumnFilter(colIndex2,
+  "filter": "[PCTCHNG] &gt; 0"
+);
+extension.setColumnFilter(colIndex3,
+  function(rowData) {
+    return rowData["PCTCHNG"] &gt; 0;
+  }
+);</code></pre> </div>
                     <div class="item">
                       <div class="item-type">function</div>
                       <h4 class="name" id="setColumnFilterState"><span class="type-signature"></span>setColumnFilterState<span class="signature">(colIndex, ctx)</span><span class="type-signature"> → {boolean}</span></h4>
@@ -1484,7 +1684,7 @@ grid.config = config;</code></pre>
                     <div class="item">
                       <div class="item-type">function</div>
                       <h4 class="name" id="setFilterExpressions"><span class="type-signature"></span>setFilterExpressions<span class="signature">(filterExps)</span><span class="type-signature"></span></h4>
-                      <div class="description"> Clear all existing column filters and restore column filters from the given valid filter expressions. If the parameter is null, the result is equivalent to calling removeAllColumnFilters(); </div>
+                      <div class="description"> Deprecated. Clear all existing column filters and restore column filters from the given valid filter expressions. If the parameter is null, the result is equivalent to calling removeAllColumnFilters(); </div>
                       <h5>Parameters:</h5>
                       <div class="params">
                         <div class="param">
