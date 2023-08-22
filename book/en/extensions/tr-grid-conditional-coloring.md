@@ -51,7 +51,7 @@ var conditions = [ // For example, fill green when the value is more than zero.
 		},
 		columns: [
 			{
-				title: "Value > 0",
+				name: "Value > 0",
 				field: "c1",
 				conditions: [{
 					backgroundColor: "green",
@@ -60,7 +60,7 @@ var conditions = [ // For example, fill green when the value is more than zero.
 				}]
 			},
 			{
-				title: "Multiple Conditions",
+				name: "Multiple Conditions",
 				field: "c2",
 				conditions: [{
 					backgroundColor: "",
@@ -77,7 +77,7 @@ var conditions = [ // For example, fill green when the value is more than zero.
 				}]
 			},
 			{
-				title: "Range between -3 and 3",
+				name: "Range between -3 and 3",
 				field: "c3",
 				conditions: [{
 					backgroundColor: "lightskyblue",
@@ -140,12 +140,12 @@ For required scenarios, there are features to deal with real-time data. For exam
 		},
 		columns: [
 			{ 
-				title: "Blink with Theme Color",
+				name: "Blink with Theme Color",
 				field: "num1",
 				blinking: true 
 			},
 			{
-				title: "Blink on Top of Condtional Coloring",
+				name: "Blink on Top of Condtional Coloring",
 				field: "num2",
 				blinking: true,
 				conditions: [{
@@ -159,7 +159,7 @@ For required scenarios, there are features to deal with real-time data. For exam
 				}]
 			},
 			{
-				title: "Blinking Border",
+				name: "Blinking Border",
 				field: "num3",
 				blinking: {
 					border: true
@@ -179,7 +179,7 @@ For required scenarios, there are features to deal with real-time data. For exam
 				}]
 			},
 			{
-				title: "Custom Blinking Color",
+				name: "Custom Blinking Color",
 				field: "num4",
 				blinking: {
 					up: "#aaDD88",
@@ -193,7 +193,7 @@ For required scenarios, there are features to deal with real-time data. For exam
 				}]
 			},
 			{
-				title: "Blinking Border with Custom Color",
+				name: "Blinking Border with Custom Color",
 				field: "num5",
 				blinking: {
 					border: true,
@@ -207,7 +207,7 @@ For required scenarios, there are features to deal with real-time data. For exam
 				}]
 			},
 			{
-				title: "Blink Only Specific States",
+				name: "Blink Only Specific States",
 				field: "char",
 				binding: function(e) {
 					e.cell.setContent(String.fromCharCode(e.data));
@@ -339,28 +339,28 @@ The extension also allows you select text and background colors from a set of pr
 	var configObj = {
 		columns: [
 			{
-				title: "Company",
+				name: "Company",
 				field: fields[0]
 			},
 			{
-				title: "Market",
+				name: "Market",
 				field: fields[1],
 				width: 120
 			},
 			{
-				title: "Last",
+				name: "Last",
 				field: fields[2],
 				width: 100
 			},
 			{
-				title: "Net. Chng",
+				name: "Net. Chng",
 				field: fields[3],
 				width: 100,
 				blinking: true,
 				conditions: conditions
 			},
 			{
-				title: "Industry",
+				name: "Industry",
 				field: fields[4]
 			}
 		],

@@ -23,11 +23,11 @@ To update what is shown on the Grid, please use Grid's APIs to [manipulate the d
 	var records = DataGenerator.generateRecords(fields, { numRows: 40 });
 	var configObj = {
 		columns: [
-			{title: "Company", field: fields[0]},
-			{title: "Market", field: fields[1]},
-			{title: "Last", field: fields[2]},
-			{title: "Net. Chng", field: fields[3]},
-			{title: "Industry", field: fields[4]}
+			{name: "Company", field: fields[0]},
+			{name: "Market", field: fields[1]},
+			{name: "Last", field: fields[2]},
+			{name: "Net. Chng", field: fields[3]},
+			{name: "Industry", field: fields[4]}
 		],
 		staticDataRows: records
 	};

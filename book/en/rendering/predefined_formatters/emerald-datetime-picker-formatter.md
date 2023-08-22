@@ -23,17 +23,17 @@ There are no specific options for this formatter.
 	var configObj = {
 		columns: [
 			{ 
-				title: "Column 1",
+				name: "Column 1",
 				field: fields[0],
 				alignment: "center"
 			},
 			{
-				title: "DateTimePicker",
+				name: "DateTimePicker",
 				field: fields[1],
 				binding: tr.EmeraldDateTimePickerFormatter.create()
 			},
 			{ 
-				title: "Column 3",
+				name: "Column 3",
 				field: fields[2]
 			}
 		],

@@ -183,27 +183,27 @@ records.push({
 var configObj = {
 	scrollbar: true,
 	columns: [{
-		title: "ID",
+		name: "ID",
 		field: fields[0],
 		width: 60
 	},
 	{
-		title: "Low",
+		name: "Low",
 		field: fields[1],
 		width: 60
 	},
 	{
-		title: "Last",
+		name: "Last",
 		field: fields[2],
 		width: 60
 	},
 	{
-		title: "High",
+		name: "High",
 		field: fields[3],
 		width: 60
 	},
 	{
-		title: "Range (Low, Last, High)",
+		name: "Range (Low, Last, High)",
 		field: fields[2],
 		alignment: "c",
 		rangeBar: {
@@ -213,19 +213,19 @@ var configObj = {
 		}
 	},
 	{
-		title: "Percent",
+		name: "Percent",
 		field: fields[4],
 		width: 60
 	},
 	{
-		title: "Percent (Without low, last, high)",
+		name: "Percent (Without low, last, high)",
 		field: fields[4],
 		rangeBar: {
 			field: fields[4]
 		}
 	},
 	{
-		title: "Percent (start 30, end 70)",
+		name: "Percent (start 30, end 70)",
 		field: fields[4],
 		rangeBar: {
 			field: fields[4],
@@ -568,27 +568,27 @@ records.push({
 var configObj = {
 	scrollbar: true,
 	columns: [{
-		title: "ID",
+		name: "ID",
 		field: fields[0],
 		width: 60
 	},
 	{
-		title: "Low",
+		name: "Low",
 		field: fields[1],
 		width: 60
 	},
 	{
-		title: "Last",
+		name: "Last",
 		field: fields[2],
 		width: 60
 	},
 	{
-		title: "High",
+		name: "High",
 		field: fields[3],
 		width: 60
 	},
 	{
-		title: "Range (Low, Last, High)",
+		name: "Range (Low, Last, High)",
 		field: fields[2],
 		alignment: "c",
 		rangeBar: {
@@ -598,19 +598,19 @@ var configObj = {
 		}
 	},
 	{
-		title: "Percent",
+		name: "Percent",
 		field: fields[4],
 		width: 60
 	},
 	{
-		title: "Percent (Without low, last, high)",
+		name: "Percent (Without low, last, high)",
 		field: fields[4],
 		rangeBar: {
 			field: fields[4]
 		}
 	},
 	{
-		title: "Percent (start 30, end 70)",
+		name: "Percent (start 30, end 70)",
 		field: fields[4],
 		rangeBar: {
 			field: fields[4],

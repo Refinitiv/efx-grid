@@ -18,18 +18,18 @@ The Text Formatting Extension provides special formatting for presenting actual 
 	var configObj = {
 		columns: [
 			{
-				title: "Company",
+				name: "Company",
 				field: fields[0]
 			},
 			{
-				title: "Last",
+				name: "Last",
 				field: fields[2],
 				width: 100,
 				alignment: "right",
 				formatType: "number"
 			},
 			{
-				title: "4 Decimal Places",
+				name: "4 Decimal Places",
 				field: fields[2],
 				width: 100,
 				alignment: "right",
@@ -39,20 +39,20 @@ The Text Formatting Extension provides special formatting for presenting actual 
 				}
 			},
 			{
-				title: "Net. Chng",
+				name: "Net. Chng",
 				field: fields[3],
 				width: 100,
 				alignment: "right",
 				formatType: "percent"
 			},
 			{
-				title: "Volume",
+				name: "Volume",
 				field: fields[4],
 				alignment: "right",
 				formatType: "scaled"
 			},
 			{
-				title: "IPO Date",
+				name: "IPO Date",
 				field: fields[5],
 				alignment: "center",
 				formatType: "dateTime"
@@ -141,11 +141,11 @@ The first way is to use `formatLogic`. You can specify a function on how to appl
 	var configObj = {
 		columns: [
 			{
-				title: "Company",
+				name: "Company",
 				field: fields[0]
 			},
 			{
-				title: "Custom Content",
+				name: "Custom Content",
 				field: fields[1],
 				binding: customRenderer1,
 				formatType: {
@@ -200,11 +200,11 @@ The second way is to apply the format within your custom rendering/formatter by 
 	var configObj = {
 		columns: [
 			{
-				title: "Company",
+				name: "Company",
 				field: fields[0]
 			},
 			{
-				title: "Custom Content",
+				name: "Custom Content",
 				field: fields[1],
 				binding: customRenderer1,
 				formatType: {

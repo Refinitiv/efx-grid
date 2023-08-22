@@ -20,11 +20,11 @@ Normally, Grid's scrollbars are shown on top of its content. This behavior can r
 		contentBottomPadding: 14,
 		autoHideScrollbar: false,
 		columns: [
-			{title: "Company", field: fields[0], width: 250},
-			{title: "Market", field: fields[1], width: 150},
-			{title: "Last", field: fields[2], width: 150},
-			{title: "Net. Chng", field: fields[3], width: 150},
-			{title: "Industry", field: fields[4], width: 300}
+			{name: "Company", field: fields[0], width: 250},
+			{name: "Market", field: fields[1], width: 150},
+			{name: "Last", field: fields[2], width: 150},
+			{name: "Net. Chng", field: fields[3], width: 150},
+			{name: "Industry", field: fields[4], width: 300}
 		],
 		staticDataRows: records
 	};
@@ -62,11 +62,11 @@ This extra content may not be desirable though, as it can add to the amount of s
 	var configObj = {
 		scrollbarParent: document.getElementById("grid_container"),
 		columns: [
-			{title: "Company", field: fields[0], width: 250},
-			{title: "Market", field: fields[1], width: 150},
-			{title: "Last", field: fields[2], width: 150},
-			{title: "Net. Chng", field: fields[3], width: 150},
-			{title: "Industry", field: fields[4], width: 300}
+			{name: "Company", field: fields[0], width: 250},
+			{name: "Market", field: fields[1], width: 150},
+			{name: "Last", field: fields[2], width: 150},
+			{name: "Net. Chng", field: fields[3], width: 150},
+			{name: "Industry", field: fields[4], width: 300}
 		],
 		staticDataRows: records
 	};

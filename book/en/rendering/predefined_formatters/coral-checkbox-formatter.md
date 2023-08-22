@@ -49,12 +49,12 @@ import "@elf/elf-theme-halo/dark/coral-checkbox"; // Can be any theme.
 				})
 			},
 			{
-				title: "Grid Checkbox State",
+				name: "Grid Checkbox State",
 				field: "myCheckBoxState",
 				alignment: "c",
 			},
 			{
-				title: "Text",
+				name: "Text",
 				field: fields[0],
 				alignment: "c",
 			}
@@ -100,12 +100,12 @@ import "@elf/elf-theme-halo/dark/coral-checkbox"; // Can be any theme.
 				})
 			},
 			{
-				title: "Grid Checkbox State",
+				name: "Grid Checkbox State",
 				field: "myCheckBoxState",
 				alignment: "c",
 			},
 			{
-				title: "Text",
+				name: "Text",
 				field: fields[1],
 				alignment: "c",
 			}

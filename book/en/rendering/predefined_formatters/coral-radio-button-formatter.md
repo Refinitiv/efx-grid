@@ -41,12 +41,12 @@ This formatter creates a radio button which will be  unchecked by default.
 				})
 			},
 			{
-				title: "Number",
+				name: "Number",
 				field: fields[0],
 				alignment: "c",
 			},
 			{
-				title: "Description",
+				name: "Description",
 				field: fields[1],
 				alignment: "c",
 			}

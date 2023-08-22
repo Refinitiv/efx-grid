@@ -2427,7 +2427,7 @@ Grid.prototype.addStaticDataRows = function(dataRows, fields) {
 /** Insert, update, remove and reorder data based on the given array of records
 * @public
 * @param {Array.&lt;Object&gt;} records Array of records for insert, remove, update, reorder in one operation
-* @param {string} rowIdentifier Check difference data with the row identifier map property for operate record.
+* @param {string=} rowIdentifier Check difference data with the row identifier map property for operate record.
 * @example
 * // Grid data set will be updated to 3 records. All rows in the grid will be cleared and new rows will be inserted
 * grid.updateDataSet([
@@ -2479,47 +2479,64 @@ Grid.prototype.updateDataSet = function(records, rowIdentifier) {
 	var rowDef, id, record, i;
 	var rowDefs = this.getAllRowDefinitions(); // Include the filter/hidden rows
 	var rowDefCount = rowDefs.length;
-	for (i = 0; i &lt; rowDefCount; i++) {
-		rowDef = rowDefs[i];
-		if(rowDef) {
-			id = rowDef.getRowData()[rowIdentifier];
-			if(id || id === 0) {
-				oldDataMap[id] = rowDef;
-			} else { // Any existing rowDef without row identifier should be removed
-				this.removeRow(rowDef); // Slow
+	if(rowIdentifier) {
+		for (i = 0; i &lt; rowDefCount; i++) {
+			rowDef = rowDefs[i];
+			if(rowDef) {
+				id = rowDef.getRowData()[rowIdentifier];
+				if(id || id === 0) {
+					oldDataMap[id] = rowDef;
+				} else { // Any existing rowDef without row identifier should be removed
+					this.removeRow(rowDef); // Slow
+				}
+			}
+		}
+
+		var idMap = {};
+		var newDataMap = {};
+		for (i = recordCount - 1; i &gt;= 0; i--) {
+			record = records[i];
+			id = record[rowIdentifier];
+			rowDef = oldDataMap[id];
+			newDataMap[id] = record; // Assign a new data map to compare to the previous data
+			record[fieldSorting] = i;
+			if(idMap[id]) { // Prevent assign data in duplicate row
+				continue;
+			}
+			idMap[id] = true;
+			if (!rowDef) {
+				this.insertRow({ values: record}); // Insert last position
+			} else {
+				rowDef.setRowData(record);
+			}
+		}
+		// Check Remove previous data
+		for (var rowIdentifierName in oldDataMap) {
+			if (oldDataMap[rowIdentifierName] &amp;&amp; !newDataMap[rowIdentifierName]) {
+				this.removeRow(oldDataMap[rowIdentifierName]); // Slow
+			}
+		}
+		this._dt.sortOnce(ROW_DEF, "a", compareNumber, fieldSorting);
+	} else {
+		for (i = 0; i &lt; rowDefCount; i++) {
+			record = records[i];
+			if(record) {
+				oldDataMap[i] = rowDefs[i]; // Use index instead of rowIdentifier
+			} else {
+				this.removeRow(rowDefs[i]); // Need to use rowRef, can't use index in view
+			}
+		}
+
+		for (i = 0; i &lt; recordCount; i++) { // It will be sort by index when insert / update
+			record = records[i];
+			rowDef = oldDataMap[i];
+			if (!rowDef) {
+				this.insertRow({ values: record}); // Insert last position
+			} else {
+				rowDef.setRowData(record);
 			}
 		}
 	}
-
-	// Check Update and Insert
-	var idMap = {};
-	var newDataMap = {};
-	for (i = recordCount - 1; i &gt;= 0; i--) {
-		record = records[i];
-		id = record[rowIdentifier];
-		rowDef = oldDataMap[id];
-		newDataMap[id] = record; // Assign a new data map to compare to the previous data
-		record[fieldSorting] = i;
-		if(idMap[id]) { // Prevent assign data in duplicate row
-			continue;
-		}
-		idMap[id] = true;
-		if (!rowDef) {
-			this.insertRow({ values: record}); // Insert last position
-		} else {
-			rowDef.setRowData(record);
-		}
-	}
-
-	// Check Remove previous data
-	for (var rowIdentifierName in oldDataMap) {
-		if (oldDataMap[rowIdentifierName] &amp;&amp; !newDataMap[rowIdentifierName]) {
-			this.removeRow(oldDataMap[rowIdentifierName]); // Slow
-		}
-	}
-
-	// Sorting
-	this._dt.sortOnce(ROW_DEF, "a", compareNumber, fieldSorting);
 };
 /** @private
 * @param {Array|Object} item

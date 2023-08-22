@@ -560,24 +560,24 @@
 		columnGrouping: [
 			{ 
 				id: "g1",
-				title: "Participant",
+				name: "Participant",
 				alignment: "center", 
 				children: ["c0", "c1", "c2"] 
 			},
 			{ 
 				id: "g2",
-				title: "Game of Choice",
+				name: "Game of Choice",
 				alignment: "center",
 				children: ["c3", "c4"] 
 			},
 			{ 
 				id: "g3",
-				title: "Performance",
+				name: "Performance",
 				children: ["c5"]
 			},
 			{
 				id: "g4",
-				title: "Monthly Breakdown",
+				name: "Monthly Breakdown",
 				alignment: "left",
 				children: ["c8", "c9", "c10", "c11", "c12", "c13", "c14", "c15", "c16", "c17", "c18", "c19"]
 			}

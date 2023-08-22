@@ -78,13 +78,13 @@ For all available options and APIs, please visit [SortableTitlePlugin](../apis/c
 			threeStatesSorting: true
 		},
 		columns: [
-			{title: "Company", field: fields[0]},
-			{title: "Market", field: fields[1], width: 80},
-			{title: "Group 1", field: fields[2], width: 80},
-			{title: "Group 2", field: fields[3], width: 80},
-			{title: "Last", field: fields[4], width: 80},
-			{title: "Net. Chng", field: fields[5], width: 80},
-			{title: "Industry", field: fields[6]}
+			{name: "Company", field: fields[0]},
+			{name: "Market", field: fields[1], width: 80},
+			{name: "Group 1", field: fields[2], width: 80},
+			{name: "Group 2", field: fields[3], width: 80},
+			{name: "Last", field: fields[4], width: 80},
+			{name: "Net. Chng", field: fields[5], width: 80},
+			{name: "Industry", field: fields[6]}
 		],
 		staticDataRows: records
 	};

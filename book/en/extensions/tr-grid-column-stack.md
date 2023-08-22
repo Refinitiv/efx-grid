@@ -21,33 +21,33 @@ The Column Stack Extension is an extension that provides a single representative
 	var configObj = {
 		columns: [
 			{
-				title: "Company",
+				name: "Company",
 				field: fields[0]
 			},
 			{
-				title: "Last",
+				name: "Last",
 				field: fields[1],
 				width: 100
 			},
 			{
-				title: "Net. Chng",
+				name: "Net. Chng",
 				field: fields[2],
 				width: 100,
 				stackId: "stack1"
 			},
 			{
-				title: "PCt. Chng",
+				name: "PCt. Chng",
 				field: fields[3],
 				width: 100,
 				stackId: "stack1"
 			},
 			{
-				title: "Volume",
+				name: "Volume",
 				field: fields[4],
 				width: 100
 			},
 			{
-				title: "Market",
+				name: "Market",
 				field: fields[5],
 				width: 120,
 				stack: {
@@ -56,7 +56,7 @@ The Column Stack Extension is an extension that provides a single representative
 				}
 			},
 			{
-				title: "Industry",
+				name: "Industry",
 				field: fields[6],
 				stack: {
 					id: "stack2",
@@ -64,7 +64,7 @@ The Column Stack Extension is an extension that provides a single representative
 				}
 			},
 			{
-				title: "IPO Date",
+				name: "IPO Date",
 				field: fields[7],
 				stack: {
 					id: "stack2",

@@ -182,11 +182,11 @@ Language:
 	var records = DataGenerator.generateRecords(fields, { numRows: 10 });
 	var configObj = {
 		columns: [
-			{title: "Company", field: fields[0], sortable: true, fieldDataType: "text"},
-			{title: "Market", field: fields[1], width: 100, sortable: true, fieldDataType: "text"},
-			{title: "Last", field: fields[2], width: 100, sortable: true, fieldDataType: "number"},
-			{title: "Net. Chng", field: fields[3], width: 100, sortable: true, fieldDataType: "number"},
-			{title: "IPO Date", field: fields[4], sortable: true, fieldDataType: "datetime"}
+			{name: "Company", field: fields[0], sortable: true, fieldDataType: "text"},
+			{name: "Market", field: fields[1], width: 100, sortable: true, fieldDataType: "text"},
+			{name: "Last", field: fields[2], width: 100, sortable: true, fieldDataType: "number"},
+			{name: "Net. Chng", field: fields[3], width: 100, sortable: true, fieldDataType: "number"},
+			{name: "IPO Date", field: fields[4], sortable: true, fieldDataType: "datetime"}
 		],
 		dataModel: {
 			data: records

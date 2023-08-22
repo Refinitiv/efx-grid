@@ -33,7 +33,7 @@ First, we have the grid and some data in the grid. You can set static data by cl
 </style>
 	
 	<!--  Set predifined color with api  -->
-    <h4>Example 1 save data from grid</h4>
+	<h4>Example 1 save data from grid</h4>
 	<span>Row Index</span>
 	<input value="1" type="number" id="row_index">
 	<hr>
@@ -193,7 +193,7 @@ First, we have the grid and some data in the grid. You can set static data by cl
 </style>
 
 	<!-- For restore config to grid -->
-    <h4>Example 2 load data to grid</h4>
+	<h4>Example 2 load data to grid</h4>
 	<span> You can load the grid config with pase in below text area and then click "Start Grid" </span>
 	<hr>
 	<button id="start_grid"> Start Grid </button>

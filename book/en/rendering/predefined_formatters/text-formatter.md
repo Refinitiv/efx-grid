@@ -23,13 +23,13 @@ The purpose of this formatter is creating a generic element for further modifica
 	var configObj = {
 		columns: [
 			{ 
-				title: "Column 1",
+				name: "Column 1",
 				field: fields[0],
 				alignment: "right",
 				binding: TextFormatter.create()
 			},
 			{ 
-				title: "Column 2",
+				name: "Column 2",
 				field: fields[1],
 				alignment: "center",
 				binding: TextFormatter.create({
@@ -39,7 +39,7 @@ The purpose of this formatter is creating a generic element for further modifica
 				})
 			},
 			{ 
-				title: "Big Text",
+				name: "Big Text",
 				field: fields[2],
 				binding: TextFormatter.create({
 					styles: {

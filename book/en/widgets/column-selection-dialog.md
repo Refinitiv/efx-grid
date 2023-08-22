@@ -41,14 +41,14 @@ Language:
   var records = DataGenerator.generateRecords(fields, { numRows: 6 });
 
   var allColumns = [
-    {title: "Company", field: fields[0], disabled: true},
-    {title: "Market", field: fields[1], width: 100},
-    {title: "Last", field: fields[2], width: 80, alignment: "right"},
-    {title: "Net. Chng", field: fields[3], width: 80, alignment: "right"},
-    {title: "Industry", field: fields[4]},
-    {title: "Volumn", field: fields[5], alignment: "right"},
-    {title: "IPO Date", field: fields[6]},
-    {title: "Pct. Chng", field: fields[7], alignment: "right"}
+    {name: "Company", field: fields[0], disabled: true},
+    {name: "Market", field: fields[1], width: 100},
+    {name: "Last", field: fields[2], width: 80, alignment: "right"},
+    {name: "Net. Chng", field: fields[3], width: 80, alignment: "right"},
+    {name: "Industry", field: fields[4]},
+    {name: "Volumn", field: fields[5], alignment: "right"},
+    {name: "IPO Date", field: fields[6]},
+    {name: "Pct. Chng", field: fields[7], alignment: "right"}
   ];
 
   var configObj = {
@@ -171,14 +171,14 @@ For more information about internationalization and how is it applied in differe
   var records = DataGenerator.generateRecords(fields, 20);
 
   var allColumns = [
-    {title: "Company", field: fields[0], disabled: true},
-    {title: "Market", field: fields[1], width: 100},
-    {title: "Last", field: fields[2], width: 80, alignment: "right"},
-    {title: "Net. Chng", field: fields[3], width: 80, alignment: "right"},
-    {title: "Industry", field: fields[4]},
-    {title: "Volumn", field: fields[5], alignment: "right"},
-    {title: "IPO Date", field: fields[6]},
-    {title: "Pct. Chng", field: fields[7], alignment: "right"}
+    {name: "Company", field: fields[0], disabled: true},
+    {name: "Market", field: fields[1], width: 100},
+    {name: "Last", field: fields[2], width: 80, alignment: "right"},
+    {name: "Net. Chng", field: fields[3], width: 80, alignment: "right"},
+    {name: "Industry", field: fields[4]},
+    {name: "Volumn", field: fields[5], alignment: "right"},
+    {name: "IPO Date", field: fields[6]},
+    {name: "Pct. Chng", field: fields[7], alignment: "right"}
   ];
 
   var configObj = {
@@ -281,14 +281,14 @@ In case you are having pinned columns, and you do not want pinned columns to be 
   var records = DataGenerator.generateRecords(fields, 20);
 
   var allColumns = [
-    {title: "Company", field: fields[0], width: 250, leftPinned: true, stationary: true},
-    {title: "Market", field: fields[1], width: 250},
-    {title: "Last", field: fields[2], width: 120, alignment: "right"},
-    {title: "Net. Chng", field: fields[3], width: 100, alignment: "right"},
-    {title: "Industry", field: fields[4], width: 200},
-    {title: "Volumn", field: fields[5], width: 100, alignment: "right"},
-    {title: "IPO Date", field: fields[6], width: 100},
-    {title: "Pct. Chng", field: fields[7], width: 100, alignment: "right"}
+    {name: "Company", field: fields[0], width: 250, leftPinned: true, stationary: true},
+    {name: "Market", field: fields[1], width: 250},
+    {name: "Last", field: fields[2], width: 120, alignment: "right"},
+    {name: "Net. Chng", field: fields[3], width: 100, alignment: "right"},
+    {name: "Industry", field: fields[4], width: 200},
+    {name: "Volumn", field: fields[5], width: 100, alignment: "right"},
+    {name: "IPO Date", field: fields[6], width: 100},
+    {name: "Pct. Chng", field: fields[7], width: 100, alignment: "right"}
   ];
 
   var configObj = {
@@ -375,14 +375,14 @@ The "RESTORE DEFAULT" button will show only when defaultItems has been set. This
 
 ```js
 var allColumns = [
-	{title: "Company", field: fields[0], disabled: true},
-	{title: "Market", field: fields[1], width: 100},
-	{title: "Last", field: fields[2], width: 80, alignment: "right"},
-	{title: "Net. Chng", field: fields[3], width: 80, alignment: "right"},
-	{title: "Industry", field: fields[4]},
-	{title: "Volumn", field: fields[5], alignment: "right"},
-	{title: "IPO Date", field: fields[6]},
-	{title: "Pct. Chng", field: fields[7], alignment: "right"}
+	{name: "Company", field: fields[0], disabled: true},
+	{name: "Market", field: fields[1], width: 100},
+	{name: "Last", field: fields[2], width: 80, alignment: "right"},
+	{name: "Net. Chng", field: fields[3], width: 80, alignment: "right"},
+	{name: "Industry", field: fields[4]},
+	{name: "Volumn", field: fields[5], alignment: "right"},
+	{name: "IPO Date", field: fields[6]},
+	{name: "Pct. Chng", field: fields[7], alignment: "right"}
 ];
 
 grid.columns = [
@@ -427,14 +427,14 @@ In the example below, we will demonstrate how to retain the sorting and filterin
   var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry", "CF_VOLUMN", "date", "PCTCHNG2"];
   var records = DataGenerator.generateRecords(fields, 20);
   var allColumns = [
-    {title: "Company", field: fields[0], disabled: true},
-    {title: "Market", field: fields[1], width: 100},
-    {title: "Last", field: fields[2], width: 80, alignment: "right"},
-    {title: "Net. Chng", field: fields[3], width: 80, alignment: "right"},
-    {title: "Industry", field: fields[4]},
-    {title: "Volumn", field: fields[5], alignment: "right"},
-    {title: "IPO Date", field: fields[6]},
-    {title: "Pct. Chng", field: fields[7], alignment: "right"}
+    {name: "Company", field: fields[0], disabled: true},
+    {name: "Market", field: fields[1], width: 100},
+    {name: "Last", field: fields[2], width: 80, alignment: "right"},
+    {name: "Net. Chng", field: fields[3], width: 80, alignment: "right"},
+    {name: "Industry", field: fields[4]},
+    {name: "Volumn", field: fields[5], alignment: "right"},
+    {name: "IPO Date", field: fields[6]},
+    {name: "Pct. Chng", field: fields[7], alignment: "right"}
   ];
 
   var configObj = {

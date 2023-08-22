@@ -28,17 +28,17 @@ This formatter creates a [ef-combo-box](https://ui.refinitiv.com/elements/combo-
 	var configObj = {
 		columns: [
 			{ 
-				title: "Column 1",
+				name: "Column 1",
 				field: fields[0],
 				alignment: "center"
 			},
 			{
-				title: "Column 2",
+				name: "Column 2",
 				field: fields[1],
 				alignment: "center"
 			},
 			{
-				title: "Select",
+				name: "Select",
 				field: fields[2],
 				alignment: "center",
 				binding: EFComboBoxFormatter.create({

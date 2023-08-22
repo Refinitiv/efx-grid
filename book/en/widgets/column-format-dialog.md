@@ -46,12 +46,12 @@ Language:
   var records = DataGenerator.generateRecords(fields, { numRows: 10 });
   var configObj = {
     columns: [
-      {title: "Company", field: fields[0]},
-      {title: "Market", field: fields[1], width: 100},
-      {title: "Last", field: fields[2], width: 80, alignment: "right"},
-      {title: "Net. Chng", field: fields[3], width: 80, alignment: "right"},
-      {title: "Volume", field: fields[4], alignment: "right"},
-      {title: "IPO date", field: fields[5], width: 100}
+      {name: "Company", field: fields[0]},
+      {name: "Market", field: fields[1], width: 100},
+      {name: "Last", field: fields[2], width: 80, alignment: "right"},
+      {name: "Net. Chng", field: fields[3], width: 80, alignment: "right"},
+      {name: "Volume", field: fields[4], alignment: "right"},
+      {name: "IPO date", field: fields[5], width: 100}
     ],
     dataModel: {
       data: records

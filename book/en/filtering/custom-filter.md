@@ -103,7 +103,7 @@ The Filter Input Extension provides an `inputCreated` event callback passed thro
 	var configObj = {
 		columns: [
 			{
-				title: "Rate",
+				name: "Rate",
 				field: "rate",
 				sortBy: "rate",
 				alignment: "right",
@@ -114,9 +114,9 @@ The Filter Input Extension provides an `inputCreated` event callback passed thro
 				width: 200,
 				alignment: "c"
 			},
-			{ title: "Date", field: "date", sortBy: "date", filterInput: { type: "date" }, binding: dateFormatter, alignment: "c" },
-			{ title: "Country", field: "country", sortBy: "country", width: 200, alignment: "c" },
-			{ title: "Currency", field: "currency", sortBy: "currency", filterInput: { type: "select", entries: ["PLN", "EUR", "SEK", "GBP", "DKK"] }, width: 200, alignment: "c" }
+			{ name: "Date", field: "date", sortBy: "date", filterInput: { type: "date" }, binding: dateFormatter, alignment: "c" },
+			{ name: "Country", field: "country", sortBy: "country", width: 200, alignment: "c" },
+			{ name: "Currency", field: "currency", sortBy: "currency", filterInput: { type: "select", entries: ["PLN", "EUR", "SEK", "GBP", "DKK"] }, width: 200, alignment: "c" }
 		],
 		rowFiltering: {
 			disabledUI: true

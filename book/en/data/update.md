@@ -147,11 +147,11 @@ var configObj = {
 		sortableColumns: true
 	},
 	columns: [
-		{ title: "RIC", field: fields[0], width: 70 },
-		{ title: "Last", field: fields[1], alignment: "right", blinking: true},
-		{ title: "Pct. Chng", field: fields[2], alignment: "right", blinking: true },
-		{ title: "Net. Chng", field: fields[3], alignment: "right", blinking: true },
-		{ title: "Close", field: fields[4], alignment: "right", blinking: true }
+		{ name: "RIC", field: fields[0], width: 70 },
+		{ name: "Last", field: fields[1], alignment: "right", blinking: true},
+		{ name: "Pct. Chng", field: fields[2], alignment: "right", blinking: true },
+		{ name: "Net. Chng", field: fields[3], alignment: "right", blinking: true },
+		{ name: "Close", field: fields[4], alignment: "right", blinking: true }
 	]
 };
 

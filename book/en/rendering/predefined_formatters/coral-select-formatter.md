@@ -38,17 +38,17 @@ This formatter creates `coral-select` without margin. Its options come from pass
 	var configObj = {
 		columns: [
 			{ 
-				title: "Column 1",
+				name: "Column 1",
 				field: fields[0],
 				alignment: "center"
 			},
 			{
-				title: "Column 2",
+				name: "Column 2",
 				field: fields[1],
 				alignment: "center"
 			},
 			{
-				title: "Select",
+				name: "Select",
 				field: fields[2],
 				alignment: "center",
 				binding: tr.CoralSelectFormatter.create({

@@ -28,7 +28,7 @@ This formatter creates a [ef-radio-button](https://ui.refinitiv.com/elements/rad
 		},
 		columns: [
 			{
-				title: " ",
+				name: " ",
 				alignment: "c",
 				field: "radio",
 				width: 34,
@@ -42,12 +42,12 @@ This formatter creates a [ef-radio-button](https://ui.refinitiv.com/elements/rad
 				})
 			},
 			{
-				title: "Number",
+				name: "Number",
 				field: fields[0],
 				alignment: "c",
 			},
 			{
-				title: "Description",
+				name: "Description",
 				field: fields[1],
 				alignment: "c",
 			}

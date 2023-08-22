@@ -19,17 +19,17 @@ This formatter creates an input without a margin and 100% width. By default the 
 	var configObj = {
 		columns: [
 			{ 
-				title: "Column 1",
+				name: "Column 1",
 				field: fields[0],
 				alignment: "center"
 			},
 			{ 
-				title: "Column 2",
+				name: "Column 2",
 				field: fields[1],
 				alignment: "center"
 			},
 			{ 
-				title: "Input",
+				name: "Input",
 				field: fields[0],
 				alignment: "center",
 				binding: SimpleInputFormatter.create()

@@ -28,7 +28,7 @@ There are no specific options for this formatter.
 		},
 		columns: [
 			{
-				title: "No Label",
+				name: "No Label",
 				alignment: "c",
 				field: fields[0],
 				width: 100,
@@ -40,7 +40,7 @@ There are no specific options for this formatter.
 				})
 			},
 			{
-				title: "With Label",
+				name: "With Label",
 				alignment: "c",
 				field: fields[0],
 				width: 100,
@@ -52,7 +52,7 @@ There are no specific options for this formatter.
 				})
 			},
 			{
-				title: "Checked",
+				name: "Checked",
 				field: fields[0],
 				alignment: "c"
 			}

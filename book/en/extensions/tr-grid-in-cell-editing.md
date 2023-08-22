@@ -30,11 +30,11 @@ The In-Cell Editing Extension provides full editing abilities for your grid, inc
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 5 });
 	var configObj = {
 		columns: [
-			{ title: "Company", field: fields[0] },
-			{ title: "Market", field: fields[1], width: 120 },
-			{ title: "Last", field: fields[2], width: 100 },
-			{ title: "Net. Chng", field: fields[3], width: 100 },
-			{ title: "Industry", field: fields[4] }
+			{ name: "Company", field: fields[0] },
+			{ name: "Market", field: fields[1], width: 120 },
+			{ name: "Last", field: fields[2], width: 100 },
+			{ name: "Net. Chng", field: fields[3], width: 100 },
+			{ name: "Industry", field: fields[4] }
 		],
 		staticDataRows: records,
 		inCellEditing: {
@@ -72,11 +72,11 @@ The live demo below demonstrates how to open editor with `single click` event. I
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 5 });
 	var configObj = {
 		columns: [
-			{ title: "Company", field: fields[0] },
-			{ title: "Market", field: fields[1], width: 120 },
-			{ title: "Last", field: fields[2], width: 100 },
-			{ title: "Net. Chng", field: fields[3], width: 100 },
-			{ title: "Industry", field: fields[4] }
+			{ name: "Company", field: fields[0] },
+			{ name: "Market", field: fields[1], width: 120 },
+			{ name: "Last", field: fields[2], width: 100 },
+			{ name: "Net. Chng", field: fields[3], width: 100 },
+			{ name: "Industry", field: fields[4] }
 		],
 		staticDataRows: records,
 		inCellEditing: {
@@ -126,8 +126,8 @@ Once the editing is completed, you may need to validate the data and convert the
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 5, seed: 0 });
 	var configObj = {
 		columns: [
-			{ title: "Company", field: fields[0], width: 100 },
-			{ title: "Number Content", field: fields[1], 
+			{ name: "Company", field: fields[0], width: 100 },
+			{ name: "Number Content", field: fields[1], 
 				editableContent: true,
 				formatType: {
 					type: "number",
@@ -166,7 +166,7 @@ There are 6 editor types you can use to edit your data. They are "text", "number
 Type "combobox" also support `multiple` mode which can be enable by passing `multiple` to `attributes` property
 ```js
 { 
-	title: "Column Title", 
+	name: "Column Title", 
 	field: "Column Field", 
 	inCellEditing: {
 		type: "combobox",
@@ -202,23 +202,23 @@ Type "combobox" also support `multiple` mode which can be enable by passing `mul
 
 	var configObj = {
 		columns: [
-			{ title: "Company", field: fields[0], inCellEditing: {type: "text"} },
-			{ title: "Market", field: fields[1], width: 90,
+			{ name: "Company", field: fields[0], inCellEditing: {type: "text"} },
+			{ name: "Market", field: fields[1], width: 90,
 				inCellEditing: {
 					type: "dropdown",
 					entries: ["NYSE", "NASDAQ", "HKEX", "SET"]
 				}
 			},
-			{ title: "Last", field: fields[2], width: 80, inCellEditing: {type: "number"} },
-			{ title: "Boolean", field: fields[3], width: 70, inCellEditing: {type: "checkbox"} },
-			{ title: "Date", field: fields[4], inCellEditing: {type: "date"} },
-			{ title: "Industry", field: fields[5], 
+			{ name: "Last", field: fields[2], width: 80, inCellEditing: {type: "number"} },
+			{ name: "Boolean", field: fields[3], width: 70, inCellEditing: {type: "checkbox"} },
+			{ name: "Date", field: fields[4], inCellEditing: {type: "date"} },
+			{ name: "Industry", field: fields[5], 
 				inCellEditing: {
 					type: "combobox",
 					entries: ["Specialty Chemicals", "Investment Managers", "Sample"]
 				} 
 			},
-			{ title: "Currency", field: fields[6], 
+			{ name: "Currency", field: fields[6], 
 				inCellEditing: {
 					type: "combobox",
 					entries: currencies,
@@ -289,11 +289,11 @@ The live demo below demonstrates how to control the row editor with the `openRow
 	var configObj = {
 		columns: [
 			{ width: 30, editableContent: false, binding: onRenderEditIcon },
-			{ title: "Company", field: fields[0] },
-			{ title: "Market", field: fields[1], width: 120 },
-			{ title: "Last", field: fields[2], width: 100 },
-			{ title: "Net. Chng", field: fields[3], width: 100, editableContent: false },
-			{ title: "Industry", field: fields[4], editableContent: false }
+			{ name: "Company", field: fields[0] },
+			{ name: "Market", field: fields[1], width: 120 },
+			{ name: "Last", field: fields[2], width: 100 },
+			{ name: "Net. Chng", field: fields[3], width: 100, editableContent: false },
+			{ name: "Industry", field: fields[4], editableContent: false }
 		],
 		staticDataRows: records,
 		inCellEditing: {
@@ -381,12 +381,12 @@ The example below show how to create an editor with `yes`, `no` and `none` optio
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 6 });
 	var configObj = {
 		columns: [
-			{title: "Company", field: fields[0]},
-			{title: "Market (editable)", field: fields[1], width: 150, editableContent: true},
-			{title: "Watch (editable)", field: fields[5], with: 150, editableContent: true},
-			{title: "Last", field: fields[2], width: 150},
-			{title: "Net. Chng", field: fields[3], width: 80},
-			{title: "Industry", field: fields[4]}
+			{name: "Company", field: fields[0]},
+			{name: "Market (editable)", field: fields[1], width: 150, editableContent: true},
+			{name: "Watch (editable)", field: fields[5], with: 150, editableContent: true},
+			{name: "Last", field: fields[2], width: 150},
+			{name: "Net. Chng", field: fields[3], width: 80},
+			{name: "Industry", field: fields[4]}
 		],
 		staticDataRows: records,
 		inCellEditing: {

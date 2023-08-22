@@ -20,29 +20,29 @@ A group header can be formatted using a formatter just like a normal cell.
 	var configObj = {
 		columnReorder: true,
 		columns: [
-			{id: "c1", title: "Company", field: fields[0]},
-			{id: "c2", title: "Market", field: fields[1], width: 100},
-			{id: "c3", title: "Last", field: fields[2], width: 80},
-			{id: "c4", title: "Net. Chng", field: fields[3], width: 80},
-			{id: "c5", title: "Industry", field: fields[4]}
+			{id: "c1", name: "Company", field: fields[0]},
+			{id: "c2", name: "Market", field: fields[1], width: 100},
+			{id: "c3", name: "Last", field: fields[2], width: 80},
+			{id: "c4", name: "Net. Chng", field: fields[3], width: 80},
+			{id: "c5", name: "Industry", field: fields[4]}
 		],
 		staticDataRows: records,
 		columnGrouping: [
 			{
 				id: "g1",
-				title: "Company Info",
+				name: "Company Info",
 				alignment: "center",
 				children: ["c1", "c2"]
 			},
 			{
 				id: "g2",
-				title: "Price",
+				name: "Price",
 				alignment: "center",
 				children: ["c3", "c4"]
 			},
 			{
 				id: "g4",
-				title: "Top 6 Companies",
+				name: "Top 6 Companies",
 				alignment: "center",
 				children: ["g1", "g2"],
 				render: function(e) {
@@ -50,7 +50,7 @@ A group header can be formatted using a formatter just like a normal cell.
 					var colIndex = e.colIndex;
 					var groupNode = e.groupNode;
 					cell.setStyle("color", "orange");
-					cell.setContent(groupNode.title);
+					cell.setContent(groupNode.name);
 				}
 			}
 		],
@@ -73,15 +73,15 @@ Installation examples and details of how to import the extension to a project ar
 ```js
 var gridConfig = {
 	columns: [
-		{ id: "c1", title: "Column 1" },
-		{ id: "c2", title: "Column 2" },
-		{ id: "c3", title: "Column 3" },
-		{ id: "c4", title: "Column 4" },
+		{ id: "c1", name: "Column 1" },
+		{ id: "c2", name: "Column 2" },
+		{ id: "c3", name: "Column 3" },
+		{ id: "c4", name: "Column 4" },
 	],
 	columnGrouping: [
-		{ id: "g1", title: "Group 1", children: ["c1", "c2"] },
-		{ id: "g2", title: "Group 2", children: ["c3"] },
-		{ id: "g3", title: "Group 3", children: ["c4", "g1", "g2"] },
+		{ id: "g1", name: "Group 1", children: ["c1", "c2"] },
+		{ id: "g2", name: "Group 2", children: ["c3"] },
+		{ id: "g3", name: "Group 3", children: ["c4", "g1", "g2"] },
 	]
 }
 ```
@@ -90,17 +90,17 @@ You can also assign a nested `columnGrouping` object in the children.
 ```js
 var gridConfig = {
 	columns: [
-		{ id: "c1", title: "Column 1" },
-		{ id: "c2", title: "Column 2" },
-		{ id: "c3", title: "Column 3" },
-		{ id: "c4", title: "Column 4" },
+		{ id: "c1", name: "Column 1" },
+		{ id: "c2", name: "Column 2" },
+		{ id: "c3", name: "Column 3" },
+		{ id: "c4", name: "Column 4" },
 	],
 	columnGrouping: [
 		{
-			id: "g3", title: "Group 3", children: [
+			id: "g3", name: "Group 3", children: [
 				"c4",
-				{ id: "g2", title: "Group 2", children: ["c3"] },
-				{ id: "g1", title: "Group 1", children: ["c1", "c2"] },
+				{ id: "g2", name: "Group 2", children: ["c3"] },
+				{ id: "g1", name: "Group 1", children: ["c1", "c2"] },
 			]
 		},
 	]
@@ -114,22 +114,22 @@ To custom render the group header, you can pass the `render` configuration as a 
 ```js
 var gridConfig = {
 	columns: [
-		{ id: "c1", title: "Column 1" },
-		{ id: "c2", title: "Column 2" },
-		{ id: "c3", title: "Column 3" },
-		{ id: "c4", title: "Column 4" },
+		{ id: "c1", name: "Column 1" },
+		{ id: "c2", name: "Column 2" },
+		{ id: "c3", name: "Column 3" },
+		{ id: "c4", name: "Column 4" },
 	],
 	columnGrouping: [
 		{
 			id: "g1",
-			title: "Group 1",
+			name: "Group 1",
 			children: ["c1", "c2"],
 			render: function(e) {
 				e.cell.setStyle("color", "red");
 			}
 		},
-		{ id: "g2", title: "Group 2", children: ["c3"] },
-		{ id: "g3", title: "Group 3", children: ["c4", "g1", "g2"] },
+		{ id: "g2", name: "Group 2", children: ["c3"] },
+		{ id: "g3", name: "Group 3", children: ["c4", "g1", "g2"] },
 	]
 }
 ```
@@ -147,16 +147,16 @@ The differences between the legacy (built-in) version of column grouping and the
 ```js
 var gridConfig = {
 	columns: [
-		{ id: "c1", title: "Column 1", columnGroup: "g1" },
-		{ id: "c2", title: "Column 2", columnGroup: "g1" },
-		{ id: "c3", title: "Column 3", columnGroup: "g2" },
+		{ id: "c1", name: "Column 1", columnGroup: "g1" },
+		{ id: "c2", name: "Column 2", columnGroup: "g1" },
+		{ id: "c3", name: "Column 3", columnGroup: "g2" },
 	],
 	columnGroups: [
-		{ id: "g1", title: "Group 1", parent: "g3" },
-		{ id: "g2", title: "Group 2", parent: "g3" },
+		{ id: "g1", name: "Group 1", parent: "g3" },
+		{ id: "g2", name: "Group 2", parent: "g3" },
 		{
 			id: "g3",
-			title: "Group 3",
+			name: "Group 3",
 			formatter: {
 				render: function(colIndex, cell, groupDefinition) {
 					cell.setStyle("color", "red");
@@ -173,17 +173,17 @@ As seen above, in the legacy version of Column Grouping you needed to specify th
 ```js
 var gridConfig = {
 	columns: [
-		{ id: "c1", title: "Column 1" },
-		{ id: "c2", title: "Column 2" },
-		{ id: "c3", title: "Column 3" },
-		{ id: "c4", title: "Column 4" },
+		{ id: "c1", name: "Column 1" },
+		{ id: "c2", name: "Column 2" },
+		{ id: "c3", name: "Column 3" },
+		{ id: "c4", name: "Column 4" },
 	],
 	columnGrouping: [
-		{ id: "g1", title: "Group 1", children: ["c1", "c2"] },
-		{ id: "g2", title: "Group 2", children: ["c3"] },
+		{ id: "g1", name: "Group 1", children: ["c1", "c2"] },
+		{ id: "g2", name: "Group 2", children: ["c3"] },
 		{
 			id: "g3",
-			title: "Group 3",
+			name: "Group 3",
 			children: ["c4", "g1", "g2"],
 			render: function(e) {
 				e.cell.setStyle("color", "red");
@@ -269,30 +269,30 @@ Also, note that the `render` config has moved out of the formatter config and re
 	var configObj = {
 		columnReorder: true,
 		columns: [
-			{id: "c1", title: "Company Name", field: fields[0]},
-			{id: "c2", title: "Industry", field: fields[1], width: 100},
-			{id: "c3", title: "Last", field: fields[2], width: 80},
-			{id: "c4", title: "Net. Chng", field: fields[3], width: 80},
-			{id: "c5", title: "Market", field: fields[4]},
-			{id: "c6", title: "Status", field: fields[5]}
+			{id: "c1", name: "Company Name", field: fields[0]},
+			{id: "c2", name: "Industry", field: fields[1], width: 100},
+			{id: "c3", name: "Last", field: fields[2], width: 80},
+			{id: "c4", name: "Net. Chng", field: fields[3], width: 80},
+			{id: "c5", name: "Market", field: fields[4]},
+			{id: "c6", name: "Status", field: fields[5]}
 		],
 		staticDataRows: records,
 		columnGrouping: [
 			{
 				id: "g1",
-				title: "Group 1",
+				name: "Group 1",
 				alignment: "center",
 				children: ["c1", "c2"]
 			},
 			{
 				id: "g2",
-				title: "Group 2",
+				name: "Group 2",
 				alignment: "center",
 				children: ["c4", "c5"]
 			},
 			{
 				id: "g3",
-				title: "Group 3",
+				name: "Group 3",
 				alignment: "center",
 				children: ["g1","c3", "g2"],
 			}

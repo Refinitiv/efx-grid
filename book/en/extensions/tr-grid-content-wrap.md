@@ -27,11 +27,11 @@ Due to the performance concern, `contentWrap: true` has to specifically be set o
 	var configObj = {
 		rowVirtualization: false,
 		columns: [
-			{ title: "Company", field: fields[0] },
-			{ title: "Market", field: fields[1], width: 120 },
-			{ title: "Last", field: fields[2], width: 100 },
-			{ title: "Net. Chng", field: fields[3], width: 100 },
-			{ title: "Industry", field: fields[4], width: 120, contentWrap: true }
+			{ name: "Company", field: fields[0] },
+			{ name: "Market", field: fields[1], width: 120 },
+			{ name: "Last", field: fields[2], width: 100 },
+			{ name: "Net. Chng", field: fields[3], width: 100 },
+			{ name: "Industry", field: fields[4], width: 120, contentWrap: true }
 		],
 		staticDataRows: records,
 		extensions: [
@@ -61,11 +61,11 @@ Due to the performance concern, `contentWrap: true` has to specifically be set o
 	var configObj = {
 		rowVirtualization: false,
 		columns: [
-			{ title: "Company", field: fields[0] },
-			{ title: "Market", field: fields[1], width: 120 },
-			{ title: "Last", field: fields[2], width: 100 },
-			{ title: "Net. Chng", field: fields[3], width: 100 },
-			{ title: "Industry", field: fields[4], width: 120, contentWrap: true }
+			{ name: "Company", field: fields[0] },
+			{ name: "Market", field: fields[1], width: 120 },
+			{ name: "Last", field: fields[2], width: 100 },
+			{ name: "Net. Chng", field: fields[3], width: 100 },
+			{ name: "Industry", field: fields[4], width: 120, contentWrap: true }
 		],
 		staticDataRows: records,
 		contentWrap: {

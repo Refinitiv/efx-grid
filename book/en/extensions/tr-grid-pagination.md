@@ -28,12 +28,12 @@ The Pagination Extension provides behaviors that allow you to split a huge amoun
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 20 });
 	var configObj = {
 		columns: [
-			{title: "ID", field: fields[5], alignment: "center", width: 40},
-			{title: "Company", field: fields[0]},
-			{title: "Market", field: fields[1], width: 120},
-			{title: "Last", field: fields[2], width: 100},
-			{title: "Net. Chng", field: fields[3], width: 100},
-			{title: "Industry", field: fields[4]}
+			{name: "ID", field: fields[5], alignment: "center", width: 40},
+			{name: "Company", field: fields[0]},
+			{name: "Market", field: fields[1], width: 120},
+			{name: "Last", field: fields[2], width: 100},
+			{name: "Net. Chng", field: fields[3], width: 100},
+			{name: "Industry", field: fields[4]}
 		],
 		staticDataRows: records,
 		pagination: {

@@ -34,12 +34,12 @@ This formatter creates a link with text from the column's field by default.
 		},
 		columns: [
 			{ 
-				title: "Data",
+				name: "Data",
 				field: fields[0],
 				alignment: "c"
 			},
 			{ 
-				title: "Simplest",
+				name: "Simplest",
 				field: fields[0],
 				alignment: "c",
 				binding: SimpleLinkFormatter.create({
@@ -49,7 +49,7 @@ This formatter creates a link with text from the column's field by default.
 				})
 			},
 			{ 
-				title: "Some options",
+				name: "Some options",
 				field: fields[0],
 				alignment: "c",
 				binding: SimpleLinkFormatter.create({
@@ -69,7 +69,7 @@ This formatter creates a link with text from the column's field by default.
 				})
 			},
 			{ 
-				title: "Dynamic URL",
+				name: "Dynamic URL",
 				field: fields[0],
 				alignment: "c",
 				binding: SimpleLinkFormatter.create({

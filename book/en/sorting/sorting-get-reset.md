@@ -40,11 +40,11 @@ sort.clearSortState(); // Reset all sorting states to neutral
 			threeStatesSorting: true
 		},
 		columns: [
-			{title: "Company", field: fields[0]},
-			{title: "Market", field: fields[1], width: 120},
-			{title: "Last", field: fields[2], width: 100},
-			{title: "Net. Chng", field: fields[3], width: 100},
-			{title: "Industry", field: fields[4]}
+			{name: "Company", field: fields[0]},
+			{name: "Market", field: fields[1], width: 120},
+			{name: "Last", field: fields[2], width: 100},
+			{name: "Net. Chng", field: fields[3], width: 100},
+			{name: "Industry", field: fields[4]}
 		],
 		dataModel: {
 			data: records

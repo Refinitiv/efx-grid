@@ -24,11 +24,11 @@ If you want to enable the horizontal scrollbar, two conditions must be met:
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 6 });
 	var configObj = {
 		columns: [
-			{title: "Company", field: fields[0]},
-			{title: "Market", field: fields[1]},
-			{title: "Last", field: fields[2]},
-			{title: "Net. Chng", field: fields[3]},
-			{title: "Industry", field: fields[4]}
+			{name: "Company", field: fields[0]},
+			{name: "Market", field: fields[1]},
+			{name: "Last", field: fields[2]},
+			{name: "Net. Chng", field: fields[3]},
+			{name: "Industry", field: fields[4]}
 		],
 		staticDataRows: records
 	};
@@ -68,11 +68,11 @@ The Grid horizontal scrollbar, by default, is shown on top of the grid. This is 
 		autoHideScrollbar: false,
 		contentBottomPadding: 9,
 		columns: [
-			{title: "Company", field: fields[0], width: 300},
-			{title: "Market", field: fields[1], width: 150},
-			{title: "Last", field: fields[2], width: 150},
-			{title: "Net. Chng", field: fields[3], width: 150},
-			{title: "Industry", field: fields[4], width: 200}
+			{name: "Company", field: fields[0], width: 300},
+			{name: "Market", field: fields[1], width: 150},
+			{name: "Last", field: fields[2], width: 150},
+			{name: "Net. Chng", field: fields[3], width: 150},
+			{name: "Industry", field: fields[4], width: 200}
 		],
 		staticDataRows: records
 	};

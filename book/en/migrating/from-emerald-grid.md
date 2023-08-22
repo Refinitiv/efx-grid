@@ -22,18 +22,25 @@ If you have the following Emerald Grid configuration:
 
 ```js
 var configObj = {
-	formatter: {
-		render: function() {},
-		binding: function(rowIndex, colIndex, data, cell) {
-			var inputElem = cell.getContent();
-			if (!inputElem) {
-				inputElem = document.createElement("input");
+	columns: [
+		{
+			// Column options
+			formatter: {
+				render: function() {},
+				binding: function(rowIndex, colIndex, data, cell) {
+					var inputElem = cell.getContent();
+					if (!inputElem) {
+						inputElem = document.createElement("input");
+					}
+					
+					inputElem.value = data;
+					cell.setContent(inputElem);
+				}
 			}
-			
-			inputElem.value = data;
-			cell.setContent(inputElem);
-		}
-	}
+		},
+		...
+	]
+		
 };
 ```
 
@@ -41,16 +48,23 @@ then you would change to the following EFX Grid configuration:
 
 ```js
 var configObj = {
-	binding: function(e) {
-		var cell = e.cell;
-		var inputElem = cell.getContent();
-		if (!inputElem) {
-			inputElem = document.createElement("input");
-		}
-		
-		inputElem.value = e.data;
-		cell.setContent(inputElem);
-	}
+	columns: [
+		{
+			// Column options
+			binding: function(e) {
+				var cell = e.cell;
+				var inputElem = cell.getContent();
+				if (!inputElem) {
+					inputElem = document.createElement("input");
+				}
+				
+				inputElem.value = e.data;
+				cell.setContent(inputElem);
+			}
+		},
+		...
+	]
+	
 };
 ```
 

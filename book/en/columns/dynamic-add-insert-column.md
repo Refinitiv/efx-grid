@@ -21,8 +21,8 @@ Use the `insertColumn()` methods to insert a column with its configuration.
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 6 });
 	var configObj = {
 		columns: [
-			{title: "Column 1", minWidth: 100, field: fields[0]},
-			{title: "Column 2", minWidth: 100, field: fields[0]}
+			{name: "Column 1", minWidth: 100, field: fields[0]},
+			{name: "Column 2", minWidth: 100, field: fields[0]}
 		],
 		staticDataRows: records
 	};
@@ -45,7 +45,7 @@ Use the `insertColumn()` methods to insert a column with its configuration.
 	document.getElementById("insert_col_btn").addEventListener("click", function() {
 		idRunner++;
 		var lastIndex = grid.api.getColumnCount - 1;
-		grid.api.insertColumn({title: "Column "+idRunner, minWidth: 100, field: fields[0], styles: insertingStyles}, lastIndex);
+		grid.api.insertColumn({name: "Column "+idRunner, minWidth: 100, field: fields[0], styles: insertingStyles}, lastIndex);
 	});
 </script>
 ```

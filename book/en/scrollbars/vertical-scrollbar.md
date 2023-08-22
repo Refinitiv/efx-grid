@@ -24,11 +24,11 @@ If you want to enable the vertical scrollbar, two conditions must be met:
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 10 });
 	var configObj = {
 		columns: [
-			{title: "Company", field: fields[0]},
-			{title: "Market", field: fields[1], width: 100},
-			{title: "Last", field: fields[2], width: 80},
-			{title: "Net. Chng", field: fields[3], width: 80},
-			{title: "Industry", field: fields[4]}
+			{name: "Company", field: fields[0]},
+			{name: "Market", field: fields[1], width: 100},
+			{name: "Last", field: fields[2], width: 80},
+			{name: "Net. Chng", field: fields[3], width: 80},
+			{name: "Industry", field: fields[4]}
 		],
 		staticDataRows: records
 	};
@@ -74,11 +74,11 @@ The Grid vertical scrollbar, by default, is shown on top of the grid. This is to
 		autoHideScrollbar: false,
 		contentRightPadding: 14,
 		columns: [
-			{title: "Company", field: fields[0]},
-			{title: "Market", field: fields[1], width: 100},
-			{title: "Last", field: fields[2], width: 80},
-			{title: "Net. Chng", field: fields[3], width: 80},
-			{title: "Industry", field: fields[4]}
+			{name: "Company", field: fields[0]},
+			{name: "Market", field: fields[1], width: 100},
+			{name: "Last", field: fields[2], width: 80},
+			{name: "Net. Chng", field: fields[3], width: 80},
+			{name: "Industry", field: fields[4]}
 		],
 		staticDataRows: records
 	};

@@ -23,16 +23,16 @@ The Heat Map Extension provides heat map coloring for column fields, which will 
 	var configObj = {
 		columns: [
 			{
-				title: "Company",
+				name: "Company",
 				field: fields[0]
 			},
 			{
-				title: "Market",
+				name: "Market",
 				field: fields[1],
 				width: 120
 			},
 			{
-				title: "Last",
+				name: "Last",
 				field: fields[2],
 				width: 100,
 				heatMap: {
@@ -41,7 +41,7 @@ The Heat Map Extension provides heat map coloring for column fields, which will 
 				}
 			},
 			{
-				title: "Volume",
+				name: "Volume",
 				field: fields[3],
 				sortBy: fields[3],
 				width: 100,
@@ -51,7 +51,7 @@ The Heat Map Extension provides heat map coloring for column fields, which will 
 			},
 			{
 
-				title: "Pct. Chng",
+				name: "Pct. Chng",
 				field: fields[4],
 				sortBy: fields[4],
 				width: 100,

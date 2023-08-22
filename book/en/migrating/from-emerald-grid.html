@@ -29,7 +29,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="76a69613-0842-4283-a4a3-b16abea122f9">
+        <pandora-nav id="fb516772-075f-4f50-b7e1-b034904a7316">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -291,31 +291,45 @@
             <h4 id="sample">Sample</h4>
             <p>If you have the following Emerald Grid configuration:</p>
             <pre><code><span class="hljs-keyword">var</span> configObj = {
-    <span class="hljs-attr">formatter</span>: {
-        <span class="hljs-attr">render</span>: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{},
-        <span class="hljs-attr">binding</span>: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">rowIndex, colIndex, data, cell</span>) </span>{
-            <span class="hljs-keyword">var</span> inputElem = cell.getContent();
-            <span class="hljs-keyword">if</span> (!inputElem) {
-                inputElem = <span class="hljs-built_in">document</span>.createElement(<span class="hljs-string">"input"</span>);
-            }
+    <span class="hljs-attr">columns</span>: [
+        {
+            <span class="hljs-comment">// Column options</span>
+            <span class="hljs-attr">formatter</span>: {
+                <span class="hljs-attr">render</span>: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params"></span>) </span>{},
+                <span class="hljs-attr">binding</span>: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">rowIndex, colIndex, data, cell</span>) </span>{
+                    <span class="hljs-keyword">var</span> inputElem = cell.getContent();
+                    <span class="hljs-keyword">if</span> (!inputElem) {
+                        inputElem = <span class="hljs-built_in">document</span>.createElement(<span class="hljs-string">"input"</span>);
+                    }
 
-            inputElem.value = data;
-            cell.setContent(inputElem);
-        }
-    }
+                    inputElem.value = data;
+                    cell.setContent(inputElem);
+                }
+            }
+        },
+        ...
+    ]
+
 };</code></pre>
             <p>then you would change to the following EFX Grid configuration:</p>
             <pre><code><span class="hljs-keyword">var</span> configObj = {
-    <span class="hljs-attr">binding</span>: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
-        <span class="hljs-keyword">var</span> cell = e.cell;
-        <span class="hljs-keyword">var</span> inputElem = cell.getContent();
-        <span class="hljs-keyword">if</span> (!inputElem) {
-            inputElem = <span class="hljs-built_in">document</span>.createElement(<span class="hljs-string">"input"</span>);
-        }
+    <span class="hljs-attr">columns</span>: [
+        {
+            <span class="hljs-comment">// Column options</span>
+            <span class="hljs-attr">binding</span>: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>) </span>{
+                <span class="hljs-keyword">var</span> cell = e.cell;
+                <span class="hljs-keyword">var</span> inputElem = cell.getContent();
+                <span class="hljs-keyword">if</span> (!inputElem) {
+                    inputElem = <span class="hljs-built_in">document</span>.createElement(<span class="hljs-string">"input"</span>);
+                }
 
-        inputElem.value = e.data;
-        cell.setContent(inputElem);
-    }
+                inputElem.value = e.data;
+                cell.setContent(inputElem);
+            }
+        },
+        ...
+    ]
+
 };</code></pre>
             <blockquote>
               <p>Note that the parameter names are now defined by the event argument. Some parameters may have its name changed. Please use the debugger to check for the parameters' availability.</p>

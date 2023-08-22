@@ -253,11 +253,11 @@ Click the green button on the bottom right corner of the live example to see the
 	var records = DataGenerator.generateRecords(fields, { numRows: 40 });
 	var configObj = {
 		columns: [
-			{title: "Company", field: fields[0], binding: capitalizer},
-			{title: "Market", field: fields[1], width: 100},
-			{title: "Last", field: fields[2], width: 80},
-			{title: "Buy/Sell", field: fields[3], width: 100, binding: rangeBarFormatter},
-			{title: "IPO", field: fields[4], alienment: "center", binding: yearDisplay}
+			{name: "Company", field: fields[0], binding: capitalizer},
+			{name: "Market", field: fields[1], width: 100},
+			{name: "Last", field: fields[2], width: 80},
+			{name: "Buy/Sell", field: fields[3], width: 100, binding: rangeBarFormatter},
+			{name: "IPO", field: fields[4], alienment: "center", binding: yearDisplay}
 		],
 		staticDataRows: records
 	};

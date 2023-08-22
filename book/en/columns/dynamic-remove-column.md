@@ -27,12 +27,12 @@ Use the `removeColumn()`, `removeColumns()` or `removeAllColumns()` methods to r
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 6 });
 	var configObj = {
 		columns: [
-			{title: "Column 0", field: fields[0]},
-			{title: "Column 1", field: fields[0]},
-			{title: "Column 2", field: fields[0]},
-			{title: "Column 3", field: fields[0]},
-			{title: "Column 4", field: fields[0]},
-			{title: "Column 5", field: fields[0], visible: false}
+			{name: "Column 0", field: fields[0]},
+			{name: "Column 1", field: fields[0]},
+			{name: "Column 2", field: fields[0]},
+			{name: "Column 3", field: fields[0]},
+			{name: "Column 4", field: fields[0]},
+			{name: "Column 5", field: fields[0], visible: false}
 		],
 		staticDataRows: records
 	};

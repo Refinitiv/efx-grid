@@ -30,12 +30,12 @@ This formatter creates `emerald-datatime-picker` in duplex mode without margin.
 	var configObj = {
 		columns: [
 			{
-				title: "Column 1",
+				name: "Column 1",
 				field: fields[0],
 				alignment: "center"
 			},
 			{
-				title: "DateTimePicker",
+				name: "DateTimePicker",
 				field: "date",
 				binding: tr.DuplexEmeraldDateTimePickerFormatter.create({
 					from: fields[1],

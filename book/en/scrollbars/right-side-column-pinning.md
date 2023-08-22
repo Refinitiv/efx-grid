@@ -27,14 +27,14 @@ When Grid contains controls or buttons on the right side you should freeze or pi
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 10 });
 	var configObj = {
 		columns: [
-			{title: "Company", field: fields[0], width: 250},
-			{title: "Market", field: fields[1], width: 100},
-			{title: "Last", field: fields[2], width: 100},
-			{title: "Net. Chng", field: fields[3], width: 100},
-			{title: "Industry", field: fields[4], width: 300},
-			{title: "Op.1", field: fields[5], width: 60, rightPinned: true, binding: buttonFormatter, alignment: "center"},
-			{title: "Op.2", field: fields[5], width: 60, rightPinned: true, binding: buttonFormatter, alignment: "center"},
-			{title: "Op.3", field: fields[5], width: 60, rightPinned: true, binding: buttonFormatter, alignment: "center"}
+			{name: "Company", field: fields[0], width: 250},
+			{name: "Market", field: fields[1], width: 100},
+			{name: "Last", field: fields[2], width: 100},
+			{name: "Net. Chng", field: fields[3], width: 100},
+			{name: "Industry", field: fields[4], width: 300},
+			{name: "Op.1", field: fields[5], width: 60, rightPinned: true, binding: buttonFormatter, alignment: "center"},
+			{name: "Op.2", field: fields[5], width: 60, rightPinned: true, binding: buttonFormatter, alignment: "center"},
+			{name: "Op.3", field: fields[5], width: 60, rightPinned: true, binding: buttonFormatter, alignment: "center"}
 		],
 		staticDataRows: records
 	};

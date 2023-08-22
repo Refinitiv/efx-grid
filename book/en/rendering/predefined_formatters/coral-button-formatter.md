@@ -24,7 +24,7 @@ This formatter creates a button without a margin. By default the text inside the
 	var configObj = {
 		columns: [
 			{ 
-				title: "Button",
+				name: "Button",
 				field: fields[0],
 				alignment: "center",
 				binding: tr.CoralButtonFormatter.create({
@@ -44,17 +44,17 @@ This formatter creates a button without a margin. By default the text inside the
 				})
 			},
 			{ 
-				title: "Column 2",
+				name: "Column 2",
 				field: fields[0],
 				alignment: "center"
 			},
 			{ 
-				title: "Column 3",
+				name: "Column 3",
 				field: fields[1],
 				alignment: "center"
 			},
 			{ 
-				title: "Column 4",
+				name: "Column 4",
 				field: fields[2],
 				alignment: "center"
 			}

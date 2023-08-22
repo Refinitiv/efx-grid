@@ -47,7 +47,7 @@ grid.config = {
   columns: [
     // column-specific option
     {
-    	title: "Number",
+    	name: "Number",
     	field: "number",
     	autoTooltip: true // column's specific option
     }

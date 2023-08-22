@@ -21,13 +21,13 @@ grid.config = {
 		sortableColumns: true
 	},
 	columns: [
-		{ id: 'c1', title: 'No.', field: 'intCol', width: 70 },
-		{ id: 'c2', title: 'Name', field: 'strCol', minWidth: 550 },
-		{ id: 'c3', title: '£', field: 'floatCol', alignment: 'center', columnGroup: 'price' },
-		{ id: 'c4', title: '$', field: 'floatCol2', alignment: 'center', columnGroup: 'price' }
+		{ id: 'c1', name: 'No.', field: 'intCol', width: 70 },
+		{ id: 'c2', name: 'Name', field: 'strCol', minWidth: 550 },
+		{ id: 'c3', name: '£', field: 'floatCol', alignment: 'center', columnGroup: 'price' },
+		{ id: 'c4', name: '$', field: 'floatCol2', alignment: 'center', columnGroup: 'price' }
 	],
 	columnGroups: [
-		{ id: 'price', title: 'Price', alignment: 'center' }
+		{ id: 'price', name: 'Price', alignment: 'center' }
 	],
 	staticDataRows: records
 };

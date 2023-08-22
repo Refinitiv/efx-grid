@@ -19,11 +19,11 @@ The ability of drag and drop column is enabled by default. But it can be turned 
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 10 });
 	var configObj = {
 		columns: [
-			{title: "Company", field: fields[0]},
-			{title: "Market", field: fields[1], width: 100},
-			{title: "Last", field: fields[2], width: 80},
-			{title: "Net. Chng", field: fields[3], width: 80},
-			{title: "Industry", field: fields[4]}
+			{name: "Company", field: fields[0]},
+			{name: "Market", field: fields[1], width: 100},
+			{name: "Last", field: fields[2], width: 80},
+			{name: "Net. Chng", field: fields[3], width: 80},
+			{name: "Industry", field: fields[4]}
 		],
 		staticDataRows: records
 	};
@@ -49,11 +49,11 @@ The ability of drag and drop column is enabled by default. But it can be turned 
 	var configObj = {
 		noColumnDragging: true, // disabled column re-order
 		columns: [
-			{title: "Company", field: fields[0]},
-			{title: "Market", field: fields[1], width: 100},
-			{title: "Last", field: fields[2], width: 80},
-			{title: "Net. Chng", field: fields[3], width: 80},
-			{title: "Industry", field: fields[4]}
+			{name: "Company", field: fields[0]},
+			{name: "Market", field: fields[1], width: 100},
+			{name: "Last", field: fields[2], width: 80},
+			{name: "Net. Chng", field: fields[3], width: 80},
+			{name: "Industry", field: fields[4]}
 		],
 		staticDataRows: records
 	};
@@ -168,11 +168,11 @@ By marking a column to be a `stationary` column, any column on the left and the 
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 10 });
 	var configObj = {
 		columns: [
-			{title: "Company (stationary)", field: fields[0], stationary: true},
-			{title: "Market", field: fields[1], width: 100},
-			{title: "Last", field: fields[2], width: 80},
-			{title: "Net. Chng", field: fields[3], width: 80},
-			{title: "Industry", field: fields[4]}
+			{name: "Company (stationary)", field: fields[0], stationary: true},
+			{name: "Market", field: fields[1], width: 100},
+			{name: "Last", field: fields[2], width: 80},
+			{name: "Net. Chng", field: fields[3], width: 80},
+			{name: "Industry", field: fields[4]}
 		],
 		staticDataRows: records,
 		extensions: [new tr.CheckboxExtension()]

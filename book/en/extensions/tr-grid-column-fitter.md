@@ -24,11 +24,11 @@ The Column Fitter provides an automatically adjusting column width that fits a c
 	var records = tr.DataGenerator.generateRecords(fields, { seed: 0, numRows: 5 });
 	var configObj = {
 		columns: [
-			{title: "Company", field: fields[0]},
-			{title: "Market", field: fields[1], width: 120},
-			{title: "Last", field: fields[2], width: 100},
-			{title: "Net. Chng", field: fields[3], width: 100},
-			{title: "Industry", field: fields[4]}
+			{name: "Company", field: fields[0]},
+			{name: "Market", field: fields[1], width: 120},
+			{name: "Last", field: fields[2], width: 100},
+			{name: "Net. Chng", field: fields[3], width: 100},
+			{name: "Industry", field: fields[4]}
 		],
 		staticDataRows: records,
 		extensions: [
@@ -130,7 +130,7 @@ grid.config = {
 	columns: [
 		// other columns
 		{
-			title: "Custom format",
+			name: "Custom format",
 			field: "someField",
 			binding: customFormatter,
 			contentFitting: true // Turn this on
@@ -175,11 +175,11 @@ grid.config = {
 
 	var configObj = {
 		columns: [
-			{title: "Company", field: fields[0], binding: onRenderStars, contentFitting: true},
-			{title: "Market", field: fields[1], width: 120},
-			{title: "Last", field: fields[2], width: 100},
-			{title: "Net. Chng", field: fields[3], width: 100},
-			{title: "Industry", field: fields[4]}
+			{name: "Company", field: fields[0], binding: onRenderStars, contentFitting: true},
+			{name: "Market", field: fields[1], width: 120},
+			{name: "Last", field: fields[2], width: 100},
+			{name: "Net. Chng", field: fields[3], width: 100},
+			{name: "Industry", field: fields[4]}
 		],
 		staticDataRows: records,
 		extensions: [

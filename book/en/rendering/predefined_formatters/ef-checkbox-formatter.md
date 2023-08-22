@@ -34,12 +34,12 @@ This formatter creates a [ef-checkbox](https://ui.refinitiv.com/elements/checkbo
 				})
 			},
 			{
-				title: "Grid Checkbox State",
+				name: "Grid Checkbox State",
 				field: "myCheckBoxState",
 				alignment: "c",
 			},
 			{
-				title: "Text",
+				name: "Text",
 				field: fields[0],
 				alignment: "c",
 			}
@@ -85,12 +85,12 @@ This formatter creates a [ef-checkbox](https://ui.refinitiv.com/elements/checkbo
 				})
 			},
 			{
-				title: "Grid Checkbox State",
+				name: "Grid Checkbox State",
 				field: "myCheckBoxState",
 				alignment: "c",
 			},
 			{
-				title: "Text",
+				name: "Text",
 				field: fields[1],
 				alignment: "c",
 			}

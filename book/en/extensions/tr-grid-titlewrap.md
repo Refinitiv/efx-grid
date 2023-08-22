@@ -12,11 +12,11 @@ The Title Wrap Extension wraps column headers into multiple lines if the text is
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 5 });
 	var configObj = {
 		columns: [
-			{ title: "Company", field: fields[0] },
-			{ title: "Very Long Column Header Name", field: fields[1], width: 120 },
-			{ title: "Average Price (last year)", field: fields[2], width: 100, alignment: "right" },
-			{ title: "Average Net. Change (last year)", field: fields[3], width: 100, alignment: "right" },
-			{ title: "Industry", field: fields[4] }
+			{ name: "Company", field: fields[0] },
+			{ name: "Very Long Column Header Name", field: fields[1], width: 120 },
+			{ name: "Average Price (last year)", field: fields[2], width: 100, alignment: "right" },
+			{ name: "Average Net. Change (last year)", field: fields[3], width: 100, alignment: "right" },
+			{ name: "Industry", field: fields[4] }
 		],
 		staticDataRows: records,
 		extensions: [
@@ -43,11 +43,11 @@ Installation examples and details of how to import the extension to a project ar
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 5 });
 	var configObj = {
 		columns: [
-			{ title: "Company", field: fields[0] },
-			{ title: "Very Long Column Header Name", field: fields[1], width: 120 },
-			{ title: "Average Price (last year)", field: fields[2], width: 100, alignment: "right" },
-			{ title: "Average Net. Change (last year)", field: fields[3], width: 100, alignment: "right" },
-			{ title: "Industry", field: fields[4] }
+			{ name: "Company", field: fields[0] },
+			{ name: "Very Long Column Header Name", field: fields[1], width: 120 },
+			{ name: "Average Price (last year)", field: fields[2], width: 100, alignment: "right" },
+			{ name: "Average Net. Change (last year)", field: fields[3], width: 100, alignment: "right" },
+			{ name: "Industry", field: fields[4] }
 		],
 		staticDataRows: records,
 		titleWrap: {
@@ -73,22 +73,22 @@ Installation examples and details of how to import the extension to a project ar
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 5 });
 	var configObj = {
 		columns: [
-			{ id: "c1", title: "Company", field: fields[0] },
-			{ id: "c2", title: "Long Column Header Name", field: fields[1], width: 120 },
-			{ id: "c3", title: "Average Price (last year)", field: fields[2], width: 100, alignment: "right" },
-			{ id: "c4", title: "Average Net. Change (last year)", field: fields[3], width: 100, alignment: "right" },
-			{ id: "c5", title: "Industry", field: fields[4] }
+			{ id: "c1", name: "Company", field: fields[0] },
+			{ id: "c2", name: "Long Column Header Name", field: fields[1], width: 120 },
+			{ id: "c3", name: "Average Price (last year)", field: fields[2], width: 100, alignment: "right" },
+			{ id: "c4", name: "Average Net. Change (last year)", field: fields[3], width: 100, alignment: "right" },
+			{ id: "c5", name: "Industry", field: fields[4] }
 		],
 		staticDataRows: records,
 		columnGrouping: [{
 			id: "g1",
-			title: "Company Information",
+			name: "Company Information",
 			alignment: "center",
 			children: ["c1", "c2"]
 		},
 		{
 			id: "g2",
-			title: "Price",
+			name: "Price",
 			alignment: "center",
 			children: ["c3", "c4"]
 		}],
@@ -112,27 +112,27 @@ Installation examples and details of how to import the extension to a project ar
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 5 });
 	var configObj = {
 		columns: [
-			{ id: "c1", title: "Company", field: fields[0] },
-			{ id: "c2", title: "Very Long Column Header Name", field: fields[1], width: 120 },
-			{ id: "c3", title: "Average Price (last year)", field: fields[2], width: 100, alignment: "right" },
-			{ id: "c4", title: "Average Net. Change (last year)", field: fields[3], width: 100, alignment: "right" },
-			{ id: "c5", title: "Industry", field: fields[4] }
+			{ id: "c1", name: "Company", field: fields[0] },
+			{ id: "c2", name: "Very Long Column Header Name", field: fields[1], width: 120 },
+			{ id: "c3", name: "Average Price (last year)", field: fields[2], width: 100, alignment: "right" },
+			{ id: "c4", name: "Average Net. Change (last year)", field: fields[3], width: 100, alignment: "right" },
+			{ id: "c5", name: "Industry", field: fields[4] }
 		],
 		staticDataRows: records,
 		columnGrouping: [{
 			id: "g1",
-			title: "Company Information",
+			name: "Company Information",
 			alignment: "center",
 			children: ["c1", "c2"]
 		},
 		{
 			id: "g2",
-			title: "Price",
+			name: "Price",
 			alignment: "center",
 			children: ["c3", "c4"]
 		}, {
 			id: "g3",
-			title: "Top 5 Companies",
+			name: "Top 5 Companies",
 			alignment: "center",
 			children: ["g1", "g2", "c5"]
 		}],

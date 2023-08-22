@@ -26,13 +26,13 @@ This formatter creates an image from the column's field by default.
 		},
 		columns: [
 			{
-				title: "Image",
+				name: "Image",
 				field: fields[0],
 				alignment: "c",
 				binding: SimpleImageFormatter.create()
 			},
 			{
-				title: "Small Image",
+				name: "Small Image",
 				field: fields[1],
 				alignment: "c",
 				binding: SimpleImageFormatter.create()

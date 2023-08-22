@@ -30,11 +30,11 @@ Color: <input id="color_inp" type="color" value="#cbaacb">
 	var records = tr.DataGenerator.generateRecords(fields, { seed: 0, numRows: 5 });
 	var configObj = {
 		columns: [
-			{ title: "Company", field: fields[0] },
-			{ title: "Market", field: fields[1], width: 120 },
-			{ title: "Last", field: fields[2], width: 100 },
-			{ title: "Net. Chng", field: fields[3], width: 100 },
-			{ title: "Industry", field: fields[4] }
+			{ name: "Company", field: fields[0] },
+			{ name: "Market", field: fields[1], width: 120 },
+			{ name: "Last", field: fields[2], width: 100 },
+			{ name: "Net. Chng", field: fields[3], width: 100 },
+			{ name: "Industry", field: fields[4] }
 		],
 		staticDataRows: records,
 		extensions: [
@@ -87,11 +87,11 @@ The extension supports text color and background color from the `dataTable`. To 
 	var records = tr.DataGenerator.generateRecords(fields, { seed: 0, numRows: 5 });
 	var configObj = {
 		columns: [
-			{ title: "Company", field: fields[0] },
-			{ title: "Market", field: fields[1], width: 120 },
-			{ title: "Last", field: fields[2], width: 100 },
-			{ title: "Net. Chng", field: fields[3], width: 100 },
-			{ title: "Industry", field: fields[4] }
+			{ name: "Company", field: fields[0] },
+			{ name: "Market", field: fields[1], width: 120 },
+			{ name: "Last", field: fields[2], width: 100 },
+			{ name: "Net. Chng", field: fields[3], width: 100 },
+			{ name: "Industry", field: fields[4] }
 		],
 		staticDataRows: records,
 		rowColoring: {
@@ -227,27 +227,27 @@ The extension also supports text color and background color from the predefined 
 	var configObj = {
 		columns: [
 			{
-				title: "Index",
+				name: "Index",
 				field: fields[5],
 				width: 50,
 				alignment: "center"
 			},
 			{
-				title: "Company",
+				name: "Company",
 				field: fields[0]
 			},
 			{
-				title: "Market",
+				name: "Market",
 				field: fields[1],
 				width: 120
 			},
 			{
-				title: "Last",
+				name: "Last",
 				field: fields[2],
 				width: 100
 			},
 			{
-				title: "Net. Chng",
+				name: "Net. Chng",
 				field: fields[3],
 				width: 100,
 				blinking: true,
@@ -270,7 +270,7 @@ The extension also supports text color and background color from the predefined 
 				]
 			},
 			{
-				title: "Industry",
+				name: "Industry",
 				field: fields[4]
 			}
 		],

@@ -31,10 +31,10 @@ var configObj = {
 	var fields = ["f1", "f2", "f3", "f4"];
 	var configObj = {
 		columns: [
-			{title: "Column 1", field: fields[0]},
-			{title: "Column 2", field: fields[1]},
-			{title: "Column 3", field: fields[2]},
-			{title: "Column 4", field: fields[3]}
+			{name: "Column 1", field: fields[0]},
+			{name: "Column 2", field: fields[1]},
+			{name: "Column 3", field: fields[2]},
+			{name: "Column 4", field: fields[3]}
 		],
 		staticDataRows: [
 			{f1: 1, f2: 2, f3: 3, f4: "Some String"},
@@ -81,10 +81,10 @@ var configObj2 = {
 	var fields = ["f1", "f2", "f3", "f4"];
 	var configObj = {
 		columns: [
-			{title: "Column 1", field: fields[0]},
-			{title: "Column 2", field: fields[1]},
-			{title: "Column 3", field: fields[2]},
-			{title: "Column 4", field: fields[3]}
+			{name: "Column 1", field: fields[0]},
+			{name: "Column 2", field: fields[1]},
+			{name: "Column 3", field: fields[2]},
+			{name: "Column 4", field: fields[3]}
 		],
 		staticDataRows: [
 			[1, 2, 3, "Some String"],

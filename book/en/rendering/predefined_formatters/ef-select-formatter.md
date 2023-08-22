@@ -28,13 +28,13 @@ This formatter creates [ef-select](https://ui.refinitiv.com/elements/select) wit
 	var configObj = {
 		columns: [
 			{ 
-				title: "Data",
+				name: "Data",
 				field: fields[0],
 				sort: fields[0],
 				alignment: "c"
 			},
 			{ 
-				title: "Simplest",
+				name: "Simplest",
 				field: fields[0],
 				sort: fields[0],
 				alignment: "c",
@@ -43,7 +43,7 @@ This formatter creates [ef-select](https://ui.refinitiv.com/elements/select) wit
 				})
 			},
 			{ 
-				title: "Some options",
+				name: "Some options",
 				field: fields[0],
 				sort: fields[0],
 				alignment: "c",

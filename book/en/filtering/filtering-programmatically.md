@@ -45,10 +45,10 @@ rowFilterExt.setColumnFilter(1, function(rowData, rowId, ctx) {
 	var textFormatExt = new tr.TextFormattingExtension();
 	var configObj = {
 		columns: [
-			{ title: "Rank", field: "rank", sortBy: "rank" },
-			{ title: "Country", field: "country", sortBy: "country" },
+			{ name: "Rank", field: "rank", sortBy: "rank" },
+			{ name: "Country", field: "country", sortBy: "country" },
 			{
-				title: "GDP (Millions of USD)",
+				name: "GDP (Millions of USD)",
 				field: "gdp",
 				sortBy: "gdp",
 				alignment: "right",

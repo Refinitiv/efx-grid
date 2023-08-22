@@ -18,11 +18,11 @@ The Checkbox Extension adds a column with checkboxes to Grid for selecting singl
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 5 });
 	var configObj = {
 		columns: [
-			{title: "Company", field: fields[0]},
-			{title: "Market", field: fields[1], width: 120},
-			{title: "Last", field: fields[2], width: 100},
-			{title: "Net. Chng", field: fields[3], width: 100},
-			{title: "Industry", field: fields[4]}
+			{name: "Company", field: fields[0]},
+			{name: "Market", field: fields[1], width: 120},
+			{name: "Last", field: fields[2], width: 100},
+			{name: "Net. Chng", field: fields[3], width: 100},
+			{name: "Industry", field: fields[4]}
 		],
 		staticDataRows: records,
 		extensions: [
@@ -96,11 +96,11 @@ The Select All (Check All) action will only perform `checked` to the data on the
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 15 });
 	var configObj = {
 		columns: [
-			{title: "Company", field: fields[0]},
-			{title: "Market", field: fields[1], width: 120},
-			{title: "Last", field: fields[2], width: 100},
-			{title: "Net. Chng", field: fields[3], width: 100},
-			{title: "Industry", field: fields[4]}
+			{name: "Company", field: fields[0]},
+			{name: "Market", field: fields[1], width: 120},
+			{name: "Last", field: fields[2], width: 100},
+			{name: "Net. Chng", field: fields[3], width: 100},
+			{name: "Industry", field: fields[4]}
 		],
 		staticDataRows: records,
 		pagination: {
@@ -145,12 +145,12 @@ The example below places the checkbox column on the second column and makes it s
 	var records = tr.DataGenerator.generateRecords(fields, { seed: 0, numRows: 6 });
 	var configObj = {
 		columns: [
-			{title: "Company", field: fields[0]},
+			{name: "Company", field: fields[0]},
 			{checkboxColumn: true, sortable: true, sortingSequence: ["d", "n"], width: 50, alignment: "left"},
-			{title: "Market", field: fields[1], width: 100},
-			{title: "Last", field: fields[2], width: 80},
-			{title: "Net. Chng", field: fields[3], width: 80},
-			{title: "Industry", field: fields[4]}
+			{name: "Market", field: fields[1], width: 100},
+			{name: "Last", field: fields[2], width: 80},
+			{name: "Net. Chng", field: fields[3], width: 80},
+			{name: "Industry", field: fields[4]}
 		],
 		staticDataRows: records,
 		extensions: [
@@ -177,11 +177,11 @@ In the example below, the "boolean" field is bound as a state for the checkboxes
 	var records = tr.DataGenerator.generateRecords(fields, { seed: 0, numRows: 6 });
 	var configObj = {
 		columns: [
-			{title: "Company", field: fields[0]},
-			{title: "Market", field: fields[1], width: 100},
-			{title: "Last", field: fields[2], width: 80},
-			{title: "Net. Chng", field: fields[3], width: 80},
-			{title: "Industry", field: fields[4]}
+			{name: "Company", field: fields[0]},
+			{name: "Market", field: fields[1], width: 100},
+			{name: "Last", field: fields[2], width: 80},
+			{name: "Net. Chng", field: fields[3], width: 80},
+			{name: "Industry", field: fields[4]}
 		],
 		staticDataRows: records,
 		checkbox: {
@@ -209,11 +209,11 @@ If you want to select the column based on the checkbox state. just turn on the f
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 6 });
 	var configObj = {
 		columns: [
-			{title: "Company", field: fields[0]},
-			{title: "Market", field: fields[1], width: 100},
-			{title: "Last", field: fields[2], width: 80},
-			{title: "Net. Chng", field: fields[3], width: 80},
-			{title: "Industry", field: fields[4]}
+			{name: "Company", field: fields[0]},
+			{name: "Market", field: fields[1], width: 100},
+			{name: "Last", field: fields[2], width: 80},
+			{name: "Net. Chng", field: fields[3], width: 80},
+			{name: "Industry", field: fields[4]}
 		],
 		staticDataRows: records,
 		checkbox: {

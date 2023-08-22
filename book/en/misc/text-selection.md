@@ -36,8 +36,8 @@ If you use Safari, try clicking the button in column `Market` from the sample be
 		rowVirtualRendering: false,
 		textSelect : true,
 		columns: [
-			{title: "Company", field: fields[0]},
-			{title: "Market", field: fields[1], formatter: buttonDisplay , width: 120}
+			{name: "Company", field: fields[0]},
+			{name: "Market", field: fields[1], formatter: buttonDisplay , width: 120}
 		],
 		staticDataRows: records
 	};

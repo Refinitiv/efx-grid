@@ -16,11 +16,11 @@ The height of content rows can be adjusted using the `rowHeight` property. Since
 	var configObj = {
 		rowHeight: 60,
 		columns: [
-			{title: "Company", field: fields[0]},
-			{title: "Market", field: fields[1], width: 100},
-			{title: "Last", field: fields[2], width: 80},
-			{title: "Net. Chng", field: fields[3], width: 80},
-			{title: "Industry", field: fields[4]}
+			{name: "Company", field: fields[0]},
+			{name: "Market", field: fields[1], width: 100},
+			{name: "Last", field: fields[2], width: 80},
+			{name: "Net. Chng", field: fields[3], width: 80},
+			{name: "Industry", field: fields[4]}
 		],
 		staticDataRows: records
 	};
@@ -49,11 +49,11 @@ However, text wrapping is resource-intensive, so it is turned off by default. To
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 6 });
 	var configObj = {
 		columns: [
-			{title: "Company", field: fields[0]},
-			{title: "Market", field: fields[1], width: 100},
-			{title: "Last", field: fields[2], width: 80},
-			{title: "Net. Chng", field: fields[3], width: 80},
-			{title: "Industry", field: fields[4], width: 100, contentWrap: true}
+			{name: "Company", field: fields[0]},
+			{name: "Market", field: fields[1], width: 100},
+			{name: "Last", field: fields[2], width: 80},
+			{name: "Net. Chng", field: fields[3], width: 80},
+			{name: "Industry", field: fields[4], width: 100, contentWrap: true}
 		],
 		staticDataRows: records,
 		extensions: [

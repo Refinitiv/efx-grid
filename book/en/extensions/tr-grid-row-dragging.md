@@ -24,11 +24,11 @@ The Row Dragging Extension allows the user to drag and reorder selected rows.
 	var configObj = {
 		columns: [
 			{ field: fields[0], width: 30, alignment: "center" },
-			{ title: "Company", field: fields[1] },
-			{ title: "Market", field: fields[2], width: 120 },
-			{ title: "Last", field: fields[3], width: 100 },
-			{ title: "Net. Chng", field: fields[4], width: 100 },
-			{ title: "Industry", field: fields[5] }
+			{ name: "Company", field: fields[1] },
+			{ name: "Market", field: fields[2], width: 120 },
+			{ name: "Last", field: fields[3], width: 100 },
+			{ name: "Net. Chng", field: fields[4], width: 100 },
+			{ name: "Industry", field: fields[5] }
 		],
 		staticDataRows: records,
 		extensions: [
@@ -61,10 +61,10 @@ This allows users to customize the `dragBox` by providing a `dragBoxRenderer` op
 var gridConfig = {
 	...
 	columns: [
-		{ title: "Column 1", field: "col1" },
-		{ title: "Column 2", field: "col2" },
-		{ title: "Column 3", field: "col3" },
-		{ title: "Column 4", field: "col4" },
+		{ name: "Column 1", field: "col1" },
+		{ name: "Column 2", field: "col2" },
+		{ name: "Column 3", field: "col3" },
+		{ name: "Column 4", field: "col4" },
 	],
 	rowDragging: {
 		dragBoxRenderer: function(e) {
@@ -122,11 +122,11 @@ The Row Dragging Extension can be used together with the `RowSelectionPlugin` to
 	var configObj = {
 		columns: [
 			{ field: fields[0], width: 30, alignment: "center" },
-			{ title: "Company", field: fields[1] },
-			{ title: "Market", field: fields[2], width: 120 },
-			{ title: "Last", field: fields[3], width: 100 },
-			{ title: "Net. Chng", field: fields[4], width: 100 },
-			{ title: "Industry", field: fields[5] }
+			{ name: "Company", field: fields[1] },
+			{ name: "Market", field: fields[2], width: 120 },
+			{ name: "Last", field: fields[3], width: 100 },
+			{ name: "Net. Chng", field: fields[4], width: 100 },
+			{ name: "Industry", field: fields[5] }
 		],
 		staticDataRows: records,
 		rowDragging: {

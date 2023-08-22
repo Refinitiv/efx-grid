@@ -57,11 +57,11 @@ In the live example below, try the following steps to produce the problem:
 
 	var configObj = {
 		columns: [
-			{ title: "Row Index", field: fields[0], width: 80 },
-			{ title: "Dropdown", field: fields[1], binding: dropdownFormatter },
-			{ title: "Dropdown Value", field: fields[1] },
-			{ title: "Column 3", field: fields[2], alignment: "center" },
-			{ title: "Column 4", field: fields[3] }
+			{ name: "Row Index", field: fields[0], width: 80 },
+			{ name: "Dropdown", field: fields[1], binding: dropdownFormatter },
+			{ name: "Dropdown Value", field: fields[1] },
+			{ name: "Column 3", field: fields[2], alignment: "center" },
+			{ name: "Column 4", field: fields[3] }
 		],
 		staticDataRows: records
 	};
@@ -130,11 +130,11 @@ To avoid the problem, we have to add an event listener to our custom formatter f
 
 	var configObj = {
 		columns: [
-			{ title: "Row Index", field: fields[0], width: 80 },
-			{ title: "Dropdown", field: fields[1], binding: dropdownFormatter },
-			{ title: "Dropdown Value", field: fields[1] },
-			{ title: "Column 3", field: fields[2], alignment: "center" },
-			{ title: "Column 4", field: fields[3] }
+			{ name: "Row Index", field: fields[0], width: 80 },
+			{ name: "Dropdown", field: fields[1], binding: dropdownFormatter },
+			{ name: "Dropdown Value", field: fields[1] },
+			{ name: "Column 3", field: fields[2], alignment: "center" },
+			{ name: "Column 4", field: fields[3] }
 		],
 		staticDataRows: records
 	};

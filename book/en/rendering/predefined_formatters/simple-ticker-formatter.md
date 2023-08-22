@@ -46,28 +46,28 @@ This formatter creates a ticker column.
 		},
 		columns: [
 			{ 
-				title: "Last",
+				name: "Last",
 				field: fields[0],
 				alignment: "c"
 			},
 			{ 
-				title: "Changes",
+				name: "Changes",
 				field: fields[1],
 				alignment: "c",
 			},
 			{ 
-				title: "Changes %",
+				name: "Changes %",
 				field: fields[2],
 				alignment: "c",
 			},
 			{ 
-				title: "Default",
+				name: "Default",
 				field: fields[3],
 				alignment: "c",
 				binding: SimpleTickerFormatter.create()
 			},
 			{ 
-				title: "Custom",
+				name: "Custom",
 				field: fields[3],
 				alignment: "c",
 				binding: SimpleTickerFormatter.create({

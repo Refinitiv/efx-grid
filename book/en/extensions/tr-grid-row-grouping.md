@@ -26,10 +26,10 @@ The Row Grouping Extension uses categorization based on column field. Each group
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 20 });
 	var configObj = {
 		columns: [
-			{ title: "Company", field: fields[0] },
-			{ title: "Industry", field: fields[2] },
-			{ title: "Net. Chng", field: fields[3], width: 100, alignment: "right" },
-			{ title: "Updated", field: fields[4] }
+			{ name: "Company", field: fields[0] },
+			{ name: "Industry", field: fields[2] },
+			{ name: "Net. Chng", field: fields[3], width: 100, alignment: "right" },
+			{ name: "Updated", field: fields[4] }
 		],
 		staticDataRows: records,
 		rowGrouping: {
@@ -59,7 +59,7 @@ By default, there will be an extra row display as a header of each group.
 var config = {
 	// any other grid's options
 	columns: [{
-		{ id: 'c1', title: 'Column 1', field: 'col1' },
+		{ id: 'c1', name: 'Column 1', field: 'col1' },
 		// more column options
 	}],
 	rowGrouping: {
@@ -94,10 +94,10 @@ The initial groups created by the extension are expanded by default. To initiall
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 20 });
 	var configObj = {
 		columns: [
-			{ title: "Company", field: fields[0] },
-			{ title: "Industry", field: fields[2] },
-			{ title: "Net. Chng", field: fields[3], width: 100, alignment: "right" },
-			{ title: "Updated", field: fields[4] }
+			{ name: "Company", field: fields[0] },
+			{ name: "Industry", field: fields[2] },
+			{ name: "Net. Chng", field: fields[3], width: 100, alignment: "right" },
+			{ name: "Updated", field: fields[4] }
 		],
 		staticDataRows: records,
 		rowGrouping: {
@@ -145,10 +145,10 @@ This extension can work with the [Sorting Extension](../sorting/sorting.md) out-
 			sortableColumns: true
 		},
 		columns: [
-			{ title: "Company", field: fields[0] },
-			{ title: "Industry", field: fields[2] },
-			{ title: "Net. Chng", field: fields[3], width: 100, alignment: "right" },
-			{ title: "Updated", field: fields[4] }
+			{ name: "Company", field: fields[0] },
+			{ name: "Industry", field: fields[2] },
+			{ name: "Net. Chng", field: fields[3], width: 100, alignment: "right" },
+			{ name: "Updated", field: fields[4] }
 		],
 		staticDataRows: records,
 		rowGrouping: {
@@ -209,10 +209,10 @@ You can now see that `DJI` has more priority over `HKEX`.
 			sortableColumns: true
 		},
 		columns: [
-			{ title: "Company", field: fields[0] },
-			{ title: "Industry", field: fields[2] },
-			{ title: "Net. Chng", field: fields[3], width: 100, alignment: "right" },
-			{ title: "Updated", field: fields[4] }
+			{ name: "Company", field: fields[0] },
+			{ name: "Industry", field: fields[2] },
+			{ name: "Net. Chng", field: fields[3], width: 100, alignment: "right" },
+			{ name: "Updated", field: fields[4] }
 		],
 		staticDataRows: records,
 		rowGrouping: {
@@ -271,10 +271,10 @@ var config = {
 			sortableColumns: true
 		},
 		columns: [
-			{ title: "Company", field: fields[0] },
-			{ title: "Industry", field: fields[2] },
-			{ title: "Net. Chng", field: fields[3], width: 100, alignment: "right" },
-			{ title: "Updated", field: fields[4] }
+			{ name: "Company", field: fields[0] },
+			{ name: "Industry", field: fields[2] },
+			{ name: "Net. Chng", field: fields[3], width: 100, alignment: "right" },
+			{ name: "Updated", field: fields[4] }
 		],
 		staticDataRows: records,
 		rowGrouping: {
@@ -490,23 +490,23 @@ In the example below, we demonstrate how to customize the style of group header 
 	},
 	columns: [
 		{
-			title: "Industry",
+			name: "Industry",
 			field: fields[0],
 			statistics: "label"
 		},
 		{
-			title: "Describe",
+			name: "Describe",
 			field: fields[1]
 		},
 		{
-			title: "Price Close",
+			name: "Price Close",
 			field: fields[2],
 			alignment: "right",
 			binding: currencyBinding,
 			statistics: "currencyStat"
 		},
 		{
-			title: "Price Last",
+			name: "Price Last",
 			field: fields[3],
 			alignment: "center",
 			binding: currencyBinding,
@@ -628,11 +628,11 @@ In the example below, we demonstrate how to calculate the summation of row data 
 			nonGroupBinding: function (e) {}
 		},
 		columns: [
-			{ title: "Company", field: fields[0] },
-			{ title: "Industry", field: fields[1] },
-			{ title: "Net. Chng", field: fields[2], alignment: "center" },
-			{ title: "Integer", field: fields[3], alignment: "right" },
-			{ title: "Market", field: fields[4]},
+			{ name: "Company", field: fields[0] },
+			{ name: "Industry", field: fields[1] },
+			{ name: "Net. Chng", field: fields[2], alignment: "center" },
+			{ name: "Integer", field: fields[3], alignment: "right" },
+			{ name: "Market", field: fields[4]},
 		],
 		staticDataRows: records,
 		extensions: [
@@ -680,10 +680,10 @@ In many cases, a group of data might contain an `undefined` or `null` value. Thi
 			sortableColumns: true
 		},
 		columns: [
-			{ title: "Company", field: fields[0] },
-			{ title: "Industry", field: fields[2] },
-			{ title: "Net. Chng", field: fields[3], width: 100, alignment: "right" },
-			{ title: "Updated", field: fields[4] }
+			{ name: "Company", field: fields[0] },
+			{ name: "Industry", field: fields[2] },
+			{ name: "Net. Chng", field: fields[3], width: 100, alignment: "right" },
+			{ name: "Updated", field: fields[4] }
 		],
 		staticDataRows: records,
 		rowGrouping: {
@@ -757,10 +757,10 @@ var config = {
 			sortableColumns: true
 		},
 		columns: [
-			{ title: "Company", field: fields[0] },
-			{ title: "Industry", field: fields[2] },
-			{ title: "Net. Chng", field: fields[3], width: 100, alignment: "right" },
-			{ title: "Updated", field: fields[4] }
+			{ name: "Company", field: fields[0] },
+			{ name: "Industry", field: fields[2] },
+			{ name: "Net. Chng", field: fields[3], width: 100, alignment: "right" },
+			{ name: "Updated", field: fields[4] }
 		],
 		staticDataRows: records,
 		rowGrouping: {
@@ -822,11 +822,11 @@ In the case that data used for grouping is an array, the data row will be added 
 			sortableColumns: true
 		},
 		columns: [
-			{ title: "ID", field: fields[5], width: 80 },
-			{ title: "Company", field: fields[0] },
-			{ title: "Industry", field: fields[2] },
-			{ title: "Net. Chng", field: fields[3], width: 100, alignment: "right" },
-			{ title: "Updated", field: fields[4] }
+			{ name: "ID", field: fields[5], width: 80 },
+			{ name: "Company", field: fields[0] },
+			{ name: "Industry", field: fields[2] },
+			{ name: "Net. Chng", field: fields[3], width: 100, alignment: "right" },
+			{ name: "Updated", field: fields[4] }
 		],
 		staticDataRows: records,
 		rowGrouping: {
@@ -909,10 +909,10 @@ var config = {
 			sortableColumns: true
 		},
 		columns: [
-			{ title: "Company", field: fields[0] },
-			{ title: "Industry", field: fields[2] },
-			{ title: "Net. Chng", field: fields[3], width: 100, alignment: "right" },
-			{ title: "Updated", field: fields[4] }
+			{ name: "Company", field: fields[0] },
+			{ name: "Industry", field: fields[2] },
+			{ name: "Net. Chng", field: fields[3], width: 100, alignment: "right" },
+			{ name: "Updated", field: fields[4] }
 		],
 		staticDataRows: records,
 		rowGrouping: {
@@ -1057,10 +1057,10 @@ The extension supports color from the predefined colors. To do this you need to 
 	var ext = new tr.RowGroupingExtension();
 	var configObj = {
 		columns: [
-			{ title: "Company", field: fields[0] },
-			{ title: "Industry", field: fields[2] },
-			{ title: "Net. Chng", field: fields[3], width: 100, alignment: "right" },
-			{ title: "Updated", field: fields[4] }
+			{ name: "Company", field: fields[0] },
+			{ name: "Industry", field: fields[2] },
+			{ name: "Net. Chng", field: fields[3], width: 100, alignment: "right" },
+			{ name: "Updated", field: fields[4] }
 		],
 		staticDataRows: records,
 		rowGrouping: {
@@ -1179,23 +1179,23 @@ var configObj = {
   },
   columns: [
     {
-      title: "Industry",
+      name: "Industry",
       field: fields[0],
       statistics: "label"
     },
     {
-      title: "Describe",
+      name: "Describe",
       field: fields[1]
     },
     {
-      title: "Price Close",
+      name: "Price Close",
       field: fields[2],
       alignment: "right",
       binding: currencyBinding,
       statistics: "currencyStat"
     },
     {
-      title: "Price Last",
+      name: "Price Last",
       field: fields[3],
       alignment: "center",
       binding: currencyBinding,

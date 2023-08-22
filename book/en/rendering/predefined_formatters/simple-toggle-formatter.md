@@ -26,13 +26,13 @@ This formatter creates a toggle column with a default "eye" icon.
 		},
 		columns: [
 			{ 
-				title: "",
+				name: "",
 				field: fields[0],
 				alignment: "c",
 				binding: SimpleToggleFormatter.create()
 			},
 			{ 
-				title: "Column 2",
+				name: "Column 2",
 				field: fields[1],
 				alignment: "c",
 			}

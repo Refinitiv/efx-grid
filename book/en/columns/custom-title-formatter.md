@@ -42,23 +42,23 @@ grid.config = configObj;
 	var configObj = {
 		columns: [
 			{
-				title: "Company", field: fields[0], 
+				name: "Company", field: fields[0], 
 				headerBinding: TitleColorTagFormatter.bind(null, "#ff9933")
 			},
 			{
-				title: "Market", field: fields[1], width: 100, 
+				name: "Market", field: fields[1], width: 100, 
 				headerBinding: TitleColorTagFormatter.bind(null, "#f5475b")
 				},
 			{
-				title: "Last", field: fields[2], width: 80,
+				name: "Last", field: fields[2], width: 80,
 				headerBinding: TitleColorTagFormatter.bind(null, "#39c46e")
 			},
 			{
-				title: "Net. Chng", field: fields[3], width: 80,
+				name: "Net. Chng", field: fields[3], width: 80,
 				headerBinding: TitleColorTagFormatter.bind(null, "#46a0f0")
 			},
 			{
-				title: "Industry", field: fields[4],
+				name: "Industry", field: fields[4],
 				headerBinding: TitleColorTagFormatter.bind(null, "#2fb4c8")
 			}
 		],

@@ -28,12 +28,12 @@ There are no specific options for this formatter.
 		},
 		columns: [
 			{
-				title: "Number",
+				name: "Number",
 				alignment: "c",
 				field: fields[0]
 			},
 			{
-				title: "Numeric Input",
+				name: "Numeric Input",
 				field: fields[0],
 				alignment: "c",
 				binding: tr.NumericInputFormatter.create({
@@ -44,7 +44,7 @@ There are no specific options for this formatter.
 				})
 			},
 			{
-				title: "Disabled",
+				name: "Disabled",
 				field: fields[0],
 				alignment: "c",
 				binding: tr.NumericInputFormatter.create({
@@ -52,7 +52,7 @@ There are no specific options for this formatter.
 				})
 			},
 			{
-				title: "Readonly",
+				name: "Readonly",
 				field: fields[0],
 				alignment: "c",
 				binding: tr.NumericInputFormatter.create({
@@ -68,7 +68,7 @@ There are no specific options for this formatter.
 				})
 			},
 			{
-				title: "Boolean",
+				name: "Boolean",
 				field: fields[1],
 				alignment: "c"
 			}

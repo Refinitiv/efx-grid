@@ -28,11 +28,11 @@ The Row Segmenting Extension provides a way to group row content based on row in
 			sortableColumns: true
 		},
 		columns: [
-			{ title: "Company", field: fields[0] },
-			{ title: "Market", field: fields[1], width: 120 },
-			{ title: "Last", field: fields[2], width: 100 },
-			{ title: "Net. Chng", field: fields[3], width: 100 },
-			{ title: "Industry", field: fields[4] }
+			{ name: "Company", field: fields[0] },
+			{ name: "Market", field: fields[1], width: 120 },
+			{ name: "Last", field: fields[2], width: 100 },
+			{ name: "Net. Chng", field: fields[3], width: 100 },
+			{ name: "Industry", field: fields[4] }
 		],
 		staticDataRows: records,
 		extensions: [
@@ -257,11 +257,11 @@ Row segmenting can be sorted manually through an API `sortSeparators` from `Sort
 			segmentIdField: segmentId
 		},
 		columns: [
-			{ title: "Company", field: fields[0] },
-			{ title: "Market", field: fields[1], width: 120 },
-			{ title: "Last", field: fields[2], width: 100 },
-			{ title: "Net. Chng", field: fields[3], width: 100 },
-			{ title: "Industry", field: fields[4] }
+			{ name: "Company", field: fields[0] },
+			{ name: "Market", field: fields[1], width: 120 },
+			{ name: "Last", field: fields[2], width: 100 },
+			{ name: "Net. Chng", field: fields[3], width: 100 },
+			{ name: "Industry", field: fields[4] }
 		],
 		staticDataRows: records,
 		extensions: [
@@ -388,13 +388,13 @@ The extension supports color from the predefined colors. To do this you need to 
 	var fields = ["companyName", "CF_NETCHNG", "CF_VOLUME"];
 	var columns = fields.map(function(f) {
 		return {
-			title: f,
+			name: f,
 			field: f
 		};
 	});
 
 	columns.push({
-		title: "color",
+		name: "color",
 		field: "TAG_CSS_CLASS"
 	});
 
@@ -765,7 +765,7 @@ By default, segment header cannot be filtered out. However, Row Filtering Extens
 	var fields = ["id", "companyName", "index4", "percent", "market"];
 	var columns = fields.map(function (f, idx) {
 		return {
-			title: "Column " + idx,
+			name: "Column " + idx,
 			field: f
 		};
 	});

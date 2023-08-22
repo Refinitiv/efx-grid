@@ -75,9 +75,9 @@ mgr.setTableCount(3); // Or any other number
 	
 	var configObj = {
 		columns: [
-			{title: "Company", field: fields[0], width: 100},
-			{title: "Market", field: fields[1], width: 100},
-			{title: "Last", field: fields[2], width: 100}
+			{name: "Company", field: fields[0], width: 100},
+			{name: "Market", field: fields[1], width: 100},
+			{name: "Last", field: fields[2], width: 100}
 		],
 		staticDataRows: records,
 		extensions: [
@@ -191,9 +191,9 @@ If you are in wrap mode, `setTableCount` method will automatically disable wrap-
 			minWidth: 24
 		},
 		columns: [
-			{title: fields[0], width: 100, field: fields[0]},
-			{title: fields[2], width: 100, field: fields[2], formatType: "number", colorText: true },
-			{title: fields[3], width: 100, field: fields[3], formatType: "percent", blinking: true }
+			{name: fields[0], width: 100, field: fields[0]},
+			{name: fields[2], width: 100, field: fields[2], formatType: "number", colorText: true },
+			{name: fields[3], width: 100, field: fields[3], formatType: "percent", blinking: true }
 		],
 		staticDataRows: records,
 		extensions: [
@@ -328,10 +328,10 @@ The height for the grid can be specified on the vertical scrollbar host. If so, 
 			}
 		},
 		columns: [
-			{title: fields[0], field: fields[0], width: 120},
-			{title: fields[1], field: fields[1]},
-			{title: fields[2], field: fields[2], colorText: true},
-			{title: "Bid", field: "bid"}
+			{name: fields[0], field: fields[0], width: 120},
+			{name: fields[1], field: fields[1]},
+			{name: fields[2], field: fields[2], colorText: true},
+			{name: "Bid", field: "bid"}
 		],
 		staticDataRows: records1
 	};
@@ -343,10 +343,10 @@ The height for the grid can be specified on the vertical scrollbar host. If so, 
 			}
 		},
 		columns: [
-			{title: "Ask", field: "ask"},
-			{title: fields[2], field: fields[2], colorText: true},
-			{title: fields[1], field: fields[1]},
-			{title: fields[0], field: fields[0]}
+			{name: "Ask", field: "ask"},
+			{name: fields[2], field: fields[2], colorText: true},
+			{name: fields[1], field: fields[1]},
+			{name: fields[0], field: fields[0]}
 		],
 		staticDataRows: records2
 	};

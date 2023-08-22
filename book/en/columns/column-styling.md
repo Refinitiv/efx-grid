@@ -18,11 +18,11 @@ Columns can be styled by using CSS in the `styles` property of the column defini
 	};
 	var configObj = {
 		columns: [
-			{title: "Company", field: fields[0], styles: styles},
-			{title: "Market", field: fields[1], width: 100},
-			{title: "Last", field: fields[2], width: 80},
-			{title: "Net. Chng", field: fields[3], width: 80},
-			{title: "Industry", field: fields[4]}
+			{name: "Company", field: fields[0], styles: styles},
+			{name: "Market", field: fields[1], width: 100},
+			{name: "Last", field: fields[2], width: 80},
+			{name: "Net. Chng", field: fields[3], width: 80},
+			{name: "Industry", field: fields[4]}
 		],
 		staticDataRows: records
 	};

@@ -19,11 +19,11 @@ The Context Menu Extension provides the capability to display a customized conte
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 5 });
 	var configObj = {
 		columns: [
-			{ title: "Company", field: fields[0] },
-			{ title: "Market", field: fields[1], width: 120 },
-			{ title: "Last", field: fields[2], width: 100 },
-			{ title: "Net. Chng", field: fields[3], width: 100 },
-			{ title: "Industry", field: fields[4] }
+			{ name: "Company", field: fields[0] },
+			{ name: "Market", field: fields[1], width: 120 },
+			{ name: "Last", field: fields[2], width: 100 },
+			{ name: "Net. Chng", field: fields[3], width: 100 },
+			{ name: "Industry", field: fields[4] }
 		],
 		staticDataRows: records,
 		contextMenu: {

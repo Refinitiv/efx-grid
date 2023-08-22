@@ -23,7 +23,7 @@ To define how Grid renders its layout and content, use the column propertires as
 
 ```js
 let columns: ColumnDefinition.Options[] = [
-    { title: "Header Text", field: "For Mapping Data" },
+    { name: "Header Text", field: "For Mapping Data" },
     // ... columns data
 ];
 ```

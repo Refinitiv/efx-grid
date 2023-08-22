@@ -28,20 +28,20 @@ The Column Formatting Extension incorporates all features from the [Conditional 
 	var configObj = {
 		columns: [
 			{
-				title: "Company",
+				name: "Company",
 				field: fields[0],
 				colorText: { 
 					field: "PCTCHNG2"
 				}
 			},
 			{
-				title: "Market",
+				name: "Market",
 				field: fields[1],
 				width: 120,
 				alignment: "center"
 			},
 			{
-				title: "Volume",
+				name: "Volume",
 				field: fields[2],
 				width: 120,
 				alignment: "right",
@@ -52,7 +52,7 @@ The Column Formatting Extension incorporates all features from the [Conditional 
 				}
 			},
 			{
-				title: "Net. Chng",
+				name: "Net. Chng",
 				field: fields[3],
 				width: 120,
 				formatType: {
@@ -65,7 +65,7 @@ The Column Formatting Extension incorporates all features from the [Conditional 
 				}
 			},
 			{
-				title: "Pct. Chng",
+				name: "Pct. Chng",
 				field: fields[4],
 				width: 100,
 				formatType: {
@@ -80,7 +80,7 @@ The Column Formatting Extension incorporates all features from the [Conditional 
 				}]
 			},
 			{
-				title: "IPO Date",
+				name: "IPO Date",
 				field: fields[5],
 				alignment: "center",
 				formatType: {

@@ -16,17 +16,17 @@ The Statistics Row Extension provides special rows to show various statistics fo
 		},
 		columns: [
 			{
-				title: "Company",
+				name: "Company",
 				field: fields[0],
 				statistics: "label"
 			},
 			{
-				title: "Market",
+				name: "Market",
 				field: fields[1],
 				width: 120
 			},
 			{
-				title: "Last",
+				name: "Last",
 				field: fields[2],
 				width: 200,
 				alignment: "right",
@@ -34,7 +34,7 @@ The Statistics Row Extension provides special rows to show various statistics fo
 				statistics: true
 			},
 			{
-				title: "Net. Chng",
+				name: "Net. Chng",
 				field: fields[3],
 				width: 200,
 				alignment: "right",

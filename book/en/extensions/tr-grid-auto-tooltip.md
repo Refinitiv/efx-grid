@@ -18,11 +18,11 @@ The Auto Tooltip Extension displays clipped information when the user hovers the
 	var records = tr.DataGenerator.generateRecords(fields, { seed: 2, numRows: 5 });
 	var configObj = {
 		columns: [
-			{title: "Company", field: fields[0], width: 100},
-			{title: "Market", field: fields[1]},
-			{title: "Last", field: fields[2]},
-			{title: "Net. Chng", field: fields[3]},
-			{title: "Industry", field: fields[4], width: 120}
+			{name: "Company", field: fields[0], width: 100},
+			{name: "Market", field: fields[1]},
+			{name: "Last", field: fields[2]},
+			{name: "Net. Chng", field: fields[3]},
+			{name: "Industry", field: fields[4], width: 120}
 		],
 		staticDataRows: records,
 		autoTooltip: {
@@ -64,12 +64,12 @@ To enable `Auto Tooltip` in a specific column only:
 	var records = tr.DataGenerator.generateRecords(fields, { seed: 2, numRows: 5 });
 	var configObj = {
 		columns: [
-			{title: "Company", field: fields[0], width: 100},
-			{title: "Market", field: fields[1]},
-			{title: "Last", field: fields[2]},
-			{title: "Net. Chng", field: fields[3]},
-			{title: "Auto Tooltip", field: fields[4], width: 120, autoTooltip: true},
-			{title: "No Tooltip", field: fields[4], width: 120}
+			{name: "Company", field: fields[0], width: 100},
+			{name: "Market", field: fields[1]},
+			{name: "Last", field: fields[2]},
+			{name: "Net. Chng", field: fields[3]},
+			{name: "Auto Tooltip", field: fields[4], width: 120, autoTooltip: true},
+			{name: "No Tooltip", field: fields[4], width: 120}
 		],
 		staticDataRows: records,
 		autoTooltip: {
@@ -91,7 +91,7 @@ var grid = document.getElementById('grid');
 grid.config = {
 	// any other grid's options
 	columns: [
-		{ title: 'Column 1', field: 'field1', autoTooltip: true }
+		{ name: 'Column 1', field: 'field1', autoTooltip: true }
 	],
 	autoTooltip: {
 		title: true,
@@ -121,8 +121,8 @@ Adding custom tooltip doesn't require auto-tooltip extension. Therefore, The mec
  var records = tr.DataGenerator.generateRecords(fields, { seed: 2, numRows: 5 });
  var configObj = {
   columns: [
-   {title: "Auto Tooltip", field: fields[0], width: 120, autoTooltip: true},
-   {title: "Custom Tooltip", field: fields[0], width: 120, binding: customRenderer},
+   {name: "Auto Tooltip", field: fields[0], width: 120, autoTooltip: true},
+   {name: "Custom Tooltip", field: fields[0], width: 120, binding: customRenderer},
   ],
   staticDataRows: records,
   autoTooltip: {

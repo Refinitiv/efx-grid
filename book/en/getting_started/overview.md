@@ -69,19 +69,19 @@ grid.addEventListener("configured", function (e) {
 	var configObj = {
 		freezeColumn: 0,
 		columns: [
-			{title: "Company", field: fields[0], width: 300},
-			{title: "Market", field: fields[1], width: 150},
-			{title: "Last", field: fields[2], width: 120},
+			{name: "Company", field: fields[0], width: 300},
+			{name: "Market", field: fields[1], width: 150},
+			{name: "Last", field: fields[2], width: 120},
 			{
-				title: "Pct. Chng", 
+				name: "Pct. Chng", 
 				field: fields[3], 
 				width: 200, 
 				formatter: PercentBarFormatter.create({
 					textHidden: true
 				})
 			},
-			{title: "IPO Date", field: fields[4], width: 180, alignment: "center", formatType: "dateTime"},
-			{title: "Industry", field: fields[5], width: 250}
+			{name: "IPO Date", field: fields[4], width: 180, alignment: "center", formatType: "dateTime"},
+			{name: "Industry", field: fields[5], width: 250}
 		],
 		staticDataRows: records,
 		extensions: [new TextFormatting()]

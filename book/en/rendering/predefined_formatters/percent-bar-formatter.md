@@ -37,13 +37,13 @@ This formatter creates a percent bar.
 		},
 		columns: [
 			{
-				title: "Percent bar (Default)",
+				name: "Percent bar (Default)",
 				field: fields[0],
 				alignment: "c", 
 				binding: PercentBarFormatter.create()
 			},
 			{
-				title: "Center alignment + No Movement Color",
+				name: "Center alignment + No Movement Color",
 				field: fields[0],
 				alignment: "c",
 				binding: PercentBarFormatter.create({
@@ -52,7 +52,7 @@ This formatter creates a percent bar.
 				})
 			},
 			{
-				title: "No Label + Custom Color",
+				name: "No Label + Custom Color",
 				field: fields[0],
 				alignment: "c",
 				binding: PercentBarFormatter.create({

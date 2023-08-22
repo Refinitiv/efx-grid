@@ -37,7 +37,7 @@ This formatter creates a coral-icon from the column's field by default.
 		},
 		columns: [
 			{
-				title: "Static Icon",
+				name: "Static Icon",
 				alignment: "c",
 				field: fields[0],
 				binding: tr.CoralIconFormatter.create({
@@ -45,7 +45,7 @@ This formatter creates a coral-icon from the column's field by default.
 				})
 			},
 			{
-				title: "Dynamic Icon With Mapper",
+				name: "Dynamic Icon With Mapper",
 				field: fields[1],
 				alignment: "c",
 				binding: tr.CoralIconFormatter.create({
@@ -60,7 +60,7 @@ This formatter creates a coral-icon from the column's field by default.
 				})
 			},
 			{
-				title: "Dynamic Icon",
+				name: "Dynamic Icon",
 				field: fields[2],
 				alignment: "c",
 				binding: tr.CoralIconFormatter.create()
@@ -80,7 +80,7 @@ This formatter creates a coral-icon from the column's field by default.
 var configObj = {
 	columns: [
 		{
-			title: "Icon",
+			name: "Icon",
 			field: "someField",
 			binding: CoralIconFormatter.create({
 				icon: "up",
@@ -97,7 +97,7 @@ var configObj = {
 var configObj = {
 	columns: [
 		{
-			title: "Icon",
+			name: "Icon",
 			field: "someField",
 			binding: CoralIconFormatter.create()
 		}
@@ -111,7 +111,7 @@ var configObj = {
 var configObj = {
 	columns: [
 		{
-			title: "Icon",
+			name: "Icon",
 			field: "someField",
 			binding: CoralIconFormatter.create({
 				icon: {

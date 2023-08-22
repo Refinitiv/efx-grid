@@ -24,11 +24,11 @@ After column resizing if the total columns' width is less than Grid' size, there
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 5 });
 	var configObj = {
 		columns: [
-			{title: "Company", field: fields[0]},
-			{title: "Market", field: fields[1]},
-			{title: "Last", field: fields[2]},
-			{title: "Net. Chng", field: fields[3]},
-			{title: "Industry", field: fields[4]}
+			{name: "Company", field: fields[0]},
+			{name: "Market", field: fields[1]},
+			{name: "Last", field: fields[2]},
+			{name: "Net. Chng", field: fields[3]},
+			{name: "Industry", field: fields[4]}
 		],
 		staticDataRows: records
 	};
@@ -52,11 +52,11 @@ After column resizing if the total columns' width is less than Grid' size, there
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 5 });
 	var configObj = {
 		columns: [
-			{title: "Company", field: fields[0]},
-			{title: "Market", field: fields[1]},
-			{title: "Last", field: fields[2]},
-			{title: "Net. Chng", field: fields[3]},
-			{title: "Industry", field: fields[4]}
+			{name: "Company", field: fields[0]},
+			{name: "Market", field: fields[1]},
+			{name: "Last", field: fields[2]},
+			{name: "Net. Chng", field: fields[3]},
+			{name: "Industry", field: fields[4]}
 		],
 		staticDataRows: records
 	};
@@ -80,11 +80,11 @@ After column resizing if the total columns' width is less than Grid' size, there
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 5 });
 	var configObj = {
 		columns: [
-			{title: "Company", field: fields[0], width: 200},
-			{title: "Market", field: fields[1], width: 100},
-			{title: "Last", field: fields[2], width: 80},
-			{title: "Net. Chng", field: fields[3], width: 80},
-			{title: "Industry", field: fields[4], width: 200}
+			{name: "Company", field: fields[0], width: 200},
+			{name: "Market", field: fields[1], width: 100},
+			{name: "Last", field: fields[2], width: 80},
+			{name: "Net. Chng", field: fields[3], width: 80},
+			{name: "Industry", field: fields[4], width: 200}
 		],
 		staticDataRows: records
 	};
@@ -104,11 +104,11 @@ After column resizing if the total columns' width is less than Grid' size, there
 	var configObj = {
 		autoHideScrollbar: false,
 		columns: [
-			{title: "Company", field: fields[0], width: 200},
-			{title: "Market", field: fields[1], width: 100},
-			{title: "Last", field: fields[2], width: 80},
-			{title: "Net. Chng", field: fields[3], width: 80},
-			{title: "Industry", field: fields[4], width: 200}
+			{name: "Company", field: fields[0], width: 200},
+			{name: "Market", field: fields[1], width: 100},
+			{name: "Last", field: fields[2], width: 80},
+			{name: "Net. Chng", field: fields[3], width: 80},
+			{name: "Industry", field: fields[4], width: 200}
 		],
 		staticDataRows: records
 	};
@@ -128,11 +128,11 @@ After column resizing if the total columns' width is less than Grid' size, there
 	var configObj = {
 		autoHideScrollbar: false,
 		columns: [
-			{title: "Company", field: fields[0], width: 200},
-			{title: "Market", field: fields[1], width: 1.5, scalable: true},
-			{title: "Last", field: fields[2], width: 1, scalable: true},
-			{title: "Net. Chng", field: fields[3], width: 1, scalable: true},
-			{title: "Industry", field: fields[4], width: 1.5, scalable: true}
+			{name: "Company", field: fields[0], width: 200},
+			{name: "Market", field: fields[1], width: 1.5, scalable: true},
+			{name: "Last", field: fields[2], width: 1, scalable: true},
+			{name: "Net. Chng", field: fields[3], width: 1, scalable: true},
+			{name: "Industry", field: fields[4], width: 1.5, scalable: true}
 		],
 		staticDataRows: records
 	};
@@ -157,11 +157,11 @@ After column resizing if the total columns' width is less than Grid' size, there
 	var configObj = {
 		autoHideScrollbar: false,
 		columns: [
-			{title: "Company", field: fields[0], width: 200},
-			{title: "Market", field: fields[1], width: 100},
-			{title: "Last", field: fields[2], width: 80},
-			{title: "Net. Chng", field: fields[3], width: 80},
-			{title: "Industry", field: fields[4], width: 150, rightPinned: true }
+			{name: "Company", field: fields[0], width: 200},
+			{name: "Market", field: fields[1], width: 100},
+			{name: "Last", field: fields[2], width: 80},
+			{name: "Net. Chng", field: fields[3], width: 80},
+			{name: "Industry", field: fields[4], width: 150, rightPinned: true }
 		],
 		staticDataRows: records
 	};
@@ -186,11 +186,11 @@ After column resizing if the total columns' width is less than Grid' size, there
 	var configObj = {
 		autoHideScrollbar: false,
 		columns: [
-			{title: "Company", field: fields[0], width: 200, leftPinned: true },
-			{title: "Market", field: fields[1], width: 100},
-			{title: "Last", field: fields[2], width: 80},
-			{title: "Net. Chng", field: fields[3], width: 80},
-			{title: "Industry", field: fields[4], width: 150, rightPinned: true }
+			{name: "Company", field: fields[0], width: 200, leftPinned: true },
+			{name: "Market", field: fields[1], width: 100},
+			{name: "Last", field: fields[2], width: 80},
+			{name: "Net. Chng", field: fields[3], width: 80},
+			{name: "Industry", field: fields[4], width: 150, rightPinned: true }
 		],
 		staticDataRows: records
 	};
@@ -217,11 +217,11 @@ After column resizing if the total columns' width is less than Grid' size, there
 	var records = tr.DataGenerator.generateRecords(fields, { numRows: 5 });
 	var configObj = {
 		columns: [
-			{title: "Company", field: fields[0], width: 200, leftPinned: true },
-			{title: "Market", field: fields[1], width: 100},
-			{title: "Last", field: fields[2], width: 80},
-			{title: "Net. Chng", field: fields[3], width: 80},
-			{title: "Industry", field: fields[4], width: 150, rightPinned: true }
+			{name: "Company", field: fields[0], width: 200, leftPinned: true },
+			{name: "Market", field: fields[1], width: 100},
+			{name: "Last", field: fields[2], width: 80},
+			{name: "Net. Chng", field: fields[3], width: 80},
+			{name: "Industry", field: fields[4], width: 150, rightPinned: true }
 		],
 		staticDataRows: records
 	};
