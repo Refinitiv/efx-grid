@@ -9,24 +9,16 @@ Grid provides `columns` and `data` properties that allow clearing and setting ne
 
 ###	Data property
 
-`data` property supports two types of input. The first type of input (recommended) is an array of object. The object is a map from field name to value. The second type of input is a two-dimensional array. The fields from existing columns will be mapped to the given values in the 2D array. There can be a discrepancy resulting from the mapping, so it's not recommended.
+`data` property supports only an array of objects, with each object representing a field and its corresponding value within Grid, as demonstrated below:
 
 ```js
-grid.data = newDataSet; // Clear all existing data and set entirely new data set
-
-// First type of input
 grid.data = [
-	{"Field 1": 1, "Field 2": 0},
-	{"Field 1": 3, "Field 2": 4, "Field 3": 5}
-];
-
-// Second type of input
-grid.data = [
-	[1, 2],
-	[3, 4, 5], // There should be at least 3 existing columns to correctly map these data
-	[6, 7]
+  {"Field 1": 1, "Field 2": 0},
+  {"Field 1": 3, "Field 2": 4, "Field 3": 5}
 ];
 ```
+
+In this code snippet, `grid.data` property accepts an array of objects, where each object represents a field and its associated value within Grid.
 
 ### Columns property
 
@@ -138,7 +130,46 @@ grid.data = null; // Clear all existing data
 
 As there are more states and options for each row in Grid, `rows` property is provided as a way to set those options. Setting `rows` property will change number of rows and reset existing data and data requests. Changing `rows` property will always remove existing rows, so you should use this for changing to completely new set of rows. 
 
-`data` property in Grid will act as a way for updating data and keeping existing row intact. Changing `data` property will only update existing rows or add new rows. Changing `data` property will not reduce number of rows. However, if either `rows` or `data` property is set to null, all rows and data will be removed. 
+You can also use `data` property to manage rows within Grid including removal, insertion, and updating of rows in Grid. When you update `data` property, it compares the existing data with the new data based on row indices with following:
+- If the new data contains more rows than the existing rows, the additional rows will be inserted into Grid.
+- If the new data contains fewer rows than the existing rows, the excess rows will be removed from Grid.
+- If the new data contains the same number of rows as the existing data, the row count will remain unchanged, and the data will be updated with the new values.
+
+As demonstrated below:
+```js
+// 1. Begin by assigning three rows of data. Grid displaying 3 rows.
+grid.data = [
+    {"f1": 1},
+    {"f1": 2},
+    {"f1": 3}
+];
+
+// 2. Grid displaying 1 row.
+grid.data = [
+    {"f1": 1} 
+];
+
+// 3. Grid display 5 rows.
+grid.data = [
+    {"f1": 1},
+    {"f1": 2},
+    {"f1": 3},
+    {"f1": 4},
+    {"f1": 5}
+];
+
+// 4. Grid displaying 5 rows with re-ordered positions.
+grid.data = [
+    {"f1": 3},
+    {"f1": 1},
+    {"f1": 4},
+    {"f1": 2},
+    {"f1": 5}
+];
+
+```
+
+However, if either `rows` or `data` property is set to null, all rows and data will be removed.
 
 > Note: you should not use `rows` property for adding new rows because it is not very efficient (i.e., existing data will be cleared and re-requested). You should use provided APIs for dynamically adding new rows. 
 

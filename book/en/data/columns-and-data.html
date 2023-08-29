@@ -29,7 +29,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="fb516772-075f-4f50-b7e1-b034904a7316">
+        <pandora-nav id="bd04a02d-4a48-47f1-a625-74d5e8a6bdfb">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -286,21 +286,12 @@
             </blockquote>
             <h2 id="resetting-data">Resetting data</h2>
             <h3 id="data-property">Data property</h3>
-            <p><code>data</code> property supports two types of input. The first type of input (recommended) is an array of object. The object is a map from field name to value. The second type of input is a two-dimensional array. The fields from existing columns will be mapped to the given values in the 2D array. There can be a discrepancy resulting from the mapping, so it's not recommended.</p>
-            <pre><code>grid.data = newDataSet; <span class="hljs-comment">// Clear all existing data and set entirely new data set</span>
-
-<span class="hljs-comment">// First type of input</span>
-grid.data = [
-    {<span class="hljs-string">"Field 1"</span>: <span class="hljs-number">1</span>, <span class="hljs-string">"Field 2"</span>: <span class="hljs-number">0</span>},
-    {<span class="hljs-string">"Field 1"</span>: <span class="hljs-number">3</span>, <span class="hljs-string">"Field 2"</span>: <span class="hljs-number">4</span>, <span class="hljs-string">"Field 3"</span>: <span class="hljs-number">5</span>}
-];
-
-<span class="hljs-comment">// Second type of input</span>
-grid.data = [
-    [<span class="hljs-number">1</span>, <span class="hljs-number">2</span>],
-    [<span class="hljs-number">3</span>, <span class="hljs-number">4</span>, <span class="hljs-number">5</span>], <span class="hljs-comment">// There should be at least 3 existing columns to correctly map these data</span>
-    [<span class="hljs-number">6</span>, <span class="hljs-number">7</span>]
+            <p><code>data</code> property supports only an array of objects, with each object representing a field and its corresponding value within Grid, as demonstrated below:</p>
+            <pre><code>grid.data = [
+  {<span class="hljs-string">"Field 1"</span>: <span class="hljs-number">1</span>, <span class="hljs-string">"Field 2"</span>: <span class="hljs-number">0</span>},
+  {<span class="hljs-string">"Field 1"</span>: <span class="hljs-number">3</span>, <span class="hljs-string">"Field 2"</span>: <span class="hljs-number">4</span>, <span class="hljs-string">"Field 3"</span>: <span class="hljs-number">5</span>}
 ];</code></pre>
+            <p>In this code snippet, <code>grid.data</code> property accepts an array of objects, where each object represents a field and its associated value within Grid.</p>
             <h3 id="columns-property">Columns property</h3>
             <p><code>columns</code> property takes the same type of input as the columns property in the grid configuration object (<code>grid.config</code>). The data and grid configuration will not be affected by this property. </p>
             <p>To change a new set of columns and keep the current settings and data, do the following:</p>
@@ -434,7 +425,44 @@ hr {
             </div>
             <h1 id="resetting-and-updating-data-in-grid">Resetting and updating data in Grid</h1>
             <p>As there are more states and options for each row in Grid, <code>rows</code> property is provided as a way to set those options. Setting <code>rows</code> property will change number of rows and reset existing data and data requests. Changing <code>rows</code> property will always remove existing rows, so you should use this for changing to completely new set of rows. </p>
-            <p><code>data</code> property in Grid will act as a way for updating data and keeping existing row intact. Changing <code>data</code> property will only update existing rows or add new rows. Changing <code>data</code> property will not reduce number of rows. However, if either <code>rows</code> or <code>data</code> property is set to null, all rows and data will be removed. </p>
+            <p>You can also use <code>data</code> property to manage rows within Grid including removal, insertion, and updating of rows in Grid. When you update <code>data</code> property, it compares the existing data with the new data based on row indices with following:</p>
+            <ul>
+              <li>If the new data contains more rows than the existing rows, the additional rows will be inserted into Grid.</li>
+              <li>If the new data contains fewer rows than the existing rows, the excess rows will be removed from Grid.</li>
+              <li>If the new data contains the same number of rows as the existing data, the row count will remain unchanged, and the data will be updated with the new values.</li>
+            </ul>
+            <p>As demonstrated below:</p>
+            <pre><code><span class="hljs-comment">// 1. Begin by assigning three rows of data. Grid displaying 3 rows.</span>
+grid.data = [
+    {<span class="hljs-string">"f1"</span>: <span class="hljs-number">1</span>},
+    {<span class="hljs-string">"f1"</span>: <span class="hljs-number">2</span>},
+    {<span class="hljs-string">"f1"</span>: <span class="hljs-number">3</span>}
+];
+
+<span class="hljs-comment">// 2. Grid displaying 1 row.</span>
+grid.data = [
+    {<span class="hljs-string">"f1"</span>: <span class="hljs-number">1</span>} 
+];
+
+<span class="hljs-comment">// 3. Grid display 5 rows.</span>
+grid.data = [
+    {<span class="hljs-string">"f1"</span>: <span class="hljs-number">1</span>},
+    {<span class="hljs-string">"f1"</span>: <span class="hljs-number">2</span>},
+    {<span class="hljs-string">"f1"</span>: <span class="hljs-number">3</span>},
+    {<span class="hljs-string">"f1"</span>: <span class="hljs-number">4</span>},
+    {<span class="hljs-string">"f1"</span>: <span class="hljs-number">5</span>}
+];
+
+<span class="hljs-comment">// 4. Grid displaying 5 rows with re-ordered positions.</span>
+grid.data = [
+    {<span class="hljs-string">"f1"</span>: <span class="hljs-number">3</span>},
+    {<span class="hljs-string">"f1"</span>: <span class="hljs-number">1</span>},
+    {<span class="hljs-string">"f1"</span>: <span class="hljs-number">4</span>},
+    {<span class="hljs-string">"f1"</span>: <span class="hljs-number">2</span>},
+    {<span class="hljs-string">"f1"</span>: <span class="hljs-number">5</span>}
+];
+</code></pre>
+            <p>However, if either <code>rows</code> or <code>data</code> property is set to null, all rows and data will be removed.</p>
             <blockquote>
               <p>Note: you should not use <code>rows</code> property for adding new rows because it is not very efficient (i.e., existing data will be cleared and re-requested). You should use provided APIs for dynamically adding new rows. </p>
             </blockquote>
