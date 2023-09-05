@@ -1,6 +1,6 @@
 <link rel="stylesheet" href="../../resources/styles/elf-template.css">
 
-
+# SectionSettings
 
 <div id="main-template" class="elf-template">    <section><header>            <h1 class="subsection-title"><span class="attribs"></span>SectionSettings<span class="signature">(grid<span class="signature-attributes">non-null</span>)</span></h1>            </header><article>    <div class="container-overview">            
 <div class="item">                                <div class="item-type">class</div>                        <h4 class="name" id="SectionSettings">new SectionSettings<span class="signature">(grid<span class="signature-attributes">non-null</span>)</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">grid</div>                        <div class="type">                            <span class="param-type"><a href="ILayoutGrid.html">ILayoutGrid</a></span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>        </div>            <h3 class="subsection-title">Extends</h3>            <dd class="argument-list">        <ul>            <li><a href="EventDispatcher.html">EventDispatcher</a></li>        </ul>    </dd>                                                <h3 class="subsection-title">Methods</h3>                    

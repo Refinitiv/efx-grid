@@ -1,6 +1,6 @@
 <link rel="stylesheet" href="../../resources/styles/elf-template.css">
 
-
+# DataTable
 
 <div id="main-template" class="elf-template">    <section><header>            <h1 class="subsection-title"><span class="attribs"></span>DataTable<span class="signature">()</span></h1>            </header><article>    <div class="container-overview">            
 <div class="item">                                <div class="item-type">class</div>                        <h4 class="name" id="DataTable">new DataTable<span class="signature">()</span></h4>                                            <div class="details">                                                            </div>                                    </div>        </div>            <h3 class="subsection-title">Extends</h3>            <dd class="argument-list">        <ul>            <li><a href="DataCache.html">DataCache</a></li>        </ul>    </dd>                                            <h3 class="subsection-title">Type Definitions</h3>                        

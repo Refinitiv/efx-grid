@@ -1,6 +1,6 @@
 <link rel="stylesheet" href="../../resources/styles/elf-template.css">
 
-
+# DataCache
 
 <div id="main-template" class="elf-template">    <section><header>            <h1 class="subsection-title"><span class="attribs"></span>DataCache<span class="signature">()</span></h1>            </header><article>    <div class="container-overview">            
 <div class="item">                                <div class="item-type">class</div>                        <h4 class="name" id="DataCache">new DataCache<span class="signature">()</span></h4>                                            <div class="details">                                                            </div>                                    </div>        </div>            <h3 class="subsection-title">Extends</h3>            <dd class="argument-list">        <ul>            <li><a href="EventDispatcher.html">EventDispatcher</a></li>        </ul>    </dd>                                                <h3 class="subsection-title">Methods</h3>                    

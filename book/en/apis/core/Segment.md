@@ -1,6 +1,6 @@
 <link rel="stylesheet" href="../../resources/styles/elf-template.css">
 
-
+# Segment
 
 <div id="main-template" class="elf-template">    <section><header>            <h1 class="subsection-title"><span class="attribs"></span>Segment<span class="signature">(rid)</span></h1>            </header><article>    <div class="container-overview">            
 <div class="item">                                <div class="item-type">class</div>                        <h4 class="name" id="Segment">new Segment<span class="signature">(rid)</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rid</div>                        <div class="type">                            <span class="param-type">string</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>        </div>                                                <h3 class="subsection-title">Methods</h3>                    

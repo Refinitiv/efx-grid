@@ -1,6 +1,6 @@
 <link rel="stylesheet" href="../../resources/styles/elf-template.css">
 
-
+# CellSpans
 
 <div id="main-template" class="elf-template">    <section><header>            <h1 class="subsection-title"><span class="attribs"></span>CellSpans<span class="signature">()</span></h1>            </header><article>    <div class="container-overview">            
 <div class="item">                                <div class="item-type">class</div>                        <h4 class="name" id="CellSpans">new CellSpans<span class="signature">()</span></h4>                                            <div class="details">                                                            </div>                                    </div>        </div>                                                <h3 class="subsection-title">Methods</h3>                    

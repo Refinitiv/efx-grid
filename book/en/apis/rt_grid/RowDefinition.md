@@ -1,6 +1,6 @@
 <link rel="stylesheet" href="../../resources/styles/elf-template.css">
 
-
+# RowDefinition
 
 <div id="main-template" class="elf-template">    <section><header>            <h1 class="subsection-title"><span class="attribs"></span>RowDefinition<span class="signature">(rowOptions<span class="signature-attributes">opt</span>)</span></h1>            </header><article>    <div class="container-overview">            
 <div class="item">                                <div class="item-type">class</div>                        <h4 class="name" id="RowDefinition">new RowDefinition<span class="signature">(rowOptions<span class="signature-attributes">opt</span>)</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowOptions</div>                        <div class="type">                            <span class="param-type"><a href="RowDefinition.html#~Options">RowDefinition~Options</a></span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>        </div>                                            <h3 class="subsection-title">Type Definitions</h3>                        

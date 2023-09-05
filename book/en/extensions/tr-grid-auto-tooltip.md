@@ -105,7 +105,7 @@ grid.config = {
 
 ### Custom tooltip
 
-Adding custom tooltip doesn't require auto-tooltip extension. Therefore, The mechanism to make tooltip appear is depend on your logic. You can use cell api to set custom tooltip. For detail, please see [Cell API](../composite_grid/tr.grid.Cell.md).
+Adding custom tooltip doesn't require auto-tooltip extension. Therefore, The mechanism to make tooltip appear is depend on your logic. You can use cell api to set custom tooltip. For detail, please see [Cell API](../apis/composite_grid/tr.grid.Cell.md).
 
 ```live
 <style>

@@ -1,6 +1,6 @@
 <link rel="stylesheet" href="../../resources/styles/elf-template.css">
 
-
+# EventDispatcher
 
 <div id="main-template" class="elf-template">    <section><header>            <h1 class="subsection-title"><span class="attribs"></span>EventDispatcher<span class="signature">()</span></h1>            </header><article>    <div class="container-overview">            
 <div class="item">                                <div class="item-type">class</div>                        <h4 class="name" id="EventDispatcher">new EventDispatcher<span class="signature">()</span></h4>                            <div class="description">        Abstract base class that provides event management methods for derived class    </div>                        <div class="details">                                                            </div>                                    </div>        </div>                                                <h3 class="subsection-title">Methods</h3>                    
