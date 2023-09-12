@@ -1,6 +1,6 @@
 # Realtime Market Data with JET.Qoutes2
 
-JET is a library that creates a communication channel between applications and container for retrieving data from the Refinitiv platform. JET will provide all the real-time data, so there's no need to initialize and use the `dataModel` property in the configuration object.
+JET is a library that creates a communication channel between applications and container for retrieving data from the LSEG platform. JET will provide all the real-time data, so there's no need to initialize and use the `dataModel` property in the configuration object.
 
 Please note that you can no longer use the row index to refer to row data anymore, as Grid will asynchronously receive the data and updates from JET or a server data provider. For reference, you must specify the row ID (string) for each row that is inserted into Grid's data table.
 

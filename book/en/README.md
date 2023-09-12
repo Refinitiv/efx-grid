@@ -10,7 +10,7 @@ EFX Grid element and extensions are published under single package.
 npm install @refinitiv-ui/efx-grid
 ```
 
-The element is required theme to instantiate itself in the app. Refinitiv's design system is called Halo theme and you can install it from npm command.
+The element is required theme to instantiate itself in the app. LSEG's design system is called Halo theme and you can install it from npm command.
 
 ```sh
 npm install @refinitiv-ui/halo-theme
@@ -56,4 +56,4 @@ grid.config = {
 Please see the license [here](./license.html).
 
 ## License for the Halo Theme
-The font “Proxima Nova Fin” shall only be used within Refinitiv products or services. The copyright owner must approve any use of such font outside of Refinitiv products or services, which may be subject to a fee. Please see the license [here](https://www.fontspring.com/lic/fontspring/webfont#license_text).
+The font “Proxima Nova Fin” shall only be used within LSEG products or services. The copyright owner must approve any use of such font outside of LSEG products or services, which may be subject to a fee. Please see the license [here](https://www.fontspring.com/lic/fontspring/webfont#license_text).

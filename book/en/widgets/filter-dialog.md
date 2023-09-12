@@ -86,15 +86,13 @@ function onClickButton(e) {
 
 ### Advanced condition tab
 
-Filter dialog has three types of condition tabs: generic value condition (default), numeric value condition, and date time value condition. Each type has a different list of available operators. For example, numeric value condition contains only nemeric operators, such as Less than or Greater than operators. To specify the type for the dialog, define `fieldDataType` property on the column configuration object to one of the following values: "number", "datetime", and "generic" or nothing (default). 
+Filter dialog has three types of condition tabs: generic value condition (default), numeric value condition, and date time value condition. Each type has a different list of available operators. For example, numeric value condition contains only nemeric operators, such as Less than or Greater than operators. To specify the type for the dialog, define `fieldDataType` property on the column configuration object to one of the following values: `number`, `datetime`, and `text` or nothing (default). 
+
 
 ```live
 <style>
 	html hr {
 		margin: 5px;
-	}
-	html body {
-		padding: 20px;
 	}
 	efx-grid {
 		height: 500px;
@@ -109,6 +107,7 @@ Filter dialog has three types of condition tabs: generic value condition (defaul
 	var configObj = {
 		columns: [
 			{ name: "Company", field: "companyName" },
+			{ name: "Company (text)", field: "companyName", fieldDataType: "text" },
 			{ name: "Date (generic)", field: "ISODate", width: 180 },
 			{ name: "Date (datetime)", field: "ISODate", width: 180, fieldDataType: "datetime" },
 			{ name: "Change (generic)", field: "CF_NETCHNG", width: 130 },

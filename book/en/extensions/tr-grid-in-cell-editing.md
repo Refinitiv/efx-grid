@@ -404,6 +404,70 @@ The example below show how to create an editor with `yes`, `no` and `none` optio
 </script>
 ```
 
+### Preventing rows from moving during editing
+
+By default rows are prevented from moving during editing. This is to avoid confusion of which row is being edited. For instance, if sorting or filtering is active and data have been constantly changed, rows would be moved around a lot. Once editor is opened, grid's view is frozen and rows cannot be moved until the end of editing session.  
+
+```live
+<style>
+	atlas-blotter {
+		height: 250px;
+	}
+</style>
+<atlas-blotter id="grid"></atlas-blotter>
+
+<script>
+	var extension = new tr.InCellEditingExtension();
+
+	var fields = ["id", "companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
+	var colNames = ["Id", "Company", "Market", "Last", "Net. Chng", "Industry"];
+	var columns = fields.map(function(f, idx) {
+		return {
+			name: colNames[idx],
+			field: f
+		};
+	});
+	columns[0].width = 60;
+	columns[2].width = 150;
+	columns[3].width = 150;
+	columns[3].blinking = true;
+	columns[4].width = 80;
+	
+	var configObj = {
+		sorting: {
+			initialSort: {
+				sortOrder: "a",
+				field: fields[3],
+			}
+		},
+		columns: columns,
+		staticDataRows: generateRecords(),
+		inCellEditing: {
+			editableTitle: false,
+			editableContent: true
+		},
+		extensions: [
+			extension
+		]
+	};
+
+	var grid = document.getElementById("grid");
+	grid.config = configObj;
+	
+	function generateRecords() {
+		var records = tr.DataGenerator.generateRecords(fields, { numRows: 10 });
+		records.forEach(function(record, idx) {
+			record["id"] = idx;
+		});
+		return records;
+	}
+	
+	setInterval(function() {
+		grid.data = generateRecords();
+	}, 2000);
+</script>
+```
+
 
 <div></div>
 

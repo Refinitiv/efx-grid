@@ -88,6 +88,122 @@ Installation examples and details of how to import the extension to a project ar
 Details of Required dependencies for this extension are available on the [Overview](README.md) page.
 
 
+### Using filter input for fetching data
+
+If you want to fetch data from server side based on the value of the filter input, you can achieve this by listening to the event of the filter input element that we provide in the `inputCreated` event. You can follow the example below for guidance.
+
+
+```live
+<style>
+	atlas-blotter {
+		height: 200px;
+	}
+</style>
+    <atlas-blotter></atlas-blotter>
+<script>
+	var FilterInput = tr.FilterInputExtension;
+	var RowFiltering = tr.RowFilteringExtension;
+	var DataGenerator = tr.DataGenerator;
+	var fields = ["market", "sentence", "CF_NETCHNG", "CF_LAST"];
+	var records = DataGenerator.generateRecords(fields, { numRows: 100, seedd: 0 });
+	var filterInputExt = new FilterInput();
+	var rowFilteringExt = new RowFiltering();
+
+	var configObj = {
+		columns: [
+			{
+				field: fields[0],
+				name: "Market",
+				filterInput: {
+					defaultLogic: function () {
+						// Disable default logic (disable filter to use server side filtering)
+						return true;
+					}
+				}
+			},
+			{
+				field: fields[1],
+				name: "Description",
+				filterInput: {
+					disabled: true
+				}
+			},
+			{
+				field: fields[2],
+				name: "Net Chng.",
+				filterInput: {
+					disabled: true
+				}
+			},
+			{
+				field: fields[3],
+				name: "Last",
+				filterInput: {
+					disabled: true
+				}
+			}
+		],
+		staticDataRows: records,
+		extensions: [filterInputExt, rowFilteringExt]
+	};
+
+	var grid = document.getElementsByTagName("atlas-blotter")[0];
+	grid.config = configObj;
+
+	filterInputExt.addEventListener("inputCreated", function (e) {
+		var inputEl = e.input;
+		inputEl.addEventListener("value-changed", onFilterInputKeyUp);
+	});
+
+	var inputVal;
+	function onFilterInputKeyUp(e) {
+		inputVal = e.detail.value;
+		// Simulate to fetch data from the server
+		conflationdFetch();
+	}
+
+	// ========== Simulate server side in below ==========
+
+	function generateRecords(numRows, seed) {
+		// This function on server side
+		var records = DataGenerator.generateRecords(fields, {
+			numRows: numRows,
+			seed: seed
+		});
+
+		if (inputVal != null) {
+			console.log(inputVal);
+			var filterRecord = records.filter(function (record) {
+				return record[fields[0]].indexOf(inputVal) > -1;
+			});
+			return filterRecord;
+		}
+		return records;
+	}
+
+	// Define your fetch function
+	function fetch() {
+		// Your code to make the server request goes here
+		console.log("Fetching data from the server...");
+		// await data from the server
+		grid.data = generateRecords(1000); // assign data back to grid
+	}
+
+	// Create a conflation function to prevent excessive data call frequency
+	function conflation(func, delay) {
+		let timeoutId;
+		return function () {
+			clearTimeout(timeoutId);
+			timeoutId = setTimeout(func, delay);
+		};
+	}
+	var conflationdFetch = conflation(fetch, 500);
+
+</script>
+```
+
+
+
 <div></div>
 
 <h2 style="margin-bottom:5px" id="api-refs">API Reference</h2>

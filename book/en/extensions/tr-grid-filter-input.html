@@ -23,7 +23,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print>
-        <pandora-nav id="8e4bbf74-bbde-4051-871a-62f087a94ccf">
+        <pandora-nav id="31b4bc5f-b644-48ac-a5c8-91736c6d3fe9">
           <ul>
             <li parent id="cid-0" collapsible collapsed>
               <div collapser>Getting Started</div>
@@ -396,6 +396,158 @@ grid.config = configObj;</pre>
             <p>Installation examples and details of how to import the extension to a project are available on the <a href="README.html">Overview</a> page.</p>
             <h3 id="required-dependencies">Required dependencies</h3>
             <p>Details of Required dependencies for this extension are available on the <a href="README.html">Overview</a> page.</p>
+            <h3 id="using-filter-input-for-fetching-data">Using filter input for fetching data</h3>
+            <p>If you want to fetch data from server side based on the value of the filter input, you can achieve this by listening to the event of the filter input element that we provide in the <code>inputCreated</code> event. You can follow the example below for guidance.</p>
+
+            <div class="pandora-code-viewer" id="pid-38">
+              <div class="pandora-viewer">
+                <button>&lt;/&gt;</button>
+              </div>
+              <div class="pandora-code-view">
+                <div class="pandora-toolbar">
+                  <ul>
+                    <li class="pandora-tab-selected" data-toggle="tab-html">HTML</li>
+                    <li data-toggle="tab-js">JS</li>
+                    <li data-toggle="tab-css">CSS</li>
+                  </ul>
+                </div>
+                <div class="pandora-tab-container">
+                  <pre class="pandora-tab-view tab-html">&lt;efx-grid&gt;
+&lt;/efx-grid&gt;</pre>
+                  <pre class="pandora-tab-view tab-js">var FilterInput = tr.FilterInputExtension;
+var RowFiltering = tr.RowFilteringExtension;
+var DataGenerator = DataGenerator;
+var fields = [&quot;market&quot;, &quot;sentence&quot;, &quot;CF_NETCHNG&quot;, &quot;CF_LAST&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 100, seedd: 0 });
+var filterInputExt = new FilterInput();
+var rowFilteringExt = new RowFiltering();
+
+var configObj = {
+  columns: [{
+      field: fields[0],
+      name: &quot;Market&quot;,
+      filterInput: {
+        defaultLogic: function() {
+          // Disable default logic (disable filter to use server side filtering)
+          return true;
+        }
+      }
+    },
+    {
+      field: fields[1],
+      name: &quot;Description&quot;,
+      filterInput: {
+        disabled: true
+      }
+    },
+    {
+      field: fields[2],
+      name: &quot;Net Chng.&quot;,
+      filterInput: {
+        disabled: true
+      }
+    },
+    {
+      field: fields[3],
+      name: &quot;Last&quot;,
+      filterInput: {
+        disabled: true
+      }
+    }
+  ],
+  staticDataRows: records,
+  extensions: [filterInputExt, rowFilteringExt]
+};
+
+var grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
+grid.config = configObj;
+
+filterInputExt.addEventListener(&quot;inputCreated&quot;, function(e) {
+  var inputEl = e.input;
+  inputEl.addEventListener(&quot;value-changed&quot;, onFilterInputKeyUp);
+});
+
+var inputVal;
+
+function onFilterInputKeyUp(e) {
+  inputVal = e.detail.value;
+  // Simulate to fetch data from the server
+  conflationdFetch();
+}
+
+// ========== Simulate server side in below ==========
+
+function generateRecords(numRows, seed) {
+  // This function on server side
+  var records = DataGenerator.generateRecords(fields, {
+    numRows: numRows,
+    seed: seed
+  });
+
+  if (inputVal != null) {
+    console.log(inputVal);
+    var filterRecord = records.filter(function(record) {
+      return record[fields[0]].indexOf(inputVal) &gt; -1;
+    });
+    return filterRecord;
+  }
+  return records;
+}
+
+// Define your fetch function
+function fetch() {
+  // Your code to make the server request goes here
+  console.log(&quot;Fetching data from the server...&quot;);
+  // await data from the server
+  grid.data = generateRecords(1000); // assign data back to grid
+}
+
+// Create a conflation function to prevent excessive data call frequency
+function conflation(func, delay) {
+  let timeoutId;
+  return function() {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(func, delay);
+  };
+}
+var conflationdFetch = conflation(fetch, 500);</pre>
+                  <pre class="pandora-tab-view tab-css">efx-grid {
+  height: 200px;
+}</pre>
+                  <div class="pandora-console"></div>
+                </div>
+              </div>
+              <link rel="prefetch" href="../node_modules/tr-grid-test-resource-v6/dist/elf-halo-light.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-auto-tooltip/dist/tr-grid-auto-tooltip.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-cell-selection/dist/tr-grid-cell-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-checkbox/dist/tr-grid-checkbox.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/column-dragging/dist/column-dragging.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-fitter/dist/tr-grid-column-fitter.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-formatting/dist/tr-grid-column-formatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-grouping/dist/tr-grid-column-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-resizing/dist/tr-grid-column-resizing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-selection/dist/tr-grid-column-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-stack/dist/tr-grid-column-stack.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-conditional-coloring/dist/tr-grid-conditional-coloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-content-wrap/dist/tr-grid-content-wrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-contextmenu/dist/tr-grid-contextmenu.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-filter-input/dist/tr-grid-filter-input.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-heat-map/dist/tr-grid-heat-map.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-in-cell-editing/dist/tr-grid-in-cell-editing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-pagination/dist/tr-grid-pagination.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-percent-bar/dist/tr-grid-percent-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-range-bar/dist/tr-grid-range-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-dragging/dist/tr-grid-row-dragging.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-filtering/dist/tr-grid-row-filtering.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-grouping/dist/tr-grid-row-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/row-segmenting/dist/row-segmenting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-selection/dist/tr-grid-row-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-rowcoloring/dist/tr-grid-rowcoloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/statistics-row/dist/statistics-row.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-textformatting/dist/tr-grid-textformatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-titlewrap/dist/tr-grid-titlewrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
+            </div>
             <div></div>
 
             <h2 style="margin-bottom:5px" id="api-refs">API Reference</h2>

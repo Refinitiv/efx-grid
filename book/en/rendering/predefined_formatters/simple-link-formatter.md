@@ -19,14 +19,14 @@ This formatter creates a link with text from the column's field by default.
 <efx-grid id="grid"></efx-grid>
 
 <script>
-	var href = "https://www.refinitiv.com/#";
+	var href = "https://www.lseg.com/#";
 
 	var fields = ["id", "url"];
 	var records = new Array(40);
 	for(var i = 0; i < 40; ++i) {
 		var record = records[i] = {};
 		record[fields[0]] = i;
-		record[fields[1]] = "https://www.refinitiv.com/#" + i;
+		record[fields[1]] = "https://www.lseg.com/#" + i;
 	}
 	var configObj = {
 		sorting: {
@@ -44,7 +44,7 @@ This formatter creates a link with text from the column's field by default.
 				alignment: "c",
 				binding: SimpleLinkFormatter.create({
 					attributes: {
-						href: "https://www.refinitiv.com"
+						href: "https://www.lseg.com"
 					}
 				})
 			},
@@ -55,7 +55,7 @@ This formatter creates a link with text from the column's field by default.
 				binding: SimpleLinkFormatter.create({
 					label: "click here",
 					attributes: {
-						href: "https://www.refinitiv.com"
+						href: "https://www.lseg.com"
 					},
 					styles: {
 						color: "red"
