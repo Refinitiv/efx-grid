@@ -126,7 +126,7 @@ Additional dependencies are required according to the `type` of input. For examp
 
 The Pagination Extension does not provide any UI. You will need to install `@refinitiv-ui/elements` separately for the UI. The extension will automatically wire the functionalities to the UI element once it is presented.
 
-The pagination element is **completely independent** from the grid element and the Pagination Extension. So, any customization and feature request regarding the element has to be sent to the [Refinitiv UI team](mailto:RefinitivUIDev@refinitiv.com). The documentation for the element can be found on Refinitiv UI's [Pagination](https://ui.refinitiv.com/elements/pagination) page.
+The pagination element is **completely independent** from the grid element and the Pagination Extension. So, any customization and feature request regarding the element has to be sent to the [ELF team](https://ui.refinitiv.com). The documentation for the element can be found on LSEG UI's [Pagination](https://ui.refinitiv.com/elements/pagination) page.
 
 
 ## Available extensions
