@@ -13,7 +13,7 @@
 	- [Disposing Grid](general_concept/disposing-grid.md)
 - Showcases
 	- [Comprehensive](showcases/comprehensive.md)
-
+	- [Grid Builder](showcases/grid-builder.md)
 
 - APIs
 	## Uses for sidebar

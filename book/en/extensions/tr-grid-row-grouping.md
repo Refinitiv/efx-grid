@@ -298,6 +298,11 @@ By default, group header rows are displayed as a single cell that spans across m
 
 #### Example custom style in group header rows
 In the example below, we demonstrate how to customize the style of group header rows. With this customization, you can add elements to the group header rows and include additional information from your side.
+
+If you want to use the `predefinedColors` option and specify a `groupId` using the `groupColors` property, there are certain limitations to be aware of. Specifically, you need to be aware of the group ID, as you've already set the `groupColor` within the grid configuration. This implies that you won't be able to alter the `groupColors` during runtime. 
+
+However, if your intention is to modify individual groups during runtime, you can achieve this by using the `setGroupColor` method. By providing the group ID and the color as arguments to this method to change the tag colors. If you want to add a new group to the grid and set its color using this API, we recommend listening for the `groupAdded` event and use `setGroupColor` method to set group color when the group is added as show you in example below.
+
 ```live
 <style>
 	hr {
@@ -313,239 +318,288 @@ In the example below, we demonstrate how to customize the style of group header 
 
 <script>
 	tr.DataGenerator.addFieldInfo("industry", {
-		type: "set",
-		members: ["Chemicals", "Auto", "Finance", "Electric", "Biotechnology"]
-	});
+			type: "set",
+			members: ["Chemicals", "Auto", "Finance", "Electric", "Biotechnology"]
+		});
 
-	tr.DataGenerator.addFieldInfo("status", {
-		type: "set",
-		members: ["GROUP_1", "GROUP_2", "GROUP_3", "GROUP_4", "GROUP_5", "GROUP_6"]
-	});
-	var rowGrouping = new tr.RowGroupingExtension();
-	var fields = ["industry", "words", "PRICECLOSE", "PRICELAST", "status", "id"];
+		tr.DataGenerator.addFieldInfo("status", {
+			type: "set",
+			members: ["GROUP_1", "GROUP_2", "GROUP_3", "GROUP_4", "GROUP_5", "GROUP_6"]
+		});
+		var rowGrouping = new tr.RowGroupingExtension();
+		var fields = ["industry", "words", "PRICECLOSE", "PRICELAST", "status", "id"];
 
-	var predefinedColorsSet = {
-		yellow: {
-			backgroundColor: "#FF9900"
-		},
-		red: {
-			backgroundColor: "#FF0000"
-		},
-		green: {
-			backgroundColor: "#00FF00"
-		}
-	};
+		var predefinedColorsSet = {
+			yellow: {
+				backgroundColor: "#FF9900"
+			},
+			red: {
+				backgroundColor: "#FF0000"
+			},
+			green: {
+				backgroundColor: "#00FF00"
+			}
+		};
 
-	var statusMapping = {
-	// Pending
-	GROUP_1: {
-		statusName: "Pending Register",
-		detail: "Buy TASLA.O 5,000 @ 145.11 (gs)",
-		color: predefinedColorsSet["yellow"].backgroundColor,
-		icon: "info",
-		status: "pending"
-	},
-	GROUP_2: {
-		statusName: "Pending Send",
-		detail: "Buy TASLA.O 5,000 @ 145.11 (gs)",
-		color: predefinedColorsSet["yellow"].backgroundColor,
-		icon: "info",
-		status: "pending"
-	},
+		// Application should be manage your group object in your application
+		var currentCountGroup = 6;
+		var statusMapping = {
+			// Pending
+			GROUP_1: {
+				statusName: "Pending Register",
+				detail: "Buy TASLA.O 5,000 @ 145.11 (gs)",
+				color: predefinedColorsSet["yellow"].backgroundColor,
+				icon: "info",
+				colorClass: "yellow",
+				status: "pending"
+			},
+			GROUP_2: {
+				statusName: "Pending Send",
+				detail: "Buy TASLA.O 5,000 @ 145.11 (gs)",
+				color: predefinedColorsSet["yellow"].backgroundColor,
+				icon: "info",
+				colorClass: "yellow",
+				status: "pending"
+			},
 
-	// Denined
-	GROUP_3: {
-		statusName: "Denined Amend",
-		detail: "Buy TASLA.O 5,000 @ 145.11 (gs)",
-		color: predefinedColorsSet["red"].backgroundColor,
-		icon: "warning-circle",
-		status: "denined"
-	},
-	GROUP_4: {
-		statusName: "Denined Register",
-		detail: "Buy TASLA.O 5,000 @ 145.11 (gs)",
-		color: predefinedColorsSet["red"].backgroundColor,
-		icon: "warning-circle",
-		status: "denined"
-	},
+			// Denined
+			GROUP_3: {
+				statusName: "Denined Amend",
+				detail: "Buy TASLA.O 5,000 @ 145.11 (gs)",
+				color: predefinedColorsSet["red"].backgroundColor,
+				icon: "warning-circle",
+				colorClass: "red",
+				status: "denined"
+			},
+			GROUP_4: {
+				statusName: "Denined Register",
+				detail: "Buy TASLA.O 5,000 @ 145.11 (gs)",
+				color: predefinedColorsSet["red"].backgroundColor,
+				icon: "warning-circle",
+				colorClass: "red",
+				status: "denined"
+			},
 
-	// Approved
-	GROUP_5: {
-		statusName: "Approved Register",
-		detail: "Buy TASLA.O 5,000 @ 145.11 (gs)",
-		color: predefinedColorsSet["green"].backgroundColor,
-		status: "approved"
-	},
-	GROUP_6: {
-		statusName: "Approved Send",
-		detail: "Buy TASLA.O 5,000 @ 145.11 (gs)",
-		color: predefinedColorsSet["green"].backgroundColor,
-		status: "approved"
-	}
-	};
+			// Approved
+			GROUP_5: {
+				statusName: "Approved Register",
+				detail: "Buy TASLA.O 5,000 @ 145.11 (gs)",
+				color: predefinedColorsSet["green"].backgroundColor,
+				status: "approved",
+				colorClass: "green",
+				icon: "info",
+			},
+			GROUP_6: {
+				statusName: "Approved Send",
+				detail: "Buy TASLA.O 5,000 @ 145.11 (gs)",
+				color: predefinedColorsSet["green"].backgroundColor,
+				status: "approved",
+				colorClass: "green",
+				icon: "info",
 
-	function onContinueClicked(status, e) {
-		alert("CONTINUE current status is : " + status);
-		e.stopPropagation(); // Prevent collapsing/expanding grouop when click header
-	}
+			}
+		};
 
-	function onAbortClicked(status, e) {
-		alert("Abort current status is : " + status);
-		e.stopPropagation(); // Prevent collapsing/expanding grouop when click header
-	}
+		// Approved 
+		function onContinueClicked(groupId, e) {
+			var rowIds = grid.api.getDataView().getGroup(groupId).getAllRowIds();
+			var groupStatus = statusMapping[groupId];
+			var nextStatus = groupStatus.statusName;
+			var statusObj = {
+				statusName: "Approved Send",
+				detail: "Buy TASLA.O 5,000 @ 145.11 (gs)",
+				color: predefinedColorsSet["green"].backgroundColor,
+				status: "approved",
+				icon: "info",
+				colorClass: "green"
+			};
+			var newGroupId = "GROUP_" + ++currentCountGroup;
+			statusMapping[newGroupId] = statusObj;
+			for (var i = 0; i < rowIds.length; i++) {
+				var rowId = rowIds[i];
+				var rowDef = grid.api.getRowDefinition(rowId);
+				rowDef.setData("status", newGroupId);
+			}
+			currentCountGroup++;
 
-	function onGroupBinding(e) {
-		// row header binding only called when cell colIndex = 0 (so for another column we need to  loop colCount to set another cell)
-		var groupId = e.groupId;
-		var cell = e.cell;
-
-		var content = cell.getContent();
-		if (!content || !content._customHeader) {
-			content = document.createElement("div");
-			content._customHeader = content;
-
-			var iconEl = document.createElement("coral-icon");
-			iconEl.style.paddingRight = "6px";
-			content._icon = iconEl;
-
-			var statusEl = document.createElement("span");
-			statusEl.style.alignSelf = "center";
-			content._statusName = statusEl;
-
-			var descriptionEl = document.createElement("span");
-			descriptionEl.style.alignSelf = "center";
-			descriptionEl.style.paddingLeft = "24px";
-			content._description = descriptionEl;
-
-			var divButtonEl = document.createElement("div");
-			var continueButtonEl = document.createElement("coral-button");
-			continueButtonEl.textContent = "CONTINUE";
-			content._continueButton = continueButtonEl;
-
-			var abortButtonEl = document.createElement("coral-button");
-			abortButtonEl.textContent = "ABORT";
-			abortButtonEl.style.marginLeft = "12px";
-			content._abortButton = abortButtonEl;
-
-			divButtonEl.appendChild(continueButtonEl);
-			divButtonEl.appendChild(abortButtonEl);
-
-			content.style.display = "flex";
-			content.style.alignItems = "center";
-			content.style.justifyContent = "space-between";
-
-			var leftDiv = document.createElement("div");
-			leftDiv.style.display = "flex";
-
-			leftDiv.appendChild(iconEl);
-			leftDiv.appendChild(statusEl);
-			leftDiv.appendChild(descriptionEl);
-
-			var rightDiv = document.createElement("div");
-			rightDiv.appendChild(divButtonEl);
-
-			content.appendChild(leftDiv);
-			content.appendChild(rightDiv);
+			e.stopPropagation(); // Prevent collapsing/expanding grouop when click header
 		}
 
-		content._icon.icon = statusMapping[groupId].icon; // All icon for elf element https://elf.int.refinitiv.com/styles/icons.html for another icon you can use .src to ref svg file
-		content._icon.style.color = statusMapping[groupId].color;
-		content._icon.style.display = statusMapping[groupId].status !== "approved" ? "block" : "none";
+		function onAbortClicked(groupId, e) {
+			var rowIds = grid.api.getDataView().getGroup(groupId).getAllRowIds();
+			var groupStatus = statusMapping[groupId];
+			var nextStatus = groupStatus.statusName;
+			var statusObj = {
+				statusName: "Denined Register",
+				detail: "Buy TASLA.O 5,000 @ 145.11 (gs)",
+				color: predefinedColorsSet["red"].backgroundColor,
+				status: "denied",
+				icon: "info",
+				colorClass: "red"
+			};
+			var newGroupId = "GROUP_" + ++currentCountGroup;
+			statusMapping[newGroupId] = statusObj;
+			for (var i = 0; i < rowIds.length; i++) {
+				var rowId = rowIds[i];
+				var rowDef = grid.api.getRowDefinition(rowId);
+				rowDef.setData("status", newGroupId);
+			}
+			currentCountGroup++;
 
-		content._statusName.textContent = statusMapping[groupId].statusName;
-		content._statusName.style.color = statusMapping[groupId].color;
-
-		content._description.textContent = statusMapping[groupId].detail;
-
-		content._continueButton.addEventListener(
-			"click",
-			onContinueClicked.bind(this, groupId)
-		);
-		content._abortButton.addEventListener(
-			"click",
-			onAbortClicked.bind(this, groupId)
-		);
-
-		cell.setContent(content);
-	}
-
-	var records = tr.DataGenerator.generateRecords(fields, { seed: 3, numRows: 12 });
-	var configObj = {
-	rowGrouping: {
-		groupBy: fields[4],
-		headerSpanning: true,
-		groupHeaderBinding: onGroupBinding,
-		predefinedColors: predefinedColorsSet,
-		groupSortLogic: groupSortingASC,
-		groupColors: {
-		GROUP_1: "yellow",
-		GROUP_2: "yellow",
-
-		GROUP_3: "red",
-		GROUP_4: "red",
-
-		GROUP_5: "green",
-		GROUP_6: "green"
+			e.stopPropagation(); // Prevent collapsing/expanding grouop when click header
 		}
-	},
-	columns: [
-		{
-			name: "Industry",
-			field: fields[0],
-			statistics: "label"
-		},
-		{
-			name: "Describe",
-			field: fields[1]
-		},
-		{
-			name: "Price Close",
-			field: fields[2],
-			alignment: "right",
-			binding: currencyBinding,
-			statistics: "currencyStat"
-		},
-		{
-			name: "Price Last",
-			field: fields[3],
-			alignment: "center",
-			binding: currencyBinding,
-			statistics: "currencyStat"
+
+		function onGroupAdded(e) {
+			var newGroup = e.newGroup;
+			var groupId = newGroup.getGroupId();
+			var groupStatus = statusMapping[groupId];
+			rowGrouping.setGroupColor(groupId, statusMapping[groupId].colorClass);
 		}
-	],
-	staticDataRows: records,
-	extensions: [rowGrouping]
-	};
 
-	var grid = (window.grid = document.getElementById("grid"));
-	grid.config = configObj;
+		function onGroupBinding(e) {
+			// row header binding only called when cell colIndex = 0 (so for another column we need to  loop colCount to set another cell)
+			var groupId = e.groupId;
+			var cell = e.cell;
 
-	grid.addEventListener("beforeContentBinding", onBeforeContentBinding);
-	function onBeforeContentBinding(e) {
-		if (!e.actualUpdate) {
-			return;
+			var content = cell.getContent();
+			if (!content || !content._customHeader) {
+				content = document.createElement("div");
+				content._customHeader = content;
+
+				var iconEl = document.createElement("coral-icon");
+				iconEl.style.paddingRight = "6px";
+				content._icon = iconEl;
+
+				var statusEl = document.createElement("span");
+				statusEl.style.alignSelf = "center";
+				content._statusName = statusEl;
+
+				var descriptionEl = document.createElement("span");
+				descriptionEl.style.alignSelf = "center";
+				descriptionEl.style.paddingLeft = "24px";
+				content._description = descriptionEl;
+
+				var divButtonEl = document.createElement("div");
+				var continueButtonEl = document.createElement("coral-button");
+				continueButtonEl.textContent = "CONTINUE";
+				content._continueButton = continueButtonEl;
+
+				var abortButtonEl = document.createElement("coral-button");
+				abortButtonEl.textContent = "ABORT";
+				abortButtonEl.style.marginLeft = "12px";
+				content._abortButton = abortButtonEl;
+
+				divButtonEl.appendChild(continueButtonEl);
+				divButtonEl.appendChild(abortButtonEl);
+
+				content.style.display = "flex";
+				content.style.alignItems = "center";
+				content.style.justifyContent = "space-between";
+
+				var leftDiv = document.createElement("div");
+				leftDiv.style.display = "flex";
+
+				leftDiv.appendChild(iconEl);
+				leftDiv.appendChild(statusEl);
+				leftDiv.appendChild(descriptionEl);
+
+				var rightDiv = document.createElement("div");
+				rightDiv.appendChild(divButtonEl);
+
+				content.appendChild(leftDiv);
+				content.appendChild(rightDiv);
+			}
+
+			content._icon.icon = statusMapping[groupId].icon; // All icon for elf element https://elf.int.refinitiv.com/styles/icons.html for another icon you can use .src to ref svg file
+			content._icon.style.color = statusMapping[groupId].color;
+			content._icon.style.display = statusMapping[groupId].status !== "approved" ? "block" : "none";
+
+			content._statusName.textContent = statusMapping[groupId].statusName;
+			content._statusName.style.color = statusMapping[groupId].color;
+
+			content._description.textContent = statusMapping[groupId].detail;
+
+			content._continueButton.addEventListener(
+				"click",
+				onContinueClicked.bind(this, groupId)
+			);
+			content._abortButton.addEventListener(
+				"click",
+				onAbortClicked.bind(this, groupId)
+			);
+
+			cell.setContent(content);
 		}
-		var rows = grid.api.getAllRowDefinitions();
-		console.log(rows);
-	}
 
-	function currencyBinding(e) {
-		var cell = e.cell;
-		var data = e.data;
-		cell.setContent(addSymbol(data));
-	}
+		var records = tr.DataGenerator.generateRecords(fields, { seed: 3, numRows: 12 });
+		var configObj = {
+			rowGrouping: {
+				groupBy: fields[4],
+				headerSpanning: true,
+				groupHeaderBinding: onGroupBinding,
+				predefinedColors: predefinedColorsSet,
+				groupSortLogic: groupSortingASC,
+				autoGroupRemoval: true,
+				groupAdded: onGroupAdded
+			},
+			columns: [{
+				name: "Industry",
+				field: fields[0],
+				statistics: "label"
+			},
+			{
+				name: "Describe",
+				field: fields[1]
+			},
+			{
+				name: "Price Close",
+				field: fields[2],
+				alignment: "right",
+				binding: currencyBinding,
+				statistics: "currencyStat"
+			},
+			{
+				name: "Price Last",
+				field: fields[3],
+				alignment: "center",
+				binding: currencyBinding,
+				statistics: "currencyStat"
+			}
+			],
+			staticDataRows: records,
+			extensions: [rowGrouping]
+		};
 
-	function addSymbol(data) {
-		var symbol = "$";
-		return symbol + data;
-	}
+		var grid = document.getElementById("grid");
+		grid.config = configObj;
 
-	function groupSortingASC(grp1, grp2) {
-		// Sort in ascending order (A -> Z)
-		if (grp1 < grp2) return -1;
-		if (grp1 > grp2) return 1;
-		return 0;
-	}
+		grid.addEventListener("beforeContentBinding", onBeforeContentBinding);
+
+		function onBeforeContentBinding(e) {
+			if (!e.actualUpdate) {
+				return;
+			}
+			var rows = grid.api.getAllRowDefinitions();
+			console.log(rows);
+		}
+
+		function currencyBinding(e) {
+			var cell = e.cell;
+			var data = e.data;
+			cell.setContent(addSymbol(data));
+		}
+
+		function addSymbol(data) {
+			var symbol = "$";
+			return symbol + data;
+		}
+
+		function groupSortingASC(grp1, grp2) {
+			// Sort in ascending order (A -> Z)
+			if (grp1 < grp2) return -1;
+			if (grp1 > grp2) return 1;
+			return 0;
+		}
 </script>
 ```
 #### Example summation row in group header rows
@@ -1094,6 +1148,7 @@ The extension supports color from the predefined colors. To do this you need to 
 </script>
 
 ```
+
 ### Statistic Calculation with Row Grouping
 
 The Row Grouping Extension offers comprehensive support for statistic calculation with row grouping, allowing users to customize binding for header and footer rows seamlessly.
