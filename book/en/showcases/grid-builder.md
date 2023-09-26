@@ -1,4 +1,6 @@
-# Grid Builder
+# Grid Builder / Loader
+
+## Grid Builder
 
 The grid configuration builder provide a quick start way of using grid in your application. This will help new users to getting started with grid easier. You can try with different grid customization and grid extensions with a realtime result, then this configuration can be copy and paste into any application to get the same result as seen from this section.
 
