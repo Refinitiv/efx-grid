@@ -92,6 +92,7 @@ You can see all possible values for the sort order [here](../apis/composite_grid
 				ta.value = "Field " + field + " is sorted in " + sortOrder + " order\n" + ta.value;
 
 				// At this point, you may request sorted data from the server.
+				requestData(evtArg);
 			}
 		},
 		columns: [
@@ -104,6 +105,45 @@ You can see all possible values for the sort order [here](../apis/composite_grid
 		staticDataRows: records
 	};
 
+
+	function mockCallbackData(resp) {
+		if (resp.success) {
+			console.log("Loading success, Data sorted");
+			grid.data = resp.data;
+		}
+	}
+
+	// Mock to request data
+	function requestData(obj) {
+		console.log("Loading data from server side");
+		// Mock data on server side
+		setTimeout(function () {
+			// Mock to query data from DB.
+			var resRecords = tr.DataGenerator.generateRecords(fields, { numRows: 10 }); // NOTE: It's random data
+			var sortField = obj.sortedField;
+			var sortOrder = obj.sortOrder;
+			resRecords = resRecords.sort(sortFx.bind(null, sortOrder, sortField));
+			mockCallbackData({
+				success: true,
+				data: resRecords
+			});
+		}, 100);
+	}
+
+	function sortFx(sortOrder, sortField, rowA, rowB) {
+		return compareFunction(rowA, rowB, sortField, sortOrder);
+	}
+
+	function compareFunction(rowA, rowB, sortField, sortOrder) {
+		var valueA = rowA[sortField];
+		var valueB = rowB[sortField];
+
+		if (sortOrder === "a") {
+			return valueA < valueB ? -1 : valueA > valueB ? 1 : 0;
+		} else {
+			return valueA > valueB ? -1 : valueA < valueB ? 1 : 0;
+		}
+	}
 	var grid = document.getElementById("grid");
 	grid.config = configObj;
 </script>
