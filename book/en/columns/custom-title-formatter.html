@@ -2,7 +2,7 @@
 <html pandora="">
 
 <head>
-  <title>Column Custom Title</title>
+  <title>Custom Header/Title</title>
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <meta name="x-pandora-base" content="../">
   <meta name="x-pandora-location" content="columns/custom-title-formatter.html">
@@ -47,7 +47,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="61816a8c-eb2e-4366-96d6-64b558017892">
+        <pandora-nav id="056f6376-cc79-46c7-8ffa-5a14fe4c277c">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -74,6 +74,7 @@
               <div collapser="">Showcases</div>
               <ul>
                 <li><a href="../showcases/comprehensive.html">Comprehensive</a></li>
+                <li><a href="../showcases/realtime-data.html">Realtime Data</a></li>
                 <li><a href="../showcases/grid-builder.html">Grid Builder</a></li>
               </ul>
             </li>
@@ -208,7 +209,7 @@
                 <li><a href="../columns/column-freezing.html">Column Freezing</a></li>
                 <li><a href="../columns/column-pinning.html">Column Pinning</a></li>
                 <li><a href="../columns/column-styling.html">Column Styling</a></li>
-                <li selected><a href="../columns/custom-title-formatter.html">Column Custom Title</a></li>
+                <li selected><a href="../columns/custom-title-formatter.html">Custom Header/Title</a></li>
                 <li><a href="../columns/column-grouping.html">Column Grouping</a></li>
               </ul>
             </li>
@@ -298,8 +299,8 @@
       <div class="main">
         <div class="reader">
           <pandora-page><ef-notification =""><span class="noti-msg">This page is now available at the new alternative site <a href="https://204090.pages.dx1.lseg.com/grid/efx-grid/#/columns/custom-title-formatter" target="_blank">here</a>.</span></ef-notification>
-            <h1 id="column-custom-title">Column - Custom Title</h1>
-            <p>In addition to formatting the cells in content rows, you can also create a custom formatter for the column title. </p>
+            <h1 id="custom-header-title">Custom header/title</h1>
+            <p>You can display anything you want on grid's column header/title by using <code>headerBinding</code>. The binding works in similar way to content binding, where the method will be executed each time grid's header gets updated. <code>columnDef</code> is supplied in the event argument to provide additional information about the column header being rendered. </p>
             <pre><code><span class="hljs-keyword">var</span> customFormatter = <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">e</span>)</span>{
     e.cell.setContent(<span class="hljs-string">"Custom "</span> + e.columnDef.getName());
 }
@@ -311,9 +312,128 @@
     ]
 }
 grid.config = configObj;</code></pre>
-            <h2 id="example">Example</h2>
+            <h2 id="additional-element-example">Additional element example</h2>
 
-            <div class="pandora-code-viewer" id="pid-143">
+            <div class="pandora-code-viewer" id="pid-144">
+              <div class="pandora-viewer">
+                <button>&lt;/&gt;</button>
+              </div>
+              <div class="pandora-code-view">
+                <div class="pandora-toolbar">
+                  <ul>
+                    <li class="pandora-tab-selected" data-toggle="tab-html">HTML</li>
+                    <li data-toggle="tab-js">JS</li>
+                    <li data-toggle="tab-css">CSS</li>
+                  </ul>
+                </div>
+                <div class="pandora-tab-container">
+                  <pre class="pandora-tab-view tab-html">&lt;efx-grid id="grid"&gt;&lt;/efx-grid&gt;</pre>
+                  <pre class="pandora-tab-view tab-js">var fields = ["id", "companyName", "market", "CF_LAST", "PCTCHNG"];
+var columns = fields.map(function(f) {
+  return {
+    field: f
+  };
+});
+
+columns[0].headerBinding = function headerWithLink(e) {
+  var cell = e.cell;
+  var content = cell.getContent();
+  if (!content || !content._myHeaderWithLink) {
+    content = document.createElement("div");
+    content._myHeaderWithLink = true;
+
+    var span = content._span = document.createElement("span");
+    span.style.marginRight = "5px";
+    var link = content._link = document.createElement("ef-icon");
+    link.icon = "link";
+    link.addEventListener("click", function(arg) {
+      arg.stopPropagation();
+      alert("Icon clicked");
+    });
+    content.appendChild(span);
+    content.appendChild(link);
+  }
+
+  content._span.textContent = e.columnDef.getName();
+  cell.setContent(content);
+};
+
+columns[2].headerBinding = function headerWithCheckbox(e) {
+  var cell = e.cell;
+  var content = cell.getContent();
+  if (!content || !content._myHeaderWithCheckbox) {
+    content = document.createElement("div");
+    content._myHeaderWithCheckbox = true;
+
+    var span = content._span = document.createElement("span");
+    span.style.marginRight = "5px";
+    // You will need to import the checkbox theme files for this to be shown
+    var chkbox = content._chkbox = document.createElement("ef-checkbox");
+    chkbox.addEventListener("checked-changed", function(arg) {
+      alert("Checkbox changed");
+    });
+    chkbox.addEventListener("click", function(arg) {
+      arg.stopPropagation();
+    });
+    content.appendChild(span);
+    content.appendChild(chkbox);
+  }
+
+  content._span.textContent = e.columnDef.getName();
+  cell.setContent(content);
+};
+
+var ROW_COUNT = 10;
+var records = DataGenerator.generateRecords(fields, {
+  seed: 0,
+  numRows: ROW_COUNT
+});
+
+var configObj = {
+  columns: columns,
+  staticDataRows: records
+};
+
+var grid = document.getElementById("grid");
+grid.config = configObj;</pre>
+                  <pre class="pandora-tab-view tab-css"></pre>
+                  <div class="pandora-console"></div>
+                </div>
+              </div>
+              <link rel="prefetch" href="../node_modules/tr-grid-test-resource-v6/dist/elf-halo-light.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-auto-tooltip/dist/tr-grid-auto-tooltip.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-cell-selection/dist/tr-grid-cell-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-checkbox/dist/tr-grid-checkbox.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/column-dragging/dist/column-dragging.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-fitter/dist/tr-grid-column-fitter.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-formatting/dist/tr-grid-column-formatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-grouping/dist/tr-grid-column-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-resizing/dist/tr-grid-column-resizing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-selection/dist/tr-grid-column-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-column-stack/dist/tr-grid-column-stack.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-conditional-coloring/dist/tr-grid-conditional-coloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-content-wrap/dist/tr-grid-content-wrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-contextmenu/dist/tr-grid-contextmenu.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-filter-input/dist/tr-grid-filter-input.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-heat-map/dist/tr-grid-heat-map.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-in-cell-editing/dist/tr-grid-in-cell-editing.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-pagination/dist/tr-grid-pagination.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-percent-bar/dist/tr-grid-percent-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-range-bar/dist/tr-grid-range-bar.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-dragging/dist/tr-grid-row-dragging.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-filtering/dist/tr-grid-row-filtering.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-grouping/dist/tr-grid-row-grouping.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/row-segmenting/dist/row-segmenting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-row-selection/dist/tr-grid-row-selection.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-rowcoloring/dist/tr-grid-rowcoloring.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/statistics-row/dist/statistics-row.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-textformatting/dist/tr-grid-textformatting.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/tr-grid-titlewrap/dist/tr-grid-titlewrap.min.js" type="script">
+              <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
+            </div>
+            <h2 id="floating-element-example">Floating element example</h2>
+
+            <div class="pandora-code-viewer" id="pid-145">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>

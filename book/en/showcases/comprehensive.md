@@ -2,7 +2,8 @@
 
 
 ```live(formatters)
-<div>
+<fieldset>
+	<legend>Operation</legend>
 	<span>
 		<coral-button id="select_column_btn">Select Columns</coral-button>
 		Data Size:
@@ -14,22 +15,22 @@
 			<coral-item value="100000">100,000 Rows</coral-item>
 		</coral-select>
 	</span>
+	<hr>
 	<span>
 		<label for="search_input">Filter: </label>
 		<input id="search_input" type="search" placeholder="Filter any column">
 	</span>
-</div>
-<div id="grouping">
-	<coral-select id="column_grouping_selector" placeholder="Group By"></coral-select>
-</div>
+	<hr>
+	<div id="grouping">
+		<coral-select id="column_grouping_selector" placeholder="Group By"></coral-select>
+	</div>
+</fieldset>
+<hr>
+
 <atlas-blotter id="preview"></atlas-blotter>
-
+<emerald-popup-menu id="popup_menu"></emerald-popup-menu>
 <script>
-	var grid = document.getElementsByTagName("atlas-blotter")[0];
-	var dataSizeSelect = document.getElementById("dataSize");
-	var selectColumnBtn = document.getElementById("select_column_btn");
 
-	// Extensions
 	var checkboxExt = new tr.CheckboxExtension();
 	var rowGroupingExt = new tr.RowGroupingExtension();
 	var conditionalColoringExt = new tr.ConditionalColoringExtension();
@@ -45,6 +46,14 @@
 	var rowColoring = new tr.RowColoringExtension();
 	var contextMenuExt = new tr.ContextMenuExtension();
 	var columnFitterExt = new tr.ColumnFitterExtension();
+	var columnStackExt = new tr.ColumnStackExtension();
+	var rangeBarExt = new tr.RangeBarExtension();
+	var generator = tr.DataGenerator;
+	var dateTimePicker = tr.EmeraldDateTimePickerFormatter ? tr.EmeraldDateTimePickerFormatter  : EFDateTimePickerFormatter; // WORKAROUND: for datetime picker in v6
+
+	var grid = window.grid = document.getElementsByTagName("atlas-blotter")[0];
+	var dataSizeSelect = document.getElementById("dataSize");
+	var selectColumnBtn = document.getElementById("select_column_btn");
 
 	var userList = [
 		"Amanda Herrera",
@@ -62,23 +71,12 @@
 		"Zara Marshall",
 		"Kiera Shaw"
 	];
-
-	var languageList = [
-		"French",
-		"English",
-		"German",
-		"Italian",
-		"Portuguese",
-		"Chinese",
-		"French",
-		"German",
-		"English",
-		"English",
-		"English",
-		"French",
-		"German",
-		"Chinese"
-	];
+	const userListEntries = userList.map(function (item) {
+		return {
+			label: item,
+			value: item
+		};
+	});
 
 	var codeList = {
 		"FRA": "France",
@@ -92,127 +90,107 @@
 		"NOR": "Norway",
 		"IND": "India",
 		"CHN": "China"
-	}
-
-	var countryList = [
-		"FRA",
-		"GBR",
-		"ISL",
-		"ITA",
-		"PRT",
-		"SWE",
-		"GRC",
-		"DEU",
-		"NOR",
-		"GBR",
-		"IND",
-		"FRA",
-		"DEU",
-		"CHN"
-	];
-
-	var gameList = [
-		"Overhold", "Cardify", "Alphazap", "Toughjoyfax", "Voltsillam", 
-		"Home Ing", "Otcom", "Solarbreeze", "Alpha", "Cooker run",
-		"Stronghold", "Tresom", "Andalax", "Rank", "King of plant",
-		"Alphazap", "Viva", "Mat Lam Tam", "Wrapsafe", "Gembucket"
-	];
-
-	tr.DataGenerator.addFieldInfo("game", {
-		type: "set",
-		members: gameList
-	});
-
-	tr.DataGenerator.addFieldInfo("user_id", {
-		type: "number",
-		min: 0,
-		max: userList.length,
-		prec: 0
-	});
-
-	var fields = [
-		"Name",
-		"Language",
-		"Country",
-		"Game Name",
-		"Bought",
-		"Bank Balance",
-		"Rating",
-		"Total Winnings",
-		"Jan",
-		"Feb",
-		"Mar",
-		"Apr",
-		"May",
-		"Jun",
-		"Jul",
-		"Aug",
-		"Sep",
-		"Oct",
-		"Nov",
-		"Dec"
-	];
-
-	var conditionsArr = fields.map(function(field) {
-		return [{
-			backgroundColor: "#b9f6ca66",
-			expression: "[" + field + "] > 60"
-		}, {
-			backgroundColor: "#ff80ab66",
-			expression: "[" + field + "] < 20"
-		}];
-	});
-
-	// Custom Capitalize Formatter
-	const capitalizeFormatter = {
-		render: function() {},
-		bind: function(rowIndex, colIndex, value, cell) {
-			console.log("value", value);
-			cell.setContent(value.toString()
-				.toUpperCase());
-		}
 	};
 
-	var dataTypeFields = [
-		"user_id",
-		"game",
-		"boolean", // Bought
-		"TR.Volume", // Bank Balance
-		"index100", // Rating
-		"YRHIGH", // Total Winnings
-	];
+	var languageList = ["French", "English", "German", "Italian", "Portuguese", "Chinese"];
 
-	var randNumber = tr.DataGenerator.randNumber;
-
-	var seed = Math.round(Math.random()*100);
-	var mapRow = function(row) {
-		var userId = row[0];
-		return [false, userList[userId], languageList[userId], countryList[userId],
-			row[1], row[2].toString(), row[3], row[4], row[5], 
-			randNumber(0, 100, 2, ++seed),
-			randNumber(0, 100, 2, ++seed),
-			randNumber(0, 100, 2, ++seed),
-			randNumber(0, 100, 2, ++seed),
-			randNumber(0, 100, 2, ++seed),
-			randNumber(0, 100, 2, ++seed),
-			randNumber(0, 100, 2, ++seed),
-			randNumber(0, 100, 2, ++seed),
-			randNumber(0, 100, 2, ++seed),
-			randNumber(0, 100, 2, ++seed),
-			randNumber(0, 100, 2, ++seed),
-			randNumber(0, 100, 2, ++seed)
-		];
-	};
-
-	var dataRows = tr.DataGenerator.generate(dataTypeFields, { seed: seed, numRows: 100 })
-		.map(mapRow);
-
-	const entries = languageList.map(function(item) {
+	const languageEntries = languageList.map(function (item) {
 		return {
 			label: item,
 			value: item
 		};
 	});
+
+	generator.addFieldInfo("userList", {
+		type: "set",
+		members: userList
+	})
+
+	generator.addFieldInfo("languageList", {
+		type: "set",
+		members: languageList
+	});
+
+	generator.addFieldInfo("countryList", {
+		type: "set",
+		members: ["FRA", "GBR", "ISL", "ITA", "PRT", "SWE", "GRC", "DEU", "NOR", "GBR", "IND", "FRA", "DEU", "CHN"
+		]
+	})
+
+
+	generator.addFieldInfo("CF_CLOSE", {
+		type: "number",
+		min: 0,
+		max: 1000,
+		prec: 2
+	});
+
+	generator.addFieldInfo("TR.TSVWAP", {
+		type: "number",
+		min: 0,
+		max: 1000,
+		prec: 2
+	});
+
+	generator.addFieldInfo("Jan", {
+		type: "number",
+		min: -100,
+		max: 100,
+		prec: 2
+	});
+
+	generator.addFieldInfo("Feb", {
+		type: "number",
+		min: -100,
+		max: 100,
+		prec: 2
+	});
+
+	generator.addFieldInfo("Mar", {
+		type: "number",
+		min: -100,
+		max: 100,
+		prec: 2
+	});
+
+	generator.addFieldInfo("changed", {
+		type: "number",
+		min: -100,
+		max: 100,
+		prec: 2
+	});
+
+	var dateConditions = [
+		{
+			expression: ["GT", 60],
+			backgroundColor: "#b9f6ca66"
+		},
+		{
+			expression: ["LT", 20],
+			backgroundColor: "#ff80ab66"
+		},
+	];
+
+	var dataTypeFields = [
+		"id",
+		"userList",
+		"languageList",
+		"countryList",
+		"boolean", // Bought
+		"TR.Volume", // Bank Balance
+		"changed", // Rating
+		"CFLOW",
+		"CF_LAST",
+		"CFHIGH",
+		"CF_TICK",
+		"CF_CLOSE",
+		"TR.TSVWAP",
+		"ISODate",
+		"Jan",
+		"Feb",
+		"Mar"
+	];
+	var dataRows = generator.generateRecords(dataTypeFields, { seed: 0, numRows: 100 });
 
 	var allAvailableColumns = [
 		{
@@ -220,74 +198,23 @@
 			leftPinned: true
 		},
 		{
-			id: "c0",
-			name: fields[0],
-			field: fields[0],
-			width: 200,
-			editableContent: true
-		},
-		{
-			id: "c1",
-			name: fields[1],
-			field: fields[1],
-			editableContent: true,
-			inCellEditing: {
-				type: "select",
-				entries: entries
-			},
+			field: "userList",
+			name: "Name",
+			id: "userList",
 			filterInput: {
-				type: "select",
-				entries: entries
+				type: "multiselect",
+				entries: userListEntries
 			},
-			width: 200
-		},
-		{
-			id: "c2",
-			name: fields[2],
-			field: fields[2],
-			filterInput: false,
-			minWidth: 100,
-			textAlign: "c",
-			binding: tr.CoralButtonFormatter.create({
-				events: {
-					click: function(event, context) {
-						var value = context.getData(context.field);
-						alert(codeList[value]);
-					}
-				}
-			})
-		},
-		{
-			id: "c3",
-			name: fields[3],
-			field: fields[3],
-			filterInput: false,
-			binding: capitalizeFormatter,
-			width: 120
-		},
-		{
-			id: "c4",
-			name: fields[4],
-			field: fields[4],
-			filterInput: false,
-			minWidth: 100,
-			textAlign: "center",
-			binding: tr.CoralIconFormatter.create({
-				icon: {
-					true: "tick",
-					false: "cross"
-				}
-			}),
-			inCellEditing: {
-				type: "checkbox"
-			},
+			minWidth: 150,
+			width: 165,
 			editableContent: true
 		},
 		{
-			id: "c5",
-			name: fields[5],
-			field: fields[5],
-			minWidth: 120,
+			field: "TR.Volume",
+			name: "Bank Balance",
+			id: "TR.Volume",
+			width: 90,
+			noFitting: true,
 			textAlign: "right",
 			heatMap: {
 				midPoint: 40
@@ -306,160 +233,204 @@
 			}
 		},
 		{
-			id: "c6",
-			name: fields[6],
-			field: fields[6],
+			field: "CF_CLOSE",
+			id: "CF_CLOSE",
+			sortable: false,
+			name: "Price Graph",
 			filterInput: false,
-			percentBar: {
-				alignment: "l"
+			minWidth: 120,
+			rangeBar: {
+				low: "CFLOW",
+				high: "CFHIGH",
+				last: "CF_LAST",
+				close: "CF_CLOSE",
+				vwap: "TR.TSVWAP",
+				tick: "CF_TICK",
 			},
-			editableContent: true,
-			noFitting: true,
-			width: 120
-
 		},
 		{
-			id: "c7",
-			name: fields[7],
-			field: fields[7],
-			noFitting: true,
-			minWidth: 100,
-			textAlign: "right",
-			formatType: {
-				type: "number",
-				separator: true,
-				decimalPlaces: 0
+			field: "CF_LAST",
+			id: "CF_LAST",
+			sortable: false,
+			name: "Year High Low Range",
+			minWidth: 150,
+			filterInput: false,
+			rangeBar: {
+				low: "CFLOW",
+				high: "CFHIGH",
+				last: "CF_LAST"
 			}
 		},
 		{
-			id: "c8",
-			name: fields[8],
-			field: fields[8],
-			conditions: conditionsArr[8],
-			textAlign: "right",
-			formatType: "percent",
-			width: 120
+			field: "changed",
+			id: "changed",
+			name: "Pct. Chng",
+			fieldDataType: "number",
+			filterInput: false,
+			percentBar: {
+				alignment: "c"
+			},
+			editableContent: true,
+			noFitting: true,
+			minWidth: 150
 		},
 		{
-			id: "c9",
-			name: fields[9],
-			field: fields[9],
-			conditions: conditionsArr[9],
-			textAlign: "right",
-			formatType: "percent",
-			width: 120
+			field: "id",
+			name: "Order",
+			noFitting: true,
+			id: "id",
+			filterInput: {
+				type: "number"
+			},
+			width: 40,
+			filterInput: false,
 		},
 		{
-			id: "c10",
-			name: fields[10],
-			field: fields[10],
-			conditions: conditionsArr[10],
-			textAlign: "right",
-			formatType: "percent",
-			width: 120
-		}, {
-			id: "c11",
-			name: fields[11],
-			field: fields[11],
-			conditions: conditionsArr[11],
-			textAlign: "right",
-			formatType: "percent",
-			width: 120
-		}, {
-			id: "c12",
-			name: fields[12],
-			field: fields[12],
-			conditions: conditionsArr[12],
-			textAlign: "right",
-			formatType: "percent",
-			width: 120
-		}, {
-			id: "c13",
-			name: fields[13],
-			field: fields[13],
-			conditions: conditionsArr[13],
-			textAlign: "right",
-			formatType: "percent",
-			width: 120
+			field: "CF_TICK",
+			name: "Tick",
+			id: "CF_TICK",
+			noFitting: true,
+			width: 40,
+			filterInput: false,
+			binding: onTickBinding
 		},
 		{
-			id: "c14",
-			name: fields[14],
-			field: fields[14],
-			conditions: conditionsArr[14],
-			textAlign: "right",
-			formatType: "percent",
-			width: 120
-		},
-		{
-			id: "c15",
-			name: fields[15],
-			field: fields[15],
-			conditions: conditionsArr[15],
-			textAlign: "right",
-			formatType: "percent",
-			width: 120
-		},
-		{
-			id: "c16",
-			name: fields[16],
-			field: fields[16],
-			conditions: conditionsArr[16],
-			textAlign: "right",
-			formatType: "percent",
-			width: 120
-		},
-		{
-			id: "c17",
-			name: fields[17],
-			field: fields[17],
-			conditions: conditionsArr[17],
-			textAlign: "right",
-			formatType: "percent",
-			width: 120,
-
-		},
-		{
-			id: "c18",
-			name: fields[18],
-			field: fields[18],
-			conditions: conditionsArr[18],
-			textAlign: "right",
-			formatType: "percent",
-			width: 120
-		},
-		{
-			id: "c19",
-			name: fields[19],
-			field: fields[19],
-			conditions: conditionsArr[19],
-			textAlign: "right",
-			formatType: "percent",
-			width: 120,
+			field: "boolean",
+			name: "Bought",
+			id: "boolean",
+			filterInput: false,
+			noFitting: true,
+			width: 40,
+			textAlign: "center",
+			binding: tr.CoralIconFormatter.create({
+				icon: {
+					true: "tick",
+					false: "cross"
+				}
+			}),
+			inCellEditing: {
+				type: "checkbox"
+			},
 			editableContent: true
+		},
+		{
+			field: "ISODate",
+			id: "ISODate",
+			name: "Date",
+			fieldDataType: "datetime",
+			filterInput: {
+				type: "date"
+			},
+			noFitting: true,
+			binding: dateTimePicker.create({
+				styles: {
+					width: 180
+				}
+			}),
+			width: 180,
+			alignment: "c"
+		},
+		{
+			field: "languageList",
+			id: "languageList",
+			name: "Language",
+			editableContent: true,
+			inCellEditing: {
+				type: "select",
+				entries: languageEntries
+			},
+			filterInput: {
+				type: "select",
+				entries: languageEntries
+			},
+			minWidth: 120
+		},
+		{
+			field: "countryList",
+			id: "countryList",
+			name: "Country",
+			filterInput: false,
+			textAlign: "c",
+			binding: tr.CoralButtonFormatter.create({
+				events: {
+					click: function (event, context) {
+						var value = context.getData(context.field);
+						alert(codeList[value]);
+					}
+				}
+			}),
+			minWidth: 80
+		},
+		{
+			field: "Jan",
+			id: "Jan",
+			name: "Jan",
+			filterInput: {
+				type: "number"
+			},
+			conditions: dateConditions,
+			alignment: "c",
+			formatType: "percent",
+			minWidth: 80, // Equal to fit content
+			stackId: "stack1"
+		},
+		{
+			field: "Feb",
+			name: "Feb",
+			id: "Feb",
+			filterInput: {
+				type: "number"
+			},
+			conditions: dateConditions,
+			alignment: "c",
+			formatType: "percent",
+			minWidth: 80,
+			stackId: "stack1"
+		}, {
+			field: "Mar",
+			name: "Mar",
+			id: "Mar",
+			filterInput: {
+				type: "number"
+			},
+			conditions: dateConditions,
+			alignment: "c",
+			formatType: "percent",
+			minWidth: 80,
+			stackId: "stack1"
 		}
+
 	];
 
+	function onTickBinding(e) {
+		var cell = e.cell;
+		var data = e.data;
+		var content = cell.getContent();
+		if (!content) {
+			content = document.createElement("coral-icon");
+		}
+		content.icon = data === 1 ? "arrow-down-fill" : "arrow-up-fill";
+		content.style.color = data === 1 ? "rgb(245, 71, 91)" : "rgb(57, 196, 110)";
+		cell.setContent(content);
+	};
+
 	// generate dynamic data and assign to "atlas-blotter"
-	dataSizeSelect.addEventListener("value-changed", function(e) {
-		var seed = Math.round(Math.random()*100);
-		var dataRows = tr.DataGenerator.generate(dataTypeFields, { seed: seed, numRows: e.detail.value })
-			.map(mapRow);
-		grid.api.removeAllRows();
+	dataSizeSelect.addEventListener("value-changed", function (e) {
+		var dataRows = generator.generateRecords(dataTypeFields, { seed: 0, numRows: e.detail.value });
 		grid.data = dataRows;
 	});
 
 	// set up row Filter Extension
-	search_input.addEventListener("keyup", function(e) {
+	search_input.addEventListener("keyup", function (e) {
 		const input = e.currentTarget;
 
-		if(input._prevValue !== input.value) {
+		if (input._prevValue !== input.value) {
 			input._prevValue = input.value;
 			filterExt.refresh(); // Force filter triggering
 		}
 	});
 
-	var filterFunc = function(rowData, rowId, context) {
+	var filterFunc = function (rowData, rowId, context) {
 		var str = "";
 		var val = context.input.value.toLowerCase();
 		var record = rowData["ROW_DEF"].getRowData();
@@ -480,15 +451,15 @@
 		items: {
 			FILTER: {
 				text: "Filter",
-				callback: function(e) {
+				callback: function (e) {
 					filterExt.openDialog(e.colIndex, {
 						sortUI: true, // Show Sort area
 						filterUI: true, // Show Filter area
 						sortState: "d", // "a" for ascending or "d" for descending
-						filterChanged: function(e) { // Filter changed handler
+						filterChanged: function (e) { // Filter changed handler
 							console.log(e.detail);
 						},
-						sortChanged: function(e) { // Sort changed handler
+						sortChanged: function (e) { // Sort changed handler
 							console.log(e.detail);
 						}
 					});
@@ -503,50 +474,89 @@
 					{ type: "separator" },
 					{ text: "Default", value: "" }
 				],
-				callback: function(e) {
+				callback: function (e) {
 					const { rowIndex, item: { value } } = e;
 					rowColoring.setRowColor(rowIndex, value);
 				}
 			}
 		},
-		onMenu: function(e) {
+		onMenu: function (e) {
 			var context = e.context;
 			var menu = e.menu;
-			if(context === "header") {
+			if (context === "header") {
 				menu.addItems("FILTER");
-			} else if(context === "content") {
+			} else if (context === "content") {
 				menu.addItems(["ROW_COLORING", "FILTER"]);
 			}
 		}
 	};
 
-	contextMenuExt.listen("contextmenu", function(e) {
+	contextMenuExt.listen("contextmenu", function (e) {
 		// contextmenu event argument provides info about the right click position within the core grid
 		console.log(e);
 	});
 
 	// set up "column-selection-dialog"
 	var dialog = null;
-	var confirmChanged = function(e) {
-		grid.columns = e.detail.data;
+	var selectionDialogConfirmed = function (e) {
+		var columnCommited = e.detail.data;
+		columnCommited = columnCommited.map(function (column) {
+			return {
+				...column, // Clone object to retain format
+				field: nameToField[column.name]
+			}
+		})
+		grid.api.restoreColumns(columnCommited);
 	};
 
-	selectColumnBtn.addEventListener("click", function() {
-		if(!dialog) {
+	var nameToField = {
+		"Name": "userList",
+		"Order": "id",
+		"Bought": "boolean",
+		"Tick": "CF_TICK",
+		"Bank Balance": "TR.Volume",
+		"Price Graph": "CF_CLOSE",
+		"Year High Low Range": "CF_LAST",
+		"Pct. Chng": "changed",
+		"Date": "ISODate",
+		"Country": "countryList",
+		"Language": "languageList",
+		"Jan": "Jan",
+		"Feb": "Feb",
+		"Mar": "Mar"
+	};
+
+	selectColumnBtn.addEventListener("click", function () {
+		if (!dialog) {
 			dialog = document.createElement("column-selection-dialog");
-			dialog.addEventListener("confirm", confirmChanged);
+			dialog.addEventListener("confirm", selectionDialogConfirmed);
 		}
 
-		var visibleColumns = grid.columns.filter(function(column) {
+		var columns = grid.api.getConfigObject().columns;
+		var visibleColumns = columns.filter(function (column) {
 			return column.checkboxColumn !== true;
 		});
 
-		var allColumns = allAvailableColumns.filter(function(column) {
+		var allColumns = allAvailableColumns.filter(function (column) {
 			return column.checkboxColumn !== true;
 		});
 
+		var columnObj = allColumns.map(function (column) {
+			return {
+				...column, // Clone object to retain format
+				field: column.name,
+				id: nameToField[column.name]
+			}
+		});
+		visibleColumns = visibleColumns.map(function (column) {
+			return {
+				...column, // Clone object to retain format
+				field: column.name,
+				id: column.id
+			}
+		});
 		dialog.init({
-			data: allColumns.slice(),
+			data: columnObj.slice(),
 			visibleItems: visibleColumns.slice()
 		});
 		dialog.show();
@@ -558,30 +568,29 @@
 		linearWheelScrolling: true,
 		stepScroll: true,
 		columnGrouping: [
-			{ 
-				id: "g1",
-				name: "Participant",
-				alignment: "center", 
-				children: ["c0", "c1", "c2"] 
-			},
-			{ 
-				id: "g2",
-				name: "Game of Choice",
-				alignment: "center",
-				children: ["c3", "c4"] 
-			},
-			{ 
-				id: "g3",
-				name: "Performance",
-				children: ["c5"]
-			},
-			{
-				id: "g4",
-				name: "Monthly Breakdown",
-				alignment: "left",
-				children: ["c8", "c9", "c10", "c11", "c12", "c13", "c14", "c15", "c16", "c17", "c18", "c19"]
-			}
-		],
+		{
+			id: "g1",
+			name: "Account Profile",
+			alignment: "center",
+			children: ["userList", "TR.Volume"]
+		},	
+		{
+			id: "g2",
+			name: "Transaction Details",
+			alignment: "center",
+			children: ["id", "CF_TICK", "boolean"]
+		},
+		{
+			id: "g3",
+			name: "Financial Overview",
+			alignment: "center",
+			children: ["CF_CLOSE", "CF_LAST", "changed"]
+		},
+		{
+			id: "g4",
+			name: "Localization Information",
+			children: ["ISODate", "languageList", "countryList"]
+		}],
 		extensions: [
 			columnGroupingExt,
 			checkboxExt,
@@ -597,17 +606,22 @@
 			filterExt,
 			contextMenuExt,
 			rowColoring,
-			columnFitterExt
+			columnFitterExt,
+			columnStackExt,
+			rangeBarExt,
 		],
 		inCellEditing: {
 			type: "input",
 			contentSource: "field",
 			autoCommitText: true,
-			beforeCommit: function(e) {
+			beforeCommit: function (e) {
 				// console.log("beforeCommit", e)
 			}
 		},
 		contextMenu: contextMenuModel,
+		columnStack: {
+			menuElement: document.getElementById("popup_menu")
+		},
 		columnFitting: {
 			title: false,
 			autoAdjust: true,
@@ -619,20 +633,29 @@
 	grid.config = blotterConfig;
 	grid.data = dataRows;
 
-	column_grouping_selector.addEventListener("opened-changed", function(e) {
+	column_grouping_selector.addEventListener("opened-changed", function (e) {
 		if (!this.opened) {
-			var columns = grid.columns;
-			var filtered = columns.filter(function(column) {
+			var columns = [{
+				field: "userList",
+				name: "Name"
+			}, {
+				field: "languageList",
+				name: "Language",
+			}, {
+				field: "countryList",
+				name: "Country",
+			}];
+			var filtered = columns.filter(function (column) {
 				return column.checkboxColumn !== true;
 			});
-			var data = filtered.map(function(column) {
+			var data = filtered.map(function (column) {
 				return {
 					label: column.name,
 					value: column.field
 				}
 			});
 			var criteria = rowGroupingExt.getGroupingCriteria();
-			var selectorData = data.filter(function(item) {
+			var selectorData = data.filter(function (item) {
 				return criteria.indexOf(item.value) < 0;
 			});
 
@@ -653,17 +676,17 @@
 		rowGroupingExt.setGroupingCriteria(criteria);
 	}
 
-	column_grouping_selector.addEventListener("value-changed", function(e) {
+	column_grouping_selector.addEventListener("value-changed", function (e) {
 		var value = e.detail.value;
 		var label = this.label;
 
 		// Insert Pill
 		var pill = document.createElement("coral-pill");
-		
+
 		var arrow = document.createElement("coral-icon");
 		arrow.className = "arrow";
 		arrow.setAttribute('icon', 'right');
-		
+
 		pill._arrow = arrow;
 		pill.setAttribute("clears", "");
 		pill.innerText = label;
@@ -681,14 +704,19 @@
 		var criteria = criteria.concat([value]);
 		rowGroupingExt.setGroupingCriteria(criteria);
 	});
+
 </script>
 
 <style>
- atlas-blotter {
-		height: 600px;
- }
+	body {
+		padding: 24px;
+	}
 
- #grouping .arrow {
+	atlas-blotter {
+		height: 600px;
+	}
+
+	#grouping .arrow {
 		color: red;
 		margin: 0 5px;
 		vertical-align: middle;
@@ -704,6 +732,10 @@
 
 	#column_grouping_selector {
 		margin-right: 5px;
+	}
+
+	hr {
+		margin: 8px;
 	}
 </style>
 ```
@@ -737,8 +769,11 @@ The showcase includes all the following Grid features and extensions:
 - `Context Menu Extension`,
 - `Row Coloring Extension`,
 - `Column Fitter Extension`,
+- `Column Stack Extension`,
+- `Range Bar Extension`,
 - `Coral Button Formatter`,
 - `Coral Icon Formatter`,
 - `Custom Formatter`,
+- `Date Time Formatter`
 - `column-selection-dialog`,
 - `filter-dialog`

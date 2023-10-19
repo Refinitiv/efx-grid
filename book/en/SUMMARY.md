@@ -13,6 +13,7 @@
 	- [Disposing Grid](general_concept/disposing-grid.md)
 - Showcases
 	- [Comprehensive](showcases/comprehensive.md)
+	- [Realtime Data](showcases/realtime-data.md)
 	- [Grid Builder](showcases/grid-builder.md)
 
 - APIs
@@ -139,7 +140,7 @@
 	- [Column Freezing](columns/column-freezing.md)
 	- [Column Pinning](columns/column-pinning.md)
 	- [Column Styling](columns/column-styling.md)
-	- [Column Custom Title](columns/custom-title-formatter.md)
+	- [Custom Header/Title](columns/custom-title-formatter.md)
 	- [Column Grouping](columns/column-grouping.md)
 
 - Rows

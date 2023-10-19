@@ -1,6 +1,6 @@
-# Column - Custom Title
+# Custom header/title
 
-In addition to formatting the cells in content rows, you can also create a custom formatter for the column title. 
+You can display anything you want on grid's column header/title by using `headerBinding`. The binding works in similar way to content binding, where the method will be executed each time grid's header gets updated. `columnDef` is supplied in the event argument to provide additional information about the column header being rendered. 
 
 ```js
 var customFormatter = function(e){
@@ -16,7 +16,84 @@ var configObj = {
 grid.config = configObj;
 ```
 
-## Example
+## Additional element example
+
+```live
+<efx-grid id="grid"></efx-grid>
+
+<script>
+var fields = ["id", "companyName", "market", "CF_LAST", "PCTCHNG"];
+var columns = fields.map(function (f) {
+	return {
+		field: f
+	};
+});
+
+columns[0].headerBinding = function headerWithLink(e) {
+	var cell = e.cell;
+	var content = cell.getContent();
+	if(!content || !content._myHeaderWithLink) {
+		content = document.createElement("div");
+		content._myHeaderWithLink = true;
+
+		var span = content._span = document.createElement("span");
+		span.style.marginRight = "5px";
+		var link = content._link = document.createElement("ef-icon");
+		link.icon = "link";
+		link.addEventListener("click", function(arg) {
+			arg.stopPropagation();
+			alert("Icon clicked");
+		});
+		content.appendChild(span);
+		content.appendChild(link);
+	}
+
+	content._span.textContent = e.columnDef.getName();
+	cell.setContent(content);
+};
+
+columns[2].headerBinding = function headerWithCheckbox(e) {
+	var cell = e.cell;
+	var content = cell.getContent();
+	if(!content || !content._myHeaderWithCheckbox) {
+		content = document.createElement("div");
+		content._myHeaderWithCheckbox = true;
+
+		var span = content._span = document.createElement("span");
+		span.style.marginRight = "5px";
+		// You will need to import the checkbox theme files for this to be shown
+		var chkbox = content._chkbox = document.createElement("ef-checkbox");
+		chkbox.addEventListener("checked-changed", function(arg) {
+			alert("Checkbox changed");
+		});
+		chkbox.addEventListener("click", function(arg) {
+			arg.stopPropagation();
+		});
+		content.appendChild(span);
+		content.appendChild(chkbox);
+	}
+
+	content._span.textContent = e.columnDef.getName();
+	cell.setContent(content);
+};
+
+var ROW_COUNT = 10;
+var records = DataGenerator.generateRecords(fields, {
+	seed: 0,
+	numRows: ROW_COUNT
+});
+
+var configObj = {
+	columns: columns,
+	staticDataRows: records
+};
+
+var grid = document.getElementById("grid");
+grid.config = configObj;
+</script>
+```
+
+## Floating element example
 
 ```live
 <efx-grid id="grid"></efx-grid>

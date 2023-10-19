@@ -2,10 +2,10 @@
 <html pandora="">
 
 <head>
-  <title>Reading Data</title>
+  <title>Realtime Data</title>
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <meta name="x-pandora-base" content="../">
-  <meta name="x-pandora-location" content="data/read.html">
+  <meta name="x-pandora-location" content="showcases/realtime-data.html">
   <link rel="stylesheet" href="../../../resources/styles/book.css">
   <script defer src="../../../resources/scripts/book.js"></script>
   <script defer src="../search.index.js"></script>
@@ -74,7 +74,7 @@
               <div collapser="">Showcases</div>
               <ul>
                 <li><a href="../showcases/comprehensive.html">Comprehensive</a></li>
-                <li><a href="../showcases/realtime-data.html">Realtime Data</a></li>
+                <li selected><a href="../showcases/realtime-data.html">Realtime Data</a></li>
                 <li><a href="../showcases/grid-builder.html">Grid Builder</a></li>
               </ul>
             </li>
@@ -188,7 +188,7 @@
               <ul>
                 <li><a href="../data/columns-and-data.html">Resetting/Clearing Data</a></li>
                 <li><a href="../data/create.html">Creating Data</a></li>
-                <li selected><a href="../data/read.html">Reading Data</a></li>
+                <li><a href="../data/read.html">Reading Data</a></li>
                 <li><a href="../data/update.html">Updating Data</a></li>
                 <li><a href="../data/delete.html">Deleting Data</a></li>
                 <li><a href="../data/data-conversion.html">Data Conversion</a></li>
@@ -298,25 +298,10 @@
       </div>
       <div class="main">
         <div class="reader">
-          <pandora-page><ef-notification =""><span class="noti-msg">This page is now available at the new alternative site <a href="https://204090.pages.dx1.lseg.com/grid/efx-grid/#/data/read" target="_blank">here</a>.</span></ef-notification>
-            <h1 id="reading-or-getting-data">Reading or Getting Data</h1>
-            <p>As Grid may need to display and store tons of rows, Grid does not provide two-way data binding or a way to directly reference the stored data. All data manipulations, such as sorting, grouping, or filtering, must be done through APIs. To access data stored inside Grid, we need to use Grid's <a href="../apis/README.html">APIs</a>.</p>
-            <h2 id="apis">APIs</h2>
-            <p>Use <code>getRowData(rowIndex)</code> to get data of the specified row.</p>
-            <pre><code><span class="hljs-built_in">console</span>.log(grid.api.getRowData(<span class="hljs-number">2</span>));</code></pre>
-            <p>Use <code>getMultipleRowData()</code> to retrieve all rows</p>
-            <pre><code><span class="hljs-built_in">console</span>.log(grid.api.getMultipleRowData());</code></pre>
-            <p><code>getMultipleRowData(rowIndices)</code> to get multiple row data from specific row indices at once.</p>
-            <pre><code>grid.api.getMultipleRowData([<span class="hljs-number">0</span>, <span class="hljs-number">2</span>, <span class="hljs-number">4</span>]);</code></pre>
-            <p>Use <code>logDV()</code> or <code>logDT()</code> to quickly log data in <strong>table format</strong> to developer console</p>
-            <pre><code><span class="hljs-built_in">console</span>.log(<span class="hljs-string">"=== Data View ==="</span>);
-grid.api.logDV(); <span class="hljs-comment">// Rows after sorting and filtering</span>
+          <pandora-page><ef-notification =""><span class="noti-msg">This page is now available at the new alternative site <a href="https://204090.pages.dx1.lseg.com/grid/efx-grid/#/showcases/realtime-data" target="_blank">here</a>.</span></ef-notification>
+            <h1 id="realtime-data">Realtime Data</h1>
 
-<span class="hljs-built_in">console</span>.log(<span class="hljs-string">"=== Data Table ==="</span>);
-grid.api.logDT(); <span class="hljs-comment">// Rows in original order</span></code></pre>
-            <h2 id="example">Example</h2>
-
-            <div class="pandora-code-viewer" id="pid-123">
+            <div class="pandora-code-viewer" id="pid-8">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -329,62 +314,107 @@ grid.api.logDT(); <span class="hljs-comment">// Rows in original order</span></c
                   </ul>
                 </div>
                 <div class="pandora-tab-container">
-                  <pre class="pandora-tab-view tab-html">&lt;button id="top_row_btn"&gt;Get Top Row Data&lt;/button&gt;
-&lt;button id="col_btn"&gt;Get Data from Column&lt;/button&gt;
-&lt;button id="all_btn"&gt;Get All Data&lt;/button&gt;
+                  <pre class="pandora-tab-view tab-html">&lt;fieldset&gt;
+  &lt;legend&gt;Operations&lt;/legend&gt;
+  &lt;input value="DOWN.N" id="ric_txt"&gt;
+  &lt;button id="insert_ric_btn"&gt;Insert RIC&lt;/button&gt;
+  &lt;button id="bkr_btn"&gt;BKR.OQ&lt;/button&gt;
+  &lt;button id="usd_btn"&gt;USD=&lt;/button&gt;
+  &lt;button id="jyp_btn"&gt;JYP=&lt;/button&gt;
+  &lt;button id="ndx_btn"&gt;.NDX&lt;/button&gt;
+&lt;/fieldset&gt;
 &lt;hr&gt;
 &lt;efx-grid id="grid"&gt;&lt;/efx-grid&gt;</pre>
-                  <pre class="pandora-tab-view tab-js">var fields = ["companyName", "market", "CF_LAST", "CF_NETCHNG", "industry"];
-var records = DataGenerator.generateRecords(fields, { numRows: 5 });
-var configObj = {
-  columns: [
-    { name: "Company", field: fields[0] },
-    { name: "Market", field: fields[1], width: 100 },
-    { name: "Last", field: fields[2], width: 80 },
-    { name: "Net. Chng", field: fields[3], width: 80 },
-    { name: "Industry", field: fields[4] }
-  ],
-  staticDataRows: records
-};
+                  <pre class="pandora-tab-view tab-js">var heatMapExt = new HeatMap();
+var textFormattingExt = new TextFormatting();
 
-var grid = document.getElementById("grid");
-grid.config = configObj;
+var Toolkit = tr.MockRTK ? tr.MockRTK : MockRTK; // WORKAROUND for v6
+Toolkit.init({ ID: 'rtk-efx-grid', minInterval: 100, maxInterval: 800 }, ['Quotes', 'Data']).then(onInit);
 
-document.getElementById("top_row_btn").addEventListener("click", function(e) {
-  var rowData = grid.api.getRowData(0);
-  alert(JSON.stringify(rowData, function replacer(key, value) {
-    if (key === "ROW_DEF") {
-      return undefined;
-    }
-    return value;
-  }));
-});
-document.getElementById("col_btn").addEventListener("click", function(e) {
-  var allRowData = grid.api.getMultipleRowData();
-  var columnData = allRowData.map(function toCompanyName(rowData) {
-    return rowData["companyName"];
-  });
-  alert(JSON.stringify(columnData));
-});
-document.getElementById("all_btn").addEventListener("click", function(e) {
-  var allRowData = grid.api.getMultipleRowData();
-  alert(JSON.stringify(
-    allRowData,
-    function replacer(key, value) {
-      if (key === "ROW_DEF") {
-        return undefined;
+function onInit(rtk) {
+  var configObj = {
+    rowSelection: true,
+    fieldCaching: true,
+    columns: [{
+        field: "X_RIC_NAME",
+        name: "RIC",
+        tickColor: "CF_NETCHNG",
+        minWidth: 100,
+      },
+      {
+        field: "CF_TICK",
+        name: "Tick",
+        binding: onTickBinding,
+      },
+      {
+        field: "CF_LAST",
+        tickColor: "CF_TICK",
+        blinking: true,
+      },
+      {
+        field: "CF_NETCHNG",
+        blinking: true,
+        tickColor: "CF_TICK"
+      },
+      {
+        field: "PCTCHNG",
+        heatmap: true,
+        formatType: "percent",
       }
-      return value;
-    },
-    2
-  ));
-});</pre>
-                  <pre class="pandora-tab-view tab-css">efx-grid {
-  margin-bottom: 40px;
+    ],
+    rows: [
+      { ric: "BA.N" },
+      { ric: "AAPL.O" },
+      { ric: "MSFT.O" },
+      { ric: "TSLA.O" },
+      { ric: "PTT.BK" },
+      { ric: "AOT.BK" },
+      { ric: ".DJI", asChain: true, collapsed: false },
+
+    ],
+    extensions: [heatMapExt, textFormattingExt],
+    RTK: rtk
+  };
+
+  grid.config = configObj;
 }
 
-html hr {
-  margin: 5px;
+function onTickBinding(e) {
+  var cell = e.cell;
+  var data = e.data;
+  var content = cell.getContent();
+  if (!content) {
+    content = document.createElement("ef-icon");
+  }
+  if (data != null) {
+    content.icon = data === 2 ? "arrow-down-fill" : "arrow-up-fill";
+    content.style.color = data === 2 ? "rgb(245, 71, 91)" : "rgb(57, 196, 110)";
+  }
+  cell.setContent(content);
+};
+
+bkr_btn.addEventListener("click", addRic.bind(null, bkr_btn.textContent));
+usd_btn.addEventListener("click", addRic.bind(null, usd_btn.textContent));
+jyp_btn.addEventListener("click", addRic.bind(null, jyp_btn.textContent));
+ndx_btn.addEventListener("click", function(e) {
+  grid.api.insertRow("0#.NDX", 0);
+
+});
+insert_ric_btn.addEventListener("click", addRic.bind(null, ric_txt.value));
+
+function addRic(ric) {
+  grid.api.insertRow(ric, 0);
+}</pre>
+                  <pre class="pandora-tab-view tab-css">body {
+  padding: 24px;
+}
+
+efx-grid {
+  height: 300px;
+}
+
+hr {
+  margin: 8px;
 }</pre>
                   <div class="pandora-console"></div>
                 </div>
@@ -420,6 +450,7 @@ html hr {
               <link rel="prefetch" href="../node_modules/tr-grid-titlewrap/dist/tr-grid-titlewrap.min.js" type="script">
               <link rel="prefetch" href="../node_modules/@grid/zoom/dist/zoom.min.js" type="script">
             </div>
+            <p>As demonstrated in the example above, we utilize mock data to simulate real-time data streaming, with each RIC receiving periodic data updates. We use the heat map extension to visually represent this data to users.</p>
           </pandora-page>
           <div class="results"></div>
         </div>
