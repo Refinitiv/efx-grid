@@ -10,7 +10,7 @@
   <script defer src="../../../resources/scripts/book.js"></script>
   <script defer src="../search.index.js"></script>
   <link rel="icon" href="../resources/images/icon.png">
-<script src="../node_modules/tr-grid-test-resource-v6/dist/elf-halo-light.js"></script><style>
+<script src="../node_modules/tr-grid-test-resource-v4/dist/elf-halo-light.js"></script><style>
   header {
     height: unset;
     background-color: unset;
@@ -47,7 +47,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="ba6b844c-3b04-44ac-9863-c31f448b3b6f">
+        <pandora-nav id="c618424d-e0e3-4849-a41c-49f9e2348757">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -298,7 +298,7 @@
       </div>
       <div class="main">
         <div class="reader">
-          <pandora-page><ef-notification =""><span class="noti-msg">This page is now available at the new alternative site <a href="https://204090.pages.dx1.lseg.com/grid/efx-grid/#/showcases/realtime-data" target="_blank">here</a>.</span></ef-notification>
+          <pandora-page>
             <h1 id="realtime-data">Realtime Data</h1>
 
             <div class="pandora-code-viewer" id="pid-8">
@@ -393,16 +393,20 @@ function onTickBinding(e) {
   cell.setContent(content);
 };
 
-bkr_btn.addEventListener("click", addRic.bind(null, bkr_btn.textContent));
-usd_btn.addEventListener("click", addRic.bind(null, usd_btn.textContent));
-jyp_btn.addEventListener("click", addRic.bind(null, jyp_btn.textContent));
-ndx_btn.addEventListener("click", function(e) {
-  grid.api.insertRow("0#.NDX", 0);
-
+bkr_btn.addEventListener("click", insertRic.bind(null, bkr_btn.textContent));
+usd_btn.addEventListener("click", insertRic.bind(null, usd_btn.textContent));
+jyp_btn.addEventListener("click", insertRic.bind(null, jyp_btn.textContent));
+ndx_btn.addEventListener("click", function(e) { // Chain ric
+  grid.api.insertRow({ ric: ".NDX", asChain: true }, 0);
 });
-insert_ric_btn.addEventListener("click", addRic.bind(null, ric_txt.value));
+insert_ric_btn.addEventListener("click", onClickInsertButton);
 
-function addRic(ric) {
+function onClickInsertButton(e) {
+  var ric = document.getElementById("ric_txt").value;
+  insertRic(ric.toUpperCase()); // Ric upper case
+}
+
+function insertRic(ric) {
   grid.api.insertRow(ric, 0);
 }</pre>
                   <pre class="pandora-tab-view tab-css">body {

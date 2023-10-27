@@ -82,15 +82,18 @@
 		cell.setContent(content);
 	};
 
-	bkr_btn.addEventListener("click", addRic.bind(null, bkr_btn.textContent));
-	usd_btn.addEventListener("click", addRic.bind(null, usd_btn.textContent));
-	jyp_btn.addEventListener("click", addRic.bind(null, jyp_btn.textContent));
-	ndx_btn.addEventListener("click", function(e) {
-		grid.api.insertRow("0#.NDX", 0);
-
+	bkr_btn.addEventListener("click", insertRic.bind(null, bkr_btn.textContent));
+	usd_btn.addEventListener("click", insertRic.bind(null, usd_btn.textContent));
+	jyp_btn.addEventListener("click", insertRic.bind(null, jyp_btn.textContent));
+	ndx_btn.addEventListener("click", function(e) { // Chain ric
+		grid.api.insertRow({ ric: ".NDX", asChain: true}, 0);
 	});
-	insert_ric_btn.addEventListener("click", addRic.bind(null, ric_txt.value));
-	function addRic(ric) {
+	insert_ric_btn.addEventListener("click", onClickInsertButton);
+	function onClickInsertButton(e) {
+		var ric = document.getElementById("ric_txt").value;
+		insertRic(ric.toUpperCase()); // Ric upper case
+	}
+	function insertRic(ric) {
 		grid.api.insertRow(ric, 0);
 	}
 </script>
