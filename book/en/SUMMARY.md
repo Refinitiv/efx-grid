@@ -14,6 +14,7 @@
 - Showcases
 	- [Comprehensive](showcases/comprehensive.md)
 	- [Realtime Data](showcases/realtime-data.md)
+	- [Job Manager](showcases/job-manager.md)
 	- [Grid Builder](showcases/grid-builder.md)
 
 - APIs

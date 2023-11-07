@@ -604,98 +604,163 @@ However, if your intention is to modify individual groups during runtime, you ca
 ```
 #### Example summation row in group header rows
 In the example below, we demonstrate how to calculate the summation of row data for each column and display it in the group header rows.
-```live
+
+```live(formatters)
 <style>
 	atlas-blotter {
-		height: 225px;
+		height: 400px;
 	}
 </style>
-
 <atlas-blotter id="grid"></atlas-blotter>
 
 <script>
-	tr.DataGenerator.addFieldInfo("companyName", {
-		type: "set",
-		members: ["Kunze LLC", "Rohan-Kohler"]
-	});
-	tr.DataGenerator.addFieldInfo("industry", {
-		type: "set",
-		members: ["Chemicals", "Auto", "Finance", "Electric", "Biotechnology"]
-	});
-	tr.DataGenerator.addFieldInfo("market", {
-		type: "set",
-		members: ["NASDAQ", "DJI", "NIKKEI"]
-	});
-	var fields = ["companyName", "industry", "CF_NETCHNG", "integer", "market"];
-	var records = tr.DataGenerator.generateRecords(fields, { seed: 1, numRows: 7 });
-	
-	function onGroupHeaderBinding(e) {
-		// Calculate Summation
-		var colCount = e.api.getColumnCount();
-		var fields = e.api.getColumnFields();
-		var rows = e.api.getMultipleRowData(e.dataSource);
-		var rowCount = rows.length;
-		var stats = [];
-		for (var c = 0; c < colCount; ++c) {
-			var sum = 0;
-			var valid = false;
-			var field = fields[c];
-			for (var r = 0; r < rowCount; ++r) {
-				var row = rows[r];
-				var val = row ? row[field] : null;
-				if (typeof val === "number") {
-					sum += val;
-					valid = true;
-				}
-			}
-			if(valid) {
-				stats[c] = sum;
-			}
+tr.DataGenerator.addFieldInfo("companyName", {
+	type: "set",
+	members: ["Kunze LLC", "Rohan-Kohler", "Bosco-Terry", "Prohaska", "Ziemann Group"]
+});
+
+var rowGrouping = new tr.RowGroupingExtension();
+var statisticRows = new tr.StatisticsRowExtension();
+const SUMMATIONFIELDS = ["number1", "number2"];
+const GROUPFIELD = "companyName";
+
+function onGroupBinding(e) {
+	// row header binding only called when cell colIndex = 0 (so for another column we need to  loop colCount to set another cell)
+	var groupId = e.groupId;
+	var rows = e.dataSource.getAllRowData();
+	var rowCount = rows.length;
+	var colCount = e.api.getColumnCount();
+	var section = e.section;
+	var footerRow = e.footerRow;
+	for (let c = 0; c < colCount; c++) {
+		var field = e.api.getColumnField(c);
+
+		if (field === GROUPFIELD) {
+			var cell = section.getCell(c, e.rowIndex);
+			cell.setContent(groupId + " (" + rowCount + ")");
 		}
 
-		// Render cells
-		var section = e.section;
-		for (var c = 0; c < colCount; ++c) {
+		if (SUMMATIONFIELDS.indexOf(field) >= 0) {
 			var cell = section.getCell(c, e.rowIndex);
-			if (c === 0) {
-				cell.setContent("Group " + e.groupId + " (" + rowCount + ")");
-			} else {
-				cell.setContent(stats[c]);
-			}
+			var statData = stats[field][groupId];
+			cell.setContent(addSymbol(statData || 0));
 		}
 	}
-
-	var configObj = {
-		columnReorder: false,
-		columnSelection: true,
-		sorting: {
-			sortableColumns: true,
-			initialSort: {
-				colIndex: 2,
-				order: "d"
-			}
+}
+var onNumberInputBinding;
+if(tr.SimpleInputFormatter) {
+	onNumberInputBinding = tr.SimpleInputFormatter;
+} else {
+	onNumberInputBinding = SimpleInputFormatter;
+}
+var fields = ["companyName", "industry", "number1", "number2"];
+var records = tr.DataGenerator.generateRecords(fields, { seed: 0, numRows: 10 });
+var configObj = {
+	rowGrouping: {
+		groupBy: fields[0],
+		headerSpanning: false,
+		groupHeaderBinding: onGroupBinding,
+		nonGroupBinding: function (e) { }
+	},
+	columns: [
+		{
+			name: "Market",
+			field: fields[0],
+			statistics: "label"
 		},
-		rowGrouping: {
-			groupBy: fields[0],
-			headerSpanning: false,
-			groupHeaderBinding: onGroupHeaderBinding,
-			nonGroupBinding: function (e) {}
+		{
+			name: "Industry",
+			field: fields[1]
 		},
-		columns: [
-			{ name: "Company", field: fields[0] },
-			{ name: "Industry", field: fields[1] },
-			{ name: "Net. Chng", field: fields[2], alignment: "center" },
-			{ name: "Integer", field: fields[3], alignment: "right" },
-			{ name: "Market", field: fields[4]},
-		],
-		staticDataRows: records,
-		extensions: [
-			new tr.RowGroupingExtension()
-		]
-	};
+		{
+			name: "Recommendation",
+			field: fields[2],
+			alignment: "right",
+            binding: onNumberInputBinding.create(
+				{
+					styles: {
+						textAlign: "right"
+					}
+				}
+			),
+			statistics: "currencyStat",
+			width: 120
+		},
+		{
+			name: "Average Market",
+			field: fields[3],
+			alignment: "center",
+            binding: onNumberInputBinding.create(
+				{
+					styles: {
+						textAlign: "right"
+					}
+				}
+			),
+			statistics: "currencyStat",
+			width: 120
+		}
+	],
+	staticDataRows: records,
+	extensions: [rowGrouping, statisticRows],
+	statisticsRow: {
+		rows: [{ statistic: "currencyStat", label: "Footer Summation" }],
+		postCalculation: postCalculationCurrency
+	}
+};
 
-	var grid = document.getElementById("grid");
-	grid.config = configObj;
+var grid = (window.grid = document.getElementById("grid"));
+grid.config = configObj;
+
+grid.addEventListener("configured", function (e) {
+	grid.api.listen("beforeContentBinding", onBeforeContentBinding);
+});
+
+var stats = (window.stats = {});
+var summationFieldLen = SUMMATIONFIELDS.length;
+initializeStates();
+
+function initializeStates() {
+	for (let f = 0; f < summationFieldLen; f++) {
+		var field = SUMMATIONFIELDS[f];
+		if (!stats[field]) {
+			stats[field] = {};
+		}
+	}
+}
+
+function onBeforeContentBinding(e) {
+	if (!e.actualUpdate) {
+		return;
+	}
+	var rows = grid.api.getAllRowDefinitions();
+
+	var len = rows.length;
+
+	for (let c = 0; c < summationFieldLen; c++) {
+		var field = SUMMATIONFIELDS[c];
+		stats[field] = {}; // Assign new values
+		for (let r = 0; r < len; r++) {
+			var rowDef = rows[r];
+			var rowData = rowDef.getRowData();
+			var groupId = rowData[GROUPFIELD];
+			var sum = +rowData[field] || 0; // for row doens't contains the summation field
+			stats[field][groupId] = (stats[field][groupId] || 0) + sum;
+		}
+	}
+}
+
+function postCalculationCurrency(e) {
+	e.statistics[2].currencyStat = addSymbol(e.statistics[2]["sum"]);
+	e.statistics[3].currencyStat = addSymbol(e.statistics[3]["sum"]);
+}
+
+function addSymbol(data) {
+	var symbol = "$";
+	return symbol + data;
+}
+
+
 </script>
 ```
 

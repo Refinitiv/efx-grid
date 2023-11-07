@@ -47,7 +47,7 @@
     </div>
     <div class="content">
       <div class="sidebar" no-print="">
-        <pandora-nav id="cb88bf0c-c78b-4c72-a975-7ed9006dcc63">
+        <pandora-nav id="204a1ed5-9f74-4b08-aa2d-b6a1da19b04a">
           <ul>
             <li parent="" id="cid-0" collapsible="" collapsed="">
               <div collapser="">Getting Started</div>
@@ -75,6 +75,7 @@
               <ul>
                 <li><a href="../showcases/comprehensive.html">Comprehensive</a></li>
                 <li><a href="../showcases/realtime-data.html">Realtime Data</a></li>
+                <li><a href="../showcases/job-manager.html">Job Manager</a></li>
                 <li><a href="../showcases/grid-builder.html">Grid Builder</a></li>
               </ul>
             </li>
@@ -304,7 +305,7 @@
             <h2 id="row-grouping">Row Grouping</h2>
             <p>The Row Grouping Extension uses categorization based on column field. Each group will have arrow button for expansion and collapsing of its members.</p>
 
-            <div class="pandora-code-viewer" id="pid-62">
+            <div class="pandora-code-viewer" id="pid-63">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -403,7 +404,7 @@ grid.config = configObj;</pre>
             <h3 id="initial-collapsing-state">Initial collapsing state</h3>
             <p>The initial groups created by the extension are expanded by default. To initially collapse all groups by default, set <code>defaultCollapse</code> property to <code>true</code></p>
 
-            <div class="pandora-code-viewer" id="pid-63">
+            <div class="pandora-code-viewer" id="pid-64">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -491,7 +492,7 @@ grid.config = configObj;</pre>
               <p>Note: Try clicking on column header</p>
             </blockquote>
 
-            <div class="pandora-code-viewer" id="pid-64">
+            <div class="pandora-code-viewer" id="pid-65">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -590,7 +591,7 @@ grid.config = configObj;</pre>
 };</code></pre>
             <p>You can now see that <code>DJI</code> has more priority over <code>HKEX</code>.</p>
 
-            <div class="pandora-code-viewer" id="pid-65">
+            <div class="pandora-code-viewer" id="pid-66">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -687,7 +688,7 @@ grid.config = configObj;</pre>
         <span class="hljs-attr">groupBy</span>: [<span class="hljs-string">"group"</span>, <span class="hljs-string">"c1"</span>]
     },
 };</code></pre>
-            <div class="pandora-code-viewer" id="pid-66">
+            <div class="pandora-code-viewer" id="pid-67">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -779,7 +780,7 @@ grid.config = configObj;</pre>
             <p>If you want to use the <code>predefinedColors</code> option and specify a <code>groupId</code> using the <code>groupColors</code> property, there are certain limitations to be aware of. Specifically, you need to be aware of the group ID, as you've already set the <code>groupColor</code> within the grid configuration. This implies that you won't be able to alter the <code>groupColors</code> during runtime. </p>
             <p>However, if your intention is to modify individual groups during runtime, you can achieve this by using the <code>setGroupColor</code> method. By providing the group ID and the color as arguments to this method to change the tag colors. If you want to add a new group to the grid and set its color using this API, we recommend listening for the <code>groupAdded</code> event and use <code>setGroupColor</code> method to set group color when the group is added as show you in example below.</p>
 
-            <div class="pandora-code-viewer" id="pid-67">
+            <div class="pandora-code-viewer" id="pid-68">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -1122,7 +1123,7 @@ efx-grid {
             <h4 id="example-summation-row-in-group-header-rows">Example summation row in group header rows</h4>
             <p>In the example below, we demonstrate how to calculate the summation of row data for each column and display it in the group header rows.</p>
 
-            <div class="pandora-code-viewer" id="pid-68">
+            <div class="pandora-code-viewer" id="pid-69">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -1136,92 +1137,149 @@ efx-grid {
                 </div>
                 <div class="pandora-tab-container">
                   <pre class="pandora-tab-view tab-html">&lt;efx-grid id="grid"&gt;
-
 &lt;/efx-grid&gt;</pre>
                   <pre class="pandora-tab-view tab-js">DataGenerator.addFieldInfo("companyName", {
   type: "set",
-  members: ["Kunze LLC", "Rohan-Kohler"]
+  members: ["Kunze LLC", "Rohan-Kohler", "Bosco-Terry", "Prohaska", "Ziemann Group"]
 });
-DataGenerator.addFieldInfo("industry", {
-  type: "set",
-  members: ["Chemicals", "Auto", "Finance", "Electric", "Biotechnology"]
-});
-DataGenerator.addFieldInfo("market", {
-  type: "set",
-  members: ["NASDAQ", "DJI", "NIKKEI"]
-});
-var fields = ["companyName", "industry", "CF_NETCHNG", "integer", "market"];
-var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 7 });
 
-function onGroupHeaderBinding(e) {
-  // Calculate Summation
-  var colCount = e.api.getColumnCount();
-  var fields = e.api.getColumnFields();
-  var rows = e.api.getMultipleRowData(e.dataSource);
+var rowGrouping = new RowGrouping();
+var statisticRows = new StatisticsRow();
+const SUMMATIONFIELDS = ["number1", "number2"];
+const GROUPFIELD = "companyName";
+
+function onGroupBinding(e) {
+  // row header binding only called when cell colIndex = 0 (so for another column we need to  loop colCount to set another cell)
+  var groupId = e.groupId;
+  var rows = e.dataSource.getAllRowData();
   var rowCount = rows.length;
-  var stats = [];
-  for (var c = 0; c &lt; colCount; ++c) {
-    var sum = 0;
-    var valid = false;
-    var field = fields[c];
-    for (var r = 0; r &lt; rowCount; ++r) {
-      var row = rows[r];
-      var val = row ? row[field] : null;
-      if (typeof val === "number") {
-        sum += val;
-        valid = true;
-      }
+  var colCount = e.api.getColumnCount();
+  var section = e.section;
+  var footerRow = e.footerRow;
+  for (let c = 0; c &lt; colCount; c++) {
+    var field = e.api.getColumnField(c);
+
+    if (field === GROUPFIELD) {
+      var cell = section.getCell(c, e.rowIndex);
+      cell.setContent(groupId + " (" + rowCount + ")");
     }
-    if (valid) {
-      stats[c] = sum;
+
+    if (SUMMATIONFIELDS.indexOf(field) &gt;= 0) {
+      var cell = section.getCell(c, e.rowIndex);
+      var statData = stats[field][groupId];
+      cell.setContent(addSymbol(statData || 0));
     }
   }
+}
+var onNumberInputBinding;
+if (tr.SimpleInputFormatter) {
+  onNumberInputBinding = tr.SimpleInputFormatter;
+} else {
+  onNumberInputBinding = SimpleInputFormatter;
+}
+var fields = ["companyName", "industry", "number1", "number2"];
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 10 });
+var configObj = {
+  rowGrouping: {
+    groupBy: fields[0],
+    headerSpanning: false,
+    groupHeaderBinding: onGroupBinding,
+    nonGroupBinding: function(e) {}
+  },
+  columns: [{
+      name: "Market",
+      field: fields[0],
+      statistics: "label"
+    },
+    {
+      name: "Industry",
+      field: fields[1]
+    },
+    {
+      name: "Recommendation",
+      field: fields[2],
+      alignment: "right",
+      binding: onNumberInputBinding.create({
+        styles: {
+          textAlign: "right"
+        }
+      }),
+      statistics: "currencyStat",
+      width: 120
+    },
+    {
+      name: "Average Market",
+      field: fields[3],
+      alignment: "center",
+      binding: onNumberInputBinding.create({
+        styles: {
+          textAlign: "right"
+        }
+      }),
+      statistics: "currencyStat",
+      width: 120
+    }
+  ],
+  staticDataRows: records,
+  extensions: [rowGrouping, statisticRows],
+  statisticsRow: {
+    rows: [{ statistic: "currencyStat", label: "Footer Summation" }],
+    postCalculation: postCalculationCurrency
+  }
+};
 
-  // Render cells
-  var section = e.section;
-  for (var c = 0; c &lt; colCount; ++c) {
-    var cell = section.getCell(c, e.rowIndex);
-    if (c === 0) {
-      cell.setContent("Group " + e.groupId + " (" + rowCount + ")");
-    } else {
-      cell.setContent(stats[c]);
+var grid = (window.grid = document.getElementById("grid"));
+grid.config = configObj;
+
+grid.addEventListener("configured", function(e) {
+  grid.api.listen("beforeContentBinding", onBeforeContentBinding);
+});
+
+var stats = (window.stats = {});
+var summationFieldLen = SUMMATIONFIELDS.length;
+initializeStates();
+
+function initializeStates() {
+  for (let f = 0; f &lt; summationFieldLen; f++) {
+    var field = SUMMATIONFIELDS[f];
+    if (!stats[field]) {
+      stats[field] = {};
     }
   }
 }
 
-var configObj = {
-  columnReorder: false,
-  columnSelection: true,
-  sorting: {
-    sortableColumns: true,
-    initialSort: {
-      colIndex: 2,
-      order: "d"
-    }
-  },
-  rowGrouping: {
-    groupBy: fields[0],
-    headerSpanning: false,
-    groupHeaderBinding: onGroupHeaderBinding,
-    nonGroupBinding: function(e) {}
-  },
-  columns: [
-    { name: "Company", field: fields[0] },
-    { name: "Industry", field: fields[1] },
-    { name: "Net. Chng", field: fields[2], alignment: "center" },
-    { name: "Integer", field: fields[3], alignment: "right" },
-    { name: "Market", field: fields[4] },
-  ],
-  staticDataRows: records,
-  extensions: [
-    new RowGrouping()
-  ]
-};
+function onBeforeContentBinding(e) {
+  if (!e.actualUpdate) {
+    return;
+  }
+  var rows = grid.api.getAllRowDefinitions();
 
-var grid = document.getElementById("grid");
-grid.config = configObj;</pre>
+  var len = rows.length;
+
+  for (let c = 0; c &lt; summationFieldLen; c++) {
+    var field = SUMMATIONFIELDS[c];
+    stats[field] = {}; // Assign new values
+    for (let r = 0; r &lt; len; r++) {
+      var rowDef = rows[r];
+      var rowData = rowDef.getRowData();
+      var groupId = rowData[GROUPFIELD];
+      var sum = +rowData[field] || 0; // for row doens't contains the summation field
+      stats[field][groupId] = (stats[field][groupId] || 0) + sum;
+    }
+  }
+}
+
+function postCalculationCurrency(e) {
+  e.statistics[2].currencyStat = addSymbol(e.statistics[2]["sum"]);
+  e.statistics[3].currencyStat = addSymbol(e.statistics[3]["sum"]);
+}
+
+function addSymbol(data) {
+  var symbol = "$";
+  return symbol + data;
+}</pre>
                   <pre class="pandora-tab-view tab-css">efx-grid {
-  height: 225px;
+  height: 400px;
 }</pre>
                   <div class="pandora-console"></div>
                 </div>
@@ -1261,7 +1319,7 @@ grid.config = configObj;</pre>
             <p>In many cases, a group of data might contain an <code>undefined</code> or <code>null</code> value. This may display an unexpected grouped title.</p>
             <h4 id="example-with-null-undefined-group">Example with null/undefined group</h4>
 
-            <div class="pandora-code-viewer" id="pid-69">
+            <div class="pandora-code-viewer" id="pid-70">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -1374,7 +1432,7 @@ grid.config = configObj;</pre>
 };</code></pre>
             <h4 id="example-with-hidden-null-undefined-group">Example with hidden null/undefined group</h4>
 
-            <div class="pandora-code-viewer" id="pid-70">
+            <div class="pandora-code-viewer" id="pid-71">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -1482,7 +1540,7 @@ grid.config = configObj;</pre>
             <h3 id="rows-in-multiple-groups">Rows in multiple groups</h3>
             <p>In the case that data used for grouping is an array, the data row will be added to multiple groups according to the array's member. See the following example for an illustration.</p>
 
-            <div class="pandora-code-viewer" id="pid-71">
+            <div class="pandora-code-viewer" id="pid-72">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -1582,7 +1640,7 @@ grid.config = configObj;</pre>
         <span class="hljs-attr">groupBy</span>: [<span class="hljs-string">'col1'</span>, <span class="hljs-string">'col2'</span>] <span class="hljs-comment">// Support at most 2 levels of grouping if contentAsHeader is enabled.</span>
     },
 };</code></pre>
-            <div class="pandora-code-viewer" id="pid-72">
+            <div class="pandora-code-viewer" id="pid-73">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -1694,7 +1752,7 @@ efx-grid {
             <h3 id="predefined-color">Predefined color</h3>
             <p>The extension supports color from the predefined colors. To do this you need to assign predefined class object to the <code>predefinedColors</code> property then specify group ID and color mapping object to the <code>groupColors</code> property.</p>
 
-            <div class="pandora-code-viewer" id="pid-73">
+            <div class="pandora-code-viewer" id="pid-74">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
@@ -1902,7 +1960,7 @@ button {
             <p>In the example below, we demonstrate how to leverage the power of row grouping to perform detailed statistical analysis within the grid. By incorporating both header and footer rows, users can easily access relevant group statistics. We achieve optimal performance by utilizing the <code>beforeContentBinding</code> event, which triggers whenever there are data changes. This approach ensures efficient row virtualization, displaying only the necessary data visible to the user. As a result, the application's speed and responsiveness are significantly improved, especially when working with large datasets.</p>
             <p>Additionally, the <code>beforeContentBinding</code> feature plays a crucial role in optimizing performance. Whenever there are changes in the underlying data, this event is triggered, allowing you to perform necessary calculations or updates before the content is rendered. This approach enhances efficiency and provides real-time updates, ensuring that users always have access to the most accurate and up-to-date information.</p>
 
-            <div class="pandora-code-viewer" id="pid-74">
+            <div class="pandora-code-viewer" id="pid-75">
               <div class="pandora-viewer">
                 <button>&lt;/&gt;</button>
               </div>
