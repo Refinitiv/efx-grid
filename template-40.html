@@ -1,0 +1,74 @@
+<h1 id="deleting-or-removing-data">Deleting or Removing Data</h1>
+<p>Use <code>removeRow(rowRef)</code> to remove the specified row. </p>
+<pre><code class="language-js">grid.api.insertRows([
+    {values: {&quot;field1&quot;: &quot;a&quot;, &quot;field2&quot;: 1, &quot;field3&quot;: null}},
+    {values: {&quot;field1&quot;: &quot;b&quot;, &quot;field2&quot;: 5, &quot;field3&quot;: {&quot;someKey&quot;: 10}}},
+    {values: {&quot;field1&quot;: &quot;c&quot;, &quot;field2&quot;: 7, &quot;field3&quot;: [1, 2, 3]}},
+    {values: {&quot;field1&quot;: &quot;c&quot;, &quot;field4&quot;: &quot;some value&quot;}}
+]);
+
+grid.api.logDV();
+
+grid.api.removeRow(2); // Remove the third row
+grid.api.logDV();
+</code></pre>
+<p>Use <code>removeRows()</code> to remove multiple rows at once.</p>
+<p>Use <code>removeAllRows()</code> methods to remove all rows.</p>
+<p>All available APIs can be found <a href="#/apis/rt-grid/grid">here</a></p>
+<h2 id="example">Example</h2>
+<code-sandbox hash="873c8794"><pre><code class="language-css">efx-grid {
+    height: 230px;
+}
+html hr {
+    margin: 5px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;button id=&quot;remove_top_btn&quot;&gt;Remove Top Row&lt;/button&gt;
+&lt;button id=&quot;remove_all_btn&quot;&gt;Remove All Rows&lt;/button&gt;
+&lt;button id=&quot;add_5_btn&quot;&gt;Add 5 Rows&lt;/button&gt;
+&lt;hr&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 5 });
+var configObj = {
+    columns: [
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market&quot;, field: fields[1], width: 100},
+        {name: &quot;Last&quot;, field: fields[2], width: 80},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 80},
+        {name: &quot;Industry&quot;, field: fields[4]}
+    ],
+    staticDataRows: records
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+
+document.getElementById(&quot;remove_top_btn&quot;).addEventListener(&quot;click&quot;, function(e){
+    grid.api.removeRow(0);
+});
+
+document.getElementById(&quot;remove_all_btn&quot;).addEventListener(&quot;click&quot;, function(e){
+    grid.api.removeAllRows();
+});
+
+document.getElementById(&quot;add_5_btn&quot;).addEventListener(&quot;click&quot;, add5Rows);
+
+function add5Rows() {
+    var records = DataGenerator.generateRecords(fields, 5);
+    var rows = records.map(function toRowOption(record) {
+        return { values: record };
+    });
+    grid.api.insertRows(rows);
+}
+</code></pre>
+</code-sandbox>

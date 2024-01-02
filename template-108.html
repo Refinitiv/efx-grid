@@ -1,0 +1,68 @@
+<h1 id="ef-text-field-formatter">EF Text Field Formatter</h1>
+<p>This formatter creates a <a href="https://ui.refinitiv.com/elements/text-field">ef-text-field</a> without a margin and 100% width. By default the input&#39;s value will be the column&#39;s field.</p>
+<h2 id="example">Example</h2>
+<code-sandbox hash="bf4feb53"><pre><code class="language-css">efx-grid {
+    height: 320px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;number_1&quot;, &quot;word&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 20 });
+
+var configObj = {
+    columns: [
+        { 
+            name: &quot;Word&quot;,
+            field: fields[1],
+            sort: fields[1]
+        },
+        { 
+            name: &quot;Simplest&quot;,
+            field: fields[1],
+            sort: fields[1],
+            alignment: &quot;c&quot;,
+            binding: EFTextFieldFormatter.create()
+        },
+        { 
+            name: &quot;Identified field&quot;,
+            field: fields[0],
+            sort: fields[0],
+            alignment: &quot;c&quot;,
+            binding: EFTextFieldFormatter.create({
+                field: fields[1]
+            })
+        },
+        {
+            name: &quot;Some options&quot;,
+            field: fields[1],
+            sort: fields[1],
+            alignment: &quot;c&quot;,
+            binding: EFTextFieldFormatter.create({
+                attributes: {
+                    icon: &quot;edit&quot;
+                },
+                events: {
+                    &quot;value-changed&quot;: function(e) {
+                        // console.log(&quot;value changed: &quot; + e.detail.value);
+                    }
+                }
+            })
+        }
+    ],
+    extensions: [],
+    staticDataRows: records
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox>

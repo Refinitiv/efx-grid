@@ -1,0 +1,33 @@
+<h1 id="disposing-grid">Disposing Grid</h1>
+<p>Grid holds a lot of resources and event listeners. Removing Grid from a document may not enough to clear all references to Grid, and thus memory occupied by Grid cannot be collected by the browser&#39;s garbage collector. If Grid is created and removed multiple times without refreshing the page, it could cause huge memory leak. It is very important to properly dispose existing Grid before creating a new instance of Grid.</p>
+<p>To dispose grid, you can set <code>config</code> property to <code>null</code> as shown below:</p>
+<pre><code class="language-js">var grid = document.getElementById(&#39;grid_id&#39;);
+grid.config = null; // Clear all resources held by Grid
+</code></pre>
+<blockquote>
+<p>Note: after setting config to null, the element is still intact and in the same place in the document. You can then choose either creating a new grid with a new configuration or completely removing grid from the document.</p>
+</blockquote>
+<h2 id="replacing-grid">Replacing Grid</h2>
+<p>If you want to replace existing grid with a new one with the new configuration, setting <code>config</code> property to <code>null</code> is unnecessary. All existing resources held by Grid are still removed after the replacing.</p>
+<pre><code class="language-js">var grid = document.getElementById(&#39;grid_id&#39;);
+grid.config = { // New configuration
+    // ...
+};
+</code></pre>
+<h2 id="removing-grid-from-the-document">Removing Grid from the document</h2>
+<p>If you intent not to use Grid anymore, then setting <code>config</code> property to <code>null</code> is required to prevent memory leak. Once <code>config</code> is set to <code>null</code>, you can remove the element like usual. </p>
+<pre><code class="language-js">var grid = document.getElementById(&#39;grid_id&#39;);
+grid.config = null;
+grid.parentNode.removeChild(grid);
+</code></pre>
+<p>Temporary removing grid from the document is also an option, if you intent to reuse the same grid. Setting <code>config</code> property to <code>null</code> is not always necessary. It depends on the use cases in your application.</p>
+<pre><code class="language-js">grid = document.getElementById(&#39;grid_id&#39;);
+// Temporarily remove grid from the document while keeping the configuration
+grid.parentNode.removeChild(grid); 
+
+// ...
+// Some time later...
+// ...
+
+document.body.appendChild(grid); // Restore the same grid 
+</code></pre>

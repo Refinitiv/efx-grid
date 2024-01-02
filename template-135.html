@@ -1,0 +1,137 @@
+<h1 id="custom-sort-logic">Custom Sort Logic</h1>
+<p>There are several cases where the data stored in each field in the data model is not a primitive type. Sorting this data requires a special approach with custom sorting logic.</p>
+<blockquote>
+<p>Note: comparison functions receive the same argument as <code>Array.prototype.sort</code>.</p>
+</blockquote>
+<p>To set custom sort logic for each column, do the following:</p>
+<pre><code class="language-js">var config = {
+    // any other grid&#39;s options
+    columns: [
+        { name: &quot;Column 1&quot;, field: &quot;field1&quot;, sortLogic: function(a, b, order) {/* Some compare function */} },
+        { name: &quot;Column 2&quot;, field: &quot;field2&quot; },
+    ],
+}
+</code></pre>
+<p>The callback will also receive extra information about the column being sorted from the fourth parameter.</p>
+<pre><code class="language-js">var myCustomSorting = function(valA, valB, order, contextObj) {
+    // contextObj provide more information about the column being sorted such as colIndex and field
+    // ...
+    return valA - valB;
+};
+
+var config = {
+    // any other grid&#39;s options
+    columns: [
+        { name: &quot;Column 1&quot;, field: &quot;field1&quot;, sortLogic: myCustomSorting},
+        { name: &quot;Column 2&quot;, field: &quot;field2&quot; },
+    ],
+}
+</code></pre>
+<p>You can enable <code>rowSorting</code> to use RowDefinition object for sorting comparison. This is useful when we want to compare data other than the data from the column being sorted.</p>
+<pre><code class="language-js">var myCustomSorting = function(rowDefA, rowDefB, order, contextObj) {
+    // Now we can access any data within a row from the RowDefinition object
+    var valA = rowDefA.getData(contextObj.field);
+    var valB = rowDefB.getData(contextObj.field);
+    var extraInfoA = rowDefA.getData(&quot;some other field&quot;);
+    var extraInfoB = rowDefB.getData(&quot;some other field&quot;);
+    // ...
+    return number;
+};
+
+var config = {
+    // any other grid&#39;s options
+    columns: [
+        { name: &quot;Column 1&quot;, field: &quot;field1&quot;, rowSorting: true, sortLogic: myCustomSorting},
+        { name: &quot;Column 2&quot;, field: &quot;field2&quot; },
+    ],
+}
+</code></pre>
+<blockquote>
+<p>For <code>notRealTimeField</code> column, the default comparison method is row sorting. If you still want to sort by data instead of RowDefinition object, set <code>rowSorting</code> to false to override the default behavior.</p>
+</blockquote>
+<h2 id="example">Example</h2>
+<code-sandbox hash="1e594832"><pre><code class="language-css">efx-grid {
+    height: 300px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+function sortTextAsNumber(valA, valB, order, contextObj) {
+    var numA = +valA; // Convert string to number
+    var numB = Number(valB); // Another way to convert string to number
+    if(numA !== numA) { // Fastest way to check for NaN value
+        if(isNaN(numB)) { // Traditional and slower way to check for NaN value
+            return 0;
+        } else {
+            return 1; // Always put NaN value at the bottom
+        }
+    } else if(numB !== numB) {
+        return -1; // Always put NaN value at the bottom
+    }
+    if(numA &lt; numB) {
+        return -order;
+    }
+    if(numB &lt; numA) {
+        return order;
+    }
+    
+    return 0;
+}
+
+// Initial data set
+var records = [
+    { col1: &quot;A&quot;, num1: 40, text: &quot;100&quot; },
+    { col1: &quot;B&quot;, num1: 22, text: &quot;200&quot; },
+    { col1: &quot;C&quot;, num1: 55, text: &quot;-10&quot; },
+    { col1: &quot;D&quot;, num1: 11, text: &quot;This is Text&quot; },
+    { col1: &quot;E&quot;, num1: 33, text: &quot;120&quot; },
+    { col1: &quot;F&quot;, num1: 66, text: &quot;-20&quot; },
+    { col1: &quot;G&quot;, num1: 44, text: &quot;N/A&quot; },
+    { col1: &quot;H&quot;, num1: 22, text: &quot;110&quot; },
+    { col1: &quot;I&quot;, num1: 11, text: &quot;240&quot; },
+    { col1: &quot;J&quot;, num1: 10, text: &quot;100&quot; }
+];
+var configObj = {
+    sorting: {
+        multiColumn: true,
+        threeStatesSorting: true
+    },
+    columns: [
+        {
+            name: &quot;Column 1&quot;,
+            field: &quot;col1&quot;,
+            width: 100
+        },
+        {
+            name: &quot;Default Sorting&quot;,
+            field: &quot;num1&quot;,
+            textAlign: &quot;right&quot;
+        },
+        {
+            name: &quot;Custom Sorting&quot;,
+            field: &quot;text&quot;,
+            sortingLogic: sortTextAsNumber
+        },
+        {
+            name: &quot;Not Sortable&quot;,
+            field: &quot;Some Field&quot;,
+            sortable: false,
+            width: 150
+        }
+    ],
+    extensions: [],
+    staticDataRows: records
+};
+
+var grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
+grid.config = configObj;
+</code></pre>
+</code-sandbox>

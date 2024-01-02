@@ -1,0 +1,90 @@
+<h1 id="basic-grid-creation">Basic Grid creation</h1>
+<p>To initialize Grid you can put the element tag on the HTML page, just like any other native element. The element works as if it were a div element (that is, an element with 100% width and the same height as its content). </p>
+<pre><code class="language-html">&lt;efx-grid&gt;&lt;/efx-grid&gt;
+</code></pre>
+<p>Or you can dynamically create the element at runtime by using a standard native method like <code>document.createElement(&quot;efx-grid&quot;)</code>.</p>
+<pre><code class="language-js">var grid = document.createElement(&quot;efx-grid&quot;);
+
+document.body.appendChild(grid);
+</code></pre>
+<p>The element is used for positioning and sizing the grid in the document. Anything else should be done by passing a configuration object to the grid. </p>
+<blockquote>
+<p>See all available configuration options for efx-grid <a href="#/apis/rt-grid/grid">here</a></p>
+</blockquote>
+<p>To define how the grid renders its layout and content use the <code>columns</code> property, as shown below:</p>
+<pre><code class="language-js">var configObj = {
+    columns: [
+        {name: &quot;Header Text&quot;, field: &quot;For Mapping Data&quot;},
+        {name: &quot;Column 2&quot;, field: &quot;Field 2&quot;}
+    ] // Two columns will be shown
+};
+</code></pre>
+<p>To define initial or static data for rendering use the <code>staticDataRows</code> property, as shown below:</p>
+<pre><code class="language-js">var configObj = {
+    staticDataRows: [
+        {&quot;Field 1&quot;: &quot;a&quot;, &quot;Field 2&quot;: &quot;b&quot;, &quot;Field 3&quot;: &quot;c&quot;},
+        {&quot;ABC&quot;: &quot;d&quot;, &quot;Field 2&quot;: &quot;e&quot;, &quot;XYZ&quot;: &quot;f&quot;}
+    ] // Two rows will be shown
+};
+</code></pre>
+<p>Each column definition should have a link to the data through the <code>field</code> property for rendering. Doing it this way separates the UI from the data. The data can have any number of fields, regardless of the actual number of columns being displayed in the grid. This means extra information can be stored, such as row metadata, display states, and so on. The same field can also be used to display multiple columns. </p>
+<p>The basic Grid configuration object is usually something like the following: </p>
+<pre><code class="language-js">var fields = [&quot;intCol&quot;, &quot;strCol&quot;, &quot;floatCol&quot;, &quot;dateCol&quot;];
+var records = [
+    {&quot;intCol&quot;: 1, &quot;strCol&quot;: &quot;Sample data&quot;, &quot;floatCol&quot;: 1.1, &quot;dateCol&quot;: new Date(&quot;2014-10-01&quot;)},
+    {&quot;intCol&quot;: 2, &quot;strCol&quot;: &quot;Sample data&quot;, &quot;floatCol&quot;: 2.2, &quot;dateCol&quot;: new Date(&quot;2014-10-02&quot;)},
+    {&quot;intCol&quot;: 3, &quot;strCol&quot;: &quot;Sample data&quot;, &quot;floatCol&quot;: 3.3, &quot;dateCol&quot;: new Date(&quot;2014-10-03&quot;)},
+    {&quot;intCol&quot;: 4, &quot;strCol&quot;: &quot;Sample data&quot;, &quot;floatCol&quot;: 4.4, &quot;dateCol&quot;: new Date(&quot;2014-10-04&quot;)},
+    {&quot;intCol&quot;: 5, &quot;strCol&quot;: &quot;Sample data&quot;, &quot;floatCol&quot;: 5.5, &quot;dateCol&quot;: new Date(&quot;2014-10-05&quot;)}
+];
+var configObj = {
+    rowHeight: 40, // Grid level option
+    columns: [
+        {name: &quot;Column 1&quot;, field: fields[0]},
+        {name: &quot;Column 2&quot;, field: fields[1]},
+        {name: &quot;Column 3&quot;, field: fields[2]},
+        {name: &quot;Column 4&quot;, field: fields[3]}
+    ],
+    staticDataRows: records
+};
+</code></pre>
+<blockquote>
+<p>For further change at runtime, it is recommended to use Grid&#39;s APIs through <code>api</code> property instead of changing <code>config</code> property. Changing <code>config</code> property will result in re-creation of the entire grid and could impact the performance. </p>
+</blockquote>
+<h2 id="example">Example</h2>
+<blockquote>
+<p>Note: you can see JavaScript details from the live example below by clicking the lower right button.</p>
+</blockquote>
+<code-sandbox hash="5bc3082e"><pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;intCol&quot;, &quot;strCol&quot;, &quot;floatCol&quot;, &quot;dateCol&quot;];
+var records = [
+    {&quot;intCol&quot;: 1, &quot;strCol&quot;: &quot;Sample data&quot;, &quot;floatCol&quot;: 1.1, &quot;dateCol&quot;: new Date(&quot;2014-10-01&quot;)},
+    {&quot;intCol&quot;: 2, &quot;strCol&quot;: &quot;Sample data&quot;, &quot;floatCol&quot;: 2.2, &quot;dateCol&quot;: new Date(&quot;2014-10-02&quot;)},
+    {&quot;intCol&quot;: 3, &quot;strCol&quot;: &quot;Sample data&quot;, &quot;floatCol&quot;: 3.3, &quot;dateCol&quot;: new Date(&quot;2014-10-03&quot;)},
+    {&quot;intCol&quot;: 4, &quot;strCol&quot;: &quot;Sample data&quot;, &quot;floatCol&quot;: 4.4, &quot;dateCol&quot;: new Date(&quot;2014-10-04&quot;)},
+    {&quot;intCol&quot;: 5, &quot;strCol&quot;: &quot;Sample data&quot;, &quot;floatCol&quot;: 5.5, &quot;dateCol&quot;: new Date(&quot;2014-10-05&quot;)}
+];
+var configObj = {
+    rowHeight: 40,
+    columns: [
+        {name: &quot;Column 1&quot;, field: fields[0]},
+        {name: &quot;Column 2&quot;, field: fields[1]},
+        {name: &quot;Column 3&quot;, field: fields[2]},
+        {name: &quot;Column 4&quot;, field: fields[3]}
+    ],
+    staticDataRows: records
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox>

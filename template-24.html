@@ -1,0 +1,77 @@
+<h1 id="column-alignment">Column Alignment</h1>
+<p>Column content can be aligned to the <em>left</em>, <em>center</em>, or <em>right</em> using the property <code>alignment</code> in the column definition. The <code>alignment</code> property will be applied for both column content and header by default. </p>
+<p>Column header alignment can be separately set on <code>headerAlignment</code> property. The <code>headerAlignment</code> property will override the <code>alignment</code> property for the column header. </p>
+<p>The default value for both <code>alignment</code> and <code>headerAlignment</code> is <em>left</em>.</p>
+<pre><code class="language-js">var configObj = {
+    ...
+    columns: [
+        {
+            alignment: &quot;left&quot;,
+            headerAlignment: &quot;center&quot;
+        }, 
+        ...
+    ],
+    ...
+}
+</code></pre>
+<h2 id="example">Example</h2>
+<code-sandbox hash="a943ca86"><pre><code class="language-css">html hr {
+    margin: 5px;
+}
+efx-grid {
+    height: 200px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;button id=&quot;lft_btn&quot;&gt;Left Alignment&lt;/button&gt;
+&lt;button id=&quot;ctr_btn&quot;&gt;Center Alignment&lt;/button&gt;
+&lt;button id=&quot;rgt_btn&quot;&gt;Right Alignment&lt;/button&gt;
+&lt;button id=&quot;reset_btn&quot;&gt;Reset Alignment&lt;/button&gt;
+&lt;hr&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+function setAlignment(alignment) { 
+    var core = grid.api.getCoreGrid();
+    var colCount = core.getColumnCount();
+    for(var c = 0; c &lt; colCount; ++c) {
+        core.setColumnAlignment(c, alignment);
+    }
+}
+
+lft_btn.addEventListener(&quot;click&quot;, function(e) { 
+    setAlignment(&quot;l&quot;);
+});
+ctr_btn.addEventListener(&quot;click&quot;, function(e) { 
+    setAlignment(&quot;c&quot;);
+});
+rgt_btn.addEventListener(&quot;click&quot;, function(e) { 
+    setAlignment(&quot;r&quot;);
+});
+reset_btn.addEventListener(&quot;click&quot;, function(e) { 
+    setAlignment(&quot;&quot;);
+});
+
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 5 });
+var configObj = {
+    columns: [
+        {name: &quot;Default&quot;, field: fields[0]},
+        {name: &quot;Center Header&quot;, field: fields[1], alignment: &quot;center&quot;, headerAlignment: &quot;center&quot;},
+        {name: &quot;Last&quot;, field: fields[2],alignment: &quot;right&quot;, headerAlignment: &quot;left&quot;},
+        {name: &quot;Net. Chng&quot;, field: fields[3], alignment: &quot;right&quot;},
+        {name: &quot;Center Header&quot;, field: fields[4], headerAlignment: &quot;center&quot;}
+    ],
+    staticDataRows: records
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox>

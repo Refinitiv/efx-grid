@@ -1,0 +1,46 @@
+<h1 id="handling-50000-rows">Handling 50,000 Rows</h1>
+<p>Grid utilizes a virtual rendering technique that renders a range of visible rows and uses/shares the same cells across multiple rows. This allows you to display an extraordinarily large number of rows on the grid, as shown in the example below.</p>
+<blockquote>
+<p>Note that by default, the grid&#39;s wheel scrolling behavior will skip multiple rows based on the total number of rows, to avoid small and tiresome scrolling. Use the <code>linearWheelScrolling</code> flag to enable native wheel scrolling behavior.</p>
+</blockquote>
+<h2 id="example">Example</h2>
+<code-sandbox hash="db26edfb"><pre><code class="language-css">efx-grid {
+    height: 500px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+DataGenerator.addFieldInfo(&quot;rowNumber&quot;, {
+    type: &quot;function&quot;,
+    generate: function(info, seed) {
+        return ++info.count;
+    },
+    count: 0,
+});
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;rowNumber&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 5000 });
+var configObj = {
+    linearWheelScrolling: true,
+    columns: [
+        {name: &quot;ID&quot;, field: fields[5], alignment: &quot;center&quot;, width: 80},
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market&quot;, field: fields[1], width: 120},
+        {name: &quot;Last&quot;, field: fields[2], width: 100},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
+        {name: &quot;Industry&quot;, field: fields[4]}
+    ],
+    staticDataRows: records
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox>

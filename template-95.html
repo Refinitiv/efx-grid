@@ -1,0 +1,29 @@
+<h1 id="changing-formatter-at-runtime">Changing Formatter at Runtime</h1>
+<p>Sometimes you might want to change a custom rendering at runtime. This can be achieved by using  <code>setColumnFormatter</code> method.</p>
+<blockquote>
+<p>APIs for Grid and the <code>setColumnFormatter()</code> method description can be found <a href="#/apis/rt-grid/grid">here</a>.</p>
+</blockquote>
+<pre><code class="language-js">var grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
+
+// formatter can be a function
+var formatter = function(e) {
+    var value = e.grid.getRowData(e.rowIndex)[e.field];
+    e.cell.setContent(value);
+};
+
+/*
+// or can be an object.
+var formatter = {
+    binding: function(e) {
+        var value = e.grid.getRowData(e.rowIndex)[e.field];
+        e.cell.setContent(value);
+    }
+};
+// or can be a predefined formatter
+var formatter = SimpleLinkFormatter.create()
+*/
+
+function handleChangeFormatter() {
+    grid.api.setColumnFormatter(0 /* Column Index */, formatter);
+}
+</code></pre>

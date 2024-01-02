@@ -1,0 +1,70 @@
+<h1 id="row---row-height">Row - Row Height</h1>
+<p>The height of content rows can be adjusted using the <code>rowHeight</code> property. Since Grid uses a row virtualization rendering technique, all of the rows must have the same height by default.</p>
+<code-sandbox hash="d855ab7f"><pre><code class="language-css">efx-grid {
+    height: 200px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 6 });
+var configObj = {
+    rowHeight: 60,
+    columns: [
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market&quot;, field: fields[1], width: 100},
+        {name: &quot;Last&quot;, field: fields[2], width: 80},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 80},
+        {name: &quot;Industry&quot;, field: fields[4]}
+    ],
+    staticDataRows: records
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="variable-row-height">Variable row height</h2>
+<p>If you want to wrap long text content in the grid&#39;s cell, use the <a href="#/extensions/tr-grid-content-wrap">Content Wrap Extension</a>. The extension will wrap text content that exceeds the cell width, making Grid act as if it is a native table.</p>
+<p>However, text wrapping is resource-intensive, so it is turned off by default. To specify the column to be wrapped, set <code>contentWrap</code> to true in the column configuration.</p>
+<code-sandbox hash="7892fa6d"><pre><code class="language-css">efx-grid {
+    height: 200px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 6 });
+var configObj = {
+    columns: [
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market&quot;, field: fields[1], width: 100},
+        {name: &quot;Last&quot;, field: fields[2], width: 80},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 80},
+        {name: &quot;Industry&quot;, field: fields[4], width: 100, contentWrap: true}
+    ],
+    staticDataRows: records,
+    extensions: [
+        new ContentWrap()
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox>

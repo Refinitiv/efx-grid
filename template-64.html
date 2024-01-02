@@ -1,0 +1,672 @@
+<link rel="stylesheet" href="./resources/styles/elf-template.css">
+
+<h1 id="range-bar">Range Bar</h1>
+<p>The Range Bar Extension provides graphical bar for last value ranking visualization based on low and high value.</p>
+<code-sandbox hash="e89c4fd5"><pre><code class="language-css">efx-grid {
+    height: 208px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;id&quot;, &quot;CFLOW&quot;, &quot;CF_LAST&quot;, &quot;CFHIGH&quot;, &quot;percent&quot;];
+var records = [];
+
+var rangeBarExt = new RangeBar();
+
+var id = 0;
+for (let i = -150; i &lt; 151; i += 10) {
+    records.push({
+        id: id++,
+        CFLOW: -100,
+        CF_LAST: i,
+        CFHIGH: 100,
+        percent: i
+    });
+}
+
+// N/A Case and without top value
+records.push({
+    id: records.length,
+    CFLOW: undefined,
+    CF_LAST: undefined,
+    CFHIGH: undefined,
+    percent: undefined
+});
+
+records.push({
+    id: records.length,
+    CFLOW: 1,
+    CF_LAST: undefined, // without middle value
+    CFHIGH: 50,
+    percent: undefined
+});
+
+records.push({
+    id: records.length,
+    CFLOW: undefined,
+    CF_LAST: 5,
+    CFHIGH: 50,
+    percent: 5
+});
+
+records.push({
+    id: records.length,
+    CFLOW: 3,
+    CF_LAST: 5,
+    CFHIGH: undefined,
+    percent: 5
+});
+
+records.push({
+    id: records.length,
+    CFLOW: undefined,
+    CF_LAST: 5,
+    CFHIGH: undefined,
+    percent: 5
+});
+
+// Low_value &lt;High_value
+records.push({
+    id: records.length,
+    CFLOW: 1,
+    CF_LAST: 50,
+    CFHIGH: 99,
+    percent: 50
+});
+
+records.push({
+    id: records.length,
+    CFLOW: 50,
+    CF_LAST: 1,
+    CFHIGH: 99,
+    percent: 1
+});
+
+records.push({
+    id: records.length,
+    CFLOW: 1,
+    CF_LAST: 99,
+    CFHIGH: 50,
+    percent: 99
+});
+
+// High&lt;Low
+records.push({
+    id: records.length,
+    CFLOW: 99,
+    CF_LAST: 50,
+    CFHIGH: 1,
+    percent: 50
+});
+
+records.push({
+    id: records.length,
+    CFLOW: 99,
+    CF_LAST: 1,
+    CFHIGH: 50,
+    percent: 1
+});
+
+records.push({
+    id: records.length,
+    CFLOW: 50,
+    CF_LAST: 99,
+    CFHIGH: 1,
+    percent: 99
+});
+
+// Two equal
+records.push({
+    id: records.length,
+    CFLOW: 1,
+    CF_LAST: 50,
+    CFHIGH: 1,
+    percent: 50
+});
+
+records.push({
+    id: records.length,
+    CFLOW: 50,
+    CF_LAST: 1,
+    CFHIGH: 50,
+    percent: 1
+});
+
+records.push({
+    id: records.length,
+    CFLOW: 1,
+    CF_LAST: 1,
+    CFHIGH: 50,
+    percent: 1
+});
+
+records.push({
+    id: records.length,
+    CFLOW: 50,
+    CF_LAST: 50,
+    CFHIGH: 1,
+    percent: 50
+});
+
+records.push({
+    id: records.length,
+    CFLOW: 50,
+    CF_LAST: 1,
+    CFHIGH: 1,
+    percent: 1
+});
+
+records.push({
+    id: records.length,
+    CFLOW: 1,
+    CF_LAST: 50,
+    CFHIGH: 50,
+    percent: 50
+});
+
+// Three equal 
+records.push({
+    id: records.length,
+    CFLOW: 1,
+    CF_LAST: 1,
+    CFHIGH: 1,
+    percent: 1
+});
+
+var configObj = {
+    scrollbar: true,
+    columns: [{
+        name: &quot;ID&quot;,
+        field: fields[0],
+        width: 60
+    },
+    {
+        name: &quot;Low&quot;,
+        field: fields[1],
+        width: 60
+    },
+    {
+        name: &quot;Last&quot;,
+        field: fields[2],
+        width: 60
+    },
+    {
+        name: &quot;High&quot;,
+        field: fields[3],
+        width: 60
+    },
+    {
+        name: &quot;Range (Low, Last, High)&quot;,
+        field: fields[2],
+        alignment: &quot;c&quot;,
+        rangeBar: {
+            low: &quot;CFLOW&quot;,
+            high: &quot;CFHIGH&quot;,
+            last: &quot;CF_LAST&quot;
+        }
+    },
+    {
+        name: &quot;Percent&quot;,
+        field: fields[4],
+        width: 60
+    },
+    {
+        name: &quot;Percent (Without low, last, high)&quot;,
+        field: fields[4],
+        rangeBar: {
+            field: fields[4]
+        }
+    },
+    {
+        name: &quot;Percent (start 30, end 70)&quot;,
+        field: fields[4],
+        rangeBar: {
+            field: fields[4],
+            start: 30, // default 0
+            end: 70 // default 100
+        }
+    }],
+    staticDataRows: records,
+    extensions: [rangeBarExt]
+};
+
+var grid = window.grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="installation-and-how-to-import-to-a-project">Installation and how to import to a project</h2>
+<p>Installation examples and details of how to import the extension to a project are available on the <a href="#/extensions/readme">Overview</a> page.</p>
+<h3 id="required-dependencies">Required dependencies</h3>
+<p>Details of Required dependencies for this extension are available on the <a href="#/extensions/readme">Overview</a> page.</p>
+<h2 id="price-graph">Price Graph</h2>
+<p>The Range Bar Extension provides a powerful solution for integrating the last trade price or value, displayed in relation to the current day&#39;s high, low, and Volume Weighted Average Price (VWAP), into a visually comprehensive price graph. This functionality can significantly enhance the capabilities of financial charting applications and tools.</p>
+<p>To make the most of the Range Bar Extension, you can simply map the pertinent fields to the range bar options for each individual column. This process enables the effective illustration of price movements and trends, resulting in an easily understandable format that can be seamlessly integrated into their applications. Consequently, users of these applications can gain valuable insights into market behavior, empowering them to make more informed decisions in their trading and investment activities.</p>
+<code-sandbox hash="597c64d5"><pre><code class="language-css">efx-grid {
+    height: 208px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var rangeBarExt = new RangeBar();
+
+var columns = [
+    {
+        field: &quot;id&quot;,
+        name: &quot;id&quot;
+    },
+    {
+        field: &quot;CF_LOW&quot;,
+        name: &quot;LOW&quot;
+    },
+        {
+        field: &quot;CF_HIGH&quot;,
+        name: &quot;HIGH&quot;
+    },
+        {
+        field: &quot;CF_LAST&quot;,
+        name: &quot;LAST&quot;
+    },
+        {
+        field: &quot;CF_CLOSE&quot;,
+        name: &quot;CLOSE&quot;
+    },
+        {
+        field: &quot;TR.TSVWAP&quot;,
+        name: &quot;VWAP&quot;
+    },
+        {
+        field: &quot;CF_TICK&quot;,
+        name: &quot;TICK&quot;
+    },
+    {
+        name: &quot;Price Graph(Low, Last, High, Close, VWAP)&quot;,
+        alignment: &quot;c&quot;,
+        rangeBar: {
+            low: &quot;CF_LOW&quot;,
+            high: &quot;CF_HIGH&quot;,
+            last: &quot;CF_LAST&quot;,
+            close: &quot;CF_CLOSE&quot;,
+            vwap: &quot;TR.TSVWAP&quot;,
+            tick: &quot;CF_TICK&quot;,
+        },
+        width: 200
+    }
+];
+
+var records = [];
+
+for (var i = 0; i &lt; 10; i++) {
+    var values = {
+        CF_LOW: 5,
+        CF_HIGH: 100,
+        &quot;TR.TSVWAP&quot;: 30,
+        CF_LAST: 50,
+        CF_CLOSE: i * 10,
+        CF_TICK: 1
+    };
+    records.push(values);
+}
+
+for (var i = 0; i &lt; 10; i++) {
+    var values = {
+        CF_LOW: 5,
+        CF_HIGH: 100,
+        &quot;TR.TSVWAP&quot;: 30,
+        CF_LAST: 50,
+        CF_CLOSE: i * 10,
+        CF_TICK: 2
+    };
+    records.push(values);
+}
+
+// N/A Cases
+records.push({
+    CF_LOW: 5,
+    &quot;TR.TSVWAP&quot;: 20,
+    CF_LAST: 50,
+    CF_CLOSE:  5,
+    CF_TICK: 2
+});
+records.push({
+    CF_LOW: 200,
+    CF_HIGH: 100,
+    &quot;TR.TSVWAP&quot;: 20,
+    CF_LAST: 50,
+    CF_CLOSE:  5,
+    CF_TICK: 2
+});
+
+records.push({
+    CF_LOW: 5,
+    CF_HIGH: 100,
+    &quot;TR.TSVWAP&quot;: 49,
+    CF_LAST: 50,
+    CF_CLOSE:  5,
+    CF_TICK: 2
+});
+
+records = records.map(function (obj, index) {
+    obj[&quot;id&quot;] = index;
+    return obj;
+})
+
+var configObj = {
+    scrollbar: true,
+    columns: columns,
+    staticDataRows: records,
+    extensions: [
+        rangeBarExt
+    ],
+};
+
+var grid = window.grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="with-custom-tooltip">With Custom Tooltip</h2>
+<p>If you want to use a customized tooltip for the range bar, you can use it with <code>disabled</code> the rangeBar default tooltip with option and adding a tooltip condition. 
+For adding condition of tooltip you can import <code>addConditionTooltip</code> from the tooltip dependency and use it with pass <code>condition</code> and <code>renderer</code> function, following in the example below.</p>
+<code-sandbox hash="3f4cc5ff"><pre><code class="language-css">efx-grid {
+    height: 208px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;id&quot;, &quot;CFLOW&quot;, &quot;CF_LAST&quot;, &quot;CFHIGH&quot;, &quot;percent&quot;];
+var records = [];
+
+var rangeBarExt = new RangeBar();
+
+var id = 0;
+for (let i = -150; i &lt; 151; i += 10) {
+    records.push({
+        id: id++,
+        CFLOW: -100,
+        CF_LAST: i,
+        CFHIGH: 100,
+        percent: i
+    });
+}
+
+// N/A Case and without top value
+records.push({
+    id: records.length,
+    CFLOW: undefined,
+    CF_LAST: undefined,
+    CFHIGH: undefined,
+    percent: undefined
+});
+
+records.push({
+    id: records.length,
+    CFLOW: 1,
+    CF_LAST: undefined, // without middle value
+    CFHIGH: 50,
+    percent: undefined
+});
+
+records.push({
+    id: records.length,
+    CFLOW: undefined,
+    CF_LAST: 5,
+    CFHIGH: 50,
+    percent: 5
+});
+
+records.push({
+    id: records.length,
+    CFLOW: 3,
+    CF_LAST: 5,
+    CFHIGH: undefined,
+    percent: 5
+});
+
+records.push({
+    id: records.length,
+    CFLOW: undefined,
+    CF_LAST: 5,
+    CFHIGH: undefined,
+    percent: 5
+});
+
+// Low_value &lt;High_value
+records.push({
+    id: records.length,
+    CFLOW: 1,
+    CF_LAST: 50,
+    CFHIGH: 99,
+    percent: 50
+});
+
+records.push({
+    id: records.length,
+    CFLOW: 50,
+    CF_LAST: 1,
+    CFHIGH: 99,
+    percent: 1
+});
+
+records.push({
+    id: records.length,
+    CFLOW: 1,
+    CF_LAST: 99,
+    CFHIGH: 50,
+    percent: 99
+});
+
+// High&lt;Low
+records.push({
+    id: records.length,
+    CFLOW: 99,
+    CF_LAST: 50,
+    CFHIGH: 1,
+    percent: 50
+});
+
+records.push({
+    id: records.length,
+    CFLOW: 99,
+    CF_LAST: 1,
+    CFHIGH: 50,
+    percent: 1
+});
+
+records.push({
+    id: records.length,
+    CFLOW: 50,
+    CF_LAST: 99,
+    CFHIGH: 1,
+    percent: 99
+});
+
+// Two equal
+records.push({
+    id: records.length,
+    CFLOW: 1,
+    CF_LAST: 50,
+    CFHIGH: 1,
+    percent: 50
+});
+
+records.push({
+    id: records.length,
+    CFLOW: 50,
+    CF_LAST: 1,
+    CFHIGH: 50,
+    percent: 1
+});
+
+records.push({
+    id: records.length,
+    CFLOW: 1,
+    CF_LAST: 1,
+    CFHIGH: 50,
+    percent: 1
+});
+
+records.push({
+    id: records.length,
+    CFLOW: 50,
+    CF_LAST: 50,
+    CFHIGH: 1,
+    percent: 50
+});
+
+records.push({
+    id: records.length,
+    CFLOW: 50,
+    CF_LAST: 1,
+    CFHIGH: 1,
+    percent: 1
+});
+
+records.push({
+    id: records.length,
+    CFLOW: 1,
+    CF_LAST: 50,
+    CFHIGH: 50,
+    percent: 50
+});
+
+// Three equal 
+records.push({
+    id: records.length,
+    CFLOW: 1,
+    CF_LAST: 1,
+    CFHIGH: 1,
+    percent: 1
+});
+
+var configObj = {
+    scrollbar: true,
+    columns: [{
+        name: &quot;ID&quot;,
+        field: fields[0],
+        width: 60
+    },
+    {
+        name: &quot;Low&quot;,
+        field: fields[1],
+        width: 60
+    },
+    {
+        name: &quot;Last&quot;,
+        field: fields[2],
+        width: 60
+    },
+    {
+        name: &quot;High&quot;,
+        field: fields[3],
+        width: 60
+    },
+    {
+        name: &quot;Range (Low, Last, High)&quot;,
+        field: fields[2],
+        alignment: &quot;c&quot;,
+        rangeBar: {
+            low: &quot;CFLOW&quot;,
+            high: &quot;CFHIGH&quot;,
+            last: &quot;CF_LAST&quot;
+        }
+    },
+    {
+        name: &quot;Percent&quot;,
+        field: fields[4],
+        width: 60
+    },
+    {
+        name: &quot;Percent (Without low, last, high)&quot;,
+        field: fields[4],
+        rangeBar: {
+            field: fields[4]
+        }
+    },
+    {
+        name: &quot;Percent (start 30, end 70)&quot;,
+        field: fields[4],
+        rangeBar: {
+            field: fields[4],
+            start: 30, // default 0
+            end: 70 // default 100
+        }
+    }],
+    staticDataRows: records,
+    extensions: [rangeBarExt]
+};
+
+var grid = window.grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+
+// Create tooltip container section, we reused element for avoid create element multiple times
+// This container will be show the user
+var LEDTooltipUI = document.createElement(&quot;div&quot;);
+LEDTooltipUI.style.textTransform = &quot;capitalize&quot;; // To title case
+var keys = [&quot;low&quot;, &quot;last&quot;, &quot;high&quot;];
+for (var i = 0; i &lt; keys.length; i++) {
+    var key = keys[i];
+    var elem = document.createElement(&quot;div&quot;);
+    LEDTooltipUI[key] = elem;
+    LEDTooltipUI.appendChild(elem);
+}
+// End tooltip container creation
+
+// in application side need to import addTooltipCondition from tooltip component
+// For example import { addTooltipCondition } from &quot;@elf/ef-tooltip&quot;; // for elf v4
+// import { addTooltipCondition } from &#39;@refinitiv-ui/elements/tooltip&#39;; // for elf v6
+tr.addTooltipCondition(LEDGuageTooltipCondition, LEDGuageTooltipRenderer);
+
+function LEDGuageTooltipCondition(target, paths) {
+    var relPos = grid.api.getRelativePosition(target);
+    if (!relPos.hit) {
+        return false;
+    }
+    if (relPos.sectionType !== &quot;content&quot;) {
+        return false;
+    }
+    if (rangeBarExt.isRangeBarColumn(relPos.colIndex)) {
+        LEDTooltipUI._relPos = relPos; // We need to cache the relative position in the container element for use when renderer in the tooltip to avoid calling getRelativePosition multiple times.
+        return true;
+    }
+    return false;
+}
+
+function LEDGuageTooltipRenderer(target) {
+    var relPos = LEDTooltipUI._relPos;
+    var colIndex = relPos.colIndex;
+    var lowLastHigh = rangeBarExt.getValue(colIndex, relPos[&quot;rowIndex&quot;]);
+    if (lowLastHigh) {
+        // update value into tooltip UI
+        LEDTooltipUI[&quot;low&quot;].textContent = &quot;Low: &quot; + (lowLastHigh[&quot;low&quot;] != null ? lowLastHigh[&quot;low&quot;] : &quot;--&quot;);
+        LEDTooltipUI[&quot;last&quot;].textContent = &quot;Last: &quot; + (lowLastHigh[&quot;last&quot;] != null ? lowLastHigh[&quot;last&quot;] : &quot;--&quot;);
+        LEDTooltipUI[&quot;high&quot;].textContent = &quot;High: &quot; + (lowLastHigh[&quot;high&quot;] != null ? lowLastHigh[&quot;high&quot;] : &quot;--&quot;);
+    }
+    // else {} // Currenlty, we don&#39;t have the rangeBar field that can&#39;t getValue, even if the N/A case getValue will be return object (with undefiend value)
+    return LEDTooltipUI;
+}
+</code></pre>
+</code-sandbox><div></div>
+
+<h2 style="margin-bottom:5px" id="api-refs">API Reference</h2>
+<div id="elf-api-container"><div id="main-template" class="elf-template">    <section><article>                                                                        <h3 class="subsection-title" id="type_definitions">Type Definitions</h3>                        <div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~ColumnOptions">ColumnOptions</h4><div class="description">    Extension column options that can be specified on each individual grid's column option:</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>rangeBar</code></td>                        <td class="type">                            <span class="param-type"><a href="/extensions/tr-grid-range-bar#~RangeDefinition">RangeBarPlugin~RangeDefinition</a></span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Range definition object</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            <div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~Options">Options</h4><div class="description">    RangeBarPlugin options that can be specified from `percentBar` property of the main grid's options</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>tooltip</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    true                                </td>                        <td class="description last">If disabled, it will be doesn't show tooltip when mouse hover sapphire-led-gauge</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            <div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~RangeDefinition">RangeDefinition</h4><div class="description">    Available options describing `rangeBar` object specified in grid's column option</div>    <h5>Type:</h5>    <span class="param-type">Object</span> | <span class="param-type">boolean</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>field</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    THIS_COLUMN                                </td>                        <td class="description last">Field used as percentage. If specified, `low`, `high`, and `last` fields will be ignored.</td>        </tr>            <tr>                            <td class="name"><code>start</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    0                                </td>                        <td class="description last">minimum value used with percentage `field`</td>        </tr>            <tr>                            <td class="name"><code>end</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    100                                </td>                        <td class="description last">maximum value used with percentage `field`</td>        </tr>            <tr>                            <td class="name"><code>low</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    ""                                </td>                        <td class="description last">Field used as minimum range</td>        </tr>            <tr>                            <td class="name"><code>high</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    ""                                </td>                        <td class="description last">Field used as maximum range</td>        </tr>            <tr>                            <td class="name"><code>last</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    ""                                </td>                        <td class="description last">Field used as current absolute value (white bar)</td>        </tr>            <tr>                            <td class="name"><code>vwap</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    ""                                </td>                        <td class="description last">Field used as volume weighted average price (VWAP)</td>        </tr>            <tr>                            <td class="name"><code>close</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    ""                                </td>                        <td class="description last">Field used as close price</td>        </tr>            <tr>                            <td class="name"><code>tick</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    ""                                </td>                        <td class="description last">Field used as tick color</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            <h3 class="subsection-title" id="methods">Methods</h3>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="config"><span class="type-signature"></span>config<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getColumnConfigObject"><span class="type-signature"></span>getColumnConfigObject<span class="signature">(colIndex, out_obj<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Object}</span></h4>                            <div class="description">        Get a column percent bar options from column index    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                            <div class="attributes">                                                                </div>                                            </div>                <div class="param">                            <div class="name">out_obj</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div>                </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getConfigObject"><span class="type-signature"></span>getConfigObject<span class="signature">(out_obj<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Object}</span></h4>                            <div class="description">        Get a current state of grid and extension config    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">out_obj</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div>                </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getName"><span class="type-signature"></span>getName<span class="signature">()</span><span class="type-signature"> → {string}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">string</span>    </div>                </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getTooltipText"><span class="type-signature"></span>getTooltipText<span class="signature">(colRef, rowRef)</span><span class="type-signature"> → {string}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colRef</div>                        <div class="type">                            <span class="param-type">number</span> | <span class="param-type">string</span>                        </div>                                            </div>                <div class="param">                            <div class="name">rowRef</div>                        <div class="type">                            <span class="param-type">number</span> | <span class="param-type">string</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">string</span>    </div><div class="sub-content-desc">    text tooltip of cell, otherwise empty string ""</div>                </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getValue"><span class="type-signature"></span>getValue<span class="signature">(colRef, rowRef)</span><span class="type-signature"> → {Object}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colRef</div>                        <div class="type">                            <span class="param-type">number</span> | <span class="param-type">string</span>                        </div>                                            </div>                <div class="param">                            <div class="name">rowRef</div>                        <div class="type">                            <span class="param-type">number</span> | <span class="param-type">string</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div>                </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="hasMultiTableSupport"><span class="type-signature"></span>hasMultiTableSupport<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Plugin that has multi-table support means that it can have multiple hosts/tables and share its states across those hosts/tables.    </div>                        <div class="details">                <dt class="inherited-from">Inherited From:</dt>    <dd class="inherited-from">        <a href="">GridPlugin#hasMultiTableSupport</a>    </dd>                                                    </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="initialize"><span class="type-signature"></span>initialize<span class="signature">(host, options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">host</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    core grid object                </div>                    </div>                <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="isRangeBarColumn"><span class="type-signature"></span>isRangeBarColumn<span class="signature">(colIndex)</span><span class="type-signature"> → {boolean}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="unload"><span class="type-signature"></span>unload<span class="signature">(host)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">host</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    core grid object                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                </article></section></div></div>

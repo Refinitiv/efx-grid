@@ -1,0 +1,330 @@
+<link rel="stylesheet" href="./resources/styles/elf-template.css">
+
+<h1 id="row-coloring">Row Coloring</h1>
+<p>The Row Coloring Extension provides a way to set text color and background color in each row.</p>
+<code-sandbox hash="1377982d"><pre><code class="language-css">efx-grid {
+    height: 169px;
+}
+
+input[type=number] {
+    width: 30px;
+}
+
+input[type=color] {
+    display: inline-block;
+}
+</code></pre>
+<pre><code class="language-html">&lt;button id=&quot;set_btn&quot;&gt;Set Row Color&lt;/button&gt;
+Row Index: &lt;input id=&quot;row_inp&quot; type=&quot;number&quot; value=&quot;0&quot;&gt;
+Color: &lt;input id=&quot;color_inp&quot; type=&quot;color&quot; value=&quot;#cbaacb&quot;&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var rowColoringExt = new RowColoring();
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 5 });
+var configObj = {
+    columns: [
+        { name: &quot;Company&quot;, field: fields[0] },
+        { name: &quot;Market&quot;, field: fields[1], width: 120 },
+        { name: &quot;Last&quot;, field: fields[2], width: 100 },
+        { name: &quot;Net. Chng&quot;, field: fields[3], width: 100 },
+        { name: &quot;Industry&quot;, field: fields[4] }
+    ],
+    staticDataRows: records,
+    extensions: [
+        rowColoringExt
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.addEventListener(&quot;configured&quot;, function(e) {
+    // Set text color and BG color through extension
+    rowColoringExt.setRowColor(1, &quot;#ffc5bf&quot;, rowColoringExt.getContrastColor(&quot;#ffc5bf&quot;));
+    rowColoringExt.setRowColor(2, &quot;#97c1a9&quot;, rowColoringExt.getContrastColor(&quot;#97c1a9&quot;));
+    rowColoringExt.setRowColor(3, &quot;#d4f0f0&quot;, rowColoringExt.getContrastColor(&quot;#d4f0f0&quot;));
+});
+grid.config = configObj;
+
+document.getElementById(&quot;set_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
+    var rowIndex = +document.getElementById(&quot;row_inp&quot;).value;
+    var bgColor = document.getElementById(&quot;color_inp&quot;).value || &quot;black&quot;;
+    rowColoringExt.toggleRowColor(rowIndex, bgColor, rowColoringExt.getContrastColor(bgColor));
+});
+</code></pre>
+</code-sandbox><h2 id="installation-and-how-to-import-to-a-project">Installation and how to import to a project</h2>
+<p>Installation examples and details of how to import the extension to a project are available on the <a href="#/extensions/readme">Overview</a> page.</p>
+<h2 id="user-fields">User fields</h2>
+<p>The extension supports text color and background color from the <code>dataTable</code>. To do this you need to set the <code>bgColorField</code> and <code>textColorField</code> properties in the <code>rowColoring</code> options with your specified field names.</p>
+<code-sandbox hash="c0dbc822"><pre><code class="language-css">efx-grid {
+    height: 169px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var rowColoringExt = new RowColoring();
+DataGenerator.addFieldInfo(&quot;color&quot;, {
+    type: &quot;set&quot;,
+    members: [&quot;#c6dbda&quot;, &quot;#fee1e8&quot;, &quot;#fed7c3&quot;, &quot;#f6eac2&quot;, &quot;#ecd5e3&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;]
+});
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;color&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 5 });
+var configObj = {
+    columns: [
+        { name: &quot;Company&quot;, field: fields[0] },
+        { name: &quot;Market&quot;, field: fields[1], width: 120 },
+        { name: &quot;Last&quot;, field: fields[2], width: 100 },
+        { name: &quot;Net. Chng&quot;, field: fields[3], width: 100 },
+        { name: &quot;Industry&quot;, field: fields[4] }
+    ],
+    staticDataRows: records,
+    rowColoring: {
+        bgColorField: &quot;color&quot;,
+    },
+    extensions: [
+        rowColoringExt
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="predefined-color-mode">Predefined color mode</h2>
+<p>The extension also supports text color and background color from the predefined colors. To do this you need to assign predefined class object to the <code>predefinedColors</code> property then set <code>predefinedColoring</code> properties to true and specify field name of the <code>cssField</code> property.</p>
+<code-sandbox hash="e6f4335e"><pre><code class="language-css">efx-grid {
+    height: 169px;
+}
+input[type=&quot;number&quot;] {
+    width: 40px;
+}
+.control-group {
+    margin: 10px 0;
+}
+.control-group button {
+    vertical-align: middle;
+}
+#btn_group {
+    display: inline;
+    margin-right: 15px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;div class=&quot;control-group&quot;&gt;
+    Row index &lt;input type=&quot;number&quot; value=&quot;3&quot; id=&quot;row_index&quot;&gt;
+&lt;/div&gt;
+&lt;div class=&quot;control-group&quot;&gt;
+    Set color
+    &lt;div id=&quot;btn_group&quot;&gt;
+    &lt;/div&gt;
+    &lt;button id=&quot;reset&quot;&gt;Reset&lt;/button&gt;
+&lt;/div&gt;
+&lt;div class=&quot;control-group&quot;&gt;
+    Predefiend color
+    &lt;button id=&quot;extend_color&quot;&gt;Extend&lt;/button&gt;
+    &lt;button id=&quot;shrink_color&quot;&gt;Shrink&lt;/button&gt;
+&lt;/div&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var predefinedColorsSet1 = {
+    &quot;c-yellow&quot;: {
+        backgroundColor: &quot;#FFFF00&quot;
+    },
+    &quot;c-blue&quot;: {
+        backgroundColor: &quot;#00FFFF&quot;
+    },
+    &quot;c-green&quot;: {
+        backgroundColor: &quot;#80FF80&quot;
+    },
+    &quot;c-red&quot;: {
+        backgroundColor: &quot;#FF8080&quot;
+    }
+};
+
+var predefinedColorsSet2 = {
+    &quot;h-dark-red&quot;: {
+        backgroundColor: &quot;#520804&quot;,
+        color: &quot;#C2C2C2&quot;
+    },
+    &quot;h-dark-green&quot;: {
+        backgroundColor: &quot;#01433C&quot;,
+        color: &quot;#C2C2C2&quot;
+    },
+    &quot;h-dark-blue&quot;: {
+        backgroundColor: &quot;#003D5A&quot;,
+        color: &quot;#C2C2C2&quot;
+    },
+    &quot;h-cyan&quot;: {
+        backgroundColor: &quot;#2FB4C8&quot;,
+        color: &quot;#C2C2C2&quot;
+    },
+    &quot;h-yellow&quot;: {
+        backgroundColor: &quot;#FFE433&quot;,
+        color: &quot;#C2C2C2&quot;
+    },
+    &quot;h-orange&quot;: {
+        backgroundColor: &quot;#FA4C11&quot;,
+        color: &quot;#C2C2C2&quot;
+    }
+};
+
+// prepare button for color setting
+function setRowColor(e) {
+    var btn = e.currentTarget;
+    var colorName = btn._colorName;
+    var rowIndex = parseInt(row_index.value);
+    rowColoringExt.setRowPredefinedColor(rowIndex, colorName);
+}
+
+function updateButtons() {
+    var btnGroup = document.getElementById(&quot;btn_group&quot;);
+    btnGroup.innerHTML = &quot;&quot;;
+    var colors = rowColoringExt.getPredefinedColors();
+    for(var name in colors) {
+        var styles = colors[name];
+        var btn = document.createElement(&quot;button&quot;);
+        btn.textContent = name;
+        btn.style.backgroundColor = styles.backgroundColor || &quot;&quot;;
+        btn.style.color = styles.color || &quot;&quot;;
+        btn._colorName = name;
+        btn.addEventListener(&quot;click&quot;, setRowColor);
+        btnGroup.appendChild(btn);
+    }
+}
+
+var rowColoringExt = new RowColoring();
+var conditionalColoringExt = new ConditionalColoring();
+DataGenerator.addFieldInfo(&quot;coloringClass&quot;, {
+    type: &quot;set&quot;,
+    members: [&quot;c-yellow&quot;, &quot;c-blue&quot;, &quot;c-green&quot;, &quot;c-red&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;]
+});
+var randIndex = DataGenerator.randIndex;
+var randBetween = DataGenerator.randBetween;
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;id&quot;, &quot;coloringClass&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 10 });
+var configObj = {
+    columns: [
+        {
+            name: &quot;Index&quot;,
+            field: fields[5],
+            width: 50,
+            alignment: &quot;center&quot;
+        },
+        {
+            name: &quot;Company&quot;,
+            field: fields[0]
+        },
+        {
+            name: &quot;Market&quot;,
+            field: fields[1],
+            width: 120
+        },
+        {
+            name: &quot;Last&quot;,
+            field: fields[2],
+            width: 100
+        },
+        {
+            name: &quot;Net. Chng&quot;,
+            field: fields[3],
+            width: 100,
+            blinking: true,
+            conditions: [
+                {
+                    backgroundColor: &quot;&quot;,
+                    color: &quot;green&quot;,
+                    expression: &quot;[number] &gt; 0&quot;
+                },
+                {
+                    backgroundColor: &quot;&quot;,
+                    color: &quot;red&quot;,
+                    expression: &quot;[number] &lt; 0&quot;
+                },
+                {
+                    backgroundColor: &quot;&quot;,
+                    color: &quot;blue&quot;,
+                    expression: &quot;[number] == 0&quot;
+                }
+            ]
+        },
+        {
+            name: &quot;Industry&quot;,
+            field: fields[4]
+        }
+    ],
+    staticDataRows: records,
+    rowColoring: {
+        predefinedColors: predefinedColorsSet1,
+        predefinedColoring: true,
+        cssField: &quot;coloringClass&quot;
+    },
+    extensions: [
+        rowColoringExt, conditionalColoringExt
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.addEventListener(&quot;configured&quot;, updateButtons);
+grid.config = configObj;
+
+setInterval(function simulateUpdates() {
+    if(grid.api) {
+        var rowDef = grid.api.getRowDefinition(randIndex(10))
+        rowDef.setRowData({
+            &quot;CF_NETCHNG&quot;: randBetween(-100, 100)
+        });
+    }
+}, 300);
+
+document.getElementById(&quot;reset&quot;).addEventListener(&quot;click&quot;, function(e) {
+    var rowIndex = parseInt(row_index.value);
+    rowColoringExt.setRowPredefinedColor(rowIndex, null);
+});
+
+document.getElementById(&quot;extend_color&quot;).addEventListener(&quot;click&quot;, function(e) {
+    var colors = rowColoringExt.getPredefinedColors();
+    var newColors = {};
+    Object.assign(newColors, colors, predefinedColorsSet2);
+    rowColoringExt.setPredefinedColors(newColors);
+    updateButtons();
+});
+
+document.getElementById(&quot;shrink_color&quot;).addEventListener(&quot;click&quot;, function(e) {
+    var colors = rowColoringExt.getPredefinedColors();
+    var newColors = {};
+    Object.assign(newColors, colors);
+    for (var name in predefinedColorsSet2) {
+        delete newColors[name];
+    }
+    rowColoringExt.setPredefinedColors(newColors);
+    updateButtons();
+});
+</code></pre>
+</code-sandbox><div></div>
+
+<h2 style="margin-bottom:5px" id="api-refs">API Reference</h2>
+<div id="elf-api-container"><div id="main-template" class="elf-template">    <section><article>                                                                        <h3 class="subsection-title" id="type_definitions">Type Definitions</h3>                        <div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~Options">Options</h4><div class="description">    The options can be specified by `rowColoring` property of the main grid's options:</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>bgColoring</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    true                                </td>                        <td class="description last">If disabled, background color will not be applied to the row</td>        </tr>            <tr>                            <td class="name"><code>textColoring</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    true                                </td>                        <td class="description last">If disabled, text color will not be applied to the row</td>        </tr>            <tr>                            <td class="name"><code>bgColorField</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    "BG_COLOR"                                </td>                        <td class="description last">Apply background color based on the given field</td>        </tr>            <tr>                            <td class="name"><code>textColorField</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    "TEXT_COLOR"                                </td>                        <td class="description last">Apply text color based on the given field</td>        </tr>            <tr>                            <td class="name"><code>cssField</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    "CSS_CLASS"                                </td>                        <td class="description last">Apply CSS class based on the given field</td>        </tr>            <tr>                            <td class="name"><code>cssRangeField</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    ""                                </td>                        <td class="description last">Apply CSS class only on the given range field, which range will be array 2 element, the first element is start column used colour and the second one is the length of column applied</td>        </tr>            <tr>                            <td class="name"><code>altCssField</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    ""                                </td>                        <td class="description last">Apply alternative CSS class based on the given field which not in range field</td>        </tr>            <tr>                            <td class="name"><code>predefinedColors</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Predefined color object map</td>        </tr>            <tr>                            <td class="name"><code>predefinedColoring</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">If enabled, predefined colors will be used instead of inline styling. The bgColoring and textColoring will be turned off.</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            <h3 class="subsection-title" id="methods">Methods</h3>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id=".getContrastColor"><span class="type-signature"></span>getContrastColor<span class="signature">(hexColor)</span><span class="type-signature"> → {string}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">hexColor</div>                        <div class="type">                            <span class="param-type">string</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">string</span>    </div><div class="sub-content-desc">    color in CSS hex format (e.g. #FF00FF)</div>                </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="config"><span class="type-signature"></span>config<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="disableBgColoring"><span class="type-signature"></span>disableBgColoring<span class="signature">(opt_bool<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">opt_bool</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="disableRowColoring"><span class="type-signature"></span>disableRowColoring<span class="signature">(disabled<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">disabled</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="disableTextColoring"><span class="type-signature"></span>disableTextColoring<span class="signature">(opt_bool<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">opt_bool</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="forceUpdateRowColor"><span class="type-signature"></span>forceUpdateRowColor<span class="signature">()</span><span class="type-signature"></span></h4>                                            <div class="details">                                                            </div>                                    </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getConfigObject"><span class="type-signature"></span>getConfigObject<span class="signature">(gridOptions<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Object}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">gridOptions</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div>                </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getContrastColor"><span class="type-signature"></span>getContrastColor<span class="signature">(hexColor)</span><span class="type-signature"> → {string}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">hexColor</div>                        <div class="type">                            <span class="param-type">string</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">string</span>    </div><div class="sub-content-desc">    color in CSS hex format (e.g. #FF00FF)</div>                </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getName"><span class="type-signature"></span>getName<span class="signature">()</span><span class="type-signature"> → {string}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">string</span>    </div>                </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getPredefinedColors"><span class="type-signature"></span>getPredefinedColors<span class="signature">()</span><span class="type-signature"> → {Object}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div><div class="sub-content-desc">    Return predefined color object map</div>                </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getRowColor"><span class="type-signature"></span>getRowColor<span class="signature">(rowRef)</span><span class="type-signature"> → {string}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowRef</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </div>                                                    <div class="description">                    Row id in the data table or row index                </div>                    </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">string</span>    </div><div class="sub-content-desc">    bgColor</div>                </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="hasMultiTableSupport"><span class="type-signature"></span>hasMultiTableSupport<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Plugin that has multi-table support means that it can have multiple hosts/tables and share its states across those hosts/tables.    </div>                        <div class="details">                <dt class="inherited-from">Inherited From:</dt>    <dd class="inherited-from">        <a href="">GridPlugin#hasMultiTableSupport</a>    </dd>                                                    </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="initialize"><span class="type-signature"></span>initialize<span class="signature">(host, options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">host</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    core grid instance                </div>                    </div>                <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="removeRowColor"><span class="type-signature"></span>removeRowColor<span class="signature">(rowRef)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowRef</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </div>                                                    <div class="description">                    Row id in the data table or row index                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setPredefinedColors"><span class="type-signature"></span>setPredefinedColors<span class="signature">(predefinedColors)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">predefinedColors</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    Predefined color object map                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setRowColor"><span class="type-signature"></span>setRowColor<span class="signature">(rowRef, bgColor<span class="signature-attributes">opt</span>, txtColor<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowRef</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    Row id in the data table or row index                </div>                    </div>                <div class="param">                            <div class="name">bgColor</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">null</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>                <div class="param">                            <div class="name">txtColor</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">null</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setRowPredefinedColor"><span class="type-signature"></span>setRowPredefinedColor<span class="signature">(rowRef, color<span class="signature-attributes">opt</span>, range<span class="signature-attributes">opt</span>, altColor<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                            <div class="description">        Set predefined color into row reference    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowRef</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    Row id in the data table or row index                </div>                    </div>                <div class="param">                            <div class="name">color</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">null</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    Predefined color being applied to row                </div>                    </div>                <div class="param">                            <div class="name">range</div>                        <div class="type">                            <span class="param-type">Array.&lt;number&gt;</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    Range of column applied colour which array 2 element, the first element is start column used colour and the second one is the length of column applied, it doesn't provide a range, the columns will apply the colour all columns in row reference                </div>                    </div>                <div class="param">                            <div class="name">altColor</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">null</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    Alternative predefined color being applied to row if the column doesn't in the rage                </div>                    </div>            </div>        <div class="details">                                                            </div>                                            <h5>Example:</h5>            <pre><code>rowColoringExt.setRowPredefinedColor(2, "c-red") // set predefined color into row index 2 all row.
+rowColoringExt.setRowPredefinedColor(2, "c-red", [2, 5]) // set predefined color into row index 2 and applied since column 2 and next 5 columns
+rowColoringExt.setRowPredefinedColor(2, "c-red", [2]) // if pass only 1 element into rage parameter, the row will be applied since 2 to last column
+rowColoringExt.setRowPredefinedColor(2, "c-red", [2, 5], "c-yellow") // set predefined color into row index 2 and applied since column 2 and next 5 columns and another column will be set color c-yellow</code></pre>    </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="toggleRowColor"><span class="type-signature"></span>toggleRowColor<span class="signature">(rowRef, bgColor<span class="signature-attributes">opt</span>, txtColor<span class="signature-attributes">opt</span>, state<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {boolean}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowRef</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    Row id in the data table or row index                </div>                    </div>                <div class="param">                            <div class="name">bgColor</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">null</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>                <div class="param">                            <div class="name">txtColor</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">null</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>                <div class="param">                            <div class="name">state</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    Specify this flag to force the color state                </div>                    </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    Return current color state (after execution)</div>                </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="unload"><span class="type-signature"></span>unload<span class="signature">(host)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">host</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    core grid instance                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                </article></section></div></div>

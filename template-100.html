@@ -1,0 +1,81 @@
+<h1 id="ef-button-formatter">EF Button Formatter</h1>
+<p>This formatter creates a <a href="https://ui.refinitiv.com/elements/button">ef-button</a> without a margin. By default the text inside the button will be data from the column&#39;s field.</p>
+<h2 id="specific-options">Specific options</h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Attributes</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>label</td>
+<td>string</td>
+<td>optional</td>
+<td>Text inside the button, default text is the value from the column&#39;s field</td>
+</tr>
+</tbody></table>
+<h2 id="example">Example</h2>
+<code-sandbox hash="bb19babe"><pre><code class="language-css">efx-grid {
+    height: 320px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;number_1&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 20 });
+
+var configObj = {
+    columns: [
+        { 
+            name: &quot;Data&quot;,
+            field: fields[0],
+            sort: fields[0],
+            alignment: &quot;c&quot;
+        },
+        { 
+            name: &quot;Simplest&quot;,
+            field: fields[0],
+            sort: fields[0],
+            alignment: &quot;c&quot;,
+            binding: EFButtonFormatter.create()
+        },
+        { 
+            name: &quot;Some options&quot;,
+            field: fields[0],
+            sort: fields[0],
+            alignment: &quot;c&quot;,
+            binding: EFButtonFormatter.create({
+                label: &quot;&quot;,
+                attributes: {
+                    icon: &quot;cross&quot;
+                },
+                styles: {
+                    width: &quot;23px&quot;
+                },
+                events: {
+                    &quot;click&quot;: function(e) {
+                        console.log(&quot;clicked&quot;);
+                    }
+                }
+            })
+        }
+    ],
+    extensions: [],
+    staticDataRows: records
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox>

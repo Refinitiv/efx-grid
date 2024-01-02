@@ -1,0 +1,181 @@
+<h1 id="event-listeners">Event Listeners</h1>
+<p>Since Grid is element, you can directly listen for events from it. It&#39;s recommended to listen for native events and then use the <code>getRelativePosition()</code> method to resolve which cell, area, or position are the target of the event. This is because Grid does not render every cell, and the cells are being reused across different rows. So it&#39;s important to resolve the position inside the event handler (such as, runtime resolving). You can use any native event and resolve the position by using the <code>getRelativePosition()</code> method.</p>
+<h2 id="click">Click</h2>
+<p>If you want to do something on the click event, you could do the following code snippet:</p>
+<pre><code class="language-js">var grid = document.getElementById(&quot;grid_id&quot;);
+
+grid.addEventListener(&quot;click&quot;, function(e){ // Notice that api property is not required here
+    var pos = grid.api.getRelativePosition(e); // Resolve the position at runtime
+    
+    console.log(pos.sectionType, pos.colIndex, pos.rowIndex); // pos object contains a lot of information
+});
+</code></pre>
+<h2 id="right-click">Right click</h2>
+<p>Simply use native <code>contextmenu</code> event to detect right click on the grid element. Use <code>preventDefault()</code> method to prevent default context menu behaviors from triggering.</p>
+<h2 id="mouse-events">Mouse events</h2>
+<p>The common native events, such as <code>mousemove</code>, <code>mouseup</code>, and <code>mousedown</code>, can be listened on the grid element.</p>
+<blockquote>
+<p>Note: Grid internally divides itself into several sections. The top section is called <code>title</code> and the lower part is called <code>content</code>. So the <code>sectionType</code> from the position object can be one of the following values: <code>title</code>, <code>content</code>, <code>footer</code>.</p>
+</blockquote>
+<h2 id="listening-to-native-events-example">Listening to native events example</h2>
+<code-sandbox hash="304af81"><pre><code class="language-css">html hr {
+    margin: 5px;
+}
+textarea {
+    width: 100%;
+    height: 80px;
+    font-size: 20px;
+}
+efx-grid {
+    height: 300px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;textarea id=&quot;msg_ta&quot;&gt;&lt;/textarea&gt;
+&lt;hr&gt;
+&lt;efx-grid&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;market&quot;, &quot;CF_NETCHNG&quot;, &quot;CF_VOLUME&quot;];
+var columnNames = [&quot;Id&quot;, &quot;Company Name&quot;, &quot;Market&quot;, &quot;Net Chng.&quot;, &quot;Volume&quot;];
+var columns = fields.map(function(f, idx) {
+    return {
+        field: f,
+        name: columnNames[idx]
+    }
+});
+var records = DataGenerator.generateRecords(fields, {seed: 1, rowCount: 20});
+
+var configObj = {
+    columns: columns,
+    staticDataRows: records
+};
+var grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
+grid.config = configObj;
+
+grid.addEventListener(&quot;click&quot;, function(e) {
+    var pos = grid.api.getRelativePosition(e);
+    var ary = [
+        &quot;Clicked&quot;,
+        &quot;Section: &quot; + pos.sectionType,
+        &quot;Col Idx: &quot; + pos.colIndex,
+        &quot;Row Idx: &quot; + pos.rowIndex
+    ];
+    alert(ary.join(&quot;\n&quot;));
+});
+grid.addEventListener(&quot;contextmenu&quot;, function(e) {
+    var pos = grid.api.getRelativePosition(e);
+    var ary = [
+        &quot;Right clicked&quot;,
+        &quot;Section: &quot; + pos.sectionType,
+        &quot;Col Idx: &quot; + pos.colIndex,
+        &quot;Row Idx: &quot; + pos.rowIndex
+    ];
+    alert(ary.join(&quot;\n&quot;));
+    
+    e.preventDefault();
+    e.stopPropagation();
+});
+grid.addEventListener(&quot;mousemove&quot;, function(e) {
+    var pos = grid.api.getRelativePosition(e);
+    var ary = [
+        &quot;Section: &quot; + pos.sectionType,
+        &quot;Col Idx: &quot; + pos.colIndex,
+        &quot;Row Idx: &quot; + pos.rowIndex
+    ];
+    msg_ta.value = ary.join(&quot;\n&quot;);
+});
+</code></pre>
+</code-sandbox><h1 id="getting-a-cell-and-its-content">Getting a cell and its content</h1>
+<p>With row virtualization and column virtualization, Grid only renders cells that are on the current view. So, only cells and their content that are in range of the current view can be retrieved. To retrieve cell content, use <code>getCoreGrid</code> to get core grid instance first. Then, use <code>getCell(section, colIndex, rowIndex)</code> from the core to get cell object. Finally, use <code>getContent()</code> from the cell object to get the cell content. If you want all the data content (not the content elements), please use grid <a href="#/data/read">data related APIs</a> instead.</p>
+<p>If you are inside an event listener, the corresponding cell object is already provided from the returned value of <code>getRelativePosition</code> method. You can then get cell content from the cell object using <code>getContent()</code> method. Alternatively, you can use <a href="https://developer.mozilla.org/en-US/docs/Web/API/Event/composedPath">composedPath</a> method from native event argument to get a path to actual target element.</p>
+<blockquote>
+<p>Note: Grid is a custom element which encapusulate all of its content under its shadow root. Hence, <code>target</code> property from the native Event argument will always return Grid element and not actual target element inside the grid.</p>
+</blockquote>
+<h2 id="getting-cell-content-example">Getting cell content example</h2>
+<code-sandbox hash="3263c6c3"><pre><code class="language-css">html hr {
+    margin: 5px;
+}
+textarea {
+    width: 100%;
+    height: 30px;
+    font-size: 20px;
+}
+input[type=&quot;number&quot;] {
+    width: 60px;
+}
+i:empty {
+    padding-left: 10px;
+}
+efx-grid {
+    height: 300px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;div&gt;
+    &lt;button id=&quot;get_btn&quot;&gt;Get cell content&lt;/button&gt;
+    &lt;label for=&quot;col_in&quot;&gt;Column index:&lt;/label&gt;
+    &lt;input id=&quot;col_in&quot; value=&quot;2&quot; type=&quot;number&quot;&gt;
+    &lt;i&gt;&lt;/i&gt;
+    &lt;label for=&quot;row_in&quot;&gt;Row index:&lt;/label&gt;
+    &lt;input id=&quot;row_in&quot; value=&quot;2&quot; type=&quot;number&quot;&gt;
+&lt;/div&gt;
+&lt;hr&gt;
+&lt;textarea id=&quot;msg_ta&quot;&gt;&lt;/textarea&gt;
+&lt;hr&gt;
+&lt;efx-grid&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+get_btn.addEventListener(&quot;click&quot;, function(e) {
+    var colIndex = +col_in.value || 0;
+    var rowIndex = +row_in.value || 0;
+    
+    var core = grid.api.getCoreGrid();
+    var cell = core.getCell(&quot;content&quot;, colIndex, rowIndex);
+    var cellContent = cell ? cell.getContent() : null;
+    var ary = [
+        &quot;Getting cell: &quot; + colIndex + &quot;, &quot; + rowIndex,
+        &quot;Cell content: &quot; + (cellContent ? cellContent.textContent : &quot;&quot;)
+    ];
+    alert(ary.join(&quot;\n&quot;));
+});
+
+var fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;market&quot;, &quot;CF_NETCHNG&quot;, &quot;CF_VOLUME&quot;];
+var columnNames = [&quot;Id&quot;, &quot;Company Name&quot;, &quot;Market&quot;, &quot;Net Chng.&quot;, &quot;Volume&quot;];
+var columns = fields.map(function(f, idx) {
+    return {
+        field: f,
+        name: columnNames[idx]
+    }
+});
+var records = DataGenerator.generateRecords(fields, {seed: 1, rowCount: 20});
+
+var configObj = {
+    columns: columns,
+    staticDataRows: records
+};
+var grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
+grid.config = configObj;
+
+grid.addEventListener(&quot;mousemove&quot;, function(e) {
+    var pos = grid.api.getRelativePosition(e);
+    var cell = pos.cell;
+    var cellContent = cell ? cell.getContent() : null;
+    msg_ta.value = cellContent ? cellContent.textContent : &quot;null&quot;;
+});
+</code></pre>
+</code-sandbox><br>
+<br>
+<br>

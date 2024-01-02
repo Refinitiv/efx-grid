@@ -1,0 +1,63 @@
+<h1 id="hideremove-column">Hide/remove Column</h1>
+<p>You can choose to hide a column in the column definition by toggling the property <code>visible</code> between <em>true</em> and <em>false</em>. Columns can be hidden/removed dynamically at runtime. You can remove multiple columns in one method call to boost performance.</p>
+<p>Use the <code>hideColumn()</code> method to set the visibility of the specified column (that is, hide or show the column).</p>
+<p>Use the <code>removeColumn()</code>, <code>removeColumns()</code> or <code>removeAllColumns()</code> methods to remove the specified column(s).</p>
+<h2 id="example">Example</h2>
+<code-sandbox hash="dffc0b55"><pre><code class="language-css">efx-grid {
+    height: 200px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;button id=&quot;hideColumnButton&quot;&gt;Hide Column 0&lt;/button&gt;
+&lt;button id=&quot;showColumnButton&quot;&gt;Show Column 0&lt;/button&gt;
+&lt;button id=&quot;showColumn5Button&quot;&gt;Show Column 5&lt;/button&gt;
+&lt;button id=&quot;removeColumnButton&quot;&gt;Remove Column 0&lt;/button&gt;
+&lt;button id=&quot;removeAllColumns&quot;&gt;Remove All Columns&lt;/button&gt;
+&lt;br&gt;&lt;br&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;id&quot; ];
+var records = DataGenerator.generateRecords(fields, { numRows: 6 });
+var configObj = {
+    columns: [
+        {name: &quot;Column 0&quot;, field: fields[0]},
+        {name: &quot;Column 1&quot;, field: fields[0]},
+        {name: &quot;Column 2&quot;, field: fields[0]},
+        {name: &quot;Column 3&quot;, field: fields[0]},
+        {name: &quot;Column 4&quot;, field: fields[0]},
+        {name: &quot;Column 5&quot;, field: fields[0], visible: false}
+    ],
+    staticDataRows: records
+};
+
+var grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
+grid.config = configObj;
+
+document.getElementById(&quot;hideColumnButton&quot;).addEventListener(&quot;click&quot;, function() {
+    grid.api.hideColumn(0);
+});
+
+document.getElementById(&quot;showColumnButton&quot;).addEventListener(&quot;click&quot;, function() {
+    grid.api.hideColumn(0, false);
+});
+
+document.getElementById(&quot;showColumn5Button&quot;).addEventListener(&quot;click&quot;, function() {
+    grid.api.hideColumn(5, false);
+});
+
+document.getElementById(&quot;removeColumnButton&quot;).addEventListener(&quot;click&quot;, function() {
+    grid.api.removeColumn(0);
+});
+
+document.getElementById(&quot;removeAllColumns&quot;).addEventListener(&quot;click&quot;, function() {
+    grid.api.removeAllColumns();
+});
+</code></pre>
+</code-sandbox>

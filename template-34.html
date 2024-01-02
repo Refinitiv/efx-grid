@@ -1,0 +1,152 @@
+<h1 id="custom-headertitle">Custom header/title</h1>
+<p>You can display anything you want on grid&#39;s column header/title by using <code>headerBinding</code>. The binding works in similar way to content binding, where the method will be executed each time grid&#39;s header gets updated. <code>columnDef</code> is supplied in the event argument to provide additional information about the column header being rendered. </p>
+<pre><code class="language-js">var customFormatter = function(e){
+    e.cell.setContent(&quot;Custom &quot; + e.columnDef.getName());
+}
+
+var configObj = {
+    // Other grid&#39;s config
+    columns: [
+        {name: &quot;Column 1&quot;, field: &quot;intCol&quot;, headerBinding: customFormatter},
+    ]
+}
+grid.config = configObj;
+</code></pre>
+<h2 id="additional-element-example">Additional element example</h2>
+<code-sandbox hash="5f2be5b2"><pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;PCTCHNG&quot;];
+var columns = fields.map(function (f) {
+    return {
+        field: f
+    };
+});
+
+columns[0].headerBinding = function headerWithLink(e) {
+    var cell = e.cell;
+    var content = cell.getContent();
+    if(!content || !content._myHeaderWithLink) {
+        content = document.createElement(&quot;div&quot;);
+        content._myHeaderWithLink = true;
+
+        var span = content._span = document.createElement(&quot;span&quot;);
+        span.style.marginRight = &quot;5px&quot;;
+        var link = content._link = document.createElement(&quot;ef-icon&quot;);
+        link.icon = &quot;link&quot;;
+        link.addEventListener(&quot;click&quot;, function(arg) {
+            arg.stopPropagation();
+            alert(&quot;Icon clicked&quot;);
+        });
+        content.appendChild(span);
+        content.appendChild(link);
+    }
+
+    content._span.textContent = e.columnDef.getName();
+    cell.setContent(content);
+};
+
+columns[2].headerBinding = function headerWithCheckbox(e) {
+    var cell = e.cell;
+    var content = cell.getContent();
+    if(!content || !content._myHeaderWithCheckbox) {
+        content = document.createElement(&quot;div&quot;);
+        content._myHeaderWithCheckbox = true;
+
+        var span = content._span = document.createElement(&quot;span&quot;);
+        span.style.marginRight = &quot;5px&quot;;
+        // You will need to import the checkbox theme files for this to be shown
+        var chkbox = content._chkbox = document.createElement(&quot;ef-checkbox&quot;);
+        chkbox.addEventListener(&quot;checked-changed&quot;, function(arg) {
+            alert(&quot;Checkbox changed&quot;);
+        });
+        chkbox.addEventListener(&quot;click&quot;, function(arg) {
+            arg.stopPropagation();
+        });
+        content.appendChild(span);
+        content.appendChild(chkbox);
+    }
+
+    content._span.textContent = e.columnDef.getName();
+    cell.setContent(content);
+};
+
+var ROW_COUNT = 10;
+var records = DataGenerator.generateRecords(fields, {
+    seed: 0,
+    numRows: ROW_COUNT
+});
+
+var configObj = {
+    columns: columns,
+    staticDataRows: records
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="floating-element-example">Floating element example</h2>
+<code-sandbox hash="b6b0722a"><pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+function TitleColorTagFormatter(color, e) {
+    var tag = document.createElement(&#39;div&#39;);
+    tag.style.width = &quot;0px&quot;;
+    tag.style.height = &quot;0px&quot;;
+    tag.style.borderStyle = &quot;solid&quot;;
+    tag.style.borderWidth = &quot;0 15px 15px 0&quot;;
+    tag.style.position = &quot;absolute&quot;;
+    tag.style.top = &quot;0px&quot;;
+    tag.style.right = &quot;0px&quot;;
+    tag.style.borderColor = &quot;transparent &quot;+ color +&quot; transparent transparent&quot;;
+    
+    e.cell.addContent(tag);
+    e.cell.setContent(e.columnDef.getName());
+}
+
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 6 });
+var configObj = {
+    columns: [
+        {
+            name: &quot;Company&quot;, field: fields[0], 
+            headerBinding: TitleColorTagFormatter.bind(null, &quot;#ff9933&quot;)
+        },
+        {
+            name: &quot;Market&quot;, field: fields[1], width: 100, 
+            headerBinding: TitleColorTagFormatter.bind(null, &quot;#f5475b&quot;)
+            },
+        {
+            name: &quot;Last&quot;, field: fields[2], width: 80,
+            headerBinding: TitleColorTagFormatter.bind(null, &quot;#39c46e&quot;)
+        },
+        {
+            name: &quot;Net. Chng&quot;, field: fields[3], width: 80,
+            headerBinding: TitleColorTagFormatter.bind(null, &quot;#46a0f0&quot;)
+        },
+        {
+            name: &quot;Industry&quot;, field: fields[4],
+            headerBinding: TitleColorTagFormatter.bind(null, &quot;#2fb4c8&quot;)
+        }
+    ],
+    staticDataRows: records
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox>

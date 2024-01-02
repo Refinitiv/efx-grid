@@ -1,0 +1,217 @@
+<h1 id="data-conversion">Data conversion</h1>
+<p>Sometimes data adding to Grid is not sanitized, for example the value represented changed price can be -2, +4, &quot;-0.3&quot;, &quot;+5&quot; or even null. To prevent Grid from displaying unexpected data, data parser or data sanitizer need to verify data before rendering. So Grid provides <code>dataComposed</code> event and <code>autoDateConversion</code> for this kind of task.</p>
+<h2 id="datacomposed-event">dataComposed event</h2>
+<p>Once Grid get data the <code>dataComposed</code> event will be triggered. The event will be fired before rendering. Performing any data update during the <code>dataComposed</code> event will not cause more dataChanged events.</p>
+<p>To add event listener for <code>dataComposed</code> event, just set the listener to the <code>dataComposed</code> property of Grid&#39;s configuration like the following:</p>
+<pre><code class="language-js">    function onDataComposed(e) {
+        var grid = e.grid;
+        var rowDef = e.rowDef;
+        var values = e.changes;
+
+        // parse or sanitize data here
+
+        // save the parsed data through RowDefinition&#39;s API 
+    }
+
+    var config = {
+        // other grid&#39;s options
+        dataComposed: onDataComposed
+    };
+</code></pre>
+<code-sandbox hash="8edaa3a9"><pre><code class="language-css">efx-grid {
+    height: 168px
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var onDataComposed = function(e) {
+    // Perform any data update during the event will NOT cause more dataChanged events
+    var grid = e.grid;
+    var rowDef = e.rowDef;
+    var values = e.changes;
+
+    if (!values) {
+        return;
+    }
+
+    var value = values[&quot;change&quot;];
+    rowDef.setData(&quot;change_RAW&quot;, value);
+
+    if (value == null || value === &quot;N/A&quot;) {
+        value = null;
+        rowDef.setData(&quot;change_STATUS&quot;, &quot;Invalid&quot;);
+    } else {
+        value = parseFloat(value);
+    }
+
+    rowDef.setData(&quot;change&quot;, value);
+};
+
+var records = [{ 
+    values: {
+        id: &quot;1&quot;,
+        change: &quot;-0.58&quot;
+    }
+}, {
+    values: {
+        id: &quot;2&quot;,
+        change: &quot;0.78&quot;
+    }
+}, {
+    values: {
+        id: &quot;3&quot;,
+        change: &quot;+0.0475&quot;
+    }
+}, {
+    values: {
+        id: &quot;4&quot;,
+        change: null
+    }
+}, {
+    values: {
+        id: &quot;5&quot;,
+        change: &quot;N/A&quot;
+    }
+}];
+
+var configObj = {
+    defaultColumnOptions: {
+        notRealTimeField: true
+    },
+    columns: [
+        {
+            name: &quot;Id&quot;,
+            field: &quot;id&quot;
+        },
+        {
+            name: &quot;Raw data&quot;,
+            field: &quot;change_RAW&quot;
+        },
+        {
+            name: &quot;Converted data&quot;,
+            field: &quot;change&quot;
+        },
+        {
+            name: &quot;Status&quot;,
+            field: &quot;change_STATUS&quot;
+        }
+    ],
+    dataComposed: onDataComposed, // attach handler for dataComposed event
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+
+// To emitate the dalay of reqeusting data from server
+setTimeout(function(e) {
+    grid.api.insertRows(records);
+}, 4000);
+</code></pre>
+</code-sandbox><h2 id="auto-date-conversion">Auto date conversion</h2>
+<p>When dealing with date-time data it may be hard to handle the various types of incoming data, which can be number, string, ISO date string, seconds or milliseconds. So it is better to enable <code>autoDateConversion</code> in the Grid&#39;s configuration and let Grid automatically convert data to JavaScript native Date object. To let Grid know that the column&#39;s data is data-time, the <code>dataType: &quot;datatime&quot;</code> should be specified in the column&#39;s options.</p>
+<code-sandbox hash="21abb91f"><pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var descriptions = [
+    &quot;Invalid&quot;,
+    &quot;Negative value (milliseconds)&quot;,
+    &quot;Excel date&quot;,
+    &quot;Second&quot;,
+    &quot;Millisecond&quot;,
+    &quot;Native date object (now)&quot;,
+    &quot;ISO date-time string&quot;
+];
+
+var dateSamples = [
+    &quot;abc&quot;,
+    -1,
+    1,
+    Date.UTC(2021, 11, 24, 10)/1000,
+    Date.UTC(2021, 11, 24, 10),            
+    new Date(),
+    &quot;2021-11-25T10:00:00&quot;
+];
+
+var records = [];
+for (var i = 0; i &lt; descriptions.length; i++) {
+    records.push({
+        des: descriptions[i],
+        date: dateSamples[i]
+    });
+}
+
+var configObj = {
+    autoDateConversion: true,
+    defaultColumnOptions: {
+        notRealTimeField: true
+    },
+    columns: [
+        {
+            name: &quot;Description&quot;,
+            field: &quot;des&quot;
+        },
+        {
+            name: &quot;Raw data&quot;,
+            field: &quot;date_RAW&quot;
+        },
+        {
+            name: &quot;Converted data&quot;,
+            field: &quot;date&quot;,
+            dataType: &quot;datetime&quot;
+        },
+        {
+            name: &quot;Formatted data&quot;,
+            field: &quot;date&quot;,
+            formatType: {
+                formatType: &quot;DateTime&quot;,
+                dateTimeFormat: &quot;DD/MM/YYYY HH:mm&quot;,
+                useUTCTime: true
+            }
+        },
+        {
+            name: &quot;Realtime Data&quot;,
+            field: &quot;last_update&quot;,
+            dataType: &quot;datetime&quot;,
+            alignment: &quot;center&quot;,
+            formatType: {
+                formatType: &quot;DateTime&quot;,
+                dateTimeFormat: &quot;DD/MM/YYYY HH:mm:ss&quot;,
+                useUTCTime: true
+            }
+        }
+    ],
+    staticDataRows: records,
+    extensions: [
+        new TextFormatting()
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.addEventListener(&quot;configured&quot;, function(e) {
+    var api = e.detail.api;
+    var randIndex = DataGenerator.randIndex;
+    setInterval(function() {
+        var index = randIndex(records.length);
+        api.setRowData(index, {
+            last_update: Date.now()
+        });
+    }, 400);
+});
+grid.config = configObj;
+</code></pre>
+</code-sandbox>

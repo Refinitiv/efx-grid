@@ -1,0 +1,52 @@
+<h1 id="insert-column">Insert Column</h1>
+<p>Columns can be inserted dynamically at runtime. The definition of the column to be inserted is the same as in the column array specified at initialization.</p>
+<p>Use the <code>insertColumn()</code> methods to insert a column with its configuration.</p>
+<h2 id="example">Example</h2>
+<code-sandbox hash="6c917828"><pre><code class="language-css">efx-grid {
+    height: 200px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;button id=&quot;insert_col_btn&quot;&gt;Insert Column&lt;/button&gt;
+&lt;br&gt;&lt;br&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;id&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 6 });
+var configObj = {
+    columns: [
+        {name: &quot;Column 1&quot;, minWidth: 100, field: fields[0]},
+        {name: &quot;Column 2&quot;, minWidth: 100, field: fields[0]}
+    ],
+    staticDataRows: records
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+
+var idRunner = 2;
+
+addingStyles = {
+    backgroundColor: &quot;#32ab60&quot;,
+    color: &quot;white&quot;
+};
+
+insertingStyles = {
+    backgroundColor: &quot;#db4052&quot;,
+    color: &quot;white&quot;
+};
+
+document.getElementById(&quot;insert_col_btn&quot;).addEventListener(&quot;click&quot;, function() {
+    idRunner++;
+    var lastIndex = grid.api.getColumnCount - 1;
+    grid.api.insertColumn({name: &quot;Column &quot;+idRunner, minWidth: 100, field: fields[0], styles: insertingStyles}, lastIndex);
+});
+</code></pre>
+</code-sandbox>

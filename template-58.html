@@ -1,0 +1,203 @@
+<link rel="stylesheet" href="./resources/styles/elf-template.css">
+
+<h1 id="context-menu">Context Menu</h1>
+<p>The Context Menu Extension provides the capability to display a customized contextual menu when a user right-clicks on the grid. The menu items to be displayed are totally customizable based on the position of the mouse, the data, and also any customized logic of your application.</p>
+<code-sandbox hash="61ed2d6b"><pre><code class="language-css">efx-grid {
+    height: 169px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;span id=&quot;text&quot;&gt;&lt;/span&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 5 });
+var configObj = {
+    columns: [
+        { name: &quot;Company&quot;, field: fields[0] },
+        { name: &quot;Market&quot;, field: fields[1], width: 120 },
+        { name: &quot;Last&quot;, field: fields[2], width: 100 },
+        { name: &quot;Net. Chng&quot;, field: fields[3], width: 100 },
+        { name: &quot;Industry&quot;, field: fields[4] }
+    ],
+    staticDataRows: records,
+    contextMenu: {
+        items: {
+            HEADER: {text: &#39;Header 1&#39;, value: &#39;1&#39;, callback: function (e) {
+                document.getElementById(&quot;text&quot;).textContent = &quot;Column: &quot; + (e.colIndex + 1) + &quot;, &quot; + e.item.text + &quot; Clicked!&quot;;
+            }},
+            MENU_1: {text: &#39;Menu 1&#39;, value: &#39;1&#39;, callback: function (e) {
+                document.getElementById(&quot;text&quot;).textContent = &quot;Column: &quot; + (e.colIndex + 1) + &quot;, &quot; + e.item.text + &quot; Clicked!&quot;;
+            }},
+            MENU_2: {text: &#39;Menu 2&#39;, value: &#39;2&#39;, callback: function (e) {
+                document.getElementById(&quot;text&quot;).textContent = &quot;Column: &quot; + (e.colIndex + 1) + &quot;, &quot; + e.item.text + &quot; Clicked!&quot;;
+            }},
+            MENU_3: {text: &#39;Menu 3&#39;, value: &#39;3&#39;, callback: function (e) {
+                document.getElementById(&quot;text&quot;).textContent = &quot;Column: &quot; + (e.colIndex + 1) + &quot;, &quot; + e.item.text + &quot; Clicked!&quot;;
+            }}
+        },
+        onMenu: function (e) {
+            if (e.context === &#39;header&#39;) {
+                e.menu.addItem(&#39;HEADER&#39;);
+            }
+            if (e.context === &#39;content&#39;) {
+                e.menu.addItem(&#39;MENU_1&#39;);
+                e.menu.addItem(&#39;MENU_2&#39;);
+                e.menu.addSeparator();
+                e.menu.addItem(&#39;MENU_3&#39;);
+            }
+        }
+    },
+    extensions: [
+        new ContextMenu()
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="installation-and-how-to-import-to-a-project">Installation and how to import to a project</h2>
+<p>Installation examples and details of how to import the extension to a project are available on the <a href="#/extensions/readme">Overview</a> page.</p>
+<h2 id="basic-menu-display">Basic menu display</h2>
+<p>To show the menu, you need to define menu items in the grid&#39;s configuration object. Each menu item is assigned to a name so it can be referenced later at the display time in the <code>onMenu()</code> event handler. <code>onMenu()</code> is an event handler triggered when a user right-clicks at an area on the grid. You can choose to display the menu only at a specific place on the grid by checking the value of <code>e.context</code>.</p>
+<pre><code class="language-js">var config = {
+        //...any other grid&#39;s options...
+    contextMenu: {
+        items: {
+            HEADER: {text: &#39;Header 1&#39;, value: &#39;1&#39;, callback: function (e) {
+                // Do something
+                console.log(e.item);
+            }},
+            MENU_1: {text: &#39;Menu 1&#39;, value: &#39;1&#39;, callback: function (e) {
+                // Do something
+                console.log(e.item);
+            }},
+            MENU_2: {text: &#39;Menu 2&#39;, value: &#39;2&#39;, callback: function (e) {
+                // Do something
+                console.log(e.item);
+            }},
+            MENU_3: {text: &#39;Menu 3&#39;, value: &#39;3&#39;, callback: function (e) {
+                // Do something
+                console.log(e.item);
+            }}
+        },
+        onMenu: function (e) {
+            if (e.context === &#39;header&#39;) {
+                e.menu.addItem(&#39;HEADER&#39;);
+            }
+            if (e.context === &#39;content&#39;) {
+                e.menu.addItem(&#39;MENU_1&#39;);
+                e.menu.addItem(&#39;MENU_2&#39;);
+                e.menu.addSeparator();
+                e.menu.addItem(&#39;MENU_3&#39;);
+            }
+        }
+    }
+};
+</code></pre>
+<h2 id="custom-menu-display">Custom menu display</h2>
+<p>To use the context menu with other UIs, this extension exposes the &#39;contextmenu&#39; event and provide related information to the event argument for integration. See the example below:</p>
+<pre><code class="language-js">var config = {
+    //...any other grid&#39;s options...
+    contextMenu: true, // Default UI is disabled
+};
+var cme = new ContextMenu();
+cme.listen(&quot;contextmenu&quot;, function(e) { 
+    console.log(e); 
+    // Create your custom pop up menu here
+});
+</code></pre>
+<p>Or you can define the context menu event handler directly (see below), which is equivalent to the codes above:</p>
+<pre><code class="language-js">var config = {
+    //...any other grid&#39;s options...
+    contextMenu: function(e) {
+        console.log(e); 
+    },
+};
+</code></pre>
+<h2 id="group-menu-display">Group menu display</h2>
+<p>Several menu items can be grouped together under a name and can be inserted only once into the menu. From the snippet below, all three menus–<code>SORT_ASCENDING</code>, <code>SORT_DESCENDING</code>, and <code>SORT_ORIGINAL</code>–are inserted together.</p>
+<pre><code class="language-js">var config = {
+    //...any other grid&#39;s options...
+    contextMenu: {
+        items: {
+            SORT_ASCENDING: {text: &#39;Sort Ascending&#39;, value: &#39;s&#39;},
+            SORT_DESCENDING: {text: &#39;Sort Descending&#39;, value: &#39;d&#39;},
+            SORT_ORIGINAL: {text: &#39;Original Order&#39;, value: &#39;n&#39;},
+            SORTING: [
+                &#39;SORT_ASCENDING&#39;,
+                &#39;SORT_DESCENDING&#39;,
+                &#39;SORT_ORIGINAL&#39;,
+            ]
+        },
+        onMenu: function (e) {
+            if (e.context === &#39;content&#39;) {
+                //Insert the whole group in 1 statement
+                e.menu.addItem(&#39;SORTING&#39;);
+            }
+        }
+    }
+};
+</code></pre>
+<h2 id="runtime-menu-disabling">Runtime menu disabling</h2>
+<p>You may find you want to disable or hide a menu item for a specific condition. You can do this by adding your condition inside the <code>onMenu()</code> event handler. The event argument of <code>onMenu()</code> contains a reference called <code>items</code> which is pointing back to the menu item definitions in the configuration object. So, you can set a property like <code>isDisabled</code> or <code>isVisible</code> to each menu item before the menu is rendered.</p>
+<p>In the example below, the menu &#39;Hide Column&#39; is disabled for the first column of the grid.</p>
+<pre><code class="language-js">var config = {
+    //...any other grid&#39;s options...
+    contextMenu: {
+        items: {
+            HIDE_COLUMN: {text: &#39;Hide Column&#39;, value: &#39;hide&#39;},
+            SHOW_ALL_COLUMNS: {text: &#39;Show All Columns&#39;, value: &#39;show&#39;}
+        },
+        onMenu: function (e) {
+            if (e.context === &#39;header&#39;) {
+                //isDisabled is `true` when column index is 0
+                e.items.HIDE_COLUMN.isDisabled = (e.colIndex === 0);
+
+                e.menu.addItem(&#39;HIDE_COLUMN&#39;);
+                e.menu.addItem(&#39;SHOW_ALL_COLUMNS&#39;);
+            }
+        }
+    }
+};
+</code></pre>
+<h2 id="submenu">Submenu</h2>
+<p>A multi-level submenu can be added to an item using the <code>items</code> property. With a submenu you can also handle a menu click event at the parent level, to simplify your code.</p>
+<pre><code class="language-js">var config = {
+    //...any other grid&#39;s options...
+    contextMenu: {
+        items: {
+            SET_ROW_COLOR: {text: &#39;Set Row Color&#39;, items: [
+                {text: &#39;Red&#39;, value: &#39;#FF0000&#39;},
+                {text: &#39;Green&#39;, value: &#39;#00FF00&#39;},
+                {text: &#39;Blue&#39;, value: &#39;#0000FF&#39;},
+                {isSeparator: true},
+                {text: &#39;Clear Color&#39;, value: &#39;&#39;}
+            ], callback: function (e) {
+                //Single place of callback handling for all sub-menu item clicking
+                console.log(e.item.getValue());
+            }},
+        },
+        onMenu: function (e) {
+            if (e.context === &#39;header&#39;) {
+                //isDisabled is `true` when column index is 0
+                e.items.HIDE_COLUMN.isDisabled = (e.colIndex === 0);
+
+                e.menu.addItem(&#39;HIDE_COLUMN&#39;);
+                e.menu.addItem(&#39;SHOW_ALL_COLUMNS&#39;);
+            }
+        }
+    }
+};
+</code></pre>
+<div></div>
+
+<h2 style="margin-bottom:5px" id="api-refs">API Reference</h2>
+<div id="elf-api-container"><div id="main-template" class="elf-template">    <section><article>                                                                        <h3 class="subsection-title" id="type_definitions">Type Definitions</h3>                        <div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~Context">Context</h4><div class="description">    All available context types for the extension</div>    <h5>Type:</h5>    <span class="param-type">"header"</span> | <span class="param-type">"content"</span> | <span class="param-type">"footer"</span> | <span class="param-type">"filterRow"</span><div class="details">                                                            </div></div>                            <div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~MenuItem">MenuItem</h4>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>text</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Text to diplay at the item</td>        </tr>            <tr>                            <td class="name"><code>value</code></td>                        <td class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Value attached to the item</td>        </tr>            <tr>                            <td class="name"><code>isDisabled</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">If true the item will be disabled, default is false</td>        </tr>            <tr>                            <td class="name"><code>isVisible</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">If false the item will not be displayed, default is true</td>        </tr>            <tr>                            <td class="name"><code>isSeparator</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">If true the item is rendered as an item separator</td>        </tr>            <tr>                            <td class="name"><code>items</code></td>                        <td class="type">                            <span class="param-type">Array.&lt;<a href="/extensions/tr-grid-contextmenu#~MenuItem">ContextMenuPlugin~MenuItem</a>&gt;</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Array of sub-menu items</td>        </tr>            <tr>                            <td class="name"><code>renderer</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Callback function to do custom rendering of the item, see more information in later section</td>        </tr>            <tr>                            <td class="name"><code>callback</code></td>                        <td class="type">                            <span class="param-type"><a href="/extensions/tr-grid-contextmenu#~MenuItemEventCallback">ContextMenuPlugin~MenuItemEventCallback</a></span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Menu item clicked handler function</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            <div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~MenuItemEvent">MenuItemEvent</h4>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>altKey</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                                    <td class="description last">Flag to indicate if ALT key is pressed when the mouse is clicked</td>        </tr>            <tr>                            <td class="name"><code>cell</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">Cell object at the mouse clicked position</td>        </tr>            <tr>                            <td class="name"><code>colIndex</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                                    <td class="description last">Index number of the column that the mouse clicked on</td>        </tr>            <tr>                            <td class="name"><code>columnDef</code></td>                        <td class="type">                            <span class="param-type">object</span>                        </td>                                    <td class="description last">Column Definition of the column that the mouse clicked on</td>        </tr>            <tr>                            <td class="name"><code>context</code></td>                        <td class="type">                            <span class="param-type"><a href="/extensions/tr-grid-contextmenu#~Context">ContextMenuPlugin~Context</a></span>                        </td>                                    <td class="description last">Area of the grid that the mouse clicked on</td>        </tr>            <tr>                            <td class="name"><code>ctrlKey</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                                    <td class="description last">Flag to indicate if CTRL key is pressed when the mouse is clicked</td>        </tr>            <tr>                            <td class="name"><code>item</code></td>                        <td class="type">                            <span class="param-type"><a href="/extensions/tr-grid-contextmenu#~MenuItem">ContextMenuPlugin~MenuItem</a></span>                        </td>                                    <td class="description last">The item the mouse is clicked on</td>        </tr>            <tr>                            <td class="name"><code>items</code></td>                        <td class="type">                            <span class="param-type">Object.&lt;string, <a href="/extensions/tr-grid-contextmenu#~MenuItem">ContextMenuPlugin~MenuItem</a>&gt;</span>                        </td>                                    <td class="description last">Object reference to the menu items under items option</td>        </tr>            <tr>                            <td class="name"><code>menu</code></td>                        <td class="type">                            <span class="param-type"><a href="MenuEventAPI.html">MenuEventAPI</a></span>                        </td>                                    <td class="description last">API for adding menu items to be rendered</td>        </tr>            <tr>                            <td class="name"><code>rowIndex</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                                    <td class="description last">Index number of the row the mouse clicked on</td>        </tr>            <tr>                            <td class="name"><code>section</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">Wrapper(ILayoutGrid) Object of the grid's area the mouse clicked on</td>        </tr>            <tr>                            <td class="name"><code>shiftKey</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                                    <td class="description last">Flag to indicate if SHIFT key is pressed when the mouse is clicked</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            <div class="item">                                <div class="item-type">typedef</div>                        <h4 class="name" id="~MenuItemEventCallback"><span class="type-signature"></span>MenuItemEventCallback<span class="signature">(e)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">e</div>                        <div class="type">                            <span class="param-type"><a href="/extensions/tr-grid-contextmenu#~MenuItemEvent">ContextMenuPlugin~MenuItemEvent</a></span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                            <div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~OnMenuEvent">OnMenuEvent</h4>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>cell</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">Grid cell object at the mouse clicked position</td>        </tr>            <tr>                            <td class="name"><code>colIndex</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                                    <td class="description last">Index number of the column that the mouse clicked on</td>        </tr>            <tr>                            <td class="name"><code>field</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                                    <td class="description last">Field of the column that the mouse clicked on</td>        </tr>            <tr>                            <td class="name"><code>colId</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                                    <td class="description last">Column ID of the column that the mouse clicked on</td>        </tr>            <tr>                            <td class="name"><code>context</code></td>                        <td class="type">                            <span class="param-type"><a href="/extensions/tr-grid-contextmenu#~Context">ContextMenuPlugin~Context</a></span>                        </td>                                    <td class="description last">Area of the grid that the mouse clicked on</td>        </tr>            <tr>                            <td class="name"><code>items</code></td>                        <td class="type">                            <span class="param-type">object</span>                        </td>                                    <td class="description last">Object reference to the menu items under items option</td>        </tr>            <tr>                            <td class="name"><code>menu</code></td>                        <td class="type">                            <span class="param-type"><a href="MenuEventAPI.html">MenuEventAPI</a></span>                        </td>                                    <td class="description last">API for adding menu items to be rendered</td>        </tr>            <tr>                            <td class="name"><code>rowIndex</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                                    <td class="description last">Index number of the row the mouse clicked on</td>        </tr>            <tr>                            <td class="name"><code>section</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">Wraper(ILayoutGrid) Object of the grid's area the mouse clicked on</td>        </tr>            <tr>                            <td class="name"><code>selectedColumns</code></td>                        <td class="type">                            <span class="param-type">Array.&lt;number&gt;</span>                        </td>                                    <td class="description last">Array of selected indices. Return null, if no selection</td>        </tr>            <tr>                            <td class="name"><code>selectedRows</code></td>                        <td class="type">                            <span class="param-type">Array.&lt;number&gt;</span>                        </td>                                    <td class="description last">Array of selected indices. Return null, if no selection</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            <div class="item">                                <div class="item-type">typedef</div>                        <h4 class="name" id="~OnMenuEventCallback"><span class="type-signature"></span>OnMenuEventCallback<span class="signature">(e)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">e</div>                        <div class="type">                            <span class="param-type"><a href="/extensions/tr-grid-contextmenu#~OnMenuEvent">ContextMenuPlugin~OnMenuEvent</a></span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                            <div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~Options">Options</h4><div class="description">    Available options describing `contextMenu` object specified in grid's option</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>items</code></td>                        <td class="type">                            <span class="param-type">Object.&lt;string, <a href="/extensions/tr-grid-contextmenu#~MenuItem">ContextMenuPlugin~MenuItem</a>&gt;</span>                        </td>                            <td class="attributes">                                                </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>onMenu</code></td>                        <td class="type">                            <span class="param-type"><a href="/extensions/tr-grid-contextmenu#~OnMenuEventCallback">ContextMenuPlugin~OnMenuEventCallback</a></span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">@ @property {Function=} contextmenu</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            <h3 class="subsection-title" id="methods">Methods</h3>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="config"><span class="type-signature"></span>config<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">ContextMenuPlugin.Options</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getConfigObject"><span class="type-signature"></span>getConfigObject<span class="signature">(gridOptions<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Object}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">gridOptions</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div>                </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getMenuModel"><span class="type-signature"></span>getMenuModel<span class="signature">()</span><span class="type-signature"> → {Object}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div>                </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getName"><span class="type-signature"></span>getName<span class="signature">()</span><span class="type-signature"> → {string}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">string</span>    </div>                </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="hasMultiTableSupport"><span class="type-signature"></span>hasMultiTableSupport<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Plugin that has multi-table support means that it can have multiple hosts/tables and share its states across those hosts/tables.    </div>                        <div class="details">                <dt class="inherited-from">Inherited From:</dt>    <dd class="inherited-from">        <a href="">GridPlugin#hasMultiTableSupport</a>    </dd>                                                    </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="initialize"><span class="type-signature"></span>initialize<span class="signature">(host, options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">host</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    core grid object                </div>                    </div>                <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="unload"><span class="type-signature"></span>unload<span class="signature">(host)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">host</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    core grid object                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                </article></section></div></div>

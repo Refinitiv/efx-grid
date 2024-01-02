@@ -1,0 +1,202 @@
+<link rel="stylesheet" href="./resources/styles/elf-template.css">
+
+<h1 id="column-fitter">Column Fitter</h1>
+<p>The Column Fitter provides an automatically adjusting column width that fits a column&#39;s content or title.</p>
+<code-sandbox hash="69bdd8f5"><pre><code class="language-css">efx-grid {
+    height: 169px;
+}
+html hr {
+    margin: 5px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;button id=&quot;toggle_btn&quot;&gt;Toggle Column Fitting&lt;/button&gt;
+&lt;hr&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var columnFitterExt = new ColumnFitter();
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 5 });
+var configObj = {
+    columns: [
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market&quot;, field: fields[1], width: 120},
+        {name: &quot;Last&quot;, field: fields[2], width: 100},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
+        {name: &quot;Industry&quot;, field: fields[4]}
+    ],
+    staticDataRows: records,
+    extensions: [
+        columnFitterExt
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+
+document.getElementById(&quot;toggle_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
+    var btn = e.currentTarget;
+    if (btn.adjusted) {
+        columnFitterExt.resetAllColumns();
+    } else {
+        columnFitterExt.adjustAllColumns();
+    }
+    btn.adjusted = !btn.adjusted;
+});
+</code></pre>
+</code-sandbox><h2 id="installation-and-how-to-import-to-a-project">Installation and how to import to a project</h2>
+<p>Installation examples and details of how to import the extension to a project are available on the <a href="#/extensions/readme">Overview</a> page.</p>
+<h2 id="automatic-adjusting">Automatic adjusting</h2>
+<p>The live demo below shows how to adjust a column&#39;s width when the data are changed – use the extension&#39;s API to adjust it manually or use the <code>autoAdjust</code> property for automatic adjusting.</p>
+<blockquote>
+<p>By default, the size of column can only be expanded by the extension. Set <code>shrinkable</code> flag to true to allow column size to be shrunk.</p>
+</blockquote>
+<pre><code class="language-js">var grid = document.getElementById(&quot;grid&quot;);
+grid.config = {
+    // any other grid&quot;s options
+    columnFitting: {
+        autoAdjust: 1000
+    }
+};
+</code></pre>
+<code-sandbox hash="34136c0e"><pre><code class="language-css">efx-grid {
+    height: 169px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var columnFitterExt = new ColumnFitter();
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 5 });
+
+var configObj = {
+    columns: [
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market&quot;, field: fields[1], width: 120},
+        {name: &quot;Last&quot;, field: fields[2], width: 100},
+        {name: &quot;Industry&quot;, field: fields[4]},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100}
+    ],
+    staticDataRows: records,
+    columnFitting: {
+        title: true,
+        autoAdjust: 800,
+        shrinkable: true
+    },
+    extensions: [
+        columnFitterExt
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.addEventListener(&quot;configured&quot;, function(e) {
+    var api = e.detail.api;
+    setInterval(function() {
+        var record = DataGenerator.generateRecord([&quot;industry&quot;]);
+        var randRow = DataGenerator.randInt(0, api.getRowCount());
+        api.setRowData(randRow, record);
+    }, 500);
+});
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="columns-with-custom-contentelements">Columns with custom content/elements</h2>
+<p>Normally, this extension will only use the text format inside the cell to calculate the optimal width. Unfortunately, for a cell with custom content, users may want to insert some other elements rather than text format inside the cell (for example, div).</p>
+<p>To support custom content, set <code>contentFitting: true</code> in the column option.</p>
+<pre><code class="language-js">var grid = document.getElementById(&quot;grid&quot;);
+grid.config = {
+    // other grid&quot;s option
+    columns: [
+        // other columns
+        {
+            name: &quot;Custom format&quot;,
+            field: &quot;someField&quot;,
+            binding: customFormatter,
+            contentFitting: true // Turn this on
+        }
+    ],
+};
+</code></pre>
+<code-sandbox hash="448f6f3d"><pre><code class="language-css">efx-grid {
+    height: 169px;
+}
+html hr {
+    margin: 5px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;button id=&quot;toggle_btn&quot;&gt;Toggle Column Fitting&lt;/button&gt;
+&lt;hr&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var columnFitterExt = new ColumnFitter();
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 5 });
+
+var onRenderStars = function (e) {
+    var content = e.cell.getContent();
+    if (!content || !content._stars) {
+        content = document.createElement(&quot;div&quot;);
+        var main = content._main = document.createElement(&quot;span&quot;);
+        var stars = content._stars = document.createElement(&quot;span&quot;);
+        stars.textContent = &quot; ★★★&quot;;
+        content.appendChild(main);
+        content.appendChild(stars);
+    }
+    
+    content._main.textContent = e.data;
+    e.cell.setContent(content);
+};
+
+var configObj = {
+    columns: [
+        {name: &quot;Company&quot;, field: fields[0], binding: onRenderStars, contentFitting: true},
+        {name: &quot;Market&quot;, field: fields[1], width: 120},
+        {name: &quot;Last&quot;, field: fields[2], width: 100},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
+        {name: &quot;Industry&quot;, field: fields[4]}
+    ],
+    staticDataRows: records,
+    extensions: [
+        columnFitterExt
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+
+document.getElementById(&quot;toggle_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
+    var btn = e.currentTarget;
+    if (btn.adjusted) {
+        columnFitterExt.resetAllColumns();
+    } else {
+        columnFitterExt.adjustAllColumns();
+    }
+    btn.adjusted = !btn.adjusted;
+});
+</code></pre>
+</code-sandbox><div></div>
+
+<h2 style="margin-bottom:5px" id="api-refs">API Reference</h2>
+<div id="elf-api-container"><div id="main-template" class="elf-template">    <section><article>                                                                        <h3 class="subsection-title" id="type_definitions">Type Definitions</h3>                        <div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~ColumnOptions">ColumnOptions</h4><div class="description">    Extension column options that can be specified on each individual grid's column option:</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>noFitting</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">If enabled, the given column will not be included in the calculation</td>        </tr>            <tr>                            <td class="name"><code>contentFitting</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">By default, fitting extension only calculate text content. Enable this option to support custom rendering fitting for a specified column</td>        </tr>            <tr>                            <td class="name"><code>minWidth</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Minimum width of the column</td>        </tr>            <tr>                            <td class="name"><code>maxWidth</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Maximum width of the column</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            <div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~Options">Options</h4><div class="description">    The options can be specified by `columnFitting` property of the main grid's options</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>proportion</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">Proportionally expand columns, if there is enough space</td>        </tr>            <tr>                            <td class="name"><code>constraint</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">Prevents column width to go lower than its content size</td>        </tr>            <tr>                            <td class="name"><code>autoAdjust</code></td>                        <td class="type">                            <span class="param-type">boolean</span> | <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">Automatic column width adjusting on each data update</td>        </tr>            <tr>                            <td class="name"><code>autoAdjusting</code></td>                        <td class="type">                            <span class="param-type">boolean</span> | <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">Alias to `autoAdjust`</td>        </tr>            <tr>                            <td class="name"><code>title</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">Include title section in the fitting calculation</td>        </tr>            <tr>                            <td class="name"><code>paddingSize</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    2                                </td>                        <td class="description last">Additional padding from existing cell padding. This will add extra space (in pixel) to the right of the longest text.</td>        </tr>            <tr>                            <td class="name"><code>shrinkable</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">Allow column width to be shrunken during autoAdjust enabled</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            <h3 class="subsection-title" id="methods">Methods</h3>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="adjustAllColumns"><span class="type-signature"></span>adjustAllColumns<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Force update and calculation on all columns    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    True if there is any change, otherwise false</div>                </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="adjustColumns"><span class="type-signature"></span>adjustColumns<span class="signature">(colIndices<span class="signature-attributes">opt</span>, force<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Force update and calculation on specific columns    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndices</div>                        <div class="type">                            <span class="param-type">Array.&lt;number&gt;</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                        <div class="default">                                </div>                                        <div class="description">                    Column indices                </div>                    </div>                <div class="param">                            <div class="name">force</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                        <div class="default">                                   [default: true]                                </div>                                        <div class="description">                    Force adjust the columns regardless of noFitting flag                </div>                    </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    True if there is any change, otherwise false</div>                </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="adjustColumnWidth"><span class="type-signature"></span>adjustColumnWidth<span class="signature">(colIndex<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Force update and calculation on a single column. It is not recommended to be used multiple time successively    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">Array.&lt;number&gt;</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    Column indices                </div>                    </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    True if there is any change, otherwise false</div>                </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="calculateColumnWidth"><span class="type-signature"></span>calculateColumnWidth<span class="signature">(colIndex)</span><span class="type-signature"> → {number}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">number</span>    </div>                </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="config"><span class="type-signature"></span>config<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type"><a href="/extensions/tr-grid-column-fitter#~Options">ColumnFitterPlugin~Options</a></span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getAdjustedColumnWidth"><span class="type-signature"></span>getAdjustedColumnWidth<span class="signature">(colIndex)</span><span class="type-signature"> → {number}</span></h4>                            <div class="description">        This is for backward compatability with old ColumnWidthAdjustingPlugin. The method is an alias of <a href="/extensions/tr-grid-column-fitter#calculateColumnWidth">ColumnFitterPlugin#calculateColumnWidth</a>    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">number</span>    </div>                </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getColumnMenu"><span class="type-signature"></span>getColumnMenu<span class="signature">(colIndex, config)</span><span class="type-signature"> → {Object}</span></h4>                            <div class="description">        Function for ColumnMenuExtension to collect config of column menu    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                                                    <div class="description">                    Column index                </div>                    </div>                <div class="param">                            <div class="name">config</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    Column Menu configuration                </div>                    </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div>                </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getConfigObject"><span class="type-signature"></span>getConfigObject<span class="signature">(gridOptions<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Object}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">gridOptions</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div>                </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getName"><span class="type-signature"></span>getName<span class="signature">()</span><span class="type-signature"> → {string}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">string</span>    </div>                </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="hasMultiTableSupport"><span class="type-signature"></span>hasMultiTableSupport<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Plugin that has multi-table support means that it can have multiple hosts/tables and share its states across those hosts/tables.    </div>                        <div class="details">                    <dt class="tag-overrides">Overrides:</dt>    <dd class="tag-overrides">        <a href="">GridPlugin#hasMultiTableSupport</a>    </dd>                                                </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="initialize"><span class="type-signature"></span>initialize<span class="signature">(host, options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">host</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    core grid object                </div>                    </div>                <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="resetAllColumns"><span class="type-signature"></span>resetAllColumns<span class="signature">()</span><span class="type-signature"></span></h4>                            <div class="description">        Set all column widths to percentage width    </div>                        <div class="details">                                                            </div>                                    </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="unload"><span class="type-signature"></span>unload<span class="signature">(host)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">host</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    core grid object                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                </article></section></div></div>

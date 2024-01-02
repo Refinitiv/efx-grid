@@ -1,0 +1,88 @@
+<h1 id="reading-or-getting-data">Reading or Getting Data</h1>
+<p>As Grid may need to display and store tons of rows, Grid does not provide two-way data binding or a way to directly reference the stored data. All data manipulations, such as sorting, grouping, or filtering, must be done through APIs. To access data stored inside Grid, we need to use Grid&#39;s <a href="#/apis/readme">APIs</a>.</p>
+<h2 id="apis">APIs</h2>
+<p>Use <code>getRowData(rowIndex)</code> to get data of the specified row.</p>
+<pre><code class="language-js">console.log(grid.api.getRowData(2));
+</code></pre>
+<p>Use <code>getMultipleRowData()</code> to retrieve all rows</p>
+<pre><code class="language-js">console.log(grid.api.getMultipleRowData());
+</code></pre>
+<p><code>getMultipleRowData(rowIndices)</code> to get multiple row data from specific row indices at once.</p>
+<pre><code class="language-js">grid.api.getMultipleRowData([0, 2, 4]);
+</code></pre>
+<p>Use <code>logDV()</code> or <code>logDT()</code> to quickly log data in <strong>table format</strong> to developer console</p>
+<pre><code class="language-js">console.log(&quot;=== Data View ===&quot;);
+grid.api.logDV(); // Rows after sorting and filtering
+
+console.log(&quot;=== Data Table ===&quot;);
+grid.api.logDT(); // Rows in original order
+</code></pre>
+<h2 id="example">Example</h2>
+<code-sandbox hash="3ae0ba1a"><pre><code class="language-css">efx-grid {
+    margin-bottom: 40px;
+}
+html hr {
+    margin: 5px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;button id=&quot;top_row_btn&quot;&gt;Get Top Row Data&lt;/button&gt;
+&lt;button id=&quot;col_btn&quot;&gt;Get Data from Column&lt;/button&gt;
+&lt;button id=&quot;all_btn&quot;&gt;Get All Data&lt;/button&gt;
+&lt;hr&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 5 });
+var configObj = {
+    columns: [
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market&quot;, field: fields[1], width: 100},
+        {name: &quot;Last&quot;, field: fields[2], width: 80},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 80},
+        {name: &quot;Industry&quot;, field: fields[4]}
+    ],
+    staticDataRows: records
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+
+document.getElementById(&quot;top_row_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
+    var rowData = grid.api.getRowData(0);
+    alert(JSON.stringify(rowData, function replacer(key, value) {
+        if(key === &quot;ROW_DEF&quot;) {
+            return undefined;
+        }
+        return value;
+    }));
+});
+document.getElementById(&quot;col_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
+    var allRowData = grid.api.getMultipleRowData();
+    var columnData = allRowData.map(function toCompanyName(rowData) {
+        return rowData[&quot;companyName&quot;];
+    });
+    alert(JSON.stringify(columnData));
+});
+document.getElementById(&quot;all_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
+    var allRowData = grid.api.getMultipleRowData();
+    alert(JSON.stringify(
+        allRowData, 
+        function replacer(key, value) {
+            if(key === &quot;ROW_DEF&quot;) {
+                return undefined;
+            }
+            return value;
+        },
+        2
+    ));
+});
+</code></pre>
+</code-sandbox>

@@ -1,0 +1,74 @@
+<h1 id="ef-toggle-formatter">EF Toggle Formatter</h1>
+<p>This formatter creates a <a href="https://ui.refinitiv.com/elements/toggle">ef-toggle</a>. The toggle will be off by default.</p>
+<h2 id="example">Example</h2>
+<code-sandbox hash="926f8e7e"><pre><code class="language-css">efx-grid {
+    height: 320px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;boolean&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 20 });
+
+var configObj = {
+    sorting: {
+        sortableColumns: true
+    },
+    columns: [
+        {
+            name: &quot; &quot;,
+            field: fields[0],
+            sort: fields[0],
+            alignment: &quot;c&quot;,
+            width: 100,
+            binding: EFToggleFormatter.create({
+                events: {
+                    &quot;click&quot;: function(e) {
+                        // blotter.api.getDataView().log();
+                    }
+                }
+            })
+        },
+        {
+            name: &quot;Label&quot;,
+            field: fields[0],
+            sort: fields[0],
+            alignment: &quot;c&quot;,
+            width: 100,
+            binding: EFToggleFormatter.create({
+                events: {
+                    &quot;checked-changed&quot;: function(e) {
+
+                    }
+                },
+                styles: {
+                    width: &quot;54px&quot;
+                },
+                attributes: {
+                    label: &quot;OFF&quot;,
+                    &quot;checked-label&quot;: &quot;ON&quot;
+                }
+            })
+        },
+        {
+            name: &quot;Checked&quot;,
+            field: fields[0],
+            sort: fields[0],
+            alignment: &quot;c&quot;
+        }
+    ],
+    staticDataRows: records
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox>

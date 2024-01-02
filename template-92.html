@@ -1,0 +1,180 @@
+<h1 id="server-side-pagination">Server Side Pagination</h1>
+<p>In case you want to retrieve a chunk of data from the server and do not want to load all of the data at once, you need to do server side pagination. The <a href="https://ui.refinitiv.com/elements/pagination">pagination</a> component is enough to do this. <strong>Do not</strong> use the Pagination Extension for server side pagination. </p>
+<p>All related logics (such as data requesting, validation, and transformation) must be implemented on the application side. Once data is received, you can just assign data to Grid&#39;s <code>data</code> property. </p>
+<p>See more details about data setting at <a href="#/data/columns-and-data">Columns and Data Properties</a>.</p>
+<h2 id="example">Example</h2>
+<pre><code class="language-js">    function onServerResponse(data) {
+        hideLoadingMask();
+        grid.data = data; // Setting data from server
+    }
+    function onRowCountRecieved(total) {
+        pagination_ui.max = Math.ceil(total / PAGE_SIZE);
+    }
+    function onPageChanged(e) {
+        requestData(e.detail.value, PAGE_SIZE, onServerResponse);
+    }
+</code></pre>
+<code-sandbox hash="5219d020"><pre><code class="language-css">efx-grid {
+    height: 169px;
+}
+ef-pagination {
+    margin-bottom: 30px;
+}
+.blur {
+    filter: blur(2px);
+}
+</code></pre>
+<pre><code class="language-html">&lt;div id=&quot;container_div&quot;&gt;
+    &lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+    &lt;ef-pagination id=&#39;pagination_ui&#39; value=&quot;1&quot;&gt;&lt;/ef-pagination&gt;
+&lt;/div&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var paginationUI = document.getElementById(&quot;pagination_ui&quot;);
+var SERVER_DELAY = 300;
+var loading_mask = document.createElement(&quot;ef-loader&quot;);
+var PAGE_SIZE = 5;
+
+function showLoadingMask() {
+    if (!loading_mask.parentElement) {
+        container_div.classList.add(&#39;blur&#39;);
+        container_div.append(loading_mask);
+    }
+
+    paginationUI.disabled = true;
+}
+function hideLoadingMask() {
+    if (loading_mask.parentElement) {
+        container_div.classList.remove(&#39;blur&#39;);
+        loading_mask.parentElement.removeChild(loading_mask);
+    }
+
+    paginationUI.disabled = false;
+}
+
+// Event handlers
+function onServerResponse(data) {
+    hideLoadingMask();
+    grid.data = data; // Setting data from server
+}
+function onRowCountRecieved(total) {
+    paginationUI.max = Math.ceil(total / PAGE_SIZE);
+}
+function onPageChanged(e) {
+    requestData(e.detail.value, PAGE_SIZE, onServerResponse);
+}
+
+// Mocking Server
+function requestTotalPage(callback) {
+    setTimeout(function () { // Simulate network delay when requesting data from server
+        callback(serverData.length);
+    }, SERVER_DELAY);
+}
+function requestData(page, itemPerPage, callback) {
+    showLoadingMask();
+    page = parseInt(page);
+    itemPerPage = parseInt(itemPerPage);
+    setTimeout(function () { // Simulate network delay when requesting data from server
+        var start = itemPerPage * (page - 1);
+        var end = start + itemPerPage;
+        callback(serverData.slice(start, end));
+    }, SERVER_DELAY);
+}
+
+// Mocking Data
+var totalCount = 100;
+DataGenerator.addFieldInfo(&quot;rowNumber&quot;, {
+    type: &quot;function&quot;,
+    generate: function(info, seed) {
+        return ++info.count;
+    },
+    count: 0,
+});
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;rowNumber&quot;];
+var serverData = DataGenerator.generateRecords(fields, { numRows: totalCount });
+
+// Initializing UIs
+var configObj = {
+    columns: [
+        {name: &quot;ID&quot;, field: fields[5], alignment: &quot;center&quot;, width: 40},
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market&quot;, field: fields[1], width: 120},
+        {name: &quot;Last&quot;, field: fields[2], width: 100},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
+        {name: &quot;Industry&quot;, field: fields[4]}
+    ]
+    // ,dataModel: {...} Initial data is optional
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+
+paginationUI.addEventListener(&quot;value-changed&quot;, onPageChanged);
+
+// Start app by getting total number of items and data
+requestTotalPage(onRowCountRecieved);
+requestData(paginationUI.value, PAGE_SIZE, onServerResponse);
+</code></pre>
+</code-sandbox><h1 id="client-side-pagination">Client side pagination</h1>
+<p>If you have all the data available on the client side and want to show data in pagination style, you can use the Pagination Extension and the <a href="https://ui.refinitiv.com/elements/pagination">pagination</a> element. The current page and page size can be configured using the <code>pagination</code> option. The pagination behaviors are then implemented by the extension. See <a href="#/extensions/tr-grid-pagination">Pagination Extension</a> for more details.</p>
+<h2 id="example-1">Example</h2>
+<code-sandbox hash="1ec4bc86"><pre><code class="language-css">efx-grid {
+    height: 169px;
+}
+ef-pagination {
+    margin-bottom: 30px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+&lt;ef-pagination id=&#39;pagination&#39;&gt;&lt;/ef-pagination&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+DataGenerator.addFieldInfo(&quot;rowNumber&quot;, {
+    type: &quot;function&quot;,
+    generate: function(info, seed) {
+        return ++info.count;
+    },
+    count: 0,
+});
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;rowNumber&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 100 });
+var configObj = {
+    columns: [
+        {name: &quot;ID&quot;, field: fields[5], alignment: &quot;center&quot;, width: 40},
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market&quot;, field: fields[1], width: 120},
+        {name: &quot;Last&quot;, field: fields[2], width: 100},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
+        {name: &quot;Industry&quot;, field: fields[4]}
+    ],
+    dataModel: {
+        data: records
+    },
+    pagination: {
+        element: document.getElementById(&quot;pagination&quot;),
+        page: 1,
+        pageSize: 5
+    },
+    extensions: [
+        new Pagination()
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox>

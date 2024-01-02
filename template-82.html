@@ -1,0 +1,72 @@
+<h1 id="using-efx-grid-with-angular">Using EFX Grid with Angular</h1>
+<p>For using <code>EFX Grid</code> with Angular, first you are required to install <code>@refinitiv-ui/efx-grid</code> in your project.</p>
+<pre><code class="language-sh">npm install @refinitiv-ui/efx-grid
+</code></pre>
+<p>In component logic file, for example <code>src/app/app.component.ts</code>, use <code>import</code> syntax to import the Grid and theme into your app.</p>
+<pre><code class="language-js">// Import element and its Halo dark theme
+import &quot;@refinitiv-ui/efx-grid&quot;;
+import &quot;@refinitiv-ui/efx-grid/themes/halo/dark&quot;;
+
+// Import native styles for typography, css variables, etc.
+import &quot;@refinitiv-ui/halo-theme/dark/imports/native-elements&quot;;
+</code></pre>
+<p>Then import types from <code>efx-grid</code> package to your file. These types are typically for properties on a configuration object or APIs defined by Grid components. You don&#39;t need to import every type, if you don&#39;t use them. All of the types are optional.</p>
+<pre><code class="language-js">import {
+    RealtimeGrid, // Provide types for api object
+    ColumnDefinition, // Provide types for column config and ColumnDefinition object
+    CoreGrid // Provide types for core object
+} from &quot;@refinitiv-ui/efx-grid&quot;;
+</code></pre>
+<p>Optionally, you can also import Grid&#39;s <a href="#/extensions/readme">extensions</a> from <code>efx-grid/extensions</code> package to extend its functionalities. </p>
+<pre><code class="language-js">import { ColumnResizing } from &quot;@refinitiv-ui/efx-grid/extensions&quot;;
+</code></pre>
+<p>Prepare grid data and configuration object by follow following steps.</p>
+<ol>
+<li>Define how the grid renders its content in each column by using type <code>ColumnDefinition.Options</code></li>
+<li>Define rows of data for displaying in the grid</li>
+<li>Define a configuration object by using type <code>RealtimeGrid.GridOptions</code></li>
+<li>Define a function for assigning run time tasks to grid after grid is initialized. (Optional)</li>
+</ol>
+<pre><code class="language-js">@Component({
+  selector: &#39;app-root&#39;,
+  templateUrl: &#39;./app.component.html&#39;,
+  styleUrls: [&#39;./app.component.less&#39;],
+})
+class AppComponent {
+    // Step 1)
+    columns: ColumnDefinition.Options[] = [
+        { name: &quot;Integer&quot;, field: &quot;intCol&quot; },
+        { name: &quot;String&quot;, field: &quot;strCol&quot; },
+        { name: &quot;Float&quot;, field: &quot;floatCol&quot; }
+    ];
+    // Step 2)
+    records: Array&lt;Object&gt; = [
+        { intCol: 1, strCol: &quot;Sample data&quot;, floatCol: 1.1 },
+        { intCol: 2, strCol: &quot;Sample data&quot;, floatCol: 2.2 },
+        { intCol: 3, strCol: &quot;Sample data&quot;, floatCol: 3.3 }
+    ];
+    // Step 3)
+    configObj: RealtimeGrid.GridOptions = {
+        columns: this.columns,
+        staticDataRows: this.records,
+        extensions: [
+            new ColumnResizing()
+        ]
+    };
+    // Step 4)
+    gridConfigured(e: any) {
+        let api: RealtimeGrid = e.detail.api;
+        let core: CoreGrid = api.getCoreGrid();
+
+        console.log(&quot;Grid has been configured.&quot;);
+    }
+}
+</code></pre>
+<p>In HTML template file, <code>src/app/app.component.html</code>, finally assign configuration to <code>efx-grid</code> element. Note that <code>efx-grid</code> element already has type defined. There is no need to cast it to some other types.</p>
+<p><code>src/app/app.component.html</code></p>
+<pre><code class="language-html">    &lt;efx-grid [config]=&quot;configObj&quot; (configured)=&quot;gridConfigured($event)&quot; #grid &gt;&lt;/efx-grid&gt;
+</code></pre>
+<blockquote>
+<p>Grid element is not immediately initialized when it is put on to the document. Only after it has been configured, then you can use its <code>api</code> to perform any runtime change or custom task.</p>
+</blockquote>
+<p>For a complete list of APIs, please see the <a href="#/apis/readme">API document</a>.</p>

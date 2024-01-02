@@ -1,0 +1,158 @@
+<h1 id="updating-data">Updating Data</h1>
+<p>The row order can be shifted by data manipulation, such as sorting and filtering. So, the <strong>row index</strong> is not good for referencing or storing/saving operations. A <strong>RowDefinition</strong> object needs to be obtained, in order to update data at a later stage. Once you can refer to the row, then we can use <code>setRowData()</code> method to update the data. </p>
+<h2 id="updating-a-row">Updating a row</h2>
+<p>Use <code>getRowDefinition(rowRef)</code> method to retrieve RowDefinition object from Grid.</p>
+<p>Use <code>setRowData(rowData)</code> method from RowDefinition object to update the data.</p>
+<blockquote>
+<p>Note: <code>insertRow</code> method also returns reference of newly created RowDefinition object</p>
+</blockquote>
+<pre><code class="language-js">var records = [
+    {&quot;field1&quot;: &quot;a&quot;, &quot;field2&quot;: 1, &quot;field3&quot;: null},
+    {&quot;field1&quot;: &quot;b&quot;, &quot;field2&quot;: 5, &quot;field3&quot;: {&quot;someKey&quot;: 10}},
+    {&quot;field1&quot;: &quot;c&quot;, &quot;field2&quot;: 7, &quot;field3&quot;: [1, 2, 3]},
+    {&quot;field1&quot;: &quot;c&quot;, &quot;field4&quot;: &quot;some value&quot;}
+];
+var rows = records.map(function toRowOption(record) {
+    return { values: record };
+});
+grid.api.insertRows(rows);
+var rowDef = grid.api.getRowDefinition(2); // Get a reference for the third row
+
+console.log(rowDef.getData(&quot;field2&quot;));
+
+rowDef.setRowData({&quot;field2&quot;: 33, &quot;field1&quot;: &quot;aa&quot;}); // Update the third row
+
+console.log(rowDef.getData(&quot;field2&quot;));
+
+setTimeout(function(){
+    rowDef.setRowData({&quot;field2&quot;: 44});
+
+    console.log(rowDef.getData(&quot;field2&quot;));
+}, 1000);
+</code></pre>
+<h2 id="example">Example</h2>
+<p>The following example use object to map between RIC (text) and RowDefinition created from <code>insertRow</code> method.</p>
+<code-sandbox hash="29683501"><pre><code class="language-css">efx-grid {
+    height: 230px;
+    margin-bottom: 40px;
+}
+html hr {
+    margin: 5px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;button id=&quot;realtime_btn&quot;&gt;Toggle Real-time Update&lt;/button&gt;
+&lt;button id=&quot;eur_btn&quot;&gt;Update EUR=&lt;/button&gt;
+&lt;button id=&quot;jpy_btn&quot;&gt;Update JPY=&lt;/button&gt;
+&lt;hr&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;RIC&quot;, &quot;CF_LAST&quot;, &quot;PCTCHNG&quot;, &quot;CF_NETCHNG&quot;, &quot;CF_CLOSE&quot;];
+var ricList = [&quot;EUR=&quot;, &quot;GBP=&quot;, &quot;THB=&quot;, &quot;JPY=&quot;, &quot;AUD=&quot;];
+var rowDefMap = {}; // Object for mapping
+var realtimeInterval = 0;
+
+document.getElementById(&quot;realtime_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
+    if (realtimeInterval) {
+        clearInterval(realtimeInterval);
+        realtimeInterval = 0;
+    } else {
+        realtimeInterval = setInterval(onRealtimeUpdate, 1200); // Simulate real-time update
+        onRealtimeUpdate(); // Update data immediately after click
+    }
+});
+document.getElementById(&quot;eur_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
+    updateGridData(getRowUpdate(&quot;EUR=&quot;));
+});
+document.getElementById(&quot;jpy_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
+    updateGridData(getRowUpdate(&quot;JPY=&quot;));
+});
+
+function onRealtimeUpdate() {
+    updateGridData(getRowUpdates());
+}
+
+function updateGridData(rowUpdates) {
+    for(var ric in rowUpdates) {
+        var rowDef = rowDefMap[ric];
+        if(!rowDef) { // Check if rowDef has been created for the updated ric 
+            rowDef = rowDefMap[ric] = grid.api.insertRow({}); // Use ric as key for mapping
+        }
+        rowDef.setRowData(rowUpdates[ric]); // Update the data
+    }
+}
+
+function getFieldUpdate(dataObj) {
+    // Simulate data updates for multiple field
+    if (!dataObj) {
+        dataObj = {};
+    }
+    var fieldCount = fields.length;
+    for (var i = 1; i &lt; fieldCount; ++i) {
+        if (randInt(0, 10) &lt; 6) {
+            var field = fields[i];
+            dataObj[field] = round(randFloat(-100, 100));
+        }
+    }
+    return dataObj;
+}
+function getRowUpdate(ric, rowUpdates) {
+    // Simulate data updates for a single row
+    if (!ric) {
+        ric = ricList[randInt(0, ricList.length)];
+    }
+    if (!rowUpdates) {
+        rowUpdates = {};
+    }
+    var dataObj = getFieldUpdate(rowUpdates[ric]);
+    dataObj[fields[0]] = ric;
+
+    rowUpdates[ric] = dataObj;
+    return rowUpdates;
+}
+function getRowUpdates() {
+    // Simulate data updates for multiple rows
+    var ricCount = ricList.length;
+    var rowUpdates = {};
+    for (var i = 0; i &lt; ricCount; ++i) {
+        if (randInt(0, 10) &lt; 4) {
+            getRowUpdate(ricList[i], rowUpdates);
+        }
+    }
+    return rowUpdates;
+}
+
+function randInt(min, exclusive_max) {
+    return Math.floor(randFloat(min, exclusive_max));
+}
+function randFloat(min, exclusive_max) {
+    return Math.random() * (exclusive_max - min) + min;
+}
+function round(num) {
+    return Math.round(num * 100) / 100;
+}
+
+var configObj = {
+    sorting: {
+        sortableColumns: true
+    },
+    columns: [
+        { name: &quot;RIC&quot;, field: fields[0], width: 70 },
+        { name: &quot;Last&quot;, field: fields[1], alignment: &quot;right&quot;, blinking: true},
+        { name: &quot;Pct. Chng&quot;, field: fields[2], alignment: &quot;right&quot;, blinking: true },
+        { name: &quot;Net. Chng&quot;, field: fields[3], alignment: &quot;right&quot;, blinking: true },
+        { name: &quot;Close&quot;, field: fields[4], alignment: &quot;right&quot;, blinking: true }
+    ]
+};
+
+    var grid = document.getElementById(&quot;grid&quot;);
+    grid.config = configObj;
+</code></pre>
+</code-sandbox>

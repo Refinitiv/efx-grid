@@ -1,0 +1,149 @@
+<h1 id="overview">Overview</h1>
+<p><strong>Grid extensions</strong> provide enhancements for the <code>efx-grid</code> element and the underlying core library. This allows for greater extensibility without increasing the size of the main code base.</p>
+<h2 id="setup-guide">Setup guide</h2>
+<p>Use <code>import</code> syntax to import the extension into your app.</p>
+<pre><code class="language-js">import { EXTENSION_NAME } from &#39;@refinitiv-ui/efx-grid/extensions&#39;;
+</code></pre>
+<p>For example</p>
+<pre><code class="language-js">import { AutoTooltip } from &#39;@refinitiv-ui/efx-grid/extensions&#39;;
+</code></pre>
+<h2 id="basic-usage">Basic usage</h2>
+<p>The simplest way to add extensions to Grid is by passing the extension&#39;s instances through the <code>extensions</code> property in the configuration object.</p>
+<pre><code class="language-js">var grid = document.getElementById(&#39;grid&#39;);
+grid.config = {
+  // main option
+  extensions: [
+    EXTENTION_INSTANCE
+  ]
+};
+</code></pre>
+<p>There are two kinds of extension options, the main option and the column-specific option.</p>
+<p>The main option is an option declared as a first-level property. Generally, the main option&#39;s attribute name is the extension&#39;s name but starting with a lower case letter. For example, <code>autoTooltip</code>.</p>
+<p>The column specific option is defined in the column option under the <code>columns</code> property of Grid&#39;s configuration.</p>
+<p>Details about both kinds of options are available on each extension&#39;s page.</p>
+<p><strong>Example of an extension option:</strong></p>
+<pre><code class="language-js">var grid = document.getElementById(&#39;grid&#39;);
+grid.config = {
+  // main option
+  columns: [
+    // column-specific option
+    {
+        name: &quot;Number&quot;,
+        field: &quot;number&quot;,
+        autoTooltip: true // column&#39;s specific option
+    }
+  ],
+
+  extensions: [
+    new AutoTooltip()
+  ],
+
+  // extension option
+  autoTooltip: {
+    title: true,
+    content: false
+  }
+};
+</code></pre>
+<h2 id="required-dependencies">Required dependencies</h2>
+<p>For details on how to install and use the EF-element see the <a href="https://ui.refinitiv.com/quick-start">Element Framework - Quick Start document</a>.</p>
+<h3 id="checkbox-extension">Checkbox Extension</h3>
+<p>The Checkbox Extension supports both the native checkbox and the <a href="https://ui.refinitiv.com/elements/checkbox">ef-checkbox</a>. To use with the ef-checkbox, the following dependency is also required:</p>
+<pre><code class="language-sh">npm install @refinitiv-ui/elements
+npm install @refinitiv-ui/halo-theme
+</code></pre>
+<p>Then import to your project <code>index.js</code>.</p>
+<pre><code class="language-js">// import element
+import &#39;@refinitiv-ui/elements/checkbox&#39;;
+
+// import element&#39;s Halo dark theme
+import &#39;@refinitiv-ui/elements/checkbox/themes/halo/dark&#39;; // Can be any theme
+</code></pre>
+<h3 id="range-bar-extension">Range Bar Extension</h3>
+<p>The Range Bar Extension provides graphical bar for last value ranking visualization based on low and high value with used <a href="https://ui.refinitiv.com/elements/led-gauge">ef-led-gauge</a>. To use the ef-led-gauge, the following dependency is also required:</p>
+<pre><code class="language-sh">npm install @refinitiv-ui/elements
+npm install @refinitiv-ui/halo-theme
+</code></pre>
+<p>Then import to your project <code>index.js</code>.</p>
+<pre><code class="language-jsx">// import element
+import &#39;@refinitiv-ui/elements/led-gauge&#39;;
+
+// import element&#39;s Halo dark theme
+import &#39;@refinitiv-ui/elements/led-gauge/themes/halo/dark&#39;; // Can be any theme
+</code></pre>
+<h3 id="filter-input-extension">Filter Input Extension</h3>
+<p>The Filter Input extension supports various types of input elements. These can be archived by specifying the <code>type</code> property through <code>FilterInputPlugin options</code>. The EF component for each type of inputs is shown below:</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Import Name</th>
+<th>Required EF Element</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>default</td>
+<td>search-field</td>
+<td>ef-search-field</td>
+</tr>
+<tr>
+<td>number</td>
+<td>number-field</td>
+<td>ef-number-field</td>
+</tr>
+<tr>
+<td>select</td>
+<td>select</td>
+<td>ef-select</td>
+</tr>
+<tr>
+<td>dropdown</td>
+<td>select</td>
+<td>ef-select</td>
+</tr>
+<tr>
+<td>date</td>
+<td>datetime-picker</td>
+<td>ef-datetime-picker</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>Note: there is no need to specify a type for the default input element.</p>
+</blockquote>
+<p>Additional dependencies are required according to the <code>type</code> of input. For example, if specified <code>type</code> is <code>date</code>, the additional dependency is ef-datetime-picker.</p>
+<h3 id="pagination-extension">Pagination Extension</h3>
+<p>The Pagination Extension does not provide any UI. You will need to install <code>@refinitiv-ui/elements</code> separately for the UI. The extension will automatically wire the functionalities to the UI element once it is presented.</p>
+<p>The pagination element is <strong>completely independent</strong> from the grid element and the Pagination Extension. So, any customization and feature request regarding the element has to be sent to the <a href="mailto:RefinitivUIDev@refinitiv.com">LSEG UI team</a>. The documentation for the element can be found on LSEG UI&#39;s <a href="https://ui.refinitiv.com/elements/pagination">Pagination</a> page.</p>
+<h2 id="available-extensions">Available extensions</h2>
+<ul>
+<li><a href="#/extensions/tr-grid-auto-tooltip">Auto Tooltip</a></li>
+<li><a href="#/extensions/tr-grid-cell-selection">Cell Selection</a></li>
+<li><a href="#/extensions/tr-grid-checkbox">Checkbox</a></li>
+<li><a href="#/extensions/column-dragging">Column Dragging</a></li>
+<li><a href="#/extensions/tr-grid-column-fitter">Column Fitter</a></li>
+<li><a href="#/extensions/tr-grid-column-formatting">Column Formatting</a></li>
+<li><a href="#/extensions/tr-grid-column-grouping">Column Grouping</a></li>
+<li><a href="#/extensions/tr-grid-column-resizing">Column Resizing</a></li>
+<li><a href="#/extensions/tr-grid-column-selection">Column Selection</a></li>
+<li><a href="#/extensions/tr-grid-column-stack">Column Stack</a></li>
+<li><a href="#/extensions/tr-grid-conditional-coloring">Conditional Coloring</a></li>
+<li><a href="#/extensions/tr-grid-content-wrap">Content Wrap</a></li>
+<li><a href="#/extensions/tr-grid-contextmenu">Contextmenu</a></li>
+<li><a href="#/extensions/tr-grid-filter-input">Filter Input</a></li>
+<li><a href="#/extensions/tr-grid-heat-map">Heat Map</a></li>
+<li><a href="#/extensions/tr-grid-in-cell-editing">In Cell Editing</a></li>
+<li><a href="#/extensions/tr-grid-pagination">Pagination</a></li>
+<li><a href="#/extensions/tr-grid-percent-bar">Percent Bar</a></li>
+<li><a href="#/extensions/tr-grid-range-bar">Range Bar</a></li>
+<li><a href="#/extensions/tr-grid-row-dragging">Row Dragging</a></li>
+<li><a href="#/extensions/tr-grid-row-filtering">Row Filtering</a></li>
+<li><a href="#/extensions/tr-grid-row-grouping">Row Grouping</a></li>
+<li><a href="#/extensions/row-segmenting">Row Segmenting</a></li>
+<li><a href="#/extensions/tr-grid-row-selection">Row Selection</a></li>
+<li><a href="#/extensions/tr-grid-rowcoloring">Rowcoloring</a></li>
+<li><a href="#/extensions/statistics-row">Statistics Row</a></li>
+<li><a href="#/extensions/tr-grid-textformatting">Textformatting</a></li>
+<li><a href="#/extensions/tr-grid-titlewrap">Titlewrap</a></li>
+<li><a href="#/extensions/zoom">Zoom</a></li>
+</ul>
+<p>Visit the relevant extensions&#39; sections to see the APIs, their usage and live demos.</p>

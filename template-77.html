@@ -1,0 +1,102 @@
+<h1 id="accessing-grid-data">Accessing Grid data</h1>
+<p>Grid has its own data store, but you cannot directly change or get the data from the <code>staticDataRows</code> property defined in the configuration object. This is because Grid needs to perform data transformations such as sorting, filtering, grouping, and so on. Data content, row index, or references can be changed but will not be reflected back to the data in the <code>staticDataRows</code>. So, all data manipulation and accessing must be done through <a href="#/apis/readme">APIs</a>. </p>
+<p>The following are some of the commonly used APIs:</p>
+<h2 id="getters">Getters</h2>
+<p><code>logDV()</code> and <code>logDT()</code> are used to see all visible data in a table format on the developer tool console.</p>
+<pre><code class="language-js">    grid.api.logDV(); // Log rows in the current view (i.e., rows after sorting and filtering applied)
+    
+    grid.api.logDT(); // Log rows in their original order
+</code></pre>
+<p><code>getMultipleRowData()</code> is used to get all rows.</p>
+<pre><code class="language-js">    var rows = grid.api.getMultipleRowData();
+    console.log(rows);
+</code></pre>
+<p><code>getMultipleRowData(rowIndices)</code> is used to get multiple row data from specific row indices at once.</p>
+<pre><code class="language-js">    grid.api.getMultipleRowData([0, 2, 4]);
+</code></pre>
+<p><code>getRowData(rowIndex)</code> is used to get row data from the specified row index.</p>
+<pre><code class="language-js">    grid.api.getRowData(rowIndex);
+    
+    var rowDef = grid.api.getRowDefinition(rowIndex);
+    rowDef.getRowData(); // Alternatively, data can be retrieved from RowDefinition object
+</code></pre>
+<h2 id="setters">Setters</h2>
+<p><code>setRowData(rowRef, values)</code> is used to set multiple field values into a row at once. </p>
+<pre><code class="language-js">    grid.api.setRowData(0, {&quot;Field 1&quot;: 3, &quot;Field 2&quot;: 5});
+    
+    var rowDef = grid.api.getRowDefinition(0);
+    rowDef.setRowData({&quot;Field 3&quot;: 7}); // Alternatively, data can be set through RowDefinition object
+</code></pre>
+<p><code>insertRow(rowOption, rowRef)</code> is used for inserting a row at a specified position.</p>
+<pre><code class="language-js">    grid.api.insertRow({}, 0); // Insert an empty row as the first row
+    
+    grid.api.insertRow({values: {&quot;Field 1&quot;: 3, &quot;Field 2&quot;: 5}}); Insert a row with initial static data as the last row
+</code></pre>
+<p><code>removeRow(rowRef)</code>, <code>removeRows(rowRefs)</code> and <code>removeAllRows()</code> are used to remove a single row or multiple rows.</p>
+<pre><code class="language-js">    grid.api.removeRow(0); // Remove the first row
+</code></pre>
+<p>For all available APIs see this <a href="#/apis/readme">document</a>.</p>
+<h2 id="example">Example</h2>
+<code-sandbox hash="7827a72"><pre><code class="language-css">efx-grid {
+    height: 169px;
+}
+html hr {
+    margin: 5px;
+}
+#msg_div {
+    height: 50px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;button id=&quot;insert_btn&quot;&gt;Insert Top Row&lt;/button&gt;
+&lt;button id=&quot;update_btn&quot;&gt;Update Top Row&lt;/button&gt;
+&lt;button id=&quot;print_btn&quot;&gt;Get Top Row&lt;/button&gt;
+&lt;hr&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+&lt;hr&gt;
+&lt;div id=&quot;msg_div&quot;&gt;&lt;/div&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 5 });
+var configObj = {
+    columns: [
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market&quot;, field: fields[1], width: 120},
+        {name: &quot;Last&quot;, field: fields[2], width: 100},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
+        {name: &quot;Industry&quot;, field: fields[4]}
+    ],
+    staticDataRows: records
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+
+document.getElementById(&quot;update_btn&quot;).addEventListener(&quot;click&quot;, function() {
+        var record = DataGenerator.generateRecord(fields);
+        grid.api.setRowData(0, record);
+});
+
+document.getElementById(&quot;insert_btn&quot;).addEventListener(&quot;click&quot;, function() {
+    var record = DataGenerator.generateRecord(fields);
+    grid.api.insertRow({values: record}, 0);
+});
+
+document.getElementById(&quot;print_btn&quot;).addEventListener(&quot;click&quot;, function() {
+    var row = grid.api.getRowData(0);
+    msg_div.textContent = row ? JSON.stringify(row, function replacer(key, value) {
+        if(key === &quot;ROW_DEF&quot;) {
+            return undefined;
+        }
+        return value;
+    }) : &quot;&quot;;
+});
+</code></pre>
+</code-sandbox>
