@@ -1,254 +1,39 @@
-<h1 id="columns-and-data-properties">Columns and Data Properties</h1>
-<p>Grid provides <code>columns</code> and <code>data</code> properties that allow clearing and setting new data/column set at runtime.</p>
-<blockquote>
-<p><strong>Note:</strong> The properties will only work after Grid&#39;s <code>config</code> property has been set.
-The properties do <strong>not support two-way binding</strong>. Meaning, any change within the internal structure will not reflect or synchronize back to the property value. This means, regardless of any change in Grid, the property will remain the same. </p>
-</blockquote>
-<h2 id="resetting-data">Resetting data</h2>
-<h3 id="data-property">Data property</h3>
-<p><code>data</code> property supports only an array of objects, with each object representing a field and its corresponding value within Grid, as demonstrated below:</p>
-<pre><code class="language-js">grid.data = [
-  {&quot;Field 1&quot;: 1, &quot;Field 2&quot;: 0},
-  {&quot;Field 1&quot;: 3, &quot;Field 2&quot;: 4, &quot;Field 3&quot;: 5}
-];
-</code></pre>
-<p>In this code snippet, <code>grid.data</code> property accepts an array of objects, where each object represents a field and its associated value within Grid.</p>
-<h3 id="columns-property">Columns property</h3>
-<p><code>columns</code> property takes the same type of input as the columns property in the grid configuration object (<code>grid.config</code>). The data and grid configuration will not be affected by this property. </p>
-<p>To change a new set of columns and keep the current settings and data, do the following:</p>
-<pre><code class="language-js">grid.columns = newColumns; // Clear all existing columns and set entirely new set of columns
+<link rel="stylesheet" href="./resources/styles/elf-template.css">
 
-grid.columns = null; // Clear all existing columns. All data stored in grid stays intact.
-</code></pre>
-<p>You can keep the current set of columns and change the current settings by leaving out the columns property from the <code>config</code> object.</p>
-<pre><code class="language-js">grid.columns = newColumns;
-grid.config = {
-
-}; // current columns are kept
-</code></pre>
-<h2 id="clearing-data">Clearing data</h2>
-<p>To clear all existing data, set <code>data</code> property to null. This is a quick way to remove all data. It is equivalent to calling <code>removeAllRows()</code> API.</p>
-<pre><code class="language-js">grid.data = null; // Clear all existing data
-</code></pre>
-<h2 id="columns-and-data-property-example">Columns and data property example</h2>
-<code-sandbox hash="932ec055"><pre><code class="language-css">efx-grid {
-    height: 200px;
-}
-hr {
-    margin: 5px;
-}
-</code></pre>
-<pre><code class="language-html">&lt;fieldset&gt;
-    &lt;legend&gt;Setting Columns&lt;/legend&gt;
-    &lt;button id=&quot;column_btn1&quot;&gt;Column Set 1&lt;/button&gt;
-    &lt;button id=&quot;column_btn2&quot;&gt;Column Set 2&lt;/button&gt;
-    &lt;button id=&quot;column_btn3&quot;&gt;Clear All Columns&lt;/button&gt;
-&lt;/fieldset&gt;
-&lt;fieldset&gt;
-    &lt;legend&gt;Setting Data&lt;/legend&gt;
-    &lt;button id=&quot;data_btn1&quot;&gt;Data Set 1&lt;/button&gt;
-    &lt;button id=&quot;data_btn2&quot;&gt;Data Set 2&lt;/button&gt;
-    &lt;button id=&quot;data_btn3&quot;&gt;Clear All Data&lt;/button&gt;
-&lt;/fieldset&gt;
-&lt;hr&gt;
-&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 4, seed: 0 });
-var records1 = DataGenerator.generateRecords(fields, { numRows: 5, seed: 10 });
-var records2 = DataGenerator.generateRecords(fields, { numRows: 3, seed: 20 });
-var configObj = {
-    columns: [
-        {name: &quot;Company&quot;, field: fields[0]},
-        {name: &quot;Market&quot;, field: fields[1], width: 100},
-        {name: &quot;Last&quot;, field: fields[2], width: 80},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 80},
-        {name: &quot;Industry&quot;, field: fields[4]}
-    ],
-    dataModel: {
-        data: records
-    }
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
-
-document.getElementById(&quot;column_btn1&quot;).addEventListener(&#39;click&#39;, function () {
-    grid.columns = [
-        {name: &quot;Company&quot;, field: fields[0]},
-        {name: &quot;Market&quot;, field: fields[1], width: 100},
-        {name: &quot;Industry&quot;, field: fields[4]}
-    ];
-});
-document.getElementById(&quot;column_btn2&quot;).addEventListener(&#39;click&#39;, function () {
-    grid.columns = [
-        {name: &quot;Company&quot;, field: fields[0]},
-        {name: &quot;Last&quot;, field: fields[2], width: 80},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 80}
-    ];
-});
-document.getElementById(&quot;column_btn3&quot;).addEventListener(&#39;click&#39;, function () {
-    grid.columns = null;
-});
-
-document.getElementById(&quot;data_btn1&quot;).addEventListener(&#39;click&#39;, function () {
-    grid.data = records1;
-});
-document.getElementById(&quot;data_btn2&quot;).addEventListener(&#39;click&#39;, function () {
-    grid.data = records2;
-});
-document.getElementById(&quot;data_btn3&quot;).addEventListener(&#39;click&#39;, function () {
-    grid.data = null;
-});
-</code></pre>
-</code-sandbox><h1 id="resetting-and-updating-data-in-grid">Resetting and updating data in Grid</h1>
-<p>As there are more states and options for each row in Grid, <code>rows</code> property is provided as a way to set those options. Setting <code>rows</code> property will change number of rows and reset existing data and data requests. Changing <code>rows</code> property will always remove existing rows, so you should use this for changing to completely new set of rows. </p>
-<p>You can also use <code>data</code> property to manage rows within Grid including removal, insertion, and updating of rows in Grid. When you update <code>data</code> property, it compares the existing data with the new data based on row indices with following:</p>
-<ul>
-<li>If the new data contains more rows than the existing rows, the additional rows will be inserted into Grid.</li>
-<li>If the new data contains fewer rows than the existing rows, the excess rows will be removed from Grid.</li>
-<li>If the new data contains the same number of rows as the existing data, the row count will remain unchanged, and the data will be updated with the new values.</li>
-</ul>
-<p>As demonstrated below:</p>
-<pre><code class="language-js">// 1. Begin by assigning three rows of data. Grid displaying 3 rows.
-grid.data = [
-    {&quot;f1&quot;: 1},
-    {&quot;f1&quot;: 2},
-    {&quot;f1&quot;: 3}
-];
-
-// 2. Grid displaying 1 row.
-grid.data = [
-    {&quot;f1&quot;: 1} 
-];
-
-// 3. Grid display 5 rows.
-grid.data = [
-    {&quot;f1&quot;: 1},
-    {&quot;f1&quot;: 2},
-    {&quot;f1&quot;: 3},
-    {&quot;f1&quot;: 4},
-    {&quot;f1&quot;: 5}
-];
-
-// 4. Grid displaying 5 rows with re-ordered positions.
-grid.data = [
-    {&quot;f1&quot;: 3},
-    {&quot;f1&quot;: 1},
-    {&quot;f1&quot;: 4},
-    {&quot;f1&quot;: 2},
-    {&quot;f1&quot;: 5}
-];
-</code></pre>
-<p>However, if either <code>rows</code> or <code>data</code> property is set to null, all rows and data will be removed.</p>
-<blockquote>
-<p>Note: you should not use <code>rows</code> property for adding new rows because it is not very efficient (i.e., existing data will be cleared and re-requested). You should use provided APIs for dynamically adding new rows. </p>
-</blockquote>
-<h2 id="rows-and-data-property-example">Rows and data property example</h2>
-<code-sandbox hash="49bb9c7e"><pre><code class="language-css">efx-grid {
-    height: 200px;
-}
-hr {
-    margin: 5px;
-}
-</code></pre>
-<pre><code class="language-html">&lt;fieldset&gt;
-    &lt;legend&gt;Setting Rows&lt;/legend&gt;
-    &lt;button id=&quot;row_btn1&quot;&gt;Row Set 1 (3 Rows)&lt;/button&gt;
-    &lt;button id=&quot;row_btn2&quot;&gt;Row Set 2 (4 Rows)&lt;/button&gt;
-    &lt;button id=&quot;row_btn3&quot;&gt;Row Set 3 (5 Rows)&lt;/button&gt;
-    &lt;button id=&quot;row_btn4&quot;&gt;Clear All Rows&lt;/button&gt;
-&lt;/fieldset&gt;
-&lt;fieldset&gt;
-    &lt;legend&gt;Updating Data&lt;/legend&gt;
-    &lt;button id=&quot;data_btn1&quot;&gt;Data Set 1 (3 Rows) &lt;/button&gt;
-    &lt;button id=&quot;data_btn2&quot;&gt;Data Set 2 (4 Rows) &lt;/button&gt;
-    &lt;button id=&quot;data_btn3&quot;&gt;Data Set 3 (5 Rows) &lt;/button&gt;
-    &lt;button id=&quot;data_btn4&quot;&gt;Clear All Data&lt;/button&gt;
-&lt;/fieldset&gt;
-&lt;hr&gt;
-&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 4, seed: 0 });
-// For data property
-var records1 = DataGenerator.generateRecords(fields, { numRows: 3, seed: 10 });
-var records2 = DataGenerator.generateRecords(fields, { numRows: 4, seed: 20 });
-var records3 = DataGenerator.generateRecords(fields, { numRows: 5, seed: 30 });
-// For rows property
-var records4 = DataGenerator.generateRecords(fields, { numRows: 3, seed: 40 });
-var records5 = DataGenerator.generateRecords(fields, { numRows: 4, seed: 50 });
-var records6 = DataGenerator.generateRecords(fields, { numRows: 5, seed: 60 });
-
-var configObj = {
-    columns: [
-        {name: &quot;Company&quot;, field: fields[0]},
-        {name: &quot;Market&quot;, field: fields[1], width: 100},
-        {name: &quot;Last&quot;, field: fields[2], width: 80},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 80},
-        {name: &quot;Industry&quot;, field: fields[4]}
-    ],
-    staticDataRows: records
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
-
-document.getElementById(&quot;row_btn1&quot;).addEventListener(&#39;click&#39;, function () {
-    grid.rows = records4.map(function(data, idx) {
-        return {
-            ric: &quot;RIC_&quot; + idx,
-            values: data
-        };
-    });
-});
-document.getElementById(&quot;row_btn2&quot;).addEventListener(&#39;click&#39;, function () {
-    grid.rows = records5.map(function(data, idx) {
-        return {
-            ric: &quot;RIC_&quot; + idx,
-            values: data
-        };
-    });
-});
-document.getElementById(&quot;row_btn3&quot;).addEventListener(&#39;click&#39;, function () {
-    grid.rows = records6.map(function(data, idx) {
-        return {
-            ric: &quot;RIC_&quot; + idx,
-            values: data
-        };
-    });
-});
-document.getElementById(&quot;row_btn4&quot;).addEventListener(&#39;click&#39;, function () {
-    grid.rows = null;
-});
-
-document.getElementById(&quot;data_btn1&quot;).addEventListener(&#39;click&#39;, function () {
-    grid.data = records1;
-});
-document.getElementById(&quot;data_btn2&quot;).addEventListener(&#39;click&#39;, function () {
-    grid.data = records2;
-});
-document.getElementById(&quot;data_btn3&quot;).addEventListener(&#39;click&#39;, function () {
-    grid.data = records3;
-});
-document.getElementById(&quot;data_btn4&quot;).addEventListener(&#39;click&#39;, function () {
-    grid.data = null;
-});
-</code></pre>
-</code-sandbox>
+<h1 id="sectionsettings">SectionSettings</h1>
+<div id="elf-api-container"><div id="main-template" class="elf-template">    <section><header>            <h1 class="subsection-title"><span class="attribs"><span class="type-signature"></span></span>SectionSettings<span class="signature">(grid<span class="signature-attributes">non-null</span>)</span><span class="type-signature"></span></h1>            </header><article>    <div class="container-overview">            
+<div class="item">                                <div class="item-type">class</div>                        <h4 class="name" id="SectionSettings"><span class="type-signature"></span>new SectionSettings<span class="signature">(grid<span class="signature-attributes">non-null</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">grid</div>                        <div class="type">                            <span class="param-type"><a href="#/apis/core/ilayoutgrid">ILayoutGrid</a></span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>        </div>            <h3 class="subsection-title" id="extends">Extends</h3>            <dd class="argument-list">        <ul>            <li><a href="#/apis/core/eventdispatcher">EventDispatcher</a></li>        </ul>    </dd>                                                <h3 class="subsection-title" id="methods">Methods</h3>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="activateColumns"><span class="type-signature"></span>activateColumns<span class="signature">(activations, firstIndex, lastIndex)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">activations</div>                        <div class="type">                            <span class="param-type">Array.&lt;(boolean|undefined)&gt;</span>                        </div>                                            </div>                <div class="param">                            <div class="name">firstIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                                            </div>                <div class="param">                            <div class="name">lastIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="disableConflation"><span class="type-signature"></span>disableConflation<span class="signature">(opt_disabled)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">opt_disabled</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="disableDataBinding"><span class="type-signature"></span>disableDataBinding<span class="signature">(opt_disabled<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">opt_disabled</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="enableColumnVirtualization"><span class="type-signature"></span>enableColumnVirtualization<span class="signature">(opt_enabled<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">opt_enabled</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="extendDataEventArg"><span class="type-signature"></span>extendDataEventArg<span class="signature">(e<span class="signature-attributes">opt</span>, begin<span class="signature-attributes">opt</span>, end<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Object}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">e</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>                <div class="param">                            <div class="name">begin</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    INCLUSIVE. The value can be undefined or NaN                </div>                    </div>                <div class="param">                            <div class="name">end</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    INCLUSIVE. The value can be undefined or NaN                </div>                    </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="extendEventArg"><span class="type-signature"></span>extendEventArg<span class="signature">(e<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Object}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">e</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="extendRenderEventArg"><span class="type-signature"></span>extendRenderEventArg<span class="signature">(e, fromR, toR)</span><span class="type-signature"> → {Object}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">e</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                            </div>                <div class="param">                            <div class="name">fromR</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                                            </div>                <div class="param">                            <div class="name">toR</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getAutoSyncRowCount"><span class="type-signature"></span>getAutoSyncRowCount<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        When the parameter is not specifically set by user, The mode will be switched automatically based on SectionSettings type    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getChildren"><span class="type-signature"></span>getChildren<span class="signature">()</span><span class="type-signature"> → {Array.&lt;<a href="#/apis/core/sectionsettings">SectionSettings</a>&gt;}</span></h4>                            <div class="description">        Clone a copy of the list of SectionSettingss. If there is no tree relationship, return null    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Array.&lt;<a href="#/apis/core/sectionsettings">SectionSettings</a>&gt;</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getData"><span class="type-signature"></span>getData<span class="signature">(colName, rowRef)</span><span class="type-signature"> → {*}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colName</div>                        <div class="type">                            <span class="param-type">string</span>                        </div>                                            </div>                <div class="param">                            <div class="name">rowRef</div>                        <div class="type">                            <span class="param-type">number</span> | <span class="param-type">string</span>                        </div>                                                    <div class="description">                    Number is treated as row index relative to this section data view. String is data view row id                </div>                    </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">*</span>    </div><div class="sub-content-desc">    Returns undefined if not success</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getDataChangedConflator"><span class="type-signature"></span>getDataChangedConflator<span class="signature">()</span><span class="type-signature"> → {<a href="#">Conflator</a>}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type"><a href="#">Conflator</a></span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getDataSource"><span class="type-signature"></span>getDataSource<span class="signature">()</span><span class="type-signature"> → {<a href="#/apis/core/dataview">DataView</a>}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type"><a href="#/apis/core/dataview">DataView</a></span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getId"><span class="type-signature"></span>getId<span class="signature">()</span><span class="type-signature"> → {string}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">string</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getIndex"><span class="type-signature"></span>getIndex<span class="signature">()</span><span class="type-signature"> → {number}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">number</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getParent"><span class="type-signature"></span>getParent<span class="signature">()</span><span class="type-signature"> → {<a href="#/apis/core/sectionsettings">SectionSettings</a>}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type"><a href="#/apis/core/sectionsettings">SectionSettings</a></span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getRootDataSource"><span class="type-signature"></span>getRootDataSource<span class="signature">()</span><span class="type-signature"> → {<a href="#/apis/core/datatable">DataTable</a>|<a href="#/apis/core/dataview">DataView</a>}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type"><a href="#/apis/core/datatable">DataTable</a></span> | <span class="param-type"><a href="#/apis/core/dataview">DataView</a></span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getRowData"><span class="type-signature"></span>getRowData<span class="signature">(rowRef)</span><span class="type-signature"> → {Object.&lt;string, *&gt;}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowRef</div>                        <div class="type">                            <span class="param-type">number</span> | <span class="param-type">string</span>                        </div>                                                    <div class="description">                    Row Index of the display section or row id of the data table                </div>                    </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object.&lt;string, *&gt;</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getSection"><span class="type-signature"></span>getSection<span class="signature">()</span><span class="type-signature"> → {<a href="#/apis/core/ilayoutgrid">ILayoutGrid</a>}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type"><a href="#/apis/core/ilayoutgrid">ILayoutGrid</a></span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getSectionName"><span class="type-signature"></span>getSectionName<span class="signature">()</span><span class="type-signature"> → {string}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">string</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getType"><span class="type-signature"></span>getType<span class="signature">()</span><span class="type-signature"> → {string}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">string</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="isBinding"><span class="type-signature"></span>isBinding<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="listen"><span class="type-signature"></span>listen<span class="signature">(type, handler, opt_priority<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">type</div>                        <div class="type">                            <span class="param-type">string</span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    Any event provided by derived class                </div>                    </div>                <div class="param">                            <div class="name">handler</div>                        <div class="type">                            <span class="param-type">function</span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    Callback method                </div>                    </div>                <div class="param">                            <div class="name">opt_priority</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    The higher the priority, the sooner the listener get executed. Undefined priority listener will be executed last                </div>                    </div>            </div>        <div class="details">                <dt class="inherited-from">Inherited From:</dt>    <dd class="inherited-from">        <a href="#/apis/core/eventdispatcher#listen">EventDispatcher#listen</a>    </dd>                                                    </div>                                            <h5>Example:</h5>            <pre><code>var grid = new Grid();
+grid.listen("click", function(e) { console.log("Grid is clicked"); });</code></pre>    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="removeRowData"><span class="type-signature"></span>removeRowData<span class="signature">(rowRef)</span><span class="type-signature"> → {boolean}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowRef</div>                        <div class="type">                            <span class="param-type">number</span> | <span class="param-type">string</span>                        </div>                                                    <div class="description">                    Row Index of the display section or row id of the data table                </div>                    </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    Returns true for successful data removing</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="rerender"><span class="type-signature"></span>rerender<span class="signature">()</span><span class="type-signature"></span></h4>                            <div class="description">        Rerender section content. If the section is bound with the data source, dataChanged event is fired. Otherwise, rowAvailable event is fired instead.    </div>                        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setAutoSyncRowCount"><span class="type-signature"></span>setAutoSyncRowCount<span class="signature">(bool)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">bool</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setData"><span class="type-signature"></span>setData<span class="signature">(colName, rowRef, data)</span><span class="type-signature"> → {boolean}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colName</div>                        <div class="type">                            <span class="param-type">string</span>                        </div>                                            </div>                <div class="param">                            <div class="name">rowRef</div>                        <div class="type">                            <span class="param-type">number</span> | <span class="param-type">string</span>                        </div>                                                    <div class="description">                    Number is treated as row index relative to this section data view. String is data view row id                </div>                    </div>                <div class="param">                            <div class="name">data</div>                        <div class="type">                            <span class="param-type">*</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    Returns true for successful data setting</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setDataSource"><span class="type-signature"></span>setDataSource<span class="signature">(dataView)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">dataView</div>                        <div class="type">                            <span class="param-type"><a href="#/apis/core/dataview">DataView</a></span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setId"><span class="type-signature"></span>setId<span class="signature">(str<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {string}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">str</div>                        <div class="type">                            <span class="param-type">string</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">string</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setType"><span class="type-signature"></span>setType<span class="signature">(type)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">type</div>                        <div class="type">                            <span class="param-type">string</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="snapshot"><span class="type-signature"></span>snapshot<span class="signature">(clone)</span><span class="type-signature"></span></h4>                            <div class="description">        Regenerate the section (UI part) on a different object    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">clone</div>                        <div class="type">                            <span class="param-type"><a href="#/apis/core/ilayoutgrid">ILayoutGrid</a></span>                        </div>                                                    <div class="description">                    A LayoutGrid that will be rendered                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="unlisten"><span class="type-signature"></span>unlisten<span class="signature">(type, handler)</span><span class="type-signature"></span></h4>                            <div class="description">        Removes an event listener which was added with listen(). The same function handler must be sent in, or else it will not be removed    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">type</div>                        <div class="type">                            <span class="param-type">string</span>                        </div>                                                    <div class="description">                    The name of the event without the 'on' prefix.                </div>                    </div>                <div class="param">                            <div class="name">handler</div>                        <div class="type">                            <span class="param-type">function</span>                        </div>                                                    <div class="description">                    The listener function to remove.                </div>                    </div>            </div>        <div class="details">                <dt class="inherited-from">Inherited From:</dt>    <dd class="inherited-from">        <a href="#/apis/core/eventdispatcher#unlisten">EventDispatcher#unlisten</a>    </dd>                                                    </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="unlistenAll"><span class="type-signature"></span>unlistenAll<span class="signature">(type<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                            <div class="description">        Removes all listeners from an object. If no type is specified, it will remove all listeners that have been registered. <br>You can also optionally remove listeners of a particular type.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">type</div>                        <div class="type">                            <span class="param-type">string</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    Type of event to, default is all types.                </div>                    </div>            </div>        <div class="details">                <dt class="inherited-from">Inherited From:</dt>    <dd class="inherited-from">        <a href="#/apis/core/eventdispatcher#unlistenAll">EventDispatcher#unlistenAll</a>    </dd>                                                    </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="updateRowData"><span class="type-signature"></span>updateRowData<span class="signature">(fromRowIndex<span class="signature-attributes">opt</span>, lastRowIndex<span class="signature-attributes">opt</span>, e<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                            <div class="description">        Fires data binding event without actual change in the data source.This will force visual elements to be re-rendered with the latest data in the data source.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">fromRowIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    INCLUSIVE If the value is undefined, the first row index will be used                </div>                    </div>                <div class="param">                            <div class="name">lastRowIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    INCLUSIVE If the value is undefined, the last row index will be used                </div>                    </div>                <div class="param">                            <div class="name">e</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    Additional parameters to be fired with the event                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                </article></section></div></div>

@@ -1,10 +1,11 @@
-<h1 id="text-formatter">Text Formatter</h1>
-<p>This formatter creates a simple div element with text from the column&#39;s field by default. The div element can be modified in the handler (for example, <code>onElementRendered</code>) and passed through configuration object for multiple use cases. </p>
-<h2 id="specific-options">Specific options</h2>
-<p>The purpose of this formatter is creating a generic element for further modifications, so there are no specific options.</p>
+<h1 id="handling-50000-rows">Handling 50,000 Rows</h1>
+<p>Grid utilizes a virtual rendering technique that renders a range of visible rows and uses/shares the same cells across multiple rows. This allows you to display an extraordinarily large number of rows on the grid, as shown in the example below.</p>
+<blockquote>
+<p>Note that by default, the grid&#39;s wheel scrolling behavior will skip multiple rows based on the total number of rows, to avoid small and tiresome scrolling. Use the <code>linearWheelScrolling</code> flag to enable native wheel scrolling behavior.</p>
+</blockquote>
 <h2 id="example">Example</h2>
-<code-sandbox hash="2157dd18"><pre><code class="language-css">efx-grid {
-    height: 320px;
+<code-sandbox hash="db26edfb"><pre><code class="language-css">efx-grid {
+    height: 500px;
 }
 </code></pre>
 <pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
@@ -17,36 +18,24 @@
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;number_1&quot;, &quot;word&quot;, &quot;float_1&quot;];
-var records = DataGenerator.generateRecords(fields, 40);
-
+DataGenerator.addFieldInfo(&quot;rowNumber&quot;, {
+    type: &quot;function&quot;,
+    generate: function(info, seed) {
+        return ++info.count;
+    },
+    count: 0,
+});
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;rowNumber&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 5000 });
 var configObj = {
+    linearWheelScrolling: true,
     columns: [
-        { 
-            name: &quot;Column 1&quot;,
-            field: fields[0],
-            alignment: &quot;right&quot;,
-            binding: TextFormatter.create()
-        },
-        { 
-            name: &quot;Column 2&quot;,
-            field: fields[1],
-            alignment: &quot;center&quot;,
-            binding: TextFormatter.create({
-                styles: {
-                    &quot;backgroundColor&quot;: &quot;thistle&quot;
-                }
-            })
-        },
-        { 
-            name: &quot;Big Text&quot;,
-            field: fields[2],
-            binding: TextFormatter.create({
-                styles: {
-                    &quot;fontSize&quot;: &quot;1.5em&quot;
-                }
-            })
-        }
+        {name: &quot;ID&quot;, field: fields[5], alignment: &quot;center&quot;, width: 80},
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market&quot;, field: fields[1], width: 120},
+        {name: &quot;Last&quot;, field: fields[2], width: 100},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
+        {name: &quot;Industry&quot;, field: fields[4]}
     ],
     staticDataRows: records
 };
@@ -54,9 +43,4 @@ var configObj = {
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 </code></pre>
-</code-sandbox><h2 id="formatting-predefined-formatter-using-text-formatting-extension">Formatting predefined formatter using Text Formatting Extension</h2>
-<p>When using Text Formatting Extension, by default, predefined formatter will be overwritten due to the need for rendering a formatted text by the extension. To format the text inside predefined formatter and avoid the overriding, you will need to instruct the extension on how and where to do the formatting. See <a href="#/extensions/tr-grid-textformatting">this page</a> for more information.</p>
-<p>In this case, you can use <code>onElementRendered</code> and Text Formatting Extension to do the formatting.</p>
-<br>
-<br>
-<br>
+</code-sandbox>

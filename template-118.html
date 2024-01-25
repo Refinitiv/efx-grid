@@ -1,51 +1,33 @@
-<h1 id="general-concepts-and-row-expansion-apis">General Concepts and Row Expansion APIs</h1>
-<p>Row expansion is an extra row that is extended directly from a normal row. It&#39;s a great place to show extra information which cannot normally be shown on a single row. </p>
-<p>It looks just like a normal row but, unlike a normal row, it has no data from the main data table associated with it. This means that the states or data of the row expansion have to come from the expanded row. Grid will not perform sorting or filtering on the row expansion, as it has no data. </p>
-<p>In effect, row expansion is completely different from row grouping, where rows are grouped based on their data. Row expansion is tightly connected to the expanded row and cannot be separated. When the expanded row is moved, the row expansion is also moved. So, be aware that operations like sorting, filtering, or pagination can still have an impact on how row expansion is displayed.</p>
-<p>To add a row expansion, call <code>addRowExpansion(rowId)</code> or <code>toggleRowExpansion(rowId)</code> from Grid&#39;s data view. <code>rowId</code> is the row ID of the row to be expanded. </p>
-<p>To remove all row expansions at once, use <code>removeAllRowExpansions()</code>. </p>
-<p>To get existing rows with an expansion, use <code>getRowsWithExpansion()</code>.</p>
-<p>To render content on the row expansion, define <code>renderer</code> property of <code>rowExpansion</code> on the grid configuration object, like so:</p>
-<pre><code class="language-js">var configObj = {
-    //...
-    rowExpansionBinding: function (e) {
-        var rowIndex = e[&quot;rowIndex&quot;];
-        var section = e[&quot;section&quot;];
-        
-        if(e.rowExpansion) {
-            // render
-            var rowData = e.originalRowData;
-            var cell = section.stretchCell(0, rowIndex);
-            var str = &quot;expanded from row \&quot;&quot; + rowData[&quot;col1&quot;] + &quot;, &quot; + rowData[&quot;col2&quot;] + &quot;, &quot; + rowData[&quot;col3&quot;] + &quot;\&quot;&quot;;
-            cell.setContent(str);
-            cell.setStyle(&quot;background-color&quot;, &quot;lightblue&quot;);
-        } else {
-            //dispose
-            var cell = section.stretchCell(0, rowIndex, false);
-            cell.setStyle(&quot;background-color&quot;, &quot;&quot;);
-        }
-    },
-    //...
-};
+<h1 id="server-side-pagination">Server Side Pagination</h1>
+<p>In case you want to retrieve a chunk of data from the server and do not want to load all of the data at once, you need to do server side pagination. The <a href="https://ui.refinitiv.com/elements/pagination">pagination</a> component is enough to do this. <strong>Do not</strong> use the Pagination Extension for server side pagination. </p>
+<p>All related logics (such as data requesting, validation, and transformation) must be implemented on the application side. Once data is received, you can just assign data to Grid&#39;s <code>data</code> property. </p>
+<p>See more details about data setting at <a href="#/data/columns-and-data">Columns and Data Properties</a>.</p>
+<h2 id="example">Example</h2>
+<pre><code class="language-js">    function onServerResponse(data) {
+        hideLoadingMask();
+        grid.data = data; // Setting data from server
+    }
+    function onRowCountRecieved(total) {
+        pagination_ui.max = Math.ceil(total / PAGE_SIZE);
+    }
+    function onPageChanged(e) {
+        requestData(e.detail.value, PAGE_SIZE, onServerResponse);
+    }
 </code></pre>
-<blockquote>
-<p>Note: the same cell element is used for both normal row and row expansion due to the virtualization technique. Any custom style has to be removed using the <code>dispose</code> part.</p>
-</blockquote>
-<p>The example below shows how to create row expansion when clicking on a normal row. It also shows how to save and load row expansion states.</p>
-<code-sandbox hash="cfab613a"><pre><code class="language-css">efx-grid {
-    height: 200px;
+<code-sandbox hash="5219d020"><pre><code class="language-css">efx-grid {
+    height: 169px;
 }
-html hr {
-    margin: 5px;
+ef-pagination {
+    margin-bottom: 30px;
+}
+.blur {
+    filter: blur(2px);
 }
 </code></pre>
-<pre><code class="language-html">&lt;button id=&quot;save_states&quot;&gt;Save&lt;/button&gt;
-&lt;button id=&quot;load_states&quot;&gt;Load&lt;/button&gt;
-&lt;button id=&quot;clear_row_expan&quot;&gt;Clear all row expansions&lt;/button&gt;
-&lt;hr&gt;
-&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-&lt;hr&gt;
-&lt;pre id=&quot;msg&quot;&gt;&lt;/pre&gt;
+<pre><code class="language-html">&lt;div id=&quot;container_div&quot;&gt;
+    &lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+    &lt;ef-pagination id=&#39;pagination_ui&#39; value=&quot;1&quot;&gt;&lt;/ef-pagination&gt;
+&lt;/div&gt;
 </code></pre>
 <pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
 
@@ -55,92 +37,103 @@ html hr {
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 10 });
+var paginationUI = document.getElementById(&quot;pagination_ui&quot;);
+var SERVER_DELAY = 300;
+var loading_mask = document.createElement(&quot;ef-loader&quot;);
+var PAGE_SIZE = 5;
 
-function onCellCliked(e) {
-    var pos = grid.api.getRelativePosition(e);
-    if (pos.sectionType === &quot;content&quot;) { // Prevent clicking on header section
-        var dv = grid.api.getDataView();
-        dv.toggleRowExpansion(pos.rowIndex);
+function showLoadingMask() {
+    if (!loading_mask.parentElement) {
+        container_div.classList.add(&#39;blur&#39;);
+        container_div.append(loading_mask);
     }
+
+    paginationUI.disabled = true;
+}
+function hideLoadingMask() {
+    if (loading_mask.parentElement) {
+        container_div.classList.remove(&#39;blur&#39;);
+        loading_mask.parentElement.removeChild(loading_mask);
+    }
+
+    paginationUI.disabled = false;
 }
 
-document.getElementById(&quot;save_states&quot;).addEventListener(&quot;click&quot;, function () {
-    var dv = grid.api.getDataView();
-    var rowWithExpansions = dv.getRowsWithExpansion();
-    var rowIds = rowWithExpansions.filter(function (id) {
-        return id;
-    });
+// Event handlers
+function onServerResponse(data) {
+    hideLoadingMask();
+    grid.data = data; // Setting data from server
+}
+function onRowCountRecieved(total) {
+    paginationUI.max = Math.ceil(total / PAGE_SIZE);
+}
+function onPageChanged(e) {
+    requestData(e.detail.value, PAGE_SIZE, onServerResponse);
+}
 
-    msg.textContent = &quot;Row Ids saved:\n&quot; + JSON.stringify(rowIds, null, 4);
-    sessionStorage.setItem(&quot;row_expansion_data&quot;, JSON.stringify(rowIds));
-});
+// Mocking Server
+function requestTotalPage(callback) {
+    setTimeout(function () { // Simulate network delay when requesting data from server
+        callback(serverData.length);
+    }, SERVER_DELAY);
+}
+function requestData(page, itemPerPage, callback) {
+    showLoadingMask();
+    page = parseInt(page);
+    itemPerPage = parseInt(itemPerPage);
+    setTimeout(function () { // Simulate network delay when requesting data from server
+        var start = itemPerPage * (page - 1);
+        var end = start + itemPerPage;
+        callback(serverData.slice(start, end));
+    }, SERVER_DELAY);
+}
 
-document.getElementById(&quot;load_states&quot;).addEventListener(&quot;click&quot;, function () {
-    // Initial row expansion from rowId
-    var dv = grid.api.getDataView();
-    var data = sessionStorage.getItem(&quot;row_expansion_data&quot;);
-    msg.textContent = &quot;Data loaded: &quot; + data;
-    const rowIds = JSON.parse(data);
-    dv.removeAllRowExpansions();
-    for (var rowId of rowIds) {
-        dv.addRowExpansion(rowId);
-    }
-});
-
-document.getElementById(&quot;clear_row_expan&quot;).addEventListener(&quot;click&quot;, function () {
-    var dv = grid.api.getDataView();
-    dv.removeAllRowExpansions();
-    msg.textContent = &quot;Row expansions are cleared&quot;;
-});
-
-var configObj = {
-    sorting: {
-        sortableColumns: true
+// Mocking Data
+var totalCount = 100;
+DataGenerator.addFieldInfo(&quot;rowNumber&quot;, {
+    type: &quot;function&quot;,
+    generate: function(info, seed) {
+        return ++info.count;
     },
+    count: 0,
+});
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;rowNumber&quot;];
+var serverData = DataGenerator.generateRecords(fields, { numRows: totalCount });
+
+// Initializing UIs
+var configObj = {
     columns: [
+        {name: &quot;ID&quot;, field: fields[5], alignment: &quot;center&quot;, width: 40},
         {name: &quot;Company&quot;, field: fields[0]},
         {name: &quot;Market&quot;, field: fields[1], width: 120},
         {name: &quot;Last&quot;, field: fields[2], width: 100},
         {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
         {name: &quot;Industry&quot;, field: fields[4]}
-    ],
-    rowExpansionBinding: function(e) {
-        var rowIndex = e[&quot;rowIndex&quot;];
-        var section = e[&quot;section&quot;];
-        var colCount = section.getColumnCount();
-        if (e.rowExpansion) {
-            for (var c = 0; c &lt; colCount; ++c) {
-                var cell = section.getCell(c, rowIndex);
-                cell.setContent(&quot;Row Expansion_&quot; + c);
-                cell.setStyle(&quot;backgroundColor&quot;, &quot;#cc7755&quot;);
-            }
-        } else {
-            for (var c = 0; c &lt; colCount; ++c) {
-                var cell = section.getCell(c, rowIndex);
-                cell.setStyle(&quot;backgroundColor&quot;, &quot;&quot;);
-            }
-        }
-    },
-    staticDataRows: records
+    ]
+    // ,dataModel: {...} Initial data is optional
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 
-grid.addEventListener(&quot;click&quot;, onCellCliked);
+paginationUI.addEventListener(&quot;value-changed&quot;, onPageChanged);
+
+// Start app by getting total number of items and data
+requestTotalPage(onRowCountRecieved);
+requestData(paginationUI.value, PAGE_SIZE, onServerResponse);
 </code></pre>
-</code-sandbox><h2 id="managing-states-for-row-expansion">Managing states for row expansion</h2>
-<p>Since row expansion has no row data to hold its state, the data has to be stored on the expanded row. The example below shows how you can have two different types of content based on the button being clicked.</p>
-<code-sandbox hash="ac6561b8"><pre><code class="language-css">efx-grid {
-    height: 200px;
+</code-sandbox><h1 id="client-side-pagination">Client side pagination</h1>
+<p>If you have all the data available on the client side and want to show data in pagination style, you can use the Pagination Extension and the <a href="https://ui.refinitiv.com/elements/pagination">pagination</a> element. The current page and page size can be configured using the <code>pagination</code> option. The pagination behaviors are then implemented by the extension. See <a href="#/extensions/tr-grid-pagination">Pagination Extension</a> for more details.</p>
+<h2 id="example-1">Example</h2>
+<code-sandbox hash="1ec4bc86"><pre><code class="language-css">efx-grid {
+    height: 169px;
 }
-html hr {
-    margin: 5px;
+ef-pagination {
+    margin-bottom: 30px;
 }
 </code></pre>
 <pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+&lt;ef-pagination id=&#39;pagination&#39;&gt;&lt;/ef-pagination&gt;
 </code></pre>
 <pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
 
@@ -150,220 +143,38 @@ html hr {
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 10 });
-
-var buttonFormatter = function (e) {
-    var cell = e[&quot;cell&quot;];
-    var content = cell.getContent();
-    if (!content || !cell._buttons) {
-        var buttonsContainer = (cell._buttons = document.createElement(&quot;div&quot;));
-        var firstButton = document.createElement(&quot;ef-button&quot;);
-        firstButton.icon = &quot;edit&quot;;
-        firstButton.addEventListener(&quot;click&quot;, onFirstClickButton);
-
-        var secondButton = document.createElement(&quot;ef-button&quot;);
-        secondButton.icon = &quot;filter&quot;;
-        secondButton.addEventListener(&quot;click&quot;, onSecondClickButton);
-        buttonsContainer.appendChild(firstButton);
-        buttonsContainer.appendChild(secondButton);
-    }
-    cell.setContent(cell._buttons);
-};
-
-var onFirstClickButton = function (e) {
-    var pos = grid.api.getRelativePosition(e);
-    var dv = grid.api.getDataView();
-
-    // Save the state to the expanded row
-    dv.setDataAt(pos.rowIndex, &quot;My_Clicked_Button&quot;, 1);
-
-    dv.toggleRowExpansion(pos.rowIndex);
-};
-
-var onSecondClickButton = function (e) {
-    var pos = grid.api.getRelativePosition(e);
-    var dv = grid.api.getDataView();
-
-    // Save the state to the expanded row
-    dv.setDataAt(pos.rowIndex, &quot;My_Clicked_Button&quot;, 2);
-
-    dv.toggleRowExpansion(pos.rowIndex);
-};
-
+DataGenerator.addFieldInfo(&quot;rowNumber&quot;, {
+    type: &quot;function&quot;,
+    generate: function(info, seed) {
+        return ++info.count;
+    },
+    count: 0,
+});
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;rowNumber&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 100 });
 var configObj = {
     columns: [
-        {
-            name: &quot;Buttons&quot;,
-            field: &quot;btnClicked&quot;,
-            binding: buttonFormatter,
-            width: 80,
-            alignment: &quot;center&quot;
-        },
+        {name: &quot;ID&quot;, field: fields[5], alignment: &quot;center&quot;, width: 40},
         {name: &quot;Company&quot;, field: fields[0]},
         {name: &quot;Market&quot;, field: fields[1], width: 120},
         {name: &quot;Last&quot;, field: fields[2], width: 100},
         {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
         {name: &quot;Industry&quot;, field: fields[4]}
     ],
-    rowExpansionBinding: function(e) {
-        var rowIndex = e[&quot;rowIndex&quot;];
-        var section = e[&quot;section&quot;];
-        if (e.rowExpansion) {
-            // render
-            var cell = section.stretchCell(0, rowIndex, true);
-            var rowData = e.originalRowData;
-            if (rowData[&quot;My_Clicked_Button&quot;] === 1) {
-                cell.setContent(&quot;First button was clicked&quot;);
-            } else {
-                cell.setContent(&quot;Second button was clicked&quot;);
-            }
-            cell.setStyle(&quot;backgroundColor&quot;, &quot;#cc7755&quot;);
-            cell.setStyle(&quot;textAlign&quot;, &quot;left&quot;);
-        } else {
-            // dispose
-            var cell = section.stretchCell(0, rowIndex, false);
-            cell.setStyle(&quot;backgroundColor&quot;, &quot;&quot;);
-            cell.setStyle(&quot;textAlign&quot;, &quot;&quot;);
-        }
+    dataModel: {
+        data: records
     },
-    staticDataRows: records
+    pagination: {
+        element: document.getElementById(&quot;pagination&quot;),
+        page: 1,
+        pageSize: 5
+    },
+    extensions: [
+        new Pagination()
+    ]
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
-</code></pre>
-</code-sandbox><h2 id="multiple-row-expansions-from-a-single-row">Multiple row expansions from a single row</h2>
-<p>You can specify the number of row expansions to be added on a single row by passing the number as the third parameter for <code>toggleRowExpansion(rowId, null, numRows)</code>. </p>
-<blockquote>
-<p>Note that row expansion has no row data. So the entire data set for multiple row expansions have to be stored on the expanded row. Luckily, any data structure can be stored on the row data. For instance, you can have an array of objects representing states of row expansions, like so:</p>
-</blockquote>
-<pre><code class="language-js">dv.setData(rowId, &quot;My_Row_Expansion_States&quot;, [ 
-    {name: &quot;Row 1&quot;, value: 1},
-    {name: &quot;Row 2&quot;, value: 2},
-    // ...
-]);
-</code></pre>
-<h2 id="handling-asynchronous-content">Handling asynchronous content</h2>
-<p>Rows can be shifted and data can be updated during the asynchronous process, such as waiting for a response from a server. It is a good idea to always use the row ID for referencing a row and <strong>not</strong> assume that rows or elements stay in the same place. </p>
-<p>The example below shows how to render custom content with asynchronous data. The row ID is retrieved and used for referencing after the server response.</p>
-<code-sandbox hash="15ceb89a"><pre><code class="language-css">efx-grid {
-    height: 200px;
-}
-html hr {
-    margin: 5px;
-}
-</code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-&lt;hr&gt;
-</code></pre>
-<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 10 });
-
-var onRowExpansionBinding = function(e) {
-    var rowData = e.originalRowData;
-    var rowIndex = e[&quot;rowIndex&quot;];
-    var section = e[&quot;section&quot;];
-    if (e.rowExpansion &amp;&amp; rowData) {
-        // render
-        var cell = section.stretchCell(0, rowIndex, true);
-        cell.setStyle(&quot;backgroundColor&quot;, &quot;#cc7755&quot;);
-        section.setRowHeight(rowIndex, 72); // Customized height
-
-        var expContent = cell.getContent();
-        if (!expContent || !expContent._myExpansion) {
-            expContent = document.createElement(&quot;div&quot;);
-            expContent._myExpansion = true;
-
-            var firstLine = expContent._firstLine = document.createElement(&quot;div&quot;);
-            var secondLine = expContent._secondLine = document.createElement(&quot;div&quot;);
-            var loader = expContent._loader = document.createElement(&quot;ef-loader&quot;);
-            var button = document.createElement(&quot;button&quot;);
-            button.textContent = &quot;Column &amp; Row Index&quot;;
-            button.addEventListener(&quot;click&quot;, function (e) {
-                var pos = grid.api.getRelativePosition(e);
-                alert(pos.colIndex + &quot;, &quot; + pos.rowIndex);
-            });
-
-            secondLine.appendChild(button);
-
-            expContent.appendChild(firstLine);
-            expContent.appendChild(secondLine);
-            expContent.appendChild(loader);
-        }
-
-        var rowData = e.originalRowData;
-        if (rowData[&quot;My_Expansion_Status&quot;] === &quot;loading&quot;) {
-            expContent._firstLine.style.display = &quot;none&quot;;
-            expContent._secondLine.style.display = &quot;none&quot;;
-            expContent._loader.style.display = &quot;&quot;;
-        } else {
-            expContent._firstLine.style.display = &quot;&quot;;
-            expContent._secondLine.style.display = &quot;&quot;;
-            expContent._loader.style.display = &quot;none&quot;;
-        }
-        cell.setContent(expContent);
-    } else {
-        // dispose
-        var cell = section.stretchCell(0, rowIndex, false);
-        cell.setStyle(&quot;backgroundColor&quot;, &quot;&quot;);
-        section.setRowHeight(rowIndex, section.getDefaultRowHeight()); // Default height
-    }
-}
-
-var onCellCliked = function(e) {
-    var pos = grid.api.getRelativePosition(e);
-    if (pos.sectionType === &quot;content&quot;) { // Prevent clicking on header section
-        var rowIndex = pos.rowIndex;
-        var rowDef = grid.api.getRowDefinition(rowIndex);
-        if (rowDef) { // Prevent clicking on expanded row
-            var rowId = rowDef.getRowId();
-            var dv = grid.api.getDataView();
-            if (!dv.isRowExpansion(rowId)) {
-                if (rowDef.getData(&quot;My_Expansion_Status&quot;) == null) {
-                    rowDef.setData(&quot;My_Expansion_Status&quot;, &quot;loading&quot;);
-                    // Simulate delay from data request
-                    setTimeout(onServerResponse.bind(null, dv, rowDef), 3000); // Asynchronous
-                }
-                dv.toggleRowExpansion(pos.rowIndex);
-            }
-        }
-    }
-};
-var onServerResponse = function(dv, rowDef) {
-    if (!dv.isRowExpansion(rowDef.getRowId())) {
-        rowDef.setData(&quot;My_Expansion_Status&quot;, &quot;data received&quot;);
-    }
-    grid.api.getCoreGrid().requestRowRefresh(); // WORKAROUND: Force re-rendering
-};
-
-var configObj = {
-    columnReorder: true,
-    sorting: {
-        sortableColumns: true
-    },
-    columns: [
-        {name: &quot;Company&quot;, field: fields[0]},
-        {name: &quot;Market&quot;, field: fields[1], width: 120},
-        {name: &quot;Last&quot;, field: fields[2], width: 100},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
-        {name: &quot;Industry&quot;, field: fields[4]}
-    ],
-    rowExpansionBinding: onRowExpansionBinding,
-    staticDataRows: records
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
-
-grid.addEventListener(&quot;click&quot;, onCellCliked);
 </code></pre>
 </code-sandbox>

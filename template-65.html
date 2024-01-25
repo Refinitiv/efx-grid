@@ -1,254 +1,149 @@
-<link rel="stylesheet" href="./resources/styles/elf-template.css">
-
-<h1 id="row-dragging">Row Dragging</h1>
-<p>The Row Dragging Extension allows the user to drag and reorder selected rows.</p>
-<code-sandbox hash="a16df36"><pre><code class="language-css">efx-grid {
-    height: 308px;
-}
-html hr {
-    margin: 5px;
-}
+<h1 id="overview">Overview</h1>
+<p><strong>Grid extensions</strong> provide enhancements for the <code>efx-grid</code> element and the underlying core library. This allows for greater extensibility without increasing the size of the main code base.</p>
+<h2 id="setup-guide">Setup guide</h2>
+<p>Use <code>import</code> syntax to import the extension into your app.</p>
+<pre><code class="language-js">import { EXTENSION_NAME } from &#39;@refinitiv-ui/efx-grid/extensions&#39;;
 </code></pre>
-<pre><code class="language-html">&lt;button id=&quot;get_btn&quot;&gt;Show Data&lt;/button&gt;
-&lt;hr&gt;
-&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+<p>For example</p>
+<pre><code class="language-js">import { AutoTooltip } from &#39;@refinitiv-ui/efx-grid/extensions&#39;;
 </code></pre>
-<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 10 });
-var configObj = {
-    columns: [
-        { field: fields[0], width: 30, alignment: &quot;center&quot; },
-        { name: &quot;Company&quot;, field: fields[1] },
-        { name: &quot;Market&quot;, field: fields[2], width: 120 },
-        { name: &quot;Last&quot;, field: fields[3], width: 100 },
-        { name: &quot;Net. Chng&quot;, field: fields[4], width: 100 },
-        { name: &quot;Industry&quot;, field: fields[5] }
-    ],
-    staticDataRows: records,
-    extensions: [
-        new RowDragging()
-    ]
+<h2 id="basic-usage">Basic usage</h2>
+<p>The simplest way to add extensions to Grid is by passing the extension&#39;s instances through the <code>extensions</code> property in the configuration object.</p>
+<pre><code class="language-js">var grid = document.getElementById(&#39;grid&#39;);
+grid.config = {
+  // main option
+  extensions: [
+    EXTENTION_INSTANCE
+  ]
 };
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
-
-document.getElementById(&quot;get_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
-    var rows = grid.api.getMultipleRowData(); // Get all row definitions
-    var colData = rows.map(function getIdAndCompanyName(rowData) {
-        return rowData[&quot;id&quot;] + &quot;: &quot; + rowData[&quot;companyName&quot;];
-    });
-    alert(colData.join(&quot;\n&quot;));
-});
 </code></pre>
-</code-sandbox><h2 id="installation-and-how-to-import-to-a-project">Installation and how to import to a project</h2>
-<p>Installation examples and details of how to import the extension to a project are available on the <a href="#/extensions/readme">Overview</a> page.</p>
-<h2 id="custom-dragbox">Custom dragbox</h2>
-<p>This allows users to customize the <code>dragBox</code> by providing a <code>dragBoxRenderer</code> option. It is not enabled initially.</p>
-<pre><code class="language-js">var gridConfig = {
-    ...
-    columns: [
-        { name: &quot;Column 1&quot;, field: &quot;col1&quot; },
-        { name: &quot;Column 2&quot;, field: &quot;col2&quot; },
-        { name: &quot;Column 3&quot;, field: &quot;col3&quot; },
-        { name: &quot;Column 4&quot;, field: &quot;col4&quot; },
-    ],
-    rowDragging: {
-        dragBoxRenderer: function(e) {
-            e.dragBox.textContent = e.dataRow.col1;
-        }
+<p>There are two kinds of extension options, the main option and the column-specific option.</p>
+<p>The main option is an option declared as a first-level property. Generally, the main option&#39;s attribute name is the extension&#39;s name but starting with a lower case letter. For example, <code>autoTooltip</code>.</p>
+<p>The column specific option is defined in the column option under the <code>columns</code> property of Grid&#39;s configuration.</p>
+<p>Details about both kinds of options are available on each extension&#39;s page.</p>
+<p><strong>Example of an extension option:</strong></p>
+<pre><code class="language-js">var grid = document.getElementById(&#39;grid&#39;);
+grid.config = {
+  // main option
+  columns: [
+    // column-specific option
+    {
+      name: &quot;Number&quot;,
+      field: &quot;number&quot;,
+      autoTooltip: true // column&#39;s specific option
     }
-    ...
-}
-</code></pre>
-<h2 id="drag-and-drop-content-outside-grids-area">Drag and drop content outside grid&#39;s area</h2>
-<p>The Row Dragging Extension can be used together with the <code>RowSelectionPlugin</code> to allow users to drag a selected row and drop it to a target outside of a Grid. Then, add <code>dragEnd</code> handler to perform content copying of the selected rows as illustrated below:</p>
-<code-sandbox hash="e85e3342"><pre><code class="language-css">efx-grid {
-    height: 308px;
-}
+  ],
 
-#drop_target {
-    width: 100%;
-    height: 100px;
-}
-</code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-&lt;textarea id=&quot;drop_target&quot; placeholder=&quot;Drop Content Here&quot;&gt;&lt;/textarea&gt;
-</code></pre>
-<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+  extensions: [
+    new AutoTooltip()
+  ],
 
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-function onDragEnd(e) {
-    var dropTargetEl = document.getElementById(&quot;drop_target&quot;);
-    if (e.dropTarget !== dropTargetEl) {
-        return;
-    }
-    var rowSelectionExt = e.srcGrid.getPlugin(&quot;RowSelectionPlugin&quot;);
-    var rowIndices = rowSelectionExt.getSelectedRows();
-    
-    var text = &quot;No Selected Row&quot;;
-    if (rowIndices) {
-        var rows = grid.api.getMultipleRowData(rowIndices);
-        text = JSON.stringify(rows, function replacer(key, val) {
-            if(key === &quot;ROW_DEF&quot;) { // Exclude Row definition reference
-                return;
-            }
-            return val;
-        }, 2)
-    }
-    dropTargetEl.value = text;
-}
-
-var fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 10 });
-var configObj = {
-    columns: [
-        { field: fields[0], width: 30, alignment: &quot;center&quot; },
-        { name: &quot;Company&quot;, field: fields[1] },
-        { name: &quot;Market&quot;, field: fields[2], width: 120 },
-        { name: &quot;Last&quot;, field: fields[3], width: 100 },
-        { name: &quot;Net. Chng&quot;, field: fields[4], width: 100 },
-        { name: &quot;Industry&quot;, field: fields[5] }
-    ],
-    staticDataRows: records,
-    rowDragging: {
-        autoScroll: false,
-        dragEnd: onDragEnd
-    },
-    extensions: [
-        new RowSelection(), new RowDragging()
-    ]
+  // extension option
+  autoTooltip: {
+    title: true,
+    content: false
+  }
 };
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
 </code></pre>
-</code-sandbox><h2 id="forbidden-drag-and-drop-behavior">Forbidden drag and drop behavior</h2>
-<p>The Row Dragging extension has a default behavior for row dragging, which is accompanied by a <code>void</code> icon when a user attempts to drag a row to another location. However, there are certain restrictions in place that forbidden the dragging of certain row types to other locations. For instance, some row types cannot be dragged, while others cannot be dragged to certain areas. To ensure seamless navigation, it is essential to be mindful of these restrictions. Therefore, we have compiled a list of available <a href="#/apis/rt-grid/rowdefinition">Row Types</a>, which can be found in the table below.</p>
+<h2 id="required-dependencies">Required dependencies</h2>
+<p>For details on how to install and use the EF-element see the <a href="https://ui.refinitiv.com/quick-start">Element Framework - Quick Start document</a>.</p>
+<h3 id="checkbox-extension">Checkbox Extension</h3>
+<p>The Checkbox Extension supports both the native checkbox and the <a href="https://ui.refinitiv.com/elements/checkbox">ef-checkbox</a>. To use with the ef-checkbox, the following dependency is also required:</p>
+<pre><code class="language-sh">npm install @refinitiv-ui/elements
+npm install @refinitiv-ui/halo-theme
+</code></pre>
+<p>Then import to your project <code>index.js</code>.</p>
+<pre><code class="language-js">// import element
+import &#39;@refinitiv-ui/elements/checkbox&#39;;
+
+// import element&#39;s Halo dark theme
+import &#39;@refinitiv-ui/elements/checkbox/themes/halo/dark&#39;; // Can be any theme
+</code></pre>
+<h3 id="range-bar-extension">Range Bar Extension</h3>
+<p>The Range Bar Extension provides graphical bar for last value ranking visualization based on low and high value with used <a href="https://ui.refinitiv.com/elements/led-gauge">ef-led-gauge</a>. To use the ef-led-gauge, the following dependency is also required:</p>
+<pre><code class="language-sh">npm install @refinitiv-ui/elements
+npm install @refinitiv-ui/halo-theme
+</code></pre>
+<p>Then import to your project <code>index.js</code>.</p>
+<pre><code class="language-jsx">// import element
+import &#39;@refinitiv-ui/elements/led-gauge&#39;;
+
+// import element&#39;s Halo dark theme
+import &#39;@refinitiv-ui/elements/led-gauge/themes/halo/dark&#39;; // Can be any theme
+</code></pre>
+<h3 id="filter-input-extension">Filter Input Extension</h3>
+<p>The Filter Input extension supports various types of input elements. These can be archived by specifying the <code>type</code> property through <code>FilterInputPlugin options</code>. The EF component for each type of inputs is shown below:</p>
 <table>
 <thead>
 <tr>
-<th>From/To Row types</th>
-<th align="center">Content</th>
-<th align="center">Chain</th>
-<th align="center">Constituent</th>
-<th align="center">Group header</th>
-<th align="center">Group member</th>
-<th align="center">Subgroup header</th>
+<th>Type</th>
+<th>Import Name</th>
+<th>Required EF Element</th>
 </tr>
 </thead>
 <tbody><tr>
-<td>Content</td>
-<td align="center">&#x2713;</td>
-<td align="center">&#x2713;</td>
-<td align="center">&#x2717;</td>
-<td align="center">&#x2713;</td>
-<td align="center">&#x2713;</td>
-<td align="center">&#x2717;</td>
+<td>default</td>
+<td>search-field</td>
+<td>ef-search-field</td>
 </tr>
 <tr>
-<td>Chain</td>
-<td align="center">&#x2713;</td>
-<td align="center">&#x2713;</td>
-<td align="center">&#x2717;</td>
-<td align="center">&#x2713;</td>
-<td align="center">&#x2717;</td>
-<td align="center">&#x2717;</td>
+<td>number</td>
+<td>number-field</td>
+<td>ef-number-field</td>
 </tr>
 <tr>
-<td>Constituent</td>
-<td align="center">&#x2717;</td>
-<td align="center">&#x2717;</td>
-<td align="center">&#x2717;</td>
-<td align="center">&#x2717;</td>
-<td align="center">&#x2717;</td>
-<td align="center">&#x2717;</td>
+<td>select</td>
+<td>select</td>
+<td>ef-select</td>
 </tr>
 <tr>
-<td>Group header</td>
-<td align="center">&#x2713;</td>
-<td align="center">&#x2713;</td>
-<td align="center">&#x2717;</td>
-<td align="center">&#x2713;</td>
-<td align="center">&#x2717;</td>
-<td align="center">&#x2717;</td>
+<td>dropdown</td>
+<td>select</td>
+<td>ef-select</td>
 </tr>
 <tr>
-<td>Group member</td>
-<td align="center">&#x2713;</td>
-<td align="center">&#x2713;</td>
-<td align="center">&#x2717;</td>
-<td align="center">&#x2713;</td>
-<td align="center">&#x2713;</td>
-<td align="center">&#x2717;</td>
-</tr>
-<tr>
-<td>Subgroup header</td>
-<td align="center">&#x2717;</td>
-<td align="center">&#x2717;</td>
-<td align="center">&#x2717;</td>
-<td align="center">&#x2717;</td>
-<td align="center">&#x2717;</td>
-<td align="center">&#x2717;</td>
+<td>date</td>
+<td>datetime-picker</td>
+<td>ef-datetime-picker</td>
 </tr>
 </tbody></table>
 <blockquote>
-<p>Note: Members of the <code>Subgroup header</code> type can only be moved within their group.</p>
+<p>Note: there is no need to specify a type for the default input element.</p>
 </blockquote>
-<h2 id="migrating-from-built-in-dragablecontentplugin">Migrating from built-in DragableContentPlugin</h2>
-<p>Due to the built-in libraries being migrated out from the <code>Core Grid</code> to extensions, built-in extension will be deprecated and will no longer be maintained.</p>
-<p>The differences between the legacy (built-in) version of Row Dragging and the new extension can be seen in the examples below</p>
-<blockquote>
-<p>Note: The Row Dragging Extension is backward compatible with the old built-in (with some breaking changes). Therefore, the new implementation is recommended.</p>
-</blockquote>
-<h2 id="built-in">Built-in</h2>
-<pre><code class="language-js">var gridConfig = {
-    ...
-    rowReorder: {
-        dragBoxRenderer: function (dragEvent, dragBox, dataRows) {
-            dragBox.setContent(&quot;test&quot;);
-        }
-    },
-    ...
-}
-</code></pre>
-<h2 id="new-extension">New extension</h2>
-<pre><code class="language-js">var gridConfig = {
-    ...
-    rowDragging: {
-        dragBoxRenderer: function (e) {
-            // e.dragBox
-            // e.dataRows
-            e.dragBox.textContent = &quot;test&quot;;
-        }
-    },
-    ...
-}
-</code></pre>
-<p>For the new implementation, you need to change to the <code>rowDragging</code> option. And the <code>dragBoxRenderer</code> receives an <code>event</code> only as an argument.</p>
-<div></div>
-
-<h2 style="margin-bottom:5px" id="api-refs">API Reference</h2>
-<div id="elf-api-container"><div id="main-template" class="elf-template">    <section><article>                                                                <h3 class="subsection-title" id="members">Members</h3>                                                <h3 class="subsection-title" id="type_definitions">Type Definitions</h3>                        <div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~Options">Options</h4><div class="description">    Available options describing `rowDragging` object specified in grid's option</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>dragBox</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">If enabled, information box will be shown during the drag</td>        </tr>            <tr>                            <td class="name"><code>disabled</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">A flag to turn off UIs, while events will still be dispatched. If enabled, guileline and drag box will be hidden. autoScroll will also be turned off.</td>        </tr>            <tr>                            <td class="name"><code>mouseInput</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    true                                </td>                        <td class="description last">If disabled, mousemove/mousedown will not trigger the drag operation.</td>        </tr>            <tr>                            <td class="name"><code>dataTransfer</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    true                                </td>                        <td class="description last">If disabled, internal row data will not be moved at the end of the drag operation.</td>        </tr>            <tr>                            <td class="name"><code>autoScroll</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    true                                </td>                        <td class="description last">If disabled, grid will not be verticallly scrolled when mouse is hovering around the edges of the grid.</td>        </tr>            <tr>                            <td class="name"><code>dragBoxRenderer</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Allow user to customize dragBox</td>        </tr>            <tr>                            <td class="name"><code>dragStart</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Function handler for dragStart event</td>        </tr>            <tr>                            <td class="name"><code>drag</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Function handler for drag event</td>        </tr>            <tr>                            <td class="name"><code>dragEnd</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Function handler for dragEnd event</td>        </tr>            <tr>                            <td class="name"><code>dataMoved</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Function handler for dataMoved event</td>        </tr>            <tr>                            <td class="name"><code>beforeDataMoved</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Function handler for beforeDataMoved event</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            <h3 class="subsection-title" id="methods">Methods</h3>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="allowDrag"><span class="type-signature"></span>allowDrag<span class="signature">(allowed<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">allowed</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="allowDrop"><span class="type-signature"></span>allowDrop<span class="signature">(allowed<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">allowed</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="cancelDrag"><span class="type-signature"></span>cancelDrag<span class="signature">()</span><span class="type-signature"></span></h4>                                            <div class="details">                                                            </div>                                    </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="config"><span class="type-signature"></span>config<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    Grid model object                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="disable"><span class="type-signature"></span>disable<span class="signature">(disabled<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                            <div class="description">        Disable drag and drop functionality. Unlike disableUIs method, no events will be triggered or dispatched by user actions.This method is useful for temporary turnning off drag and drop functionalities.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">disabled</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            <dt class="tag-see">See:</dt>    <dd class="tag-see">        <ul>            <li><a href="/extensions/tr-grid-row-dragging#disable">RowDraggingPlugin#disable</a></li>        </ul>    </dd>        </div>                                    </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="disableDragging"><span class="type-signature"></span>disableDragging<span class="signature">(disabled<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">disabled</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="disableUIs"><span class="type-signature"></span>disableUIs<span class="signature">(disabled<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                            <div class="description">        Disable UIs, while events will still be triggered by user actions. This method modify `disabled` property on the configuration object.This method is useful for customizing UIs during the drag operations.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">disabled</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            <dt class="tag-see">See:</dt>    <dd class="tag-see">        <ul>            <li><a href="/extensions/tr-grid-row-dragging#disable">RowDraggingPlugin#disable</a></li>        </ul>    </dd>        </div>                                    </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="enableJETDragAndDrop"><span class="type-signature"></span>enableJETDragAndDrop<span class="signature">(enabled<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">enabled</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getConfigObject"><span class="type-signature"></span>getConfigObject<span class="signature">(out_obj<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Object}</span></h4>                            <div class="description">        Get a current state of grid and extension config    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">out_obj</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div>                </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getDragBox"><span class="type-signature"></span>getDragBox<span class="signature">()</span><span class="type-signature"> → {Element}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Element</span>    </div>                </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getDragSource"><span class="type-signature"></span>getDragSource<span class="signature">()</span><span class="type-signature"> → {string}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">string</span>    </div>                </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getGuideline"><span class="type-signature"></span>getGuideline<span class="signature">()</span><span class="type-signature"> → {Element}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Element</span>    </div>                </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getJETDragContent"><span class="type-signature"></span>getJETDragContent<span class="signature">()</span><span class="type-signature"> → {Object}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div>                </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getName"><span class="type-signature"></span>getName<span class="signature">()</span><span class="type-signature"> → {string}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">string</span>    </div>                </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="hasMultiTableSupport"><span class="type-signature"></span>hasMultiTableSupport<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Plugin can have multiple hosts/tables and share its states across those hosts/tables.    </div>                        <div class="details">                    <dt class="tag-overrides">Overrides:</dt>    <dd class="tag-overrides">        <a href="">GridPlugin#hasMultiTableSupport</a>    </dd>                                                </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="initialize"><span class="type-signature"></span>initialize<span class="signature">(host, options)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">host</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    core grid instance                </div>                    </div>                <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="isDisabled"><span class="type-signature"></span>isDisabled<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="isDragging"><span class="type-signature"></span>isDragging<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setDragContent"><span class="type-signature"></span>setDragContent<span class="signature">(content)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">content</div>                        <div class="type">                            <span class="param-type">*</span>                        </div>                                                    <div class="description">                    Element, Node, string, number, or everything else.                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setJETDragContent"><span class="type-signature"></span>setJETDragContent<span class="signature">(content)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">content</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setJETDragContent"><span class="type-signature"></span>setJETDragContent<span class="signature">(content)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">content</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="startDrag"><span class="type-signature"></span>startDrag<span class="signature">(startRef<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">startRef</div>                        <div class="type">                            <span class="param-type">*</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="stopDrag"><span class="type-signature"></span>stopDrag<span class="signature">()</span><span class="type-signature"></span></h4>                                            <div class="details">                                                            </div>                                    </div>                    <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="unload"><span class="type-signature"></span>unload<span class="signature">(host)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">host</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    core grid instance                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                        <h3 class="subsection-title" id="events">Events</h3>                    <div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:beforeDataMoved">beforeDataMoved</h4>                            <div class="description">        Fired after mouseup and before the data/row is about to be moved. You can check the current drag and drop states, cancel operation or apply custom tasks in this event.    </div>                    <h5>Type:</h5>        <span class="param-type">Object</span>                    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>srcRowIndices</code></td>                        <td class="type">                            <span class="param-type">Array.&lt;number&gt;</span>                        </td>                                    <td class="description last">row indices of the selected rows</td>        </tr>            <tr>                            <td class="name"><code>srcRowIds</code></td>                        <td class="type">                            <span class="param-type">Array.&lt;string&gt;</span>                        </td>                                    <td class="description last">row ids of the selected rows</td>        </tr>            <tr>                            <td class="name"><code>srcRowTypes</code></td>                        <td class="type">                            <span class="param-type">Array.&lt;string&gt;</span>                        </td>                                    <td class="description last">row types of the selected rows</td>        </tr>            <tr>                            <td class="name"><code>consolidatedSrcRowType</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                                    <td class="description last">"MIXED" type is set if there are two or more row types in the srcRowTypes</td>        </tr>            <tr>                            <td class="name"><code>destRowIndex</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                                    <td class="description last">row index of the drop area</td>        </tr>            <tr>                            <td class="name"><code>destRowId</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                                    <td class="description last">row id of the drop area. This will be empty string for the end of grid</td>        </tr>            <tr>                            <td class="name"><code>destRowType</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                                    <td class="description last">row type of the drop area. This will be empty string for the end of grid</td>        </tr>        </tbody></table></div><div class="details">                                                            </div>                                            <h5>Example:</h5>            <pre><code>beforeDataMoved: function(e) {
-  let srcRowType = e.srcRowTypes[0];
-  let destRowType = e.destRowType;
-  if(srcRowType === "GROUP_MEMBER" &amp;&amp; destRowType === "CONTENT") {
-    e.cancel = true; // Prevent a group member row from moving outside of its own group
-  }
-}</code></pre>    </div>                    <div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:dataMoved">dataMoved</h4>                            <div class="description">        Fired when rows or data are moved by the drag operation.    </div>                    <h5>Type:</h5>        <span class="param-type">Object</span>                    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>srcRowIndices</code></td>                        <td class="type">                            <span class="param-type">Array.&lt;number&gt;</span>                        </td>                                    <td class="description last">row indices of the selected rows</td>        </tr>            <tr>                            <td class="name"><code>srcRowIds</code></td>                        <td class="type">                            <span class="param-type">Array.&lt;string&gt;</span>                        </td>                                    <td class="description last">row ids of the selected rows</td>        </tr>            <tr>                            <td class="name"><code>srcRowTypes</code></td>                        <td class="type">                            <span class="param-type">Array.&lt;string&gt;</span>                        </td>                                    <td class="description last">row types of the selected rows</td>        </tr>            <tr>                            <td class="name"><code>consolidatedSrcRowType</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                                    <td class="description last">"MIXED" type is set if there are two or more row types in the srcRowTypes</td>        </tr>            <tr>                            <td class="name"><code>destRowIndex</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                                    <td class="description last">row index of the drop area</td>        </tr>            <tr>                            <td class="name"><code>destRowId</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                                    <td class="description last">row id of the drop area. This will be empty string for the end of grid</td>        </tr>            <tr>                            <td class="name"><code>destRowType</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                                    <td class="description last">row type of the drop area. This will be empty string for the end of grid</td>        </tr>        </tbody></table></div><div class="details">                                                            </div>                                    </div>                    <div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:drag">drag</h4>                            <div class="description">        Fired on each mousemove or touchmove    </div>                    <h5>Type:</h5>        <span class="param-type">Object</span>                <div class="details">                                                            </div>                                    </div>                    <div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:dragEnd">dragEnd</h4>                            <div class="description">        The event will always be fired at the end of the drag operation. This is to allow clearing of any resource used. You can cancel the data moving operation by setting cancel property to true.    </div>                    <h5>Type:</h5>        <span class="param-type">Object</span>                <div class="details">                                                            </div>                                    </div>                    <div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:dragInterval">dragInterval</h4>                            <div class="description">        Fired at an interval during drag    </div>                    <h5>Type:</h5>        <span class="param-type">Object</span>                <div class="details">                                                            </div>                                    </div>                    <div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:dragStart">dragStart</h4>                            <div class="description">        The event is fired at the beginning of the drag operation. You can cancel the operation by setting cancel property to true.    </div>                    <h5>Type:</h5>        <span class="param-type">Object</span>                <div class="details">                                                            </div>                                            <h5>Example:</h5>            <pre><code>// ...
-dragStart: function(e) {
-  e.cancel = true; // To cancel the operation
-}, // ..</code></pre>    </div>            </article></section></div></div>
+<p>Additional dependencies are required according to the <code>type</code> of input. For example, if specified <code>type</code> is <code>date</code>, the additional dependency is ef-datetime-picker.</p>
+<h3 id="pagination-extension">Pagination Extension</h3>
+<p>The Pagination Extension does not provide any UI. You will need to install <code>@refinitiv-ui/elements</code> separately for the UI. The extension will automatically wire the functionalities to the UI element once it is presented.</p>
+<p>The pagination element is <strong>completely independent</strong> from the grid element and the Pagination Extension. So, any customization and feature request regarding the element has to be sent to the <a href="mailto:RefinitivUIDev@refinitiv.com">LSEG UI team</a>. The documentation for the element can be found on LSEG UI&#39;s <a href="https://ui.refinitiv.com/elements/pagination">Pagination</a> page.</p>
+<h2 id="available-extensions">Available extensions</h2>
+<ul>
+<li><a href="#/extensions/tr-grid-auto-tooltip">Auto Tooltip</a></li>
+<li><a href="#/extensions/tr-grid-cell-selection">Cell Selection</a></li>
+<li><a href="#/extensions/tr-grid-checkbox">Checkbox</a></li>
+<li><a href="#/extensions/column-dragging">Column Dragging</a></li>
+<li><a href="#/extensions/tr-grid-column-fitter">Column Fitter</a></li>
+<li><a href="#/extensions/tr-grid-column-formatting">Column Formatting</a></li>
+<li><a href="#/extensions/tr-grid-column-grouping">Column Grouping</a></li>
+<li><a href="#/extensions/tr-grid-column-resizing">Column Resizing</a></li>
+<li><a href="#/extensions/tr-grid-column-selection">Column Selection</a></li>
+<li><a href="#/extensions/tr-grid-column-stack">Column Stack</a></li>
+<li><a href="#/extensions/tr-grid-conditional-coloring">Conditional Coloring</a></li>
+<li><a href="#/extensions/tr-grid-content-wrap">Content Wrap</a></li>
+<li><a href="#/extensions/tr-grid-contextmenu">Context Menu</a></li>
+<li><a href="#/extensions/tr-grid-filter-input">Filter Input</a></li>
+<li><a href="#/extensions/tr-grid-heat-map">Heat Map</a></li>
+<li><a href="#/extensions/tr-grid-in-cell-editing">In Cell Editing</a></li>
+<li><a href="#/extensions/tr-grid-pagination">Pagination</a></li>
+<li><a href="#/extensions/tr-grid-percent-bar">Percent Bar</a></li>
+<li><a href="#/extensions/tr-grid-range-bar">Range Bar</a></li>
+<li><a href="#/extensions/tr-grid-row-dragging">Row Dragging</a></li>
+<li><a href="#/extensions/tr-grid-row-filtering">Row Filtering</a></li>
+<li><a href="#/extensions/tr-grid-row-grouping">Row Grouping</a></li>
+<li><a href="#/extensions/row-segmenting">Row Segmenting</a></li>
+<li><a href="#/extensions/tr-grid-row-selection">Row Selection</a></li>
+<li><a href="#/extensions/tr-grid-rowcoloring">Row Coloring</a></li>
+<li><a href="#/extensions/statistics-row">Statistics Row</a></li>
+<li><a href="#/extensions/tr-grid-textformatting">Text Formatting</a></li>
+<li><a href="#/extensions/tr-grid-titlewrap">Title Wrap</a></li>
+<li><a href="#/extensions/zoom">Zoom</a></li>
+</ul>
+<p>Visit the relevant extensions&#39; sections to see the APIs, their usage and live demos.</p>

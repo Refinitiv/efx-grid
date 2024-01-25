@@ -1,0 +1,41 @@
+<h1 id="row---highlight-and-selection">Row - Highlight and Selection</h1>
+<p>Row highlighting can be turned on/off by setting the options for <code>rowHighlighting</code> to <em>true</em> and <em>false</em> respectively. Row highlighting will be turn on by default.</p>
+<p>All related row selection functionalities can be added through the <a href="#/extensions/tr-grid-row-selection">Row Selection Extension</a>.</p>
+<h2 id="example">Example</h2>
+<code-sandbox hash="c5353e7a"><pre><code class="language-css">efx-grid {
+    height: 200px;
+}
+html hr {
+    margin: 5px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;big&gt;Hover mouse over Grid to see row highlighting&lt;/big&gt;
+&lt;hr&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 6 });
+var configObj = {
+    rowHighlighting: true, // Add This Property to turn on/off
+    columns: [
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market&quot;, field: fields[1], width: 100},
+        {name: &quot;Last&quot;, field: fields[2], width: 80},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 80},
+        {name: &quot;Industry&quot;, field: fields[4]}
+    ],
+    staticDataRows: records
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox>

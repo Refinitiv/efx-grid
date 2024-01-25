@@ -1,35 +1,969 @@
-<h1 id="using-core-apis">Using Core APIs</h1>
-<p>Core Grid is the internal part of Grid, containing logics for UI and layout manipulation. Grid is just a wrapper that make the JavaScript grid component (Core Grid) become a <a href="https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_custom_elements">custom element</a> in the <a href="https://developer.mozilla.org/en-US/docs/Web/Web_Components">Web Components</a> standard. </p>
-<p>Some of the APIs are already propagated and exposed to the <code>api</code> property of the element. However, most of the APIs are still only available in the core part of Grid. </p>
-<p>To unlock all the APIs you need to get a reference to the Core Grid by using the <code>getCoreGrid</code> method from <code>api</code> as shown in the below sample:</p>
-<pre><code class="language-js">var grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
-grid.addEventListener(&quot;configured&quot;, function(e) {
-    var core = e.detail.api.getCoreGrid(); // Getting Core Grid reference
-    
-    var titleSection = core.getSection(&quot;title&quot;);
-    var contentSection = core.getSection(&quot;content&quot;);
-    var colCount = core.getColumnCount();
-});
-</code></pre>
-<blockquote>
-<p>Note: The <a href="https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_custom_elements">custom elements</a> are not defined immediately after the page load. <code>api</code> will only be available after the element is defined. So, use the <code>configured</code> event to ensure the existence of the <code>api</code> property.</p>
-</blockquote>
-<p>For all available Core Grid APIs, see <a href="#/apis/readme">this page</a>.</p>
-<h2 id="getting-built-in-plugins-and-extensions">Getting built-in plugins and extensions</h2>
-<p>Due to the long history of its development, Grid contains a lot of legacy codes, including built-in plugins. A plugin is just an old name for an extension. So, to get a reference for <strong>plugins or extensions</strong>, you can use the <code>getPlugin</code> method from the Core Grid. </p>
-<blockquote>
-<p>Note: The &quot;SortableTitlePlugin&quot; is the only notable plugin worth mentioning among built-in plugins, since it manages how Grid sorts the data. </p>
-</blockquote>
-<p>The following example shows how you can listen to the <code>columnSorted</code> event fired after each sorting state change from the SortableTitlePlugin.</p>
-<h2 id="example">Example</h2>
-<code-sandbox hash="2ea8fb70"><pre><code class="language-css">efx-grid {
-    height: 200px;
+<link rel="stylesheet" href="./resources/styles/elf-template.css">
+
+<h1 id="row-grouping">Row Grouping</h1>
+<p>The Row Grouping Extension uses categorization based on column field. Each group will have arrow button for expansion and collapsing of its members.</p>
+<code-sandbox hash="d670857d"><pre><code class="language-css">efx-grid {
+    height: 225px;
 }
-html hr {
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+DataGenerator.addFieldInfo(&quot;companyName&quot;, {
+    type: &quot;set&quot;,
+    members: [&quot;Kunze LLC&quot;, &quot;Rohan-Kohler&quot;, &quot;Bosco-Terry&quot;, &quot;Prohaska&quot;, &quot;Ziemann Group&quot;]
+});
+DataGenerator.addFieldInfo(&quot;industry&quot;, {
+    type: &quot;set&quot;,
+    members: [&quot;Chemicals&quot;, &quot;Auto&quot;, &quot;Finance&quot;, &quot;Electric&quot;, &quot;Biotechnology&quot;]
+});
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;industry&quot;, &quot;CF_NETCHNG&quot;, &quot;date1&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 20 });
+var configObj = {
+    columns: [
+        { name: &quot;Company&quot;, field: fields[0] },
+        { name: &quot;Industry&quot;, field: fields[2] },
+        { name: &quot;Net. Chng&quot;, field: fields[3], width: 100, alignment: &quot;right&quot; },
+        { name: &quot;Updated&quot;, field: fields[4] }
+    ],
+    staticDataRows: records,
+    rowGrouping: {
+        groupBy: fields[1]
+    },
+    extensions: [
+        new RowGrouping()
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="installation-and-how-to-import-to-a-project">Installation and how to import to a project</h2>
+<p>Installation examples and details of how to import the extension to a project are available on the <a href="#/extensions/readme">Overview</a> page.</p>
+<h2 id="basic-usage">Basic usage</h2>
+<p>To group your data together, You can specify <code>groupBy</code> option under <code>rowGrouping</code>. The value can be either a string or an array of column field. If input as an array, the Grid will display as a nested group.</p>
+<p>By default, there will be an extra row display as a header of each group.</p>
+<pre><code class="language-js">var config = {
+    // any other grid&#39;s options
+    columns: [{
+        { id: &#39;c1&#39;, name: &#39;Column 1&#39;, field: &#39;col1&#39; },
+        // more column options
+    }],
+    rowGrouping: {
+        groupBy: &#39;col1&#39; // Or [&#39;col2&#39;, &#39;col3&#39;, ...]
+    },
+};
+</code></pre>
+<h2 id="initial-collapsing-state">Initial collapsing state</h2>
+<p>The initial groups created by the extension are expanded by default. To initially collapse all groups by default, set <code>defaultCollapse</code> property to <code>true</code></p>
+<code-sandbox hash="6cd89777"><pre><code class="language-css">efx-grid {
+    height: 225px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+DataGenerator.addFieldInfo(&quot;companyName&quot;, {
+    type: &quot;set&quot;,
+    members: [&quot;Kunze LLC&quot;, &quot;Rohan-Kohler&quot;, &quot;Bosco-Terry&quot;, &quot;Prohaska&quot;, &quot;Ziemann Group&quot;]
+});
+DataGenerator.addFieldInfo(&quot;industry&quot;, {
+    type: &quot;set&quot;,
+    members: [&quot;Chemicals&quot;, &quot;Auto&quot;, &quot;Finance&quot;, &quot;Electric&quot;, &quot;Biotechnology&quot;]
+});
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;industry&quot;, &quot;CF_NETCHNG&quot;, &quot;date1&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 20 });
+var configObj = {
+    columns: [
+        { name: &quot;Company&quot;, field: fields[0] },
+        { name: &quot;Industry&quot;, field: fields[2] },
+        { name: &quot;Net. Chng&quot;, field: fields[3], width: 100, alignment: &quot;right&quot; },
+        { name: &quot;Updated&quot;, field: fields[4] }
+    ],
+    staticDataRows: records,
+    rowGrouping: {
+        defaultCollapse: true,
+        groupBy: fields[1]
+    },
+    extensions: [
+        new RowGrouping()
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="data-sorting">Data sorting</h2>
+<p>This extension can work with the <a href="#/sorting/sorting">Sorting Extension</a> out-of-the-box. But only the data within the group will be sorted, not the columns which are grouped.</p>
+<blockquote>
+<p>Note: Try clicking on column header</p>
+</blockquote>
+<code-sandbox hash="2e8fcf24"><pre><code class="language-css">efx-grid {
+    height: 225px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+DataGenerator.addFieldInfo(&quot;companyName&quot;, {
+    type: &quot;set&quot;,
+    members: [&quot;Kunze LLC&quot;, &quot;Rohan-Kohler&quot;, &quot;Bosco-Terry&quot;, &quot;Prohaska&quot;, &quot;Ziemann Group&quot;]
+});
+DataGenerator.addFieldInfo(&quot;industry&quot;, {
+    type: &quot;set&quot;,
+    members: [&quot;Chemicals&quot;, &quot;Auto&quot;, &quot;Finance&quot;, &quot;Electric&quot;, &quot;Biotechnology&quot;]
+});
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;industry&quot;, &quot;CF_NETCHNG&quot;, &quot;date1&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 20 });
+var configObj = {
+    sorting: {
+        sortableColumns: true
+    },
+    columns: [
+        { name: &quot;Company&quot;, field: fields[0] },
+        { name: &quot;Industry&quot;, field: fields[2] },
+        { name: &quot;Net. Chng&quot;, field: fields[3], width: 100, alignment: &quot;right&quot; },
+        { name: &quot;Updated&quot;, field: fields[4] }
+    ],
+    staticDataRows: records,
+    rowGrouping: {
+        groupBy: fields[1]
+    },
+    extensions: [
+        new RowGrouping()
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="group-sorting">Group sorting</h2>
+<p>In some case you might want to prioritize some group over another. We provide a way to sort the group with <code>groupSortLogic</code> option. If so, you can sort a group using the <code>groupSortLogic</code> option. It receives the same compare function as <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort">Array.prototype.sort()</a>.</p>
+<pre><code class="language-js">var config = {
+    // any other grid&#39;s options
+    rowGrouping: {
+        groupSortLogic: function(grp1, grp2) { // Sort in ascending order (A -&gt; Z)
+            if(grp1 &lt; grp2) return -1;
+            if(grp1 &gt; grp2) return 1;
+            return 0;
+        },
+        groupBy: &#39;col1&#39; // Or [&#39;col2&#39;, &#39;col3&#39;, ...]
+    },
+};
+</code></pre>
+<p>You can now see that <code>DJI</code> has more priority over <code>HKEX</code>.</p>
+<code-sandbox hash="f03bf433"><pre><code class="language-css">efx-grid {
+    height: 225px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+DataGenerator.addFieldInfo(&quot;companyName&quot;, {
+    type: &quot;set&quot;,
+    members: [&quot;Kunze LLC&quot;, &quot;Rohan-Kohler&quot;, &quot;Bosco-Terry&quot;, &quot;Prohaska&quot;, &quot;Ziemann Group&quot;]
+});
+DataGenerator.addFieldInfo(&quot;industry&quot;, {
+    type: &quot;set&quot;,
+    members: [&quot;Chemicals&quot;, &quot;Auto&quot;, &quot;Finance&quot;, &quot;Electric&quot;, &quot;Biotechnology&quot;]
+});
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;industry&quot;, &quot;CF_NETCHNG&quot;, &quot;date1&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 20 });
+var configObj = {
+    sorting: {
+        sortableColumns: true
+    },
+    columns: [
+        { name: &quot;Company&quot;, field: fields[0] },
+        { name: &quot;Industry&quot;, field: fields[2] },
+        { name: &quot;Net. Chng&quot;, field: fields[3], width: 100, alignment: &quot;right&quot; },
+        { name: &quot;Updated&quot;, field: fields[4] }
+    ],
+    staticDataRows: records,
+    rowGrouping: {
+        groupBy: fields[1],
+        groupSortLogic: function(grp1, grp2) { // Sort in ascending order (A -&gt; Z)
+            if(grp1 &lt; grp2) return -1;
+            if(grp1 &gt; grp2) return 1;
+            return 0;
+        }
+    },
+    extensions: [
+        new RowGrouping()
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="nested-group">Nested group</h2>
+<p>This is achieved by setting <code>groupBy</code> options with array of fields.</p>
+<pre><code class="language-js">var config = {
+    // any other grid&#39;s options
+    rowGrouping: {
+        groupBy: [&quot;group&quot;, &quot;c1&quot;]
+    },
+};
+</code></pre>
+<code-sandbox hash="9166324b"><pre><code class="language-css">efx-grid {
+    height: 225px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+DataGenerator.addFieldInfo(&quot;companyName&quot;, {
+    type: &quot;set&quot;,
+    members: [&quot;Kunze LLC&quot;, &quot;Rohan-Kohler&quot;, &quot;Bosco-Terry&quot;, &quot;Prohaska&quot;, &quot;Ziemann Group&quot;]
+});
+DataGenerator.addFieldInfo(&quot;industry&quot;, {
+    type: &quot;set&quot;,
+    members: [&quot;Chemicals&quot;, &quot;Auto&quot;, &quot;Finance&quot;, &quot;Electric&quot;, &quot;Biotechnology&quot;]
+});
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;industry&quot;, &quot;CF_NETCHNG&quot;, &quot;date1&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 20 });
+var configObj = {
+    sorting: {
+        sortableColumns: true
+    },
+    columns: [
+        { name: &quot;Company&quot;, field: fields[0] },
+        { name: &quot;Industry&quot;, field: fields[2] },
+        { name: &quot;Net. Chng&quot;, field: fields[3], width: 100, alignment: &quot;right&quot; },
+        { name: &quot;Updated&quot;, field: fields[4] }
+    ],
+    staticDataRows: records,
+    rowGrouping: {
+        groupBy: [fields[1], fields[2]]
+    },
+    extensions: [
+        new RowGrouping()
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="rendering-group-header-rows">Rendering group header rows</h2>
+<p>By default, group header rows are rendered by their group value. To override default rendering, you need to define <code>groupHeaderBinding</code> and <code>nonGroupBinding</code> methods in the configuration. <code>groupHeaderBinding</code> will be executed for every group header rows and is used for custom rendering. <code>nonGroupBinding</code> is used to cleared any special styles set in <code>groupHeaderBinding</code>, since the same cell are re-used for both group header rows and non-group header rows (content rows). </p>
+<p>By default, group header rows are displayed as a single cell that spans across multiple columns. It works by stretching existing cells from the first column to fill entire grid&#39;s width. You can turn off cell spanning by setting <code>headerSpanning</code> to false in the configuration. The option can be useful, if you want to show some content, such as statistics, on group header rows for every column. You can also specify which cells to be stretched by setting <code>displayColumn</code> to other column (default is the first column).</p>
+<h3 id="example-custom-style-in-group-header-rows">Example custom style in group header rows</h3>
+<p>In the example below, we demonstrate how to customize the style of group header rows. With this customization, you can add elements to the group header rows and include additional information from your side.</p>
+<p>If you want to use the <code>predefinedColors</code> option and specify a <code>groupId</code> using the <code>groupColors</code> property, there are certain limitations to be aware of. Specifically, you need to be aware of the group ID, as you&#39;ve already set the <code>groupColor</code> within the grid configuration. This implies that you won&#39;t be able to alter the <code>groupColors</code> during runtime. </p>
+<p>However, if your intention is to modify individual groups during runtime, you can achieve this by using the <code>setGroupColor</code> method. By providing the group ID and the color as arguments to this method to change the tag colors. If you want to add a new group to the grid and set its color using this API, we recommend listening for the <code>groupAdded</code> event and use <code>setGroupColor</code> method to set group color when the group is added as show you in example below.</p>
+<code-sandbox hash="fcd25905"><pre><code class="language-css">hr {
+margin: 5px;
+}
+
+efx-grid {
+    height: 600px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+DataGenerator.addFieldInfo(&quot;industry&quot;, {
+        type: &quot;set&quot;,
+        members: [&quot;Chemicals&quot;, &quot;Auto&quot;, &quot;Finance&quot;, &quot;Electric&quot;, &quot;Biotechnology&quot;]
+    });
+
+    DataGenerator.addFieldInfo(&quot;status&quot;, {
+        type: &quot;set&quot;,
+        members: [&quot;GROUP_1&quot;, &quot;GROUP_2&quot;, &quot;GROUP_3&quot;, &quot;GROUP_4&quot;, &quot;GROUP_5&quot;, &quot;GROUP_6&quot;]
+    });
+    var rowGrouping = new RowGrouping();
+    var fields = [&quot;industry&quot;, &quot;words&quot;, &quot;PRICECLOSE&quot;, &quot;PRICELAST&quot;, &quot;status&quot;, &quot;id&quot;];
+
+    var predefinedColorsSet = {
+        yellow: {
+            backgroundColor: &quot;#FF9900&quot;
+        },
+        red: {
+            backgroundColor: &quot;#FF0000&quot;
+        },
+        green: {
+            backgroundColor: &quot;#00FF00&quot;
+        }
+    };
+
+    // Application should be manage your group object in your application
+    var currentCountGroup = 6;
+    var statusMapping = {
+        // Pending
+        GROUP_1: {
+            statusName: &quot;Pending Register&quot;,
+            detail: &quot;Buy TASLA.O 5,000 @ 145.11 (gs)&quot;,
+            color: predefinedColorsSet[&quot;yellow&quot;].backgroundColor,
+            icon: &quot;info&quot;,
+            colorClass: &quot;yellow&quot;,
+            status: &quot;pending&quot;
+        },
+        GROUP_2: {
+            statusName: &quot;Pending Send&quot;,
+            detail: &quot;Buy TASLA.O 5,000 @ 145.11 (gs)&quot;,
+            color: predefinedColorsSet[&quot;yellow&quot;].backgroundColor,
+            icon: &quot;info&quot;,
+            colorClass: &quot;yellow&quot;,
+            status: &quot;pending&quot;
+        },
+
+        // Denined
+        GROUP_3: {
+            statusName: &quot;Denined Amend&quot;,
+            detail: &quot;Buy TASLA.O 5,000 @ 145.11 (gs)&quot;,
+            color: predefinedColorsSet[&quot;red&quot;].backgroundColor,
+            icon: &quot;warning-circle&quot;,
+            colorClass: &quot;red&quot;,
+            status: &quot;denined&quot;
+        },
+        GROUP_4: {
+            statusName: &quot;Denined Register&quot;,
+            detail: &quot;Buy TASLA.O 5,000 @ 145.11 (gs)&quot;,
+            color: predefinedColorsSet[&quot;red&quot;].backgroundColor,
+            icon: &quot;warning-circle&quot;,
+            colorClass: &quot;red&quot;,
+            status: &quot;denined&quot;
+        },
+
+        // Approved
+        GROUP_5: {
+            statusName: &quot;Approved Register&quot;,
+            detail: &quot;Buy TASLA.O 5,000 @ 145.11 (gs)&quot;,
+            color: predefinedColorsSet[&quot;green&quot;].backgroundColor,
+            status: &quot;approved&quot;,
+            colorClass: &quot;green&quot;,
+            icon: &quot;info&quot;,
+        },
+        GROUP_6: {
+            statusName: &quot;Approved Send&quot;,
+            detail: &quot;Buy TASLA.O 5,000 @ 145.11 (gs)&quot;,
+            color: predefinedColorsSet[&quot;green&quot;].backgroundColor,
+            status: &quot;approved&quot;,
+            colorClass: &quot;green&quot;,
+            icon: &quot;info&quot;,
+
+        }
+    };
+
+    // Approved 
+    function onContinueClicked(groupId, e) {
+        var rowIds = grid.api.getDataView().getGroup(groupId).getAllRowIds();
+        var groupStatus = statusMapping[groupId];
+        var nextStatus = groupStatus.statusName;
+        var statusObj = {
+            statusName: &quot;Approved Send&quot;,
+            detail: &quot;Buy TASLA.O 5,000 @ 145.11 (gs)&quot;,
+            color: predefinedColorsSet[&quot;green&quot;].backgroundColor,
+            status: &quot;approved&quot;,
+            icon: &quot;info&quot;,
+            colorClass: &quot;green&quot;
+        };
+        var newGroupId = &quot;GROUP_&quot; + ++currentCountGroup;
+        statusMapping[newGroupId] = statusObj;
+        for (var i = 0; i &lt; rowIds.length; i++) {
+            var rowId = rowIds[i];
+            var rowDef = grid.api.getRowDefinition(rowId);
+            rowDef.setData(&quot;status&quot;, newGroupId);
+        }
+        currentCountGroup++;
+
+        e.stopPropagation(); // Prevent collapsing/expanding grouop when click header
+    }
+
+    function onAbortClicked(groupId, e) {
+        var rowIds = grid.api.getDataView().getGroup(groupId).getAllRowIds();
+        var groupStatus = statusMapping[groupId];
+        var nextStatus = groupStatus.statusName;
+        var statusObj = {
+            statusName: &quot;Denined Register&quot;,
+            detail: &quot;Buy TASLA.O 5,000 @ 145.11 (gs)&quot;,
+            color: predefinedColorsSet[&quot;red&quot;].backgroundColor,
+            status: &quot;denied&quot;,
+            icon: &quot;info&quot;,
+            colorClass: &quot;red&quot;
+        };
+        var newGroupId = &quot;GROUP_&quot; + ++currentCountGroup;
+        statusMapping[newGroupId] = statusObj;
+        for (var i = 0; i &lt; rowIds.length; i++) {
+            var rowId = rowIds[i];
+            var rowDef = grid.api.getRowDefinition(rowId);
+            rowDef.setData(&quot;status&quot;, newGroupId);
+        }
+        currentCountGroup++;
+
+        e.stopPropagation(); // Prevent collapsing/expanding grouop when click header
+    }
+
+    function onGroupAdded(e) {
+        var newGroup = e.newGroup;
+        var groupId = newGroup.getGroupId();
+        var groupStatus = statusMapping[groupId];
+        rowGrouping.setGroupColor(groupId, statusMapping[groupId].colorClass);
+    }
+
+    function onGroupBinding(e) {
+        // row header binding only called when cell colIndex = 0 (so for another column we need to  loop colCount to set another cell)
+        var groupId = e.groupId;
+        var cell = e.cell;
+
+        var content = cell.getContent();
+        if (!content || !content._customHeader) {
+            content = document.createElement(&quot;div&quot;);
+            content._customHeader = content;
+
+            var iconEl = document.createElement(&quot;ef-icon&quot;);
+            iconEl.style.paddingRight = &quot;6px&quot;;
+            content._icon = iconEl;
+
+            var statusEl = document.createElement(&quot;span&quot;);
+            statusEl.style.alignSelf = &quot;center&quot;;
+            content._statusName = statusEl;
+
+            var descriptionEl = document.createElement(&quot;span&quot;);
+            descriptionEl.style.alignSelf = &quot;center&quot;;
+            descriptionEl.style.paddingLeft = &quot;24px&quot;;
+            content._description = descriptionEl;
+
+            var divButtonEl = document.createElement(&quot;div&quot;);
+            var continueButtonEl = document.createElement(&quot;ef-button&quot;);
+            continueButtonEl.textContent = &quot;CONTINUE&quot;;
+            content._continueButton = continueButtonEl;
+
+            var abortButtonEl = document.createElement(&quot;ef-button&quot;);
+            abortButtonEl.textContent = &quot;ABORT&quot;;
+            abortButtonEl.style.marginLeft = &quot;12px&quot;;
+            content._abortButton = abortButtonEl;
+
+            divButtonEl.appendChild(continueButtonEl);
+            divButtonEl.appendChild(abortButtonEl);
+
+            content.style.display = &quot;flex&quot;;
+            content.style.alignItems = &quot;center&quot;;
+            content.style.justifyContent = &quot;space-between&quot;;
+
+            var leftDiv = document.createElement(&quot;div&quot;);
+            leftDiv.style.display = &quot;flex&quot;;
+
+            leftDiv.appendChild(iconEl);
+            leftDiv.appendChild(statusEl);
+            leftDiv.appendChild(descriptionEl);
+
+            var rightDiv = document.createElement(&quot;div&quot;);
+            rightDiv.appendChild(divButtonEl);
+
+            content.appendChild(leftDiv);
+            content.appendChild(rightDiv);
+        }
+
+        content._icon.icon = statusMapping[groupId].icon; // All icon for elf element https://elf.int.refinitiv.com/styles/icons.html for another icon you can use .src to ref svg file
+        content._icon.style.color = statusMapping[groupId].color;
+        content._icon.style.display = statusMapping[groupId].status !== &quot;approved&quot; ? &quot;block&quot; : &quot;none&quot;;
+
+        content._statusName.textContent = statusMapping[groupId].statusName;
+        content._statusName.style.color = statusMapping[groupId].color;
+
+        content._description.textContent = statusMapping[groupId].detail;
+
+        content._continueButton.addEventListener(
+            &quot;click&quot;,
+            onContinueClicked.bind(this, groupId)
+        );
+        content._abortButton.addEventListener(
+            &quot;click&quot;,
+            onAbortClicked.bind(this, groupId)
+        );
+
+        cell.setContent(content);
+    }
+
+    var records = DataGenerator.generateRecords(fields, { seed: 3, numRows: 12 });
+    var configObj = {
+        rowGrouping: {
+            groupBy: fields[4],
+            headerSpanning: true,
+            groupHeaderBinding: onGroupBinding,
+            predefinedColors: predefinedColorsSet,
+            groupSortLogic: groupSortingASC,
+            autoGroupRemoval: true,
+            groupAdded: onGroupAdded
+        },
+        columns: [{
+            name: &quot;Industry&quot;,
+            field: fields[0],
+            statistics: &quot;label&quot;
+        },
+        {
+            name: &quot;Describe&quot;,
+            field: fields[1]
+        },
+        {
+            name: &quot;Price Close&quot;,
+            field: fields[2],
+            alignment: &quot;right&quot;,
+            binding: currencyBinding,
+            statistics: &quot;currencyStat&quot;
+        },
+        {
+            name: &quot;Price Last&quot;,
+            field: fields[3],
+            alignment: &quot;center&quot;,
+            binding: currencyBinding,
+            statistics: &quot;currencyStat&quot;
+        }
+        ],
+        staticDataRows: records,
+        extensions: [rowGrouping]
+    };
+
+    var grid = document.getElementById(&quot;grid&quot;);
+    grid.config = configObj;
+
+    grid.addEventListener(&quot;beforeContentBinding&quot;, onBeforeContentBinding);
+
+    function onBeforeContentBinding(e) {
+        if (!e.actualUpdate) {
+            return;
+        }
+        var rows = grid.api.getAllRowDefinitions();
+        console.log(rows);
+    }
+
+    function currencyBinding(e) {
+        var cell = e.cell;
+        var data = e.data;
+        cell.setContent(addSymbol(data));
+    }
+
+    function addSymbol(data) {
+        var symbol = &quot;$&quot;;
+        return symbol + data;
+    }
+
+    function groupSortingASC(grp1, grp2) {
+        // Sort in ascending order (A -&gt; Z)
+        if (grp1 &lt; grp2) return -1;
+        if (grp1 &gt; grp2) return 1;
+        return 0;
+    }
+</code></pre>
+</code-sandbox><h3 id="example-summation-row-in-group-header-rows">Example summation row in group header rows</h3>
+<p>In the example below, we demonstrate how to calculate the summation of row data for each column and display it in the group header rows.</p>
+<code-sandbox hash="355f50b9"><pre><code class="language-css">efx-grid {
+    height: 400px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+DataGenerator.addFieldInfo(&quot;companyName&quot;, {
+    type: &quot;set&quot;,
+    members: [&quot;Kunze LLC&quot;, &quot;Rohan-Kohler&quot;, &quot;Bosco-Terry&quot;, &quot;Prohaska&quot;, &quot;Ziemann Group&quot;]
+});
+
+var rowGrouping = new RowGrouping();
+var statisticRows = new StatisticsRow();
+const SUMMATIONFIELDS = [&quot;number1&quot;, &quot;number2&quot;];
+const GROUPFIELD = &quot;companyName&quot;;
+
+function onGroupBinding(e) {
+    // row header binding only called when cell colIndex = 0 (so for another column we need to  loop colCount to set another cell)
+    var groupId = e.groupId;
+    var rows = e.dataSource.getAllRowData();
+    var rowCount = rows.length;
+    var colCount = e.api.getColumnCount();
+    var section = e.section;
+    var footerRow = e.footerRow;
+    for (let c = 0; c &lt; colCount; c++) {
+        var field = e.api.getColumnField(c);
+
+        if (field === GROUPFIELD) {
+            var cell = section.getCell(c, e.rowIndex);
+            cell.setContent(groupId + &quot; (&quot; + rowCount + &quot;)&quot;);
+        }
+
+        if (SUMMATIONFIELDS.indexOf(field) &gt;= 0) {
+            var cell = section.getCell(c, e.rowIndex);
+            var statData = stats[field][groupId];
+            cell.setContent(addSymbol(statData || 0));
+        }
+    }
+}
+
+var onNumberBinding = tr.SimpleInputFormatter? tr.SimpleInputFormatter : SimpleInputFormatter;
+var fields = [&quot;companyName&quot;, &quot;industry&quot;, &quot;number1&quot;, &quot;number2&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 10 });
+var configObj = {
+    rowGrouping: {
+        groupBy: fields[0],
+        headerSpanning: false,
+        groupHeaderBinding: onGroupBinding,
+        nonGroupBinding: function (e) { }
+    },
+    columns: [
+        {
+            name: &quot;Market&quot;,
+            field: fields[0],
+            statistics: &quot;label&quot;
+        },
+        {
+            name: &quot;Industry&quot;,
+            field: fields[1]
+        },
+        {
+            name: &quot;Recommendation&quot;,
+            field: fields[2],
+            alignment: &quot;right&quot;,
+            binding: onNumberBinding.create(
+                {
+                    styles: {
+                        textAlign: &quot;right&quot;
+                    }
+                }
+            ),
+            statistics: &quot;currencyStat&quot;,
+            width: 120
+        },
+        {
+            name: &quot;Average Market&quot;,
+            field: fields[3],
+            alignment: &quot;center&quot;,
+            binding: onNumberBinding.create(
+                {
+                    styles: {
+                        textAlign: &quot;right&quot;
+                    }
+                }
+            ),
+            statistics: &quot;currencyStat&quot;,
+            width: 120
+        }
+    ],
+    staticDataRows: records,
+    extensions: [rowGrouping, statisticRows],
+    statisticsRow: {
+        rows: [{ statistic: &quot;currencyStat&quot;, label: &quot;Footer Summation&quot; }],
+        postCalculation: postCalculationCurrency
+    }
+};
+
+var grid = (window.grid = document.getElementById(&quot;grid&quot;));
+grid.config = configObj;
+
+grid.addEventListener(&quot;configured&quot;, function (e) {
+    grid.api.listen(&quot;beforeContentBinding&quot;, onBeforeContentBinding);
+});
+
+var stats = (window.stats = {});
+var summationFieldLen = SUMMATIONFIELDS.length;
+initializeStates();
+
+function initializeStates() {
+    for (let f = 0; f &lt; summationFieldLen; f++) {
+        var field = SUMMATIONFIELDS[f];
+        if (!stats[field]) {
+            stats[field] = {};
+        }
+    }
+}
+
+function onBeforeContentBinding(e) {
+    if (!e.actualUpdate) {
+        return;
+    }
+    var rows = grid.api.getAllRowDefinitions();
+
+    var len = rows.length;
+
+    for (let c = 0; c &lt; summationFieldLen; c++) {
+        var field = SUMMATIONFIELDS[c];
+        stats[field] = {}; // Assign new values
+        for (let r = 0; r &lt; len; r++) {
+            var rowDef = rows[r];
+            var rowData = rowDef.getRowData();
+            var groupId = rowData[GROUPFIELD];
+            var sum = +rowData[field] || 0; // for row doens&#39;t contains the summation field
+            stats[field][groupId] = (stats[field][groupId] || 0) + sum;
+        }
+    }
+}
+
+function postCalculationCurrency(e) {
+    e.statistics[2].currencyStat = addSymbol(e.statistics[2][&quot;sum&quot;]);
+    e.statistics[3].currencyStat = addSymbol(e.statistics[3][&quot;sum&quot;]);
+}
+
+function addSymbol(data) {
+    var symbol = &quot;$&quot;;
+    return symbol + data;
+}
+</code></pre>
+</code-sandbox><h2 id="nullundefined-group-hiding">Null/undefined group hiding</h2>
+<p>In many cases, a group of data might contain an <code>undefined</code> or <code>null</code> value. This may display an unexpected grouped title.</p>
+<h3 id="example-with-nullundefined-group">Example with null/undefined group</h3>
+<code-sandbox hash="6a47399a"><pre><code class="language-css">efx-grid {
+    height: 225px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+DataGenerator.addFieldInfo(&quot;companyName&quot;, {
+    type: &quot;set&quot;,
+    members: [&quot;Kunze LLC&quot;, &quot;Rohan-Kohler&quot;, &quot;Bosco-Terry&quot;, &quot;Prohaska&quot;, &quot;Ziemann Group&quot;]
+});
+DataGenerator.addFieldInfo(&quot;industry&quot;, {
+    type: &quot;set&quot;,
+    members: [&quot;Chemicals&quot;, &quot;Auto&quot;, &quot;Finance&quot;, &quot;Electric&quot;, &quot;Biotechnology&quot;, null]
+});
+DataGenerator.addFieldInfo(&quot;market&quot;, {
+    type: &quot;set&quot;,
+    members: [&quot;NASDAQ&quot;, &quot;DJI&quot;, &quot;NIKKEI&quot;]
+});
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;industry&quot;, &quot;CF_NETCHNG&quot;, &quot;date1&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 16 });
+var configObj = {
+    sorting: {
+        sortableColumns: true
+    },
+    columns: [
+        { name: &quot;Company&quot;, field: fields[0] },
+        { name: &quot;Industry&quot;, field: fields[2] },
+        { name: &quot;Net. Chng&quot;, field: fields[3], width: 100, alignment: &quot;right&quot; },
+        { name: &quot;Updated&quot;, field: fields[4] }
+    ],
+    staticDataRows: records,
+    rowGrouping: {
+        groupSortLogic: function(grpId1, grpId2, grpView1, grpView2) { // Move undefined or null group to the top
+            var grpVal1 = grpView1.getGroupValue();
+            var grpVal2 = grpView2.getGroupValue();
+            if(!grpVal1) {
+                if(grpVal2) {
+                    return -1;
+                }
+                return 0; // both grpVal1 and grpVal2 is null or undefined group
+            } else if(!grpVal2) {
+                return 1;
+            }
+            
+            if(grpId1 &lt; grpId2) return -1;
+            if(grpId1 &gt; grpId2) return 1;
+            return 0;
+        },
+        groupBy: fields[2]
+    },
+    extensions: [
+        new RowGrouping()
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><p>Turn on an <code>autoGroupHiding</code> option to hide all the group header that display as <code>null</code> or <code>undefined</code>. The rows of data that are in a <code>null</code> group will still show and are distinct from the group above them by different indentation. </p>
+<pre><code class="language-js">var config = {
+    // any other grid&#39;s options
+    rowGrouping: {
+        autoGroupHiding: true
+    },
+};
+</code></pre>
+<h3 id="example-with-hidden-nullundefined-group">Example with hidden null/undefined group</h3>
+<code-sandbox hash="4a122905"><pre><code class="language-css">efx-grid {
+    height: 225px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+DataGenerator.addFieldInfo(&quot;companyName&quot;, {
+    type: &quot;set&quot;,
+    members: [&quot;Kunze LLC&quot;, &quot;Rohan-Kohler&quot;, &quot;Bosco-Terry&quot;, &quot;Prohaska&quot;, &quot;Ziemann Group&quot;]
+});
+DataGenerator.addFieldInfo(&quot;industry&quot;, {
+    type: &quot;set&quot;,
+    members: [&quot;Chemicals&quot;, &quot;Auto&quot;, &quot;Finance&quot;, &quot;Electric&quot;, &quot;Biotechnology&quot;, null]
+});
+ DataGenerator.addFieldInfo(&quot;market&quot;, {
+    type: &quot;set&quot;,
+    members: [&quot;NASDAQ&quot;, &quot;DJI&quot;, &quot;NIKKEI&quot;]
+});
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;industry&quot;, &quot;CF_NETCHNG&quot;, &quot;date1&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 16 });
+var configObj = {
+    sorting: {
+        sortableColumns: true
+    },
+    columns: [
+        { name: &quot;Company&quot;, field: fields[0] },
+        { name: &quot;Industry&quot;, field: fields[2] },
+        { name: &quot;Net. Chng&quot;, field: fields[3], width: 100, alignment: &quot;right&quot; },
+        { name: &quot;Updated&quot;, field: fields[4] }
+    ],
+    staticDataRows: records,
+    rowGrouping: {
+        autoGroupHiding: true,
+        groupSortLogic: function(grpId1, grpId2, grpView1, grpView2) { // Move undefined or null group to the top
+            var grpVal1 = grpView1.getGroupValue();
+            var grpVal2 = grpView2.getGroupValue();
+            if(!grpVal1) {
+                if(grpVal2) {
+                    return -1;
+                }
+                return 0; // both grpVal1 and grpVal2 is null or undefined group
+            } else if(!grpVal2) {
+                return 1;
+            }
+            
+            if(grpId1 &lt; grpId2) return -1;
+            if(grpId1 &gt; grpId2) return 1;
+            return 0;
+        },
+        groupBy: fields[2]
+    },
+    extensions: [
+        new RowGrouping()
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="rows-in-multiple-groups">Rows in multiple groups</h2>
+<p>In the case that data used for grouping is an array, the data row will be added to multiple groups according to the array&#39;s member. See the following example for an illustration.</p>
+<code-sandbox hash="64e342fd"><pre><code class="language-css">efx-grid {
+    height: 225px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+DataGenerator.addFieldInfo(&quot;companyName&quot;, {
+    type: &quot;set&quot;,
+    members: [&quot;Kunze LLC&quot;, &quot;Rohan-Kohler&quot;, &quot;Bosco-Terry&quot;, &quot;Prohaska&quot;, &quot;Ziemann Group&quot;]
+});
+DataGenerator.addFieldInfo(&quot;industry&quot;, {
+    type: &quot;set&quot;,
+    members: [&quot;Chemicals&quot;, &quot;Finance&quot;, &quot;Electric&quot;, [&quot;Auto&quot;, &quot;Electric&quot;], [&quot;Chemicals&quot;, &quot;Biotechnology&quot;]]
+});
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;industry&quot;, &quot;CF_NETCHNG&quot;, &quot;date1&quot;, &quot;id&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 12});
+var configObj = {
+    sorting: {
+        sortableColumns: true
+    },
+    columns: [
+        { name: &quot;ID&quot;, field: fields[5], width: 80 },
+        { name: &quot;Company&quot;, field: fields[0] },
+        { name: &quot;Industry&quot;, field: fields[2] },
+        { name: &quot;Net. Chng&quot;, field: fields[3], width: 100, alignment: &quot;right&quot; },
+        { name: &quot;Updated&quot;, field: fields[4] }
+    ],
+    staticDataRows: records,
+    rowGrouping: {
+        groupBy: fields[2]
+    },
+    extensions: [
+        new RowGrouping()
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="content-as-a-header">Content as a header</h2>
+<p>In this mode, the header of the nested group will be hidden while the data row will act as a header instead. The first level group header expand/collapse button will be disabled by default.</p>
+<p>To turn on this mode, set <code>contentAsHeader</code> to true.</p>
+<blockquote>
+<p>Note: This mode currently supports at most 2 levels of grouping.</p>
+</blockquote>
+<pre><code class="language-js">var config = {
+    // any other grid&#39;s options
+    rowGrouping: {
+        contentAsHeader: true,
+        groupBy: [&#39;col1&#39;, &#39;col2&#39;] // Support at most 2 levels of grouping if contentAsHeader is enabled.
+    },
+};
+</code></pre>
+<code-sandbox hash="8d610111"><pre><code class="language-css">html hr {
     margin: 5px;
 }
+efx-grid {
+    height: 225px;
+}
 </code></pre>
-<pre><code class="language-html">&lt;big id=&quot;msg_div&quot;&gt;Click grid top section to sort&lt;/big&gt;
+<pre><code class="language-html">&lt;button id=&quot;group_btn1&quot;&gt;Clear grouping&lt;/button&gt;
+&lt;button id=&quot;group_btn2&quot;&gt;Group by company name&lt;/button&gt;
+&lt;button id=&quot;group_btn3&quot;&gt;Group by market and then company name&lt;/button&gt;
 &lt;hr&gt;
 &lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
@@ -41,36 +975,468 @@ html hr {
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 6 });
+var rgExt = new RowGrouping();
 
-var onColumnSorted = function(e) {
-    msg_div.textContent = &quot;Column &quot; + e.colIndex + &quot; is sorted in &quot; + (e.sortOrder === &quot;a&quot; ? &quot;ascending&quot; : &quot;descending&quot;) + &quot; order&quot;;
-};
+group_btn1.addEventListener(&quot;click&quot;, function(e) {
+    rgExt.groupBy(null);
+});
+group_btn2.addEventListener(&quot;click&quot;, function(e) {
+    rgExt.groupBy(fields[0]);
+    rgExt.collapseAll();
+});
+group_btn3.addEventListener(&quot;click&quot;, function(e) {
+    rgExt.groupBy([fields[1], fields[0]]);
+    rgExt.collapseAll();
+});
 
+DataGenerator.addFieldInfo(&quot;companyName&quot;, {
+    type: &quot;set&quot;,
+    members: [&quot;Kunze LLC&quot;, &quot;Prohaska&quot;, &quot;Ziemann Group&quot;]
+});
+DataGenerator.addFieldInfo(&quot;industry&quot;, {
+    type: &quot;set&quot;,
+    members: [&quot;Chemicals&quot;, &quot;Auto&quot;, &quot;Finance&quot;, &quot;Electric&quot;, &quot;Biotechnology&quot;]
+});
+DataGenerator.addFieldInfo(&quot;market&quot;, {
+    type: &quot;set&quot;,
+    members: [&quot;NASDAQ&quot;, &quot;DJI&quot;, &quot;NIKKEI&quot;]
+});
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;industry&quot;, &quot;CF_NETCHNG&quot;, &quot;date1&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 14 });
 var configObj = {
     sorting: {
-        sortableColumns: true,
+        sortableColumns: true
     },
     columns: [
-        {name: &quot;Company&quot;, field: fields[0]},
-        {name: &quot;Market&quot;, field: fields[1], width: 120},
-        {name: &quot;Last&quot;, field: fields[2], width: 100},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
-        {name: &quot;Industry&quot;, field: fields[4]}
+        { name: &quot;Company&quot;, field: fields[0] },
+        { name: &quot;Industry&quot;, field: fields[2] },
+        { name: &quot;Net. Chng&quot;, field: fields[3], width: 100, alignment: &quot;right&quot; },
+        { name: &quot;Updated&quot;, field: fields[4] }
     ],
-    staticDataRows: records
+    staticDataRows: records,
+    rowGrouping: {
+        groupBy: [fields[1], fields[0]],
+        contentAsHeader: true
+    },
+    extensions: [
+        rgExt
+    ]
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
-grid.addEventListener(&quot;configured&quot;, function(e) {
-    var core = e.detail.api.getCoreGrid();
-    
-    var plugin = core.getPlugin(&quot;SortableTitle&quot;);
-    plugin.listen(&quot;columnSorted&quot;, onColumnSorted);
-});
 grid.config = configObj;
 </code></pre>
-</code-sandbox><blockquote>
-<p>Note: you can use the <code>listen</code> method to listen to a custom event fired from Grid and Grid&#39;s plugins, instead of the conventional <code>addEventListener</code> method.</p>
-</blockquote>
+</code-sandbox><h2 id="predefined-color">Predefined color</h2>
+<p>The extension supports color from the predefined colors. To do this you need to assign predefined class object to the <code>predefinedColors</code> property then specify group ID and color mapping object to the <code>groupColors</code> property.</p>
+<code-sandbox hash="c3bc7603"><pre><code class="language-css">html hr {
+    margin: 5px;
+}
+efx-grid {
+    height: 300px;
+}
+.example-container {
+    display: inline;
+}
+.example-color {
+    width: 50px;
+    height: 24px;
+    margin: 4px;
+    display: inline-block;
+    vertical-align: middle;
+    line-height: 24px;
+    color: #333;
+    text-align: center;
+}
+button {
+    vertical-align: middle;
+}
+</code></pre>
+<pre><code class="language-html">&lt;div&gt;
+    Predefined color #1
+    &lt;div id=&quot;set1&quot; class=&quot;example-container&quot;&gt;&lt;/div&gt;
+    &lt;button id=&quot;apply_btn1&quot;&gt;Apply&lt;/button&gt;
+&lt;/div&gt;
+&lt;div&gt;
+    Predefined color #2
+    &lt;div id=&quot;set2&quot; class=&quot;example-container&quot;&gt;&lt;/div&gt;
+    &lt;button id=&quot;apply_btn2&quot;&gt;Apply&lt;/button&gt;
+&lt;/div&gt;
+
+&lt;hr&gt;
+
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var predefinedColorsSet1 = {
+    &quot;color-1&quot;: {
+        backgroundColor: &quot;#e41a1c&quot;
+    },
+    &quot;color-2&quot;: {
+        backgroundColor: &quot;#377eb8&quot;
+    },
+    &quot;color-3&quot;: {
+        backgroundColor: &quot;#4daf4a&quot;
+    },
+    &quot;color-4&quot;: {
+        backgroundColor: &quot;#984ea3&quot;
+    },
+    &quot;color-5&quot;: {
+        backgroundColor: &quot;#ff7f00&quot;
+    },
+    &quot;color-6&quot;: {
+        backgroundColor: &quot;#ffff33&quot;
+    },
+    &quot;color-7&quot;: {
+        backgroundColor: &quot;#a65628&quot;
+    }
+};
+
+var predefinedColorsSet2 = {
+    &quot;color-1&quot;: {
+        backgroundColor: &quot;#8dd3c7&quot;
+    },
+    &quot;color-2&quot;: {
+        backgroundColor: &quot;#ffffb3&quot;
+    },
+    &quot;color-3&quot;: {
+        backgroundColor: &quot;#bebada&quot;
+    },
+    &quot;color-4&quot;: {
+        backgroundColor: &quot;#fb8072&quot;
+    },
+    &quot;color-5&quot;: {
+        backgroundColor: &quot;#80b1d3&quot;
+    },
+    &quot;color-6&quot;: {
+        backgroundColor: &quot;#fdb462&quot;
+    },
+    &quot;color-7&quot;: {
+        backgroundColor: &quot;#b3de69&quot;
+    }
+};
+
+var color, el;
+var parent = document.getElementById(&quot;set1&quot;);
+var div = document.createElement(&quot;div&quot;);
+for (color in predefinedColorsSet1) {
+    el = div.cloneNode();
+    el.textContent = color;
+    el.classList.add(&quot;example-color&quot;);
+    el.style.backgroundColor = predefinedColorsSet1[color].backgroundColor;
+    parent.appendChild(el);
+}
+
+parent = document.getElementById(&quot;set2&quot;);
+for (color in predefinedColorsSet2) {
+    el = div.cloneNode();
+    el.textContent = color;
+    el.classList.add(&quot;example-color&quot;);
+    el.style.backgroundColor = predefinedColorsSet2[color].backgroundColor;
+    parent.appendChild(el);
+}
+
+DataGenerator.addFieldInfo(&quot;companyName&quot;, {
+    type: &quot;set&quot;,
+    members: [&quot;Kunze LLC&quot;, &quot;Rohan-Kohler&quot;, &quot;Bosco-Terry&quot;, &quot;Prohaska&quot;, &quot;Ziemann Group&quot;]
+});
+DataGenerator.addFieldInfo(&quot;industry&quot;, {
+    type: &quot;set&quot;,
+    members: [&quot;Chemicals&quot;, &quot;Auto&quot;, &quot;Finance&quot;, &quot;Electric&quot;, &quot;Biotechnology&quot;]
+});
+
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;industry&quot;, &quot;CF_NETCHNG&quot;, &quot;date1&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 20 });
+var ext = new RowGrouping();
+var configObj = {
+    columns: [
+        { name: &quot;Company&quot;, field: fields[0] },
+        { name: &quot;Industry&quot;, field: fields[2] },
+        { name: &quot;Net. Chng&quot;, field: fields[3], width: 100, alignment: &quot;right&quot; },
+        { name: &quot;Updated&quot;, field: fields[4] }
+    ],
+    staticDataRows: records,
+    rowGrouping: {
+        predefinedColors: predefinedColorsSet1,
+        groupColors: {
+                NYSE: &quot;color-1&quot;,
+                NASDAQ: &quot;color-2&quot;,
+                SET: &quot;color-3&quot;,
+                DJI: &quot;color-4&quot;,
+                HSCEI: &quot;color-5&quot;,
+                HKEX: &quot;color-6&quot;,
+                NIKKEI: &quot;color-7&quot;
+        },
+        groupBy: fields[1]
+    },
+    extensions: [
+        ext
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+
+document.getElementById(&quot;apply_btn1&quot;).addEventListener(&quot;click&quot;, function(e) {
+    ext.setPredefinedColors(predefinedColorsSet1);
+});
+
+document.getElementById(&quot;apply_btn2&quot;).addEventListener(&quot;click&quot;, function(e) {
+    ext.setPredefinedColors(predefinedColorsSet2);
+});
+</code></pre>
+</code-sandbox><h2 id="statistic-calculation-with-row-grouping">Statistic Calculation with Row Grouping</h2>
+<p>The Row Grouping Extension offers comprehensive support for statistic calculation with row grouping, allowing users to customize binding for header and footer rows seamlessly.</p>
+<p>In the example below, we demonstrate how to leverage the power of row grouping to perform detailed statistical analysis within the grid. By incorporating both header and footer rows, users can easily access relevant group statistics. We achieve optimal performance by utilizing the <code>beforeContentBinding</code> event, which triggers whenever there are data changes. This approach ensures efficient row virtualization, displaying only the necessary data visible to the user. As a result, the application&#39;s speed and responsiveness are significantly improved, especially when working with large datasets.</p>
+<p>Additionally, the <code>beforeContentBinding</code> feature plays a crucial role in optimizing performance. Whenever there are changes in the underlying data, this event is triggered, allowing you to perform necessary calculations or updates before the content is rendered. This approach enhances efficiency and provides real-time updates, ensuring that users always have access to the most accurate and up-to-date information.</p>
+<code-sandbox hash="56ab9220"><pre><code class="language-css">html body {
+    padding: 20px;
+    box-sizing: border-box;
+    }
+    hr {
+    margin: 5px;
+    }
+
+    efx-grid {
+    height: 400px;
+    }
+</code></pre>
+<pre><code class="language-html">&lt;fieldset&gt;
+  &lt;legend&gt; Operations &lt;/legend&gt;
+  &lt;span&gt; Position (rowIndex) : &lt;/span&gt; &lt;input value=&quot;1&quot; id=&quot;rowIndex_txt&quot;&gt;
+  &lt;button id=&quot;add_row&quot;&gt; Add row &lt;/button&gt;
+  &lt;button id=&quot;remove_row&quot;&gt; Remove row &lt;/button&gt;
+  &lt;button id=&quot;update_row&quot;&gt; Change row data &lt;/button&gt;
+  &lt;button id=&quot;change_group&quot;&gt; Change Group &lt;/button&gt;
+&lt;/fieldset&gt;
+&lt;hr&gt;  
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var rowGrouping= new RowGrouping();
+var statisticRows = new StatisticsRow();
+
+DataGenerator.addFieldInfo(&quot;industry&quot;, {
+  type: &quot;set&quot;,
+  members: [&quot;Chemicals&quot;, &quot;Auto&quot;, &quot;Finance&quot;, &quot;Electric&quot;, &quot;Biotechnology&quot;]
+});
+
+var fields = [&quot;industry&quot;, &quot;words&quot;, &quot;PRICECLOSE&quot;, &quot;PRICELAST&quot;];
+const SUMMATIONFIELDS = [&quot;PRICECLOSE&quot;, &quot;PRICELAST&quot;];
+const GROUPFIELD = &quot;industry&quot;;
+
+function onGroupBinding(e) {
+  // row header binding only called when cell colIndex = 0 (so for another column we need to  loop colCount to set another cell)
+  var groupId = e.groupId;
+  var rows = e.dataSource.getAllRowData();
+  var rowCount = rows.length;
+  var colCount = e.api.getColumnCount();
+  var section = e.section;
+  var footerRow = e.footerRow;
+  for (let c = 0; c &lt; colCount; c++) {
+    var field = e.api.getColumnField(c);
+
+    if (field === GROUPFIELD) {
+      var cell = section.getCell(c, e.rowIndex);
+      var prefix = footerRow ? &quot;FOOTER: &quot; : &quot;HEADER: &quot;;
+      cell.setContent(prefix + groupId + &quot; (&quot; + rowCount + &quot;)&quot;);
+    }
+
+    if (SUMMATIONFIELDS.indexOf(field) &gt;= 0) {
+      var cell = section.getCell(c, e.rowIndex);
+      var statData = stats[field][groupId];
+      cell.setContent(addSymbol(statData || 0));
+    }
+  }
+}
+
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 6 });
+var configObj = {
+  rowGrouping: {
+    groupBy: fields[0],
+    headerSpanning: false,
+    groupHeaderBinding: onGroupBinding,
+    groupFooterBinding: onGroupBinding,
+    nonGroupBinding: function (e) {}
+  },
+  columns: [
+    {
+      name: &quot;Industry&quot;,
+      field: fields[0],
+      statistics: &quot;label&quot;
+    },
+    {
+      name: &quot;Describe&quot;,
+      field: fields[1]
+    },
+    {
+      name: &quot;Price Close&quot;,
+      field: fields[2],
+      alignment: &quot;right&quot;,
+      binding: currencyBinding,
+      statistics: &quot;currencyStat&quot;
+    },
+    {
+      name: &quot;Price Last&quot;,
+      field: fields[3],
+      alignment: &quot;center&quot;,
+      binding: currencyBinding,
+      statistics: &quot;currencyStat&quot;
+    }
+  ],
+  staticDataRows: records,
+  extensions: [rowGrouping, statisticRows],
+  statisticsRow: {
+    rows: [{ statistic: &quot;currencyStat&quot;, label: &quot;Footer Summation&quot; }],
+    postCalculation: postCalculationCurrency
+  }
+};
+
+var grid = (window.grid = document.getElementById(&quot;grid&quot;));
+grid.config = configObj;
+
+grid.addEventListener(&quot;configured&quot;, function (e) {
+  grid.api.listen(&quot;beforeContentBinding&quot;, onBeforeContentBinding);
+});
+
+var stats = (window.stats = {});
+var summationFieldLen = SUMMATIONFIELDS.length;
+initializeStates();
+
+function initializeStates() {
+  for (let f = 0; f &lt; summationFieldLen; f++) {
+    var field = SUMMATIONFIELDS[f];
+    if (!stats[field]) {
+      stats[field] = {};
+    }
+  }
+}
+
+function onBeforeContentBinding(e) {
+  if (!e.actualUpdate) {
+    return;
+  }
+  var rows = grid.api.getAllRowDefinitions();
+
+  var len = rows.length;
+
+  for (let c = 0; c &lt; summationFieldLen; c++) {
+    var field = SUMMATIONFIELDS[c];
+    stats[field] = {}; // Assign new values
+    for (let r = 0; r &lt; len; r++) {
+      var rowDef = rows[r];
+      var rowData = rowDef.getRowData();
+      var groupId = rowData[GROUPFIELD];
+      var sum = rowData[field] || 0; // for row doens&#39;t contains the summation field
+      stats[field][groupId] = (stats[field][groupId] || 0) + sum;
+    }
+  }
+}
+
+function postCalculationCurrency(e) {
+  e.statistics[2].currencyStat = addSymbol(e.statistics[2][&quot;sum&quot;]);
+  e.statistics[3].currencyStat = addSymbol(e.statistics[3][&quot;sum&quot;]);
+}
+
+function currencyBinding(e) {
+  var cell = e.cell;
+  var data = e.data;
+  cell.setContent(addSymbol(data));
+}
+
+function addSymbol(data) {
+  var symbol = &quot;$&quot;;
+  return symbol + data;
+}
+
+document.getElementById(&quot;change_group&quot;).addEventListener(&quot;click&quot;, function (e) {
+  var rowIndex = +document.getElementById(&quot;rowIndex_txt&quot;).value;
+  var rowDef = grid.api.getRowDefinition(rowIndex);
+  if (rowDef) {
+    rowDef.updateRowData({ industry: &quot;Electric&quot; });
+  }
+});
+
+document.getElementById(&quot;add_row&quot;).addEventListener(&quot;click&quot;, function (e) {
+  var rowIndex = +document.getElementById(&quot;rowIndex_txt&quot;).value;
+  var record = DataGenerator.generateRecord(fields);
+  record[&quot;industry&quot;] = &quot;Chemicals&quot;;
+  grid.api.insertRow({ values: record }, rowIndex);
+});
+
+document.getElementById(&quot;remove_row&quot;).addEventListener(&quot;click&quot;, function (e) {
+  var rowIndex = +document.getElementById(&quot;rowIndex_txt&quot;).value;
+  grid.api.removeRow(rowIndex);
+});
+
+document.getElementById(&quot;update_row&quot;).addEventListener(&quot;click&quot;, function (e) {
+  var rowIndex = +document.getElementById(&quot;rowIndex_txt&quot;).value;
+  var record = DataGenerator.generateRecord(fields);
+  record[&quot;industry&quot;] = &quot;Chemicals&quot;; // FORCE assign to Chemicals
+  var rowDef = grid.api.getRowDefinition(rowIndex);
+  if (rowDef) {
+    rowDef.updateRowData(record);
+  }
+});
+</code></pre>
+</code-sandbox><h2 style="margin-bottom:5px" id="api-refs">API Reference</h2>
+<div id="elf-api-container"><div id="main-template" class="elf-template">    <section><header>            <h1 class="subsection-title"><span class="attribs"><span class="type-signature"></span></span>RowGroupingPlugin<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h1>            </header><article>                                                                        <h3 class="subsection-title" id="type_definitions">Type Definitions</h3>                        
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~GroupCriteria">GroupCriteria</h4><div class="description">    GroupCriteria can be one of the following values: <br><b>null</b> input will clear all existing grouping criteria <br><b>string</b> input is treat as column/field name in the data table <br><b>Function</b> input is for custom criteria <br><b>Array</b> input will create multiple groups in tree like manner (nested group criteria)</div>    <h5>Type:</h5>    <span class="param-type">string</span> | <span class="param-type">Array.&lt;(string|function())&gt;</span><div class="details">                                                            </div></div>                            
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~GroupingState">GroupingState</h4><div class="description">    state of groupings or JSON String</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>collapsed</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                                </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>groupId</code></td>                        <td class="type">                            <span class="param-type">number</span> | <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last"></td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            
+<div class="item">                                <div class="item-type">typedef</div>                        <h4 class="name" id="~GroupSortLogic"><span class="type-signature"></span>GroupSortLogic<span class="signature">(grpValA, grpValB, grpDataViewA<span class="signature-attributes">opt</span>, grpDataViewB<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {number}</span></h4>                            <div class="description">        Method parameters provided by `groupSortLogic` callback    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">grpValA</div>                        <div class="type">                            <span class="param-type">*</span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    Group value of the group in left hand side                </div>                    </div>                <div class="param">                            <div class="name">grpValB</div>                        <div class="type">                            <span class="param-type">*</span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    Group value of the group in right hand side                </div>                    </div>                <div class="param">                            <div class="name">grpDataViewA</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    DataView of the group in left hand side                </div>                    </div>                <div class="param">                            <div class="name">grpDataViewB</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    DataView of the group in right hand side                </div>                    </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">number</span>    </div>                </div>                            
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~Options">Options</h4><div class="description">    The options can be specified by `rowGrouping` property of the main grid's options</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>autoGroupRemoval</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">Remove group that has no row member.</td>        </tr>            <tr>                            <td class="name"><code>autoGroupHiding</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">Hide "null" or "undefined" group headers, while keeping the group's items intact.</td>        </tr>            <tr>                            <td class="name"><code>predefinedGroups</code></td>                        <td class="type">                            <span class="param-type">Array</span> | <span class="param-type">Array.&lt;Array&gt;</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Add groups without content rows. Use 2D array for multi-level grouping.</td>        </tr>            <tr>                            <td class="name"><code>groupBy</code></td>                        <td class="type">                            <span class="param-type"><a href="#/extensions/tr-grid-row-grouping#~GroupCriteria">RowGroupingPlugin~GroupCriteria</a></span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">GroupCriteria can be string, function, or array of string.</td>        </tr>            <tr>                            <td class="name"><code>groupCriteria</code></td>                        <td class="type">                            <span class="param-type"><a href="#/extensions/tr-grid-row-grouping#~GroupCriteria">RowGroupingPlugin~GroupCriteria</a></span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Alias to `groupBy`.</td>        </tr>            <tr>                            <td class="name"><code>displayColumn</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    0                                </td>                        <td class="description last">Column Index for group header rendering.</td>        </tr>            <tr>                            <td class="name"><code>fixedDisplayColumn</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">If enabled, displayColumn will remain in the same index, even if columns are shifted by insertion or removal.</td>        </tr>            <tr>                            <td class="name"><code>noCollapsible</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">If enabled, arrows will be hidden and cell is not clickable. This flag takes precedence over `clickableCell` and `hiddenArrow`.</td>        </tr>            <tr>                            <td class="name"><code>clickableCell</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    true                                </td>                        <td class="description last">If disabled, clicking at cell will not expand that group</td>        </tr>            <tr>                            <td class="name"><code>hiddenArrow</code></td>                        <td class="type">                            <span class="param-type">boolean</span> | <span class="param-type">number</span> | <span class="param-type">Array.&lt;number&gt;</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Specify header levels which is a single number start from 1 or an array of number that want to hide arrow icon. If specify true all arrows will be hidden.</td>        </tr>            <tr>                            <td class="name"><code>contentAsHeader</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">If enabled, second level group header rows are hidden, the first content rows become a header, cells are not be clickable, and arrows are hidden.</td>        </tr>            <tr>                            <td class="name"><code>headerSpanning</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    true                                </td>                        <td class="description last">If disabled, every cell on the group header row is displayed</td>        </tr>            <tr>                            <td class="name"><code>footerSpanning</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">If enabled, only cells from the first column will be shown, spanning over other cells</td>        </tr>            <tr>                            <td class="name"><code>groupSortLogic</code></td>                        <td class="type">                            <span class="param-type"><a href="#/extensions/tr-grid-row-grouping#~GroupSortLogic">RowGroupingPlugin~GroupSortLogic</a></span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Logic for group sorting. There is no sorting by default (i.e. groups are placed in order of their creation time)</td>        </tr>            <tr>                            <td class="name"><code>autoGroupSorting</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">If enabled, group sorting will be performed after each `groupAdded` event</td>        </tr>            <tr>                            <td class="name"><code>indentSize</code></td>                        <td class="type">                            <span class="param-type">boolean</span> | <span class="param-type">number</span> | <span class="param-type">Array.&lt;number&gt;</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Use array to define indent for each group level. Use boolean to turn on or off indentation. Use number to define incremental step.</td>        </tr>            <tr>                            <td class="name"><code>colorTag</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">If not specified, the color tag will be disabled when using extension without halo theme.</td>        </tr>            <tr>                            <td class="name"><code>predefinedColors</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Predefined color object map for color tag</td>        </tr>            <tr>                            <td class="name"><code>groupColors</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">The object map of group ID and predefined color.</td>        </tr>            <tr>                            <td class="name"><code>defaultCollapse</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">Collapsing groups by default when a group is created</td>        </tr>            <tr>                            <td class="name"><code>clicked</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Event handler when user clicks on arrows or cells</td>        </tr>            <tr>                            <td class="name"><code>groupAdded</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Event handler</td>        </tr>            <tr>                            <td class="name"><code>beforeGroupAdded</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Event handler</td>        </tr>            <tr>                            <td class="name"><code>groupHeaderBinding</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Logic that will be executed on each group header row</td>        </tr>            <tr>                            <td class="name"><code>groupFooterBinding</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Once defined, footer row will be added on each group</td>        </tr>            <tr>                            <td class="name"><code>headerBinding</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Shorthand for `groupHeaderBinding`</td>        </tr>            <tr>                            <td class="name"><code>footerBinding</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Shorthand for `groupFooterBinding`</td>        </tr>            <tr>                            <td class="name"><code>nonGroupBinding</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">This is used to clear any custom styling defined in groupHeaderBinding or groupFooterBinding</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            <h3 class="subsection-title" id="methods">Methods</h3>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="beforeProcessOption"><span class="type-signature"></span>beforeProcessOption<span class="signature">(optionName, optionVal)</span><span class="type-signature"> → {*}</span></h4>                            <div class="description">        Convert built-in grid config to extension config    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">optionName</div>                        <div class="type">                            <span class="param-type">string</span>                        </div>                                            </div>                <div class="param">                            <div class="name">optionVal</div>                        <div class="type">                            <span class="param-type">*</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">*</span>    </div><div class="sub-content-desc">    The transformed value of the option</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="collapse"><span class="type-signature"></span>collapse<span class="signature">(groupRowId, opt_collapsed<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">groupRowId</div>                        <div class="type">                            <span class="param-type">string</span>                        </div>                            <div class="attributes">                                                                </div>                                            </div>                <div class="param">                            <div class="name">opt_collapsed</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="collapseAll"><span class="type-signature"></span>collapseAll<span class="signature">(opt_collapsed<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">opt_collapsed</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="config"><span class="type-signature"></span>config<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    Grid configuration object                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="disableClicking"><span class="type-signature"></span>disableClicking<span class="signature">(opt_disabled<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">opt_disabled</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="enableFixedDisplayColumn"><span class="type-signature"></span>enableFixedDisplayColumn<span class="signature">(opt_enabled<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                            <div class="description">        Fixed display column to stay at the same position even though the column has been moved, or shifted by removing and inserting column    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">opt_enabled</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="enableFooterRow"><span class="type-signature"></span>enableFooterRow<span class="signature">(opt_num<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">opt_num</div>                        <div class="type">                            <span class="param-type">boolean</span> | <span class="param-type">number</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="expand"><span class="type-signature"></span>expand<span class="signature">(groupRowId, opt_expanded<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">groupRowId</div>                        <div class="type">                            <span class="param-type">string</span>                        </div>                            <div class="attributes">                                                                </div>                                            </div>                <div class="param">                            <div class="name">opt_expanded</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="expandAll"><span class="type-signature"></span>expandAll<span class="signature">(opt_expanded<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">opt_expanded</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getColumnMenu"><span class="type-signature"></span>getColumnMenu<span class="signature">(colIndex, config)</span><span class="type-signature"> → {Object}</span></h4>                            <div class="description">        Function for ColumnMenuExtension to collect config of column menu    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                                                    <div class="description">                    Column index                </div>                    </div>                <div class="param">                            <div class="name">config</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    Column Menu configuration                </div>                    </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getConfigObject"><span class="type-signature"></span>getConfigObject<span class="signature">(gridOptions<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Object}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">gridOptions</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getDataView"><span class="type-signature"></span>getDataView<span class="signature">()</span><span class="type-signature"> → {Object}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div><div class="sub-content-desc">    DataView instance</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getDefaultCollapse"><span class="type-signature"></span>getDefaultCollapse<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getFooterRowCount"><span class="type-signature"></span>getFooterRowCount<span class="signature">()</span><span class="type-signature"> → {number}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">number</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getGroupingCriteria"><span class="type-signature"></span>getGroupingCriteria<span class="signature">()</span><span class="type-signature"> → {Array.&lt;string&gt;}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Array.&lt;string&gt;</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getGroupingStates"><span class="type-signature"></span>getGroupingStates<span class="signature">()</span><span class="type-signature"> → {Array.&lt;<a href="#/extensions/tr-grid-row-grouping#~GroupingState">RowGroupingPlugin~GroupingState</a>&gt;}</span></h4>                            <div class="description">        Returns an array of states (collapsed or expanded)    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Array.&lt;<a href="#/extensions/tr-grid-row-grouping#~GroupingState">RowGroupingPlugin~GroupingState</a>&gt;</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getGroupSortingLogic"><span class="type-signature"></span>getGroupSortingLogic<span class="signature">()</span><span class="type-signature"> → {function}</span></h4>                            <div class="description">        Get the current group sort function. If none specified by setGroupSortingLogic() return <br>standard string sort function.    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">function</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getName"><span class="type-signature"></span>getName<span class="signature">()</span><span class="type-signature"> → {string}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">string</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="groupBy"><span class="type-signature"></span>groupBy<span class="signature">(criteria)</span><span class="type-signature"></span></h4>                            <div class="description">        Alias for <a href="#/extensions/tr-grid-row-grouping#setGroupingCriteria">RowGroupingPlugin#setGroupingCriteria</a>    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">criteria</div>                        <div class="type">                            <span class="param-type"><a href="#/extensions/tr-grid-row-grouping#~GroupCriteria">RowGroupingPlugin~GroupCriteria</a></span>                        </div>                                            </div>            </div>        <div class="details">                                                            <dt class="tag-see">See:</dt>    <dd class="tag-see">        <ul>            <li><a href="#/extensions/tr-grid-row-grouping#setGroupingCriteria">RowGroupingPlugin#setGroupingCriteria</a></li>        </ul>    </dd>        </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="hasGroupingCriteria"><span class="type-signature"></span>hasGroupingCriteria<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="hasMultiTableSupport"><span class="type-signature"></span>hasMultiTableSupport<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Plugin that has multi-table support means that it can have multiple hosts/tables and share its states across those hosts/tables.    </div>                        <div class="details">                <dt class="inherited-from">Inherited From:</dt>    <dd class="inherited-from">        <a href="#">GridPlugin#hasMultiTableSupport</a>    </dd>                                                    </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="initialize"><span class="type-signature"></span>initialize<span class="signature">(host, options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">host</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    core grid object                </div>                    </div>                <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setDefaultCollapse"><span class="type-signature"></span>setDefaultCollapse<span class="signature">(collapse)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">collapse</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                                                    <div class="description">                    Predefined color object map                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setGroupColor"><span class="type-signature"></span>setGroupColor<span class="signature">(groupRef, groupColor)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">groupRef</div>                        <div class="type">                            <span class="param-type">string</span>                        </div>                                            </div>                <div class="param">                            <div class="name">groupColor</div>                        <div class="type">                            <span class="param-type">string</span>                        </div>                                                    <div class="description">                    color name from predefinedColors                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setGroupingCriteria"><span class="type-signature"></span>setGroupingCriteria<span class="signature">(criteria)</span><span class="type-signature"></span></h4>                            <div class="description">        Each duplicate values in the given columns will be grouped together. Number of generated groups will equal to number of unique values in the given columns.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">criteria</div>                        <div class="type">                            <span class="param-type"><a href="#/extensions/tr-grid-row-grouping#~GroupCriteria">RowGroupingPlugin~GroupCriteria</a></span>                        </div>                                                    <div class="description">                    &lt;br&gt;Null input will clear all existing grouping criteria. &lt;br&gt;String input is treat as column name in data table &lt;br&gt;Array input will create mutilple groups in tree like manner (nested group criteria) &lt;br&gt;Any previous given values will be cleared out after calling this method                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setGroupingStates"><span class="type-signature"></span>setGroupingStates<span class="signature">(states)</span><span class="type-signature"></span></h4>                            <div class="description">        Set state for groups    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">states</div>                        <div class="type">                            <span class="param-type">Array.&lt;<a href="#/extensions/tr-grid-row-grouping#~GroupingState">RowGroupingPlugin~GroupingState</a>&gt;</span> | <span class="param-type">string</span>                        </div>                                                    <div class="description">                    Array state of groupings or JSON String                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setGroupSortingLogic"><span class="type-signature"></span>setGroupSortingLogic<span class="signature">(sortFunction)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">sortFunction</div>                        <div class="type">                            <span class="param-type"><a href="#/extensions/tr-grid-row-grouping#~GroupSortLogic">RowGroupingPlugin~GroupSortLogic</a></span>                        </div>                                                    <div class="description">                    Comparer function for comparing the order of 2 groups. The function should take at least 2 parameters. &lt;br&gt;The function should return -1 if the first parameter should comes first, 1 for the other way, and 0 if they are equal. &lt;br&gt;The two first parameters passed to the function are group value that separates group. &lt;br&gt;The two last parameters passed to the function are data views of corresponding group.                </div>                    </div>            </div>        <div class="details">                                                            </div>                                            <h5>Example:</h5>            <pre><code>let compare = function(grpA, grpB, dataViewA, dataViewB) {
+  return (grpA &lt;= grpB) ? -1 : 1;
+}
+let dstp = new RowGroupingExtension();
+dstp.setGroupSortingLogic(compare);</code></pre>    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setPredefinedColors"><span class="type-signature"></span>setPredefinedColors<span class="signature">(predefinedColors)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">predefinedColors</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    Predefined color object map                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setPredefinedGroups"><span class="type-signature"></span>setPredefinedGroups<span class="signature">(predefinedGroups)</span><span class="type-signature"></span></h4>                            <div class="description">        Specify empty group in case of grouping values are known prior to requesting data    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">predefinedGroups</div>                        <div class="type">                            <span class="param-type">Array</span> | <span class="param-type">Array.&lt;Array&gt;</span>                        </div>                                                    <div class="description">                    &lt;br&gt;Values in the given array should be matched the value coming from a data table, or else no content is added to the group &lt;br&gt;Use null value to clear all predefined groups. &lt;br&gt;Use 2D array to specify nested groups. &lt;br&gt;Any previous given values will be cleared out after calling this method                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="sortGroups"><span class="type-signature"></span>sortGroups<span class="signature">()</span><span class="type-signature"></span></h4>                            <div class="description">        Trigger group sorting logic -- re-sort the existing groups. This will not continuously apply to each data update.    </div>                        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="unload"><span class="type-signature"></span>unload<span class="signature">(host<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">host</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    core grid object                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="updateHeaders"><span class="type-signature"></span>updateHeaders<span class="signature">()</span><span class="type-signature"></span></h4>                                            <div class="details">                                                            </div>                                    </div>                        <h3 class="subsection-title" id="events">Events</h3>                    
+<div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:beforeGroupAdded">beforeGroupAdded</h4>                            <div class="description">        Fired each time before group added. Set property `cancel` to true to cancel adding of the new group    </div>                    <h5>Type:</h5>        <span class="param-type">Object</span>                    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>dataView</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">DataView instance</td>        </tr>            <tr>                            <td class="name"><code>newGroupId</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>newGroupValue</code></td>                        <td class="type">                            <span class="param-type">*</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>newGroupRowId</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                                    <td class="description last">Unique row Id given for the group</td>        </tr>        </tbody></table></div><div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:clicked">clicked</h4>                            <div class="description">        Fired when users click on UIs that trigger expanding or collapsing a group    </div>                    <h5>Type:</h5>        <span class="param-type">Object</span>                    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>rowIndex</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>expanded</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>group</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">Data view that represents currently clicked group header row</td>        </tr>        </tbody></table></div><div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:groupAdded">groupAdded</h4>                                                <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>dataView</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">Parent DataView that create the new group</td>        </tr>            <tr>                            <td class="name"><code>newGroup</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">Child DataView that is newly created</td>        </tr>        </tbody></table></div><div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:groupFooterBinding">groupFooterBinding</h4>                            <div class="description">        Fired when footer of each group is rendered    </div>                    <h5>Type:</h5>        <span class="param-type">Object</span>                    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>rowData</code></td>                        <td class="type">                            <span class="param-type">object</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>colIndex</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>rowIndex</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>rowId</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>footerIndex</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>groupId</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>footerRow</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>cell</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">Grid cell instance</td>        </tr>            <tr>                            <td class="name"><code>section</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">VirtualizedLayoutGrid</td>        </tr>            <tr>                            <td class="name"><code>dataSource</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">Parent DataView of group</td>        </tr>        </tbody></table></div><div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:groupHeaderBinding">groupHeaderBinding</h4>                            <div class="description">        Fired when header of each group is rendered    </div>                    <h5>Type:</h5>        <span class="param-type">Object</span>                    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>rowData</code></td>                        <td class="type">                            <span class="param-type">object</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>colIndex</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>rowIndex</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>rowId</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>footerIndex</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>groupId</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>footerRow</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>cell</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">Grid cell instance</td>        </tr>            <tr>                            <td class="name"><code>section</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">VirtualizedLayoutGrid</td>        </tr>            <tr>                            <td class="name"><code>dataSource</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">Parent DataView of group</td>        </tr>        </tbody></table></div><div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:nonGroupBinding">nonGroupBinding</h4>                            <div class="description">        Fired for each normal content row rendering    </div>                    <h5>Type:</h5>        <span class="param-type">Object</span>                    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>rowData</code></td>                        <td class="type">                            <span class="param-type">object</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>colIndex</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>rowIndex</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>rowId</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>cell</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">Grid cell instance</td>        </tr>            <tr>                            <td class="name"><code>section</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">VirtualizedLayoutGrid</td>        </tr>            <tr>                            <td class="name"><code>dataSource</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">Root DataView of all group</td>        </tr>            <tr>                            <td class="name"><code>noIndent</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                                    <td class="description last">set this property to true to prevent cell add indent</td>        </tr>        </tbody></table></div><div class="details">                                                            </div>                                    </div>            </article></section></div></div>

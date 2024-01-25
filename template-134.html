@@ -1,14 +1,16 @@
-<h1 id="realtime-data">Realtime Data</h1>
-<code-sandbox hash="678592b"><pre><code class="language-css">body {
-    padding: 24px;
-}
-
-efx-grid {
-    height: 300px;
-}
-
-hr {
-    margin: 8px;
+<h1 id="ef-checkbox-formatter">Coral Checkbox Formatter</h1>
+<p>This formatter creates a checkbox which will be unchecked by default.</p>
+<h3 id="using-elfs-checkbox">Using ELF&#39;s checkbox</h3>
+<p>This extension is only for using <a href="https://elf.int.refinitiv.com/elements/ef-checkbox.html">ef-checkbox</a> and the following dependency is required:</p>
+<pre><code class="language-bash">npm install @elf/ef-checkbox
+</code></pre>
+<p>Then import this required dependencies to your project <code>index.js</code> file.</p>
+<pre><code class="language-jsx">import &quot;@elf/ef-checkbox&quot;;
+import &quot;@elf/elf-theme-halo/dark/ef-checkbox&quot;; // Can be any theme.
+</code></pre>
+<h2 id="example">Example</h2>
+<code-sandbox hash="fc9bfb1f"><pre><code class="language-css">efx-grid {
+    height: 320px;
 }
 </code></pre>
 <pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
@@ -21,570 +23,94 @@ hr {
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var heatMapExt = new HeatMap();
-    var textFormattingExt = new TextFormatting();
-    var contextMenuExt = new ContextMenu();
-    var rowColoringExt = new RowColoring();
-    var inCellEditingExt = new InCellEditing();
-    var rowSelectionExt = new RowSelection();
+var fields = [&quot;word&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 100 });
 
-    var grid = document.getElementById(&quot;grid&quot;);
-    var Toolkit = tr.MockRTK ? tr.MockRTK : MockRTK;
-    Toolkit.init({ ID: &#39;rtk-efx-grid&#39;, minInterval: 100, maxInterval: 800 }, [&#39;Quotes&#39;, &#39;Data&#39;]).then(onInit);
-    function onInit(rtk) {
-        const contextMenuModel = {
-            items: {
-                INSERT_ROW: {
-                    text: &quot;Insert Row&quot;,
-                    callback: function (e) {
-                        var rowIndex = e.rowIndex;
-                        grid.api.insertRow({}, rowIndex);
-                        inCellEditingExt.openEditor(0, rowIndex);
-                    }
-                },
-                REMOVE_ROW: {
-                    text: &quot;Remove Row&quot;,
-                    callback: function (e) {
-                        var selectionRows = rowSelectionExt.getSelectedRows();
-                        grid.api.removeRows(selectionRows);
+var configObj = {
+    sorting: {
+        sortableColumns: true
+    },
+    columns: [
+        {
+            alignment: &quot;c&quot;,
+            field: &quot;myCheckBoxState&quot;,
+            width: 34,
+            binding: EFCheckboxFormatter.create({
+                events: {
+                    &quot;click&quot;: function(e) {
+                        console.log(&quot;clicked&quot;);
                     }
                 }
-            },
-            onMenu: function (e) {
-                var context = e.context;
-                var menu = e.menu;
-                var rowIndex = e.rowIndex;
-                if (context === &quot;content&quot;) {
-                    if (grid.api.getRowDefinition(rowIndex).getType() !== &quot;CONSTITUENT&quot;) {
-                        menu.addItems([&quot;INSERT_ROW&quot;, &quot;REMOVE_ROW&quot;]);
-                    } else {
-                        menu.addItems([&quot;INSERT_ROW&quot;]);
-                    }
-                }
-            }
-        };
-
-        var configObj = {
-            rowSelection: true,
-            fieldCaching: true,
-            RTK: rtk,
-            columns: [
-                {
-                    field: &quot;X_RIC_NAME&quot;,
-                    name: &quot;RIC&quot;,
-                    tickColor: &quot;CF_NETCHNG&quot;,
-                    minWidth: 100,
-                    editableContent: true
-                },
-                {
-                    field: &quot;CF_TICK&quot;,
-                    name: &quot;Tick&quot;,
-                    binding: onTickBinding,
-                },
-                {
-                    field: &quot;CF_LAST&quot;,
-                    tickColor: &quot;CF_TICK&quot;,
-                    blinking: true,
-                },
-                {
-                    field: &quot;CF_NETCHNG&quot;,
-                    blinking: true,
-                    tickColor: &quot;CF_TICK&quot;
-                },
-                {
-                    field: &quot;PCTCHNG&quot;,
-                    heatmap: true,
-                    formatType: &quot;percent&quot;,
-                }
-            ],
-            rows: [
-                { ric: &quot;BA.N&quot; },
-                { ric: &quot;AAPL.O&quot; },
-                { ric: &quot;MSFT.O&quot; },
-                { ric: &quot;TSLA.O&quot; },
-                { ric: &quot;PTT.BK&quot; },
-                { ric: &quot;AOT.BK&quot; },
-                { ric: &quot;.DJI&quot;, asChain: true, collapsed: false },
-            ],
-            extensions: [heatMapExt, textFormattingExt, contextMenuExt, rowColoringExt, inCellEditingExt, rowSelectionExt],
-            contextMenu: contextMenuModel,
-            inCellEditing: {
-                editableTitle: true,
-                editableContent: false,
-                autoSuggest: autoSuggest
-            },
-        };
-
-        grid.config = configObj;
-    }
-
-    function onTickBinding(e) {
-        var cell = e.cell;
-        var data = e.data;
-        var content = cell.getContent();
-        if (!content) {
-            content = document.createElement(&quot;ef-icon&quot;);
+            })
+        },
+        {
+            name: &quot;Grid Checkbox State&quot;,
+            field: &quot;myCheckBoxState&quot;,
+            alignment: &quot;c&quot;,
+        },
+        {
+            name: &quot;Text&quot;,
+            field: fields[0],
+            alignment: &quot;c&quot;,
         }
-        if (data != null) {
+    ],
+    staticDataRows: records
+};
 
-            var dataColor = {};
-            if (data === 2) {
-                dataColor.icon = &quot;arrow-down-fill&quot;;
-                dataColor.color = &quot;rgb(245, 71, 91)&quot;;
-            } else if (data == 1) {
-                dataColor.icon = &quot;arrow-up-fill&quot;;
-                dataColor.color = &quot;rgb(57, 196, 110)&quot;;
-            }
-            content.icon = dataColor.icon;
-            content.style.color = dataColor.color;
-        }
-        cell.setContent(content);
-    };
-
-    var autoSuggest = (window.autoSuggest = document.createElement(
-        &quot;atlas-autosuggest&quot;
-    ));
-    autoSuggest.moreSearchDisabled = true; // Disable more search result, if you want to enable it follow https://amp.int.refinitiv.com/#/package/@elf/atlas-autosuggest
-
-    // ========== MOCK data server. Don&#39;t copy this section =================
-    const flattenResponse = (response) =&gt; {
-        const { result, search, header, action } = response;
-        const suggestions = [];
-        const meta = {
-            url: search,
-            keyword: header.request.query
-        };
-        if (result &amp;&amp; result.length) {
-            result.forEach(row =&gt; {
-                const rowAsDefault = row.default === true;
-                const rowHits = row.hits;
-                if (rowHits &amp;&amp; rowHits.length) {
-                    rowHits.forEach((rowHit, hitIdx) =&gt; {
-                        suggestions.push({
-                            label: rowHit.cmd,
-                            value: rowHit,
-                            highlighted: rowAsDefault &amp;&amp; hitIdx === 0,
-                            meta
-                        });
-                        const relations = rowHit.relations;
-                        if (relations) {
-                            Object.keys(relations).forEach(key =&gt; {
-                                const relation = relations[key];
-                                const relationAsDefault = relation.default === true;
-                                const relationHits = relation.hits;
-                                if (relationHits &amp;&amp; relationHits.length) {
-                                    relationHits.forEach((relationHit, relationHitIdx) =&gt; {
-                                        suggestions.push({
-                                            label: relationHit.cmd,
-                                            value: relationHit,
-                                            parent: rowHit,
-                                            asSub: true,
-                                            highlighted: relationAsDefault &amp;&amp; relationHitIdx === 0,
-                                            meta
-                                        });
-                                    });
-                                }
-                            });
-                        }
-                    });
-                }
-            });
-        }
-        return {
-            header,
-            meta,
-            suggestions,
-            action,
-            searchUrl: search
-        };
-    };
-    autoSuggest.addEventListener(&quot;suggestions-fetch-requested&quot;, suggest);
-    function suggest(ev) {
-        // Stop default data fetching
-
-        ev.preventDefault();
-
-        // construct cache key off the query object
-        var cacheKey = JSON.stringify(ev.detail.query);
-
-        // (optional) use util to parse response
-        var responseData = {
-            &quot;header&quot;: {
-                &quot;request&quot;: {
-                    &quot;filter&quot;: &quot;&quot;,
-                    &quot;highlight&quot;: true,
-                    &quot;userProfileAssetClass&quot;: &quot;CSH&quot;,
-                    &quot;api-key&quot;: &quot;czZTQ5MjY4&quot;,
-                    &quot;eikon_version&quot;: &quot;Eikon Web&quot;,
-                    &quot;profile&quot;: &quot;AlertsUI2&quot;,
-                    &quot;query&quot;: &quot;IBV&quot;,
-                    &quot;uuid&quot;: &quot;PATESTCPA724&quot;,
-                    &quot;appl_category&quot;: []
-                },
-                &quot;response&quot;: {
-                    &quot;duration&quot;: 57,
-                    &quot;server&quot;: &quot;c962fkkaswb04.int.thomsonreuters.com&quot;,
-                    &quot;num_results&quot;: 10
-                }
-            },
-            &quot;result&quot;: [
-                {
-                    &quot;name&quot;: &quot;Equities&quot;,
-                    &quot;hits&quot;: [
-                        {
-                            &quot;score&quot;: 6867489,
-                            &quot;navigation&quot;: null,
-                            &quot;id&quot;: &quot;1097326&quot;,
-                            &quot;title&quot;: &quot;International Business Vehicle Corp&quot;,
-                            &quot;subtitle&quot;: &quot;Ordinary Share - NYSE Consolidated - IBV&quot;,
-                            &quot;symbol&quot;: &quot;&quot; + &quot;&lt;b&gt;&quot; + ev.detail.query + &quot;&lt;/b&gt;&quot; + &quot;&quot;,
-                            &quot;cmd&quot;: &quot;IBV&quot;,
-                            &quot;relations&quot;: {},
-                            &quot;position&quot;: 0,
-                            &quot;source&quot;: &quot;12&quot;,
-                            &quot;explanation&quot;: null,
-                            &quot;p&quot;: {
-                                &quot;RIC&quot;: &quot;IBV&quot;,
-                                &quot;IsChain&quot;: false,
-                                &quot;PermID&quot;: &quot;55839165994&quot;,
-                                &quot;OAPermID&quot;: &quot;4295904307&quot;
-                            },
-                            &quot;ac&quot;: [
-                                &quot;A:1&quot;,
-                                &quot;A:1L&quot;
-                            ],
-                            &quot;s&quot;: &quot;IBV&quot;,
-                            &quot;vc&quot;: &quot;EQ&quot;,
-                            &quot;fr&quot;: false,
-                            &quot;st&quot;: &quot;RIC&quot;,
-                            &quot;preview&quot;: true
-                        },
-                        {
-                            &quot;score&quot;: 2762007,
-                            &quot;navigation&quot;: null,
-                            &quot;id&quot;: &quot;131770829&quot;,
-                            &quot;title&quot;: &quot;International Business Vehicle Corp&quot;,
-                            &quot;subtitle&quot;: &quot;Ordinary Share - MiFID Composite Cross Market Service - IBV&quot;,
-                            &quot;symbol&quot;: &quot;&quot; + &quot;&lt;b&gt;&quot; + ev.detail.query + &quot;&lt;/b&gt;&quot; + &quot;IUSD.xbo&quot;,
-                            &quot;cmd&quot;: &quot;IBVIUSD.xbo&quot;,
-                            &quot;relations&quot;: {},
-                            &quot;position&quot;: 1,
-                            &quot;source&quot;: &quot;12&quot;,
-                            &quot;explanation&quot;: null,
-                            &quot;p&quot;: {
-                                &quot;RIC&quot;: &quot;IBVIUSD.xbo&quot;,
-                                &quot;IsChain&quot;: false,
-                                &quot;PermID&quot;: &quot;21523029548&quot;,
-                                &quot;OAPermID&quot;: &quot;4295904307&quot;
-                            },
-                            &quot;ac&quot;: [
-                                &quot;A:1&quot;,
-                                &quot;A:1L&quot;
-                            ],
-                            &quot;s&quot;: &quot;IBVIUSD.xbo&quot;,
-                            &quot;vc&quot;: &quot;EQ&quot;,
-                            &quot;fr&quot;: false,
-                            &quot;st&quot;: &quot;RIC&quot;,
-                            &quot;preview&quot;: true
-                        }
-                    ],
-                    &quot;hasMore&quot;: true,
-                    &quot;default&quot;: false,
-                    &quot;size&quot;: 2,
-                    &quot;moreLink&quot;: &quot;cpurl://views.cp./Explorer/SRCHxALL.aspx?vcn=SearchAllEquities&amp;Search.Value=ibV&quot;
-                },
-                {
-                    &quot;name&quot;: &quot;Portfolios &amp; Lists&quot;,
-                    &quot;hits&quot;: [
-                        {
-                            &quot;score&quot;: 2952687,
-                            &quot;navigation&quot;: null,
-                            &quot;id&quot;: &quot;599195610&quot;,
-                            &quot;title&quot;: &quot;nam123&quot;,
-                            &quot;subtitle&quot;: &quot;&quot;,
-                            &quot;symbol&quot;: &quot;nam123&quot;,
-                            &quot;cmd&quot;: &quot;nam123&quot;,
-                            &quot;relations&quot;: {},
-                            &quot;position&quot;: 2,
-                            &quot;source&quot;: &quot;62&quot;,
-                            &quot;explanation&quot;: null,
-                            &quot;p&quot;: {
-                                &quot;t&quot;: &quot;FundedPortfolio&quot;
-                            },
-                            &quot;s&quot;: &quot;599195610&quot;,
-                            &quot;vc&quot;: &quot;PORT&quot;,
-                            &quot;fr&quot;: false,
-                            &quot;st&quot;: &quot;PortfolioID&quot;,
-                            &quot;preview&quot;: false
-                        },
-                        {
-                            &quot;score&quot;: 2932687,
-                            &quot;navigation&quot;: null,
-                            &quot;id&quot;: &quot;215781232&quot;,
-                            &quot;title&quot;: &quot;BILL SHARE_AA IBV T&quot;,
-                            &quot;subtitle&quot;: &quot;&quot;,
-                            &quot;symbol&quot;: &quot;BILL SHARE_AA &quot; + &quot;&lt;b&gt;&quot; + ev.detail.query + &quot;&lt;/b&gt;&quot; + &quot; T&quot;,
-                            &quot;cmd&quot;: &quot;BILL SHARE_AA IBV T&quot;,
-                            &quot;relations&quot;: {},
-                            &quot;position&quot;: 3,
-                            &quot;source&quot;: &quot;62&quot;,
-                            &quot;explanation&quot;: null,
-                            &quot;p&quot;: {
-                                &quot;t&quot;: &quot;FundedPortfolio&quot;
-                            },
-                            &quot;s&quot;: &quot;215781232&quot;,
-                            &quot;vc&quot;: &quot;PORT&quot;,
-                            &quot;fr&quot;: false,
-                            &quot;st&quot;: &quot;PortfolioID&quot;,
-                            &quot;preview&quot;: false
-                        }
-                    ],
-                    &quot;hasMore&quot;: true,
-                    &quot;default&quot;: false,
-                    &quot;size&quot;: 2,
-                    &quot;moreLink&quot;: &quot;cpurl://views.cp./Explorer/SRCHxPORTF.aspx?Search.Value=ibV&quot;
-                },
-                {
-                    &quot;name&quot;: &quot;Funds&quot;,
-                    &quot;hits&quot;: [
-                        {
-                            &quot;score&quot;: 2741047,
-                            &quot;navigation&quot;: null,
-                            &quot;id&quot;: &quot;298223588&quot;,
-                            &quot;title&quot;: &quot;iShares iBonds Dec 2024 Term Muni Bond ETF&quot;,
-                            &quot;subtitle&quot;: &quot;Bond ETF - US123712312 - USD - Cboe Consolidated - IBVM&quot;,
-                            &quot;symbol&quot;: &quot;&quot; + &quot;&lt;b&gt;&quot; + ev.detail.query + &quot;&lt;/b&gt;&quot; + &quot;M.K&quot;,
-                            &quot;cmd&quot;: &quot;IBVM.K&quot;,
-                            &quot;relations&quot;: {},
-                            &quot;position&quot;: 4,
-                            &quot;source&quot;: &quot;24&quot;,
-                            &quot;explanation&quot;: null,
-                            &quot;p&quot;: {
-                                &quot;RIC&quot;: &quot;IBVM.K&quot;,
-                                &quot;IsChain&quot;: false,
-                                &quot;PermID&quot;: &quot;21642135445&quot;,
-                                &quot;lipperId&quot;: &quot;40215430&quot;
-                            },
-                            &quot;ac&quot;: [
-                                &quot;A:5&quot;,
-                                &quot;A:2X&quot;,
-                                &quot;A:L0&quot;,
-                                &quot;A:7&quot;,
-                                &quot;A:GL&quot;
-                            ],
-                            &quot;s&quot;: &quot;IBVM.K&quot;,
-                            &quot;vc&quot;: &quot;FND&quot;,
-                            &quot;fr&quot;: false,
-                            &quot;st&quot;: &quot;RIC&quot;,
-                            &quot;preview&quot;: true
-                        }
-                    ],
-                    &quot;hasMore&quot;: true,
-                    &quot;default&quot;: false,
-                    &quot;size&quot;: 1,
-                    &quot;moreLink&quot;: &quot;cpurl://views.cp./Explorer/SRCHxALL.aspx?vcn=SearchAllFunds&amp;Search.Value=ibV&quot;
-                },
-                {
-                    &quot;name&quot;: &quot;Options&quot;,
-                    &quot;hits&quot;: [
-                        {
-                            &quot;score&quot;: 2157436,
-                            &quot;navigation&quot;: null,
-                            &quot;id&quot;: &quot;585064349&quot;,
-                            &quot;title&quot;: &quot;OPRA International Business Vehicle Equity Option 145 Call Oct 2022 - IBV&quot;,
-                            &quot;subtitle&quot;: &quot;Equity Cash Option - OPRA - IBVJ2122C145000&quot;,
-                            &quot;symbol&quot;: &quot;&quot; + &quot;&lt;b&gt;&quot; + ev.detail.query + &quot;&lt;/b&gt;&quot; + &quot;J212214500.U&quot;,
-                            &quot;cmd&quot;: &quot;IBVJ212214500.U&quot;,
-                            &quot;relations&quot;: {},
-                            &quot;position&quot;: 5,
-                            &quot;source&quot;: &quot;14&quot;,
-                            &quot;explanation&quot;: null,
-                            &quot;p&quot;: {
-                                &quot;RIC&quot;: &quot;IBVJ212214500.U&quot;,
-                                &quot;IsChain&quot;: false,
-                                &quot;PermID&quot;: &quot;21873654768&quot;
-                            },
-                            &quot;ac&quot;: [
-                                &quot;A:1&quot;,
-                                &quot;A:2K&quot;,
-                                &quot;A:1T&quot;,
-                                &quot;A:7&quot;,
-                                &quot;A:G1&quot;,
-                                &quot;A:60&quot;
-                            ],
-                            &quot;s&quot;: &quot;IBVJ212214500.U&quot;,
-                            &quot;vc&quot;: &quot;OPT&quot;,
-                            &quot;fr&quot;: false,
-                            &quot;st&quot;: &quot;RIC&quot;,
-                            &quot;preview&quot;: false
-                        }
-                    ],
-                    &quot;hasMore&quot;: true,
-                    &quot;default&quot;: false,
-                    &quot;size&quot;: 1,
-                    &quot;moreLink&quot;: &quot;cpurl://views.cp./Explorer/SRCHxALL.aspx?vcn=SearchAllOptions&amp;Search.Value=ibV&quot;
-                },
-                {
-                    &quot;name&quot;: &quot;Indices&quot;,
-                    &quot;hits&quot;: [
-                        {
-                            &quot;score&quot;: 2157150,
-                            &quot;navigation&quot;: null,
-                            &quot;id&quot;: &quot;215781470&quot;,
-                            &quot;title&quot;: &quot;INTL BUSINES Single Stock Dividend&quot;,
-                            &quot;subtitle&quot;: &quot;Equity Index&quot;,
-                            &quot;symbol&quot;: &quot;0#.IBVDIV&quot;,
-                            &quot;cmd&quot;: &quot;0#.IBVDIV&quot;,
-                            &quot;relations&quot;: {},
-                            &quot;position&quot;: 6,
-                            &quot;source&quot;: &quot;7&quot;,
-                            &quot;explanation&quot;: null,
-                            &quot;p&quot;: {
-                                &quot;RIC&quot;: &quot;0#.IBVDIV&quot;,
-                                &quot;OAPermID&quot;: &quot;4298427948&quot;
-                            },
-                            &quot;ac&quot;: [
-                                &quot;M:D6&quot;,
-                                &quot;I:M&quot;,
-                                &quot;I:17&quot;,
-                                &quot;A:1&quot;
-                            ],
-                            &quot;s&quot;: &quot;0#.IBVDIV&quot;,
-                            &quot;vc&quot;: &quot;INDX&quot;,
-                            &quot;fr&quot;: false,
-                            &quot;st&quot;: &quot;RIC&quot;,
-                            &quot;preview&quot;: true
-                        }
-                    ],
-                    &quot;hasMore&quot;: true,
-                    &quot;default&quot;: false,
-                    &quot;size&quot;: 1,
-                    &quot;moreLink&quot;: &quot;cpurl://views.cp./Explorer/SRCHxALL.aspx?vcn=SearchAllIndices&amp;Search.Value=ibV&quot;
-                },
-                {
-                    &quot;name&quot;: &quot;Commodities&quot;,
-                    &quot;hits&quot;: [
-                        {
-                            &quot;score&quot;: 1598945,
-                            &quot;navigation&quot;: null,
-                            &quot;id&quot;: &quot;606788540&quot;,
-                            &quot;title&quot;: &quot;Argus Ice Brent Month 2 Snapshot PA5000637&quot;,
-                            &quot;subtitle&quot;: &quot;Crude Oil - Commodity Spot - ARGUS&quot;,
-                            &quot;symbol&quot;: &quot;&quot; + &quot;&lt;b&gt;&quot; + ev.detail.query + &quot;&lt;/b&gt;&quot; + &quot;SST=ARG&quot;,
-                            &quot;cmd&quot;: &quot;IBVSST=ARG&quot;,
-                            &quot;relations&quot;: {},
-                            &quot;position&quot;: 7,
-                            &quot;source&quot;: &quot;15&quot;,
-                            &quot;explanation&quot;: null,
-                            &quot;p&quot;: {
-                                &quot;RIC&quot;: &quot;IBVSST=ARG&quot;,
-                                &quot;IsChain&quot;: false,
-                                &quot;PermID&quot;: &quot;21891574387&quot;
-                            },
-                            &quot;ac&quot;: [
-                                &quot;A:4&quot;,
-                                &quot;A:1Q&quot;
-                            ],
-                            &quot;s&quot;: &quot;IBVSST=ARG&quot;,
-                            &quot;vc&quot;: &quot;COM&quot;,
-                            &quot;fr&quot;: false,
-                            &quot;st&quot;: &quot;RIC&quot;,
-                            &quot;preview&quot;: true
-                        }
-                    ],
-                    &quot;hasMore&quot;: true,
-                    &quot;default&quot;: false,
-                    &quot;size&quot;: 1,
-                    &quot;moreLink&quot;: &quot;cpurl://apps.cp./apps/SearchAll?Search.Value=ibV&quot;
-                },
-                {
-                    &quot;name&quot;: &quot;Fixed Income&quot;,
-                    &quot;hits&quot;: [
-                        {
-                            &quot;score&quot;: 1465259,
-                            &quot;navigation&quot;: null,
-                            &quot;id&quot;: &quot;0x00102c80bf6b046c&quot;,
-                            &quot;title&quot;: &quot;International Business Vehicle Corp - &quot; + &quot;&lt;b&gt;&quot; + ev.detail.query + &quot;&lt;/b&gt;&quot; + &quot; 2.875% 09-Nov-2022&quot;,
-                            &quot;subtitle&quot;: &quot;Plain Vanilla Fixed Coupon Bond - Underwritten&quot;,
-                            &quot;symbol&quot;: &quot;US459200JC60&quot;,
-                            &quot;cmd&quot;: &quot;US459200JC60&quot;,
-                            &quot;relations&quot;: {},
-                            &quot;position&quot;: 8,
-                            &quot;source&quot;: &quot;3&quot;,
-                            &quot;explanation&quot;: null,
-                            &quot;p&quot;: {
-                                &quot;RIC&quot;: &quot;459200JC6=&quot;,
-                                &quot;OAPermID&quot;: &quot;4295904307&quot;
-                            },
-                            &quot;ac&quot;: [
-                                &quot;A:2&quot;,
-                                &quot;A:J&quot;
-                            ],
-                            &quot;s&quot;: &quot;459200JC6=&quot;,
-                            &quot;vc&quot;: &quot;BOND&quot;,
-                            &quot;fr&quot;: false,
-                            &quot;st&quot;: &quot;RIC&quot;,
-                            &quot;preview&quot;: true
-                        }
-                    ],
-                    &quot;hasMore&quot;: true,
-                    &quot;default&quot;: false,
-                    &quot;size&quot;: 1,
-                    &quot;moreLink&quot;: &quot;cpurl://apps.cp./apps/SearchAll?Search.Value=ibV&quot;
-                },
-                {
-                    &quot;name&quot;: &quot;FX&quot;,
-                    &quot;hits&quot;: [
-                        {
-                            &quot;score&quot;: 237124,
-                            &quot;navigation&quot;: null,
-                            &quot;id&quot;: &quot;47051538460&quot;,
-                            &quot;title&quot;: &quot;US Dollar/Chinese Renminbi 6 Month FX Forecast&quot;,
-                            &quot;subtitle&quot;: &quot;IBV INDIA - 6 Month&quot;,
-                            &quot;symbol&quot;: &quot;CNY6MP=0631&quot;,
-                            &quot;cmd&quot;: &quot;CNY6MP=0631&quot;,
-                            &quot;relations&quot;: {},
-                            &quot;position&quot;: 9,
-                            &quot;source&quot;: &quot;23&quot;,
-                            &quot;explanation&quot;: null,
-                            &quot;p&quot;: {
-                                &quot;RIC&quot;: &quot;CNY6MP=0631&quot;,
-                                &quot;PermID&quot;: &quot;47051538460&quot;
-                            },
-                            &quot;ac&quot;: [
-                                &quot;M:D6&quot;,
-                                &quot;A:55&quot;,
-                                &quot;A:3&quot;,
-                                &quot;A:9&quot;,
-                                &quot;M:1MN&quot;
-                            ],
-                            &quot;s&quot;: &quot;CNY6MP=0631&quot;,
-                            &quot;vc&quot;: &quot;FX&quot;,
-                            &quot;fr&quot;: false,
-                            &quot;st&quot;: &quot;RIC&quot;,
-                            &quot;preview&quot;: false
-                        }
-                    ],
-                    &quot;hasMore&quot;: true,
-                    &quot;default&quot;: false,
-                    &quot;size&quot;: 1,
-                    &quot;moreLink&quot;: &quot;cpurl://views.cp./Explorer/SRCHxALL.aspx?vcn=SearchAllFXMoney&amp;Search.Value=ibV&quot;
-                }
-            ],
-            &quot;search&quot;: &quot;cpurl://apps.cp./apps/SearchAll?Search.Value=ibV&quot;,
-            &quot;action&quot;: &quot;\&quot;IBV\&quot; SRCH&quot;,
-            &quot;assetClassifierStatus&quot;: &quot;NOT_INVOKED&quot;,
-            &quot;assetClassifierExplanation&quot;: &quot;Current profile is not in the list of the silent mode profiles for asset classifier.&quot;
-        };
-        var parsed = flattenResponse(responseData);
-
-        // cache the response
-        autoSuggest.cacheModel.set(cacheKey, parsed);
-
-        // set suggestions data
-        autoSuggest.setSuggestions(parsed);
-    }
-    // ========== End mock data server section ======================================
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
 </code></pre>
-</code-sandbox><p>In the example above, we use MockRTK to mimic real-time data from the server. In this case, we have the ability to select a row to highlight it. Right-clicking on the row brings up a menu where you can insert or delete the row.</p>
-<p>Furthermore, we have both regular RIC and chain RIC. They automatically add children to their respective rows. Additionally, there&#39;s a heat map extension that visually represents the data values. This visualization helps to decide when to make trades based on a midpoint.</p>
+</code-sandbox><h3 id="checkbox-with-a-label">Checkbox with a label</h3>
+<code-sandbox hash="9477ef77"><pre><code class="language-css">efx-grid {
+    height: 320px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;word&quot;, &quot;words&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 30 });
+
+var configObj = {
+    sorting: {
+        sortableColumns: true
+    },
+    columns: [
+        {
+            alignment: &quot;l&quot;,
+            field: &quot;myCheckBoxState&quot;,
+            width: 150,
+            binding: EFCheckboxFormatter.create({
+                events: {
+                    &quot;click&quot;: function(e) {
+                        console.log(&quot;clicked&quot;);
+                    }
+                },
+                labelField: &quot;word&quot;
+            })
+        },
+        {
+            name: &quot;Grid Checkbox State&quot;,
+            field: &quot;myCheckBoxState&quot;,
+            alignment: &quot;c&quot;,
+        },
+        {
+            name: &quot;Text&quot;,
+            field: fields[1],
+            alignment: &quot;c&quot;,
+        }
+    ],
+    staticDataRows: records
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox>

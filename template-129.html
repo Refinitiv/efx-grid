@@ -1,8 +1,12 @@
-<h1 id="scrollbar-visibility">Scrollbar Visibility</h1>
-<p>Instead of fading in or out on hover (default behavior), Grid scrollbars can be set to always be visible whenever the content is scrollable.</p>
-<p>This behavior can be enabled upon grid initialization using the <code>autoHideScrollbar</code> option. The values can be <em>false</em> for always-on, and <em>true</em> for fade in/out (default).</p>
+<h1 id="formatter-default">Formatter (default)</h1>
+<p>Formatter is what Grid uses to render content. Grid&#39;s default formatter will render any data in plain text. When data is updated, Grid will bind the data from its own internal data source to render the data in plain text using the formatter. The data given to grid can be any data type.</p>
+<blockquote>
+<p>Note: The formatter will be repeatedly executed multiple times for every update and scrolling. </p>
+</blockquote>
+<p>Default rendering is already optimized for row virtualization. This means that grid uses the same text element to render different data for different rows. It should be fast enough to handle rendering a million of rows.</p>
+<p>To update what is shown on the Grid, please use Grid&#39;s APIs to <a href="#/general-concept/accessing-data">manipulate the data</a> from the instance.</p>
 <h2 id="example">Example</h2>
-<code-sandbox hash="aa965854"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="f6392815"><pre><code class="language-css">efx-grid {
     height: 200px;
 }
 </code></pre>
@@ -17,15 +21,14 @@
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
 var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 10 });
+var records = DataGenerator.generateRecords(fields, { numRows: 40 });
 var configObj = {
-    autoHideScrollbar: false,
     columns: [
-        {name: &quot;Company&quot;, field: fields[0], width: 250},
-        {name: &quot;Market&quot;, field: fields[1], width: 150},
-        {name: &quot;Last&quot;, field: fields[2], width: 150},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 150},
-        {name: &quot;Industry&quot;, field: fields[4], width: 300}
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market&quot;, field: fields[1]},
+        {name: &quot;Last&quot;, field: fields[2]},
+        {name: &quot;Net. Chng&quot;, field: fields[3]},
+        {name: &quot;Industry&quot;, field: fields[4]}
     ],
     staticDataRows: records
 };
@@ -33,4 +36,16 @@ var configObj = {
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 </code></pre>
-</code-sandbox>
+</code-sandbox><h2 id="internal-default-formatter-implementation">Internal Default Formatter Implementation</h2>
+<p>Internally, Grid implements the formatter as the following code: </p>
+<pre><code class="language-js">var configObj = {
+    columns: [
+        { binding: function(e){
+                e.cell.setContent(e.data);
+            }
+        }
+    ]
+};
+</code></pre>
+<h1 id="custom-formatter">Custom Formatter</h1>
+<p>If we want anything other than simple text, we need to define a custom formatter. You can find more details about this in the <a href="#/rendering/custom-formatter">Custom Formatter section</a>.</p>

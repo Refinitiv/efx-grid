@@ -1,109 +1,12 @@
-<h1 id="percent-bar-formatter">Percent Bar Formatter</h1>
-<p>This formatter creates a percent bar.</p>
-<h2 id="specific-options">Specific options</h2>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Type</th>
-<th>Attributes</th>
-<th>Default</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>alignment</td>
-<td>string</td>
-<td>optional</td>
-<td>&quot;left&quot;</td>
-<td>Possible values are l, r, c, left, right, and center</td>
-</tr>
-<tr>
-<td>movementColor</td>
-<td>boolean</td>
-<td>optional</td>
-<td>true</td>
-<td>If disabled, percent bar will not use up and down colors</td>
-</tr>
-<tr>
-<td>barColor</td>
-<td>string</td>
-<td>optional</td>
-<td>&quot;&quot;</td>
-<td>Custom color for bar element</td>
-</tr>
-<tr>
-<td>textHidden</td>
-<td>boolean</td>
-<td>optional</td>
-<td>false</td>
-<td>If enabled, text label will not be shown</td>
-</tr>
-<tr>
-<td>textWidth</td>
-<td>number or string</td>
-<td>optional</td>
-<td>56</td>
-<td>Number of pixel or percentage width</td>
-</tr>
-</tbody></table>
-<h2 id="example">Example</h2>
-<code-sandbox hash="23cf3d58"><pre><code class="language-css">efx-grid {
-    height: 320px;
-}
-</code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;myPercent&quot;, &quot;word&quot;];
-var num = -100;
-DataGenerator.addFieldInfo(&quot;myPercent&quot;, function(e) {
-    return num += 5;
-});
-
-var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 40 });
-var configObj = {
-    sorting: {
-        sortableColumns: true
-    },
-    columns: [
-        {
-            name: &quot;Percent bar (Default)&quot;,
-            field: fields[0],
-            alignment: &quot;c&quot;, 
-            binding: PercentBarFormatter.create()
-        },
-        {
-            name: &quot;Center alignment + No Movement Color&quot;,
-            field: fields[0],
-            alignment: &quot;c&quot;,
-            binding: PercentBarFormatter.create({
-                alignment: &quot;c&quot;,
-                movementColor: false
-            })
-        },
-        {
-            name: &quot;No Label + Custom Color&quot;,
-            field: fields[0],
-            alignment: &quot;c&quot;,
-            binding: PercentBarFormatter.create({
-                alignment: &quot;r&quot;,
-                textHidden: true,
-                barColor: &quot;purple&quot;
-            })
-        }
-    ],
-    staticDataRows: records
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
-</code></pre>
-</code-sandbox>
+<h1 id="grids-license">Grid&#39;s License</h1>
+<p>Copyright © 2022 LSEG. All rights reserved.</p>
+<p>Permission to use and redistribute this software in source and binary forms, with or without modification (the “Software”) is hereby granted to any person, provided the following conditions are met:</p>
+<ol>
+<li>The person is an active LSEG Subscription License holder currently using LSEG products or services.</li>
+<li>The Software and its closed source components must only be used within LSEG products or services.  Any use of the Software and its closed source components outside LSEG products or services is not permitted unless explicitly authorized in writing from the copyright holder.</li>
+<li>Redistribution of the Software in source code in any form must retain the above copyright notice, this list of conditions, and the following disclaimer.</li>
+<li>Redistribution of the Software in binary form must reproduce the above copyright notice, this list of conditions, and the following disclaimer, in the documentation and/or other materials provided with the distribution.</li>
+<li>Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this Software without specific prior written authorization.</li>
+</ol>
+<p>DISCLAIMER
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</p>

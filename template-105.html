@@ -1,53 +1,72 @@
-<h1 id="ef-number-field-formatter">EF Number Field Formatter</h1>
-<p>This formatter creates a <a href="https://ui.refinitiv.com/elements/number-field">ef-number-field</a> without a margin and 100% width. By default the input&#39;s value will be the column&#39;s field.</p>
-<h2 id="example">Example</h2>
-<code-sandbox hash="5238ff80"><pre><code class="language-css">efx-grid {
-    height: 320px;
+<h1 id="using-efx-grid-with-angular">Using EFX Grid with Angular</h1>
+<p>For using <code>EFX Grid</code> with Angular, first you are required to install <code>@refinitiv-ui/efx-grid</code> in your project.</p>
+<pre><code class="language-sh">npm install @refinitiv-ui/efx-grid
+</code></pre>
+<p>In component logic file, for example <code>src/app/app.component.ts</code>, use <code>import</code> syntax to import the Grid and theme into your app.</p>
+<pre><code class="language-js">// Import element and its Halo dark theme
+import &quot;@refinitiv-ui/efx-grid&quot;;
+import &quot;@refinitiv-ui/efx-grid/themes/halo/dark&quot;;
+
+// Import native styles for typography, css variables, etc.
+import &quot;@refinitiv-ui/halo-theme/dark/imports/native-elements&quot;;
+</code></pre>
+<p>Then import types from <code>efx-grid</code> package to your file. These types are typically for properties on a configuration object or APIs defined by Grid components. You don&#39;t need to import every type, if you don&#39;t use them. All of the types are optional.</p>
+<pre><code class="language-js">import {
+    RealtimeGrid, // Provide types for api object
+    ColumnDefinition, // Provide types for column config and ColumnDefinition object
+    CoreGrid // Provide types for core object
+} from &quot;@refinitiv-ui/efx-grid&quot;;
+</code></pre>
+<p>Optionally, you can also import Grid&#39;s <a href="#/extensions/readme">extensions</a> from <code>efx-grid/extensions</code> package to extend its functionalities. </p>
+<pre><code class="language-js">import { ColumnResizing } from &quot;@refinitiv-ui/efx-grid/extensions&quot;;
+</code></pre>
+<p>Prepare grid data and configuration object by follow following steps.</p>
+<ol>
+<li>Define how the grid renders its content in each column by using type <code>ColumnDefinition.Options</code></li>
+<li>Define rows of data for displaying in the grid</li>
+<li>Define a configuration object by using type <code>RealtimeGrid.GridOptions</code></li>
+<li>Define a function for assigning run time tasks to grid after grid is initialized. (Optional)</li>
+</ol>
+<pre><code class="language-js">@Component({
+  selector: &#39;app-root&#39;,
+  templateUrl: &#39;./app.component.html&#39;,
+  styleUrls: [&#39;./app.component.less&#39;],
+})
+class AppComponent {
+    // Step 1)
+    columns: ColumnDefinition.Options[] = [
+        { name: &quot;Integer&quot;, field: &quot;intCol&quot; },
+        { name: &quot;String&quot;, field: &quot;strCol&quot; },
+        { name: &quot;Float&quot;, field: &quot;floatCol&quot; }
+    ];
+    // Step 2)
+    records: Array&lt;Object&gt; = [
+        { intCol: 1, strCol: &quot;Sample data&quot;, floatCol: 1.1 },
+        { intCol: 2, strCol: &quot;Sample data&quot;, floatCol: 2.2 },
+        { intCol: 3, strCol: &quot;Sample data&quot;, floatCol: 3.3 }
+    ];
+    // Step 3)
+    configObj: RealtimeGrid.GridOptions = {
+        columns: this.columns,
+        staticDataRows: this.records,
+        extensions: [
+            new ColumnResizing()
+        ]
+    };
+    // Step 4)
+    gridConfigured(e: any) {
+        let api: RealtimeGrid = e.detail.api;
+        let core: CoreGrid = api.getCoreGrid();
+
+        console.log(&quot;Grid has been configured.&quot;);
+    }
 }
 </code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+<p>In HTML template file, <code>src/app/app.component.html</code>, finally assign configuration to <code>efx-grid</code> element. Note that <code>efx-grid</code> element already has type defined. There is no need to cast it to some other types.</p>
+<p><code>src/app/app.component.html</code></p>
+<pre><code class="language-html">    &lt;efx-grid [config]=&quot;configObj&quot; (configured)=&quot;gridConfigured($event)&quot; #grid &gt;&lt;/efx-grid&gt;
 </code></pre>
-<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;number_1&quot;];
-var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 20 });
-
-var configObj = {
-    columns: [
-        { 
-            name: &quot;Number&quot;,
-            field: fields[0],
-            sort: fields[0],
-            alignment: &quot;c&quot;
-        },
-        { 
-            name: &quot;Simplest&quot;,
-            field: fields[0],
-            sort: fields[0],
-            binding: EFNumberFieldFormatter.create()
-        },
-        {
-            name: &quot;Some options (Step)&quot;,
-            field: fields[0],
-            sort: fields[0],
-            binding: EFNumberFieldFormatter.create({
-                attributes: {
-                    step: 100
-                }
-            })
-        }
-    ],
-    extensions: [],
-    staticDataRows: records
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
-</code></pre>
-</code-sandbox>
+<blockquote>
+<p>Grid element is not immediately initialized when it is put on to the document. Only after it has been configured, then you can use its <code>api</code> to perform any runtime change or custom task.</p>
+</blockquote>
+<p>For a complete list of APIs, please see the <a href="#/apis/readme">API document</a>.</p>

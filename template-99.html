@@ -1,33 +1,59 @@
-<h1 id="predefined-formatter">Predefined Formatter</h1>
-<h2 id="setup-guide">Setup guide</h2>
-<p>Use <code>import</code> syntax to import the formatter into your app.</p>
-<pre><code class="language-js">import { EFButtonFormatter } from &quot;@refinitiv-ui/efx-grid/formatters/EFButtonFormatter&quot;;
-import { EFSelectFormatter } from &quot;@refinitiv-ui/efx-grid/formatters/EFSelectFormatter&quot;;
+<h1 id="accessing-grid-data">Accessing Grid data</h1>
+<p>Grid has its own data store, but you cannot directly change or get the data from the <code>staticDataRows</code> property defined in the configuration object. This is because Grid needs to perform data transformations such as sorting, filtering, grouping, and so on. Data content, row index, or references can be changed but will not be reflected back to the data in the <code>staticDataRows</code>. So, all data manipulation and accessing must be done through <a href="#/apis/readme">APIs</a>. </p>
+<p>The following are some of the commonly used APIs:</p>
+<h2 id="getters">Getters</h2>
+<p><code>logDV()</code> and <code>logDT()</code> are used to see all visible data in a table format on the developer tool console.</p>
+<pre><code class="language-js">    grid.api.logDV(); // Log rows in the current view (i.e., rows after sorting and filtering applied)
+    
+    grid.api.logDT(); // Log rows in their original order
 </code></pre>
-<h2 id="the-basics">The basics</h2>
-<p>The simplest way to get the basic formatter is by calling <code>create()</code> without options, for example <code>SimpleInputFormatter.create()</code>. Then pass it to Grid using configuration, as shown below:</p>
-<pre><code class="language-js">var config = {
-    columns: [{
-        name: &quot;Company Info&quot;,
-        field: &quot;info&quot;,
-        binding: SimpleInputFormatter.create()
-    }, {
-        name: &quot;Currency&quot;,
-        field: &quot;currency&quot;,
-        binding: EFSelectFormatter.create()
-    }, {
-        name: &quot;DatePicker&quot;,
-        field: &quot;date&quot;,
-        binding: EFDateTimePickerFormatter.create()
-    }]
+<p><code>getMultipleRowData()</code> is used to get all rows.</p>
+<pre><code class="language-js">    var rows = grid.api.getMultipleRowData();
+    console.log(rows);
+</code></pre>
+<p><code>getMultipleRowData(rowIndices)</code> is used to get multiple row data from specific row indices at once.</p>
+<pre><code class="language-js">    grid.api.getMultipleRowData([0, 2, 4]);
+</code></pre>
+<p><code>getRowData(rowIndex)</code> is used to get row data from the specified row index.</p>
+<pre><code class="language-js">    grid.api.getRowData(rowIndex);
+    
+    var rowDef = grid.api.getRowDefinition(rowIndex);
+    rowDef.getRowData(); // Alternatively, data can be retrieved from RowDefinition object
+</code></pre>
+<h2 id="setters">Setters</h2>
+<p><code>setRowData(rowRef, values)</code> is used to set multiple field values into a row at once. </p>
+<pre><code class="language-js">    grid.api.setRowData(0, {&quot;Field 1&quot;: 3, &quot;Field 2&quot;: 5});
+    
+    var rowDef = grid.api.getRowDefinition(0);
+    rowDef.setRowData({&quot;Field 3&quot;: 7}); // Alternatively, data can be set through RowDefinition object
+</code></pre>
+<p><code>insertRow(rowOption, rowRef)</code> is used for inserting a row at a specified position.</p>
+<pre><code class="language-js">    grid.api.insertRow({}, 0); // Insert an empty row as the first row
+    
+    grid.api.insertRow({values: {&quot;Field 1&quot;: 3, &quot;Field 2&quot;: 5}}); Insert a row with initial static data as the last row
+</code></pre>
+<p><code>removeRow(rowRef)</code>, <code>removeRows(rowRefs)</code> and <code>removeAllRows()</code> are used to remove a single row or multiple rows.</p>
+<pre><code class="language-js">    grid.api.removeRow(0); // Remove the first row
+</code></pre>
+<p>For all available APIs see this <a href="#/apis/readme">document</a>.</p>
+<h2 id="example">Example</h2>
+<code-sandbox hash="7827a72"><pre><code class="language-css">efx-grid {
+    height: 169px;
+}
+html hr {
+    margin: 5px;
+}
+#msg_div {
+    height: 50px;
 }
 </code></pre>
-<p>Formatter with default options supports basic functioning and can be used for general usage. For input formatters, like <code>SimpleInputFormatter</code>, <code>EFTextFieldFormatter</code>, <code>EFComboBoxFormatter</code>, and so on, when the value has changed the new value will be saved to the <code>dataTable</code> of Grid. See basic formatters in the below example:</p>
-<code-sandbox hash="aa4d8f43"><pre><code class="language-css">efx-grid {
-    height: 320px;
-}
-</code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+<pre><code class="language-html">&lt;button id=&quot;insert_btn&quot;&gt;Insert Top Row&lt;/button&gt;
+&lt;button id=&quot;update_btn&quot;&gt;Update Top Row&lt;/button&gt;
+&lt;button id=&quot;print_btn&quot;&gt;Get Top Row&lt;/button&gt;
+&lt;hr&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+&lt;hr&gt;
+&lt;div id=&quot;msg_div&quot;&gt;&lt;/div&gt;
 </code></pre>
 <pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
 
@@ -37,184 +63,40 @@ import { EFSelectFormatter } from &quot;@refinitiv-ui/efx-grid/formatters/EFSele
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var currencies = [&quot;THB&quot;, &quot;AUD&quot;, &quot;USD&quot;, &quot;YEN&quot;, &quot;TWD&quot;];
-DataGenerator.addFieldInfo(&quot;currency&quot;, { type: &quot;set&quot;, members: currencies});
-
-var fields = [&quot;number_1&quot;, &quot;currency&quot;, &quot;CF_NETCHNG&quot;];
-var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 20 });
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 5 });
 var configObj = {
     columns: [
-        {
-            name: &quot;SimpleLink&quot;,
-            field: fields[0],
-            alignment: &quot;center&quot;,
-            binding: SimpleLinkFormatter.create()
-        },
-        {
-            name: &quot;Input&quot;,
-            field: fields[0],
-            alignment: &quot;center&quot;,
-            binding: EFNumberFieldFormatter.create()
-        },
-        {
-            name: &quot;Select&quot;,
-            field: fields[1],
-            alignment: &quot;center&quot;,
-            binding: EFSelectFormatter.create({
-                data: currencies
-            })
-        },
-        {
-            name: &quot;PercentBar&quot;,
-            field: fields[2],
-            alignment: &quot;center&quot;,
-            binding: PercentBarFormatter.create()
-        }
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market&quot;, field: fields[1], width: 120},
+        {name: &quot;Last&quot;, field: fields[2], width: 100},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
+        {name: &quot;Industry&quot;, field: fields[4]}
     ],
     staticDataRows: records
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
+
+document.getElementById(&quot;update_btn&quot;).addEventListener(&quot;click&quot;, function() {
+        var record = DataGenerator.generateRecord(fields);
+        grid.api.setRowData(0, record);
+});
+
+document.getElementById(&quot;insert_btn&quot;).addEventListener(&quot;click&quot;, function() {
+    var record = DataGenerator.generateRecord(fields);
+    grid.api.insertRow({values: record}, 0);
+});
+
+document.getElementById(&quot;print_btn&quot;).addEventListener(&quot;click&quot;, function() {
+    var row = grid.api.getRowData(0);
+    msg_div.textContent = row ? JSON.stringify(row, function replacer(key, value) {
+        if(key === &quot;ROW_DEF&quot;) {
+            return undefined;
+        }
+        return value;
+    }) : &quot;&quot;;
+});
 </code></pre>
-</code-sandbox><h2 id="advance-usage">Advance usage</h2>
-<p>Customizations are allowed through various options, as detailed in the following sections.</p>
-<h3 id="common-options">Common options</h3>
-<p>There are some options that are available for all formatters, see the below table for more details.</p>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Type</th>
-<th>Attributes</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>attributes</td>
-<td>Object</td>
-<td>optional</td>
-<td>List of attributes name and values</td>
-</tr>
-<tr>
-<td>styles</td>
-<td>Object</td>
-<td>optional</td>
-<td>List of inline styles for the element</td>
-</tr>
-<tr>
-<td>events</td>
-<td>Object</td>
-<td>optional</td>
-<td>List of event names and listeners</td>
-</tr>
-<tr>
-<td>disablingField</td>
-<td>string</td>
-<td>optional</td>
-<td>Field to be used for representing disabled attribute of the element</td>
-</tr>
-<tr>
-<td>errorField</td>
-<td>string</td>
-<td>optional</td>
-<td>Field to be used for representing error attribute of the element</td>
-</tr>
-<tr>
-<td>onElementRendered</td>
-<td>Function</td>
-<td>optional</td>
-<td>Event handler after default rendering. It is useful for additional styling</td>
-</tr>
-</tbody></table>
-<blockquote>
-<p>Note: The available value for each option is dependent on the type of element. In the case of the EF element, more information about attributes and events can be found <a href="https://ui.refinitiv.com">here</a>.</p>
-</blockquote>
-<p>Below is an example of showing a button with a label, icon, light coral background color, and listen for click and active-changed event.</p>
-<pre><code class="language-js">var config = {
-    columns: [{
-        name: &quot;Number&quot;,
-        field: &quot;number&quot;,
-        binding: EFButtonFormatter.create({
-            label: &quot;More detail&quot;,
-            attributes: {
-                &quot;icon&quot;: &quot;info&quot;
-            },
-            styles: {
-                &quot;background&quot;: &quot;lightcoral&quot;
-            },
-            events: {
-                &quot;active-changed&quot;: function(e, context) { // Custom event exposed by the element
-
-                },
-                &quot;click&quot;: function(e, context) { // Native events are also supported
-
-                }
-            },
-            onElementRendered: function(element, context) {
-
-            }
-        })
-    }]
-}
-</code></pre>
-<h3 id="event-listeners-parameters">Event listener&#39;s parameters</h3>
-<p>Available parameters for all listeners are described below:</p>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>event</td>
-<td>Event</td>
-<td>Native event argument object</td>
-</tr>
-<tr>
-<td>context</td>
-<td>Object</td>
-<td>Context object, contains all kind of information and methods</td>
-</tr>
-</tbody></table>
-<blockquote>
-<p>Context object also contains information about the position of the element (the same information from <a href="#/apis/rt-grid/grid">getRelativePosition</a> method).</p>
-</blockquote>
-<h3 id="context-object-methods">Context object methods</h3>
-<p>Context object also provides helper methods as shown below:</p>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>getData(field)</td>
-<td>Get field value from the current row</td>
-</tr>
-<tr>
-<td>setData(field, value)</td>
-<td>Set field value to the current row</td>
-</tr>
-<tr>
-<td>isElementDisabled()</td>
-<td>Get data from the disablingField of the current row</td>
-</tr>
-<tr>
-<td>disableElement(bool)</td>
-<td>Set data to the disablingField of the current row</td>
-</tr>
-<tr>
-<td>getError()</td>
-<td>Get data from the errorField of the current row</td>
-</tr>
-<tr>
-<td>setError(value)</td>
-<td>Set data to the errorField of the current row</td>
-</tr>
-</tbody></table>
-<h3 id="specific-options">Specific Options</h3>
-<p>The specific options for each formatters are separately described on each formatter page.</p>
+</code-sandbox>

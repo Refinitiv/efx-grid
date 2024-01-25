@@ -1,1 +1,46 @@
-<h1 id="wrapper-for-angular">Wrapper for Angular</h1>
+<h1 id="ef-datetime-picker-formatter">Emerald DateTime Picker Formatter</h1>
+<p>This formatter creates <code>ef-datetime-picker</code> without margin. </p>
+<h2 id="specific-options">Specific options</h2>
+<p>There are no specific options for this formatter.</p>
+<h2 id="example">Example</h2>
+<code-sandbox hash="da2291b"><pre><code class="language-css">efx-grid {
+    height: 320px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;number_1&quot;, &quot;date&quot;, &quot;words&quot;];
+var records = DataGenerator.generateRecords(fields, 40);
+
+var configObj = {
+    columns: [
+        { 
+            name: &quot;Column 1&quot;,
+            field: fields[0],
+            alignment: &quot;center&quot;
+        },
+        {
+            name: &quot;DateTimePicker&quot;,
+            field: fields[1],
+            binding: tr.EmeraldDateTimePickerFormatter.create()
+        },
+        { 
+            name: &quot;Column 3&quot;,
+            field: fields[2]
+        }
+    ],
+    staticDataRows: records
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox>

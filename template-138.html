@@ -1,57 +1,28 @@
-<h1 id="server-side-sorting">Server-side Sorting</h1>
-<p>In manual sorting mode, clicking on the column title will change the sorting status, but no actual sorting is done on the grid data.</p>
-<p>One use case is, if you want to do server-side sorting, you can use manual sorting mode in conjunction with the <code>columnSorted</code> event and the <a href="https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest">XMLHttpRequest</a> method.</p>
-<p>To turn manual sorting on, set <code>indicatorOnly</code> to <code>true</code>.</p>
-<pre><code class="language-js">var config = {
-    // any other grid&#39;s options
-    sorting: {
-        sortableColumns: true,
-        indicatorOnly: true
-    }
-}
-</code></pre>
-<p>You also need to listen to <code>columnSorted</code> event in order to trigger server-side sorting. The event can be listened from the shortcut in <code>sorting</code> config or through the built-in plugin.</p>
-<pre><code class="language-js">function onColumnSorted (evtArg) {
-    var sortingStates = grid.api.getSortingStates();
-    var sortingState = sortingStates[0];
-    var sortOrder = sortingState.order;
-    // At this point, you may request sorted data from the server.
-}
-
-var config = {
-    // any other grid&#39;s options
-    sorting: {
-        columnSorted: onColumnSorted
-    }
-};
-
-// Alternatively you can listen to the event directly from the built-in plugin
-grid.addEventListener(&quot;configured&quot;, function(e) {
-    var core = e.detail.api.getCoreGrid();
-    var plugin = core.getPlugin(&quot;SortableTitle&quot;);
-    // plugin.listen(&quot;columnSorted&quot;, onColumnSorted);
-});
-</code></pre>
-<p>You can see all possible values for the sort order <a href="#/apis/core/sortabletitleplugin#~SortOrder">here</a>.</p>
+<h1 id="ef-select-formatter">Coral Select Formatter</h1>
+<p>This formatter creates <code>ef-select</code> without margin. Its options come from passed <code>options.data</code>.</p>
+<h2 id="specific-options">Specific options</h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Attributes</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>data</td>
+<td>Array</td>
+<td>required</td>
+<td>List of items, similar format to <a href="https://elf.int.refinitiv.com/elements/ef-list.html">ef-list</a></td>
+</tr>
+</tbody></table>
 <h2 id="example">Example</h2>
-<code-sandbox hash="41c4f671"><pre><code class="language-css">html hr {
-    margin: 5px;
-}
-efx-grid {
-    height: 200px;
-}
-textarea {
-    width: 100%;
-    height: 50px;
-    margin-bottom: 30px;
+<code-sandbox hash="b3848b94"><pre><code class="language-css">efx-grid {
+    height: 320px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;button id=&quot;sort_btn1&quot;&gt;Sort Column 1&lt;/button&gt;
-&lt;button id=&quot;sort_btn2&quot;&gt;Sort Column 2&lt;/button&gt;
-&lt;hr&gt;
-&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-&lt;hr&gt;
-&lt;textarea id=&quot;output_ta&quot; placeholder=&quot;Click at the grid header to sort&quot;&gt;&lt;/textarea&gt;
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
 <pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
 
@@ -61,85 +32,47 @@ textarea {
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-document.getElementById(&quot;sort_btn1&quot;).addEventListener(&quot;click&quot;, function(e){
-    grid.api.sortColumn(0); // Cycle through sorting sequence
-});
-document.getElementById(&quot;sort_btn2&quot;).addEventListener(&quot;click&quot;, function(e){
-    grid.api.sortColumn(1); // Cycle through sorting sequence
+var currencies = [&quot;THB&quot;, &quot;AUD&quot;, &quot;USD&quot;, &quot;YEN&quot;, &quot;TWD&quot;];
+DataGenerator.addFieldInfo(&quot;currency&quot;, { type: &quot;set&quot;, members: currencies});
+
+var fields = [&quot;number_1&quot;, &quot;boolean&quot;, &quot;currency&quot;];
+var records = DataGenerator.generateRecords(fields, {
+    numRows: 40,
+    seed: 1
 });
 
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 10 });
+var selectorData = currencies.map(function(data) {
+    return {
+        label: data,
+        value: data
+    };
+});
+
 var configObj = {
-    sorting: {
-        sortableColumns: true,
-        indicatorOnly: true,
-        columnSorted: function(evtArg) {
-            var core = grid.api.getCoreGrid();
-            var plugin = core.getPlugin(&quot;SortableTitle&quot;);
-            var objs = plugin.getSortedColumns();
-            var obj = objs[0];
-            var field = grid.api.getColumnField(obj.colIndex);
-            var sortOrder = (obj.sortOrder === &quot;a&quot;) ? &quot;ascending&quot; : &quot;decending&quot;;
-            
-            var ta = document.getElementById(&quot;output_ta&quot;);
-            ta.value = &quot;Field &quot; + field + &quot; is sorted in &quot; + sortOrder + &quot; order\n&quot; + ta.value;
-
-            // At this point, you may request sorted data from the server.
-            requestData(evtArg);
-        }
-    },
     columns: [
-        {name: &quot;Company&quot;, field: fields[0]},
-        {name: &quot;Market&quot;, field: fields[1], width: 120},
-        {name: &quot;Last&quot;, field: fields[2], width: 100},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
-        {name: &quot;Industry&quot;, field: fields[4]}
+        { 
+            name: &quot;Column 1&quot;,
+            field: fields[0],
+            alignment: &quot;center&quot;
+        },
+        {
+            name: &quot;Column 2&quot;,
+            field: fields[1],
+            alignment: &quot;center&quot;
+        },
+        {
+            name: &quot;Select&quot;,
+            field: fields[2],
+            alignment: &quot;center&quot;,
+            binding: EFSelectFormatter.create({
+                data: selectorData
+            })
+        }
     ],
     staticDataRows: records
 };
 
-
-function mockCallbackData(resp) {
-    if (resp.success) {
-        console.log(&quot;Loading success, Data sorted&quot;);
-        grid.data = resp.data;
-    }
-}
-
-// Mock to request data
-function requestData(obj) {
-    console.log(&quot;Loading data from server side&quot;);
-    // Mock data on server side
-    setTimeout(function () {
-        // Mock to query data from DB.
-        var resRecords = DataGenerator.generateRecords(fields, { numRows: 10 }); // NOTE: It&#39;s random data
-        var sortField = obj.sortedField;
-        var sortOrder = obj.sortOrder;
-        resRecords = resRecords.sort(sortFx.bind(null, sortOrder, sortField));
-        mockCallbackData({
-            success: true,
-            data: resRecords
-        });
-    }, 100);
-}
-
-function sortFx(sortOrder, sortField, rowA, rowB) {
-    return compareFunction(rowA, rowB, sortField, sortOrder);
-}
-
-function compareFunction(rowA, rowB, sortField, sortOrder) {
-    var valueA = rowA[sortField];
-    var valueB = rowB[sortField];
-
-    if (sortOrder === &quot;a&quot;) {
-        return valueA &lt; valueB ? -1 : valueA &gt; valueB ? 1 : 0;
-    } else {
-        return valueA &gt; valueB ? -1 : valueA &lt; valueB ? 1 : 0;
-    }
-}
-
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 </code></pre>
-</code-sandbox><p><br><br></p>
+</code-sandbox>

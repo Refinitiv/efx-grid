@@ -1,69 +1,33 @@
-<h1 id="grid-builder--loader">Grid Builder / Loader</h1>
-<h2 id="grid-builder">Grid Builder</h2>
-<p>The grid configuration builder provide a quick start way of using grid in your application. This will help new users to getting started with grid easier. You can try with different grid customization and grid extensions with a realtime result, then this configuration can be copy and paste into any application to get the same result as seen from this section.</p>
-<code-sandbox hash="87b18f4e"><pre><code class="language-html">&lt;style&gt;
-    .main-layout {
-        height: 800px;
-        display: flex;
-    }
-    .content-title {
-        padding-top: 5px;
-        padding-bottom: 5px;
-        font-size: 14px;
-    }
-    .main-content {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-    }
-    #grid {
-        height: 350px;
-    }
-    div {
-        min-height: 24px;
-    }
-    hr  {
-        margin-top: 15px;
-        margin-bottom: 15px;
-        width: 100%;
-    }
-    label {
-        padding-right: 10px;
-    }
-    #configArea {
-        flex: 1;
-        width: 100%;
-        margin-top: 10px;
-        font-family: monospace;
-    }
-    #section-detail{
-        height: 160px;
-        overflow-y: scroll;
-        padding-bottom: 10px;
-        border: grey solid 1px;
-    }
-    .two-columns {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-    }
-    .two-columns &gt; *:not(hr) {
-        padding:2px;
-        display: flex;
-        align-items: center;
-    }
-&lt;/style&gt;
-
-&lt;ef-sidebar-layout sidebar-width=&quot;0px&quot; class=&quot;main-layout&quot;&gt;
-    &lt;ef-panel slot=&quot;main-content&quot; class=&quot;main-content&quot; spacing&gt;
-        &lt;ef-tab-bar id=&quot;tabs&quot;&gt;&lt;/ef-tab-bar&gt;
-        &lt;ef-panel spacing&gt;
-            &lt;div id=&quot;section-detail&quot;&gt;&lt;/div&gt;
-        &lt;/ef-panel&gt;
-        &lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-        &lt;ef-overlay-menu id=&quot;menu&quot;&gt;&lt;/ef-overlay-menu&gt;
-        &lt;textarea id=&quot;configArea&quot;&gt;&lt;/textarea&gt;
-    &lt;/ef-panel&gt;
-&lt;/ef-sidebar-layout&gt;
+<h1 id="predefined-formatter">Predefined Formatter</h1>
+<h2 id="setup-guide">Setup guide</h2>
+<p>Use <code>import</code> syntax to import the formatter into your app.</p>
+<pre><code class="language-js">import { EFButtonFormatter } from &quot;@refinitiv-ui/efx-grid/formatters/EFButtonFormatter&quot;;
+import { EFSelectFormatter } from &quot;@refinitiv-ui/efx-grid/formatters/EFSelectFormatter&quot;;
+</code></pre>
+<h2 id="the-basics">The basics</h2>
+<p>The simplest way to get the basic formatter is by calling <code>create()</code> without options, for example <code>SimpleInputFormatter.create()</code>. Then pass it to Grid using configuration, as shown below:</p>
+<pre><code class="language-js">var config = {
+    columns: [{
+        name: &quot;Company Info&quot;,
+        field: &quot;info&quot;,
+        binding: SimpleInputFormatter.create()
+    }, {
+        name: &quot;Currency&quot;,
+        field: &quot;currency&quot;,
+        binding: EFSelectFormatter.create()
+    }, {
+        name: &quot;DatePicker&quot;,
+        field: &quot;date&quot;,
+        binding: EFDateTimePickerFormatter.create()
+    }]
+}
+</code></pre>
+<p>Formatter with default options supports basic functioning and can be used for general usage. For input formatters, like <code>SimpleInputFormatter</code>, <code>EFTextFieldFormatter</code>, <code>EFComboBoxFormatter</code>, and so on, when the value has changed the new value will be saved to the <code>dataTable</code> of Grid. See basic formatters in the below example:</p>
+<code-sandbox hash="aa4d8f43"><pre><code class="language-css">efx-grid {
+    height: 320px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
 <pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
 
@@ -73,67 +37,184 @@
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-import &#39;./resources/grid-builder-app.min.js&#39;
-</code></pre>
-</code-sandbox><h2 id="grid-loader">Grid Loader</h2>
-<p>In this section, you can try to paste your configuration object here to see an live result. This allow user to make advance customization to grid configuration object before using with their real application.</p>
-<code-sandbox hash="1725105e"><pre><code class="language-css">.main-layout {
-    height: 800px;
-    display: flex;
-    flex-direction: column;
-}
-.content-title {
-    padding-top: 5px;
-    padding-bottom: 5px;
-    font-size: 14px;
-}
-.main-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-}
-#container {
-    height: 400px;
-}
-#grid{
-    height: 100%;
-}
-div {
-    min-height: 24px;
-}
-hr  {
-    margin-top: 15px;
-    margin-bottom: 15px;
-}
-#configArea {
-    width: 100%;
-    padding-top: 15px;
-    height: 300px;
-    margin-bottom: 8px;
-    font-family: monospace;
-}
-</code></pre>
-<pre><code class="language-html">&lt;ef-sidebar-layout sidebar-width=&quot;0px&quot; class=&quot;main-layout&quot;&gt;
-    &lt;ef-header slot=&quot;main-header&quot; level=&quot;1&quot;&gt;
-        &lt;ef-button id=&quot;run&quot; icon=&quot;play&quot;&gt;RUN&lt;/ef-icon&gt;&lt;/ef-button&gt;
-    &lt;/ef-header&gt;
-    &lt;ef-panel slot=&quot;main-content&quot; class=&quot;main-content&quot; spacing&gt;
-        &lt;textarea id=&quot;configArea&quot;&gt;&lt;/textarea&gt;
-        &lt;div id=&quot;container&quot;&gt;
-            &lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-        &lt;/div&gt;
-        &lt;ef-overlay-menu id=&quot;menu&quot;&gt;&lt;/ef-overlay-menu&gt;
-    &lt;/ef-panel&gt;
-&lt;/ef-sidebar-layout&gt;
-</code></pre>
-<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+var currencies = [&quot;THB&quot;, &quot;AUD&quot;, &quot;USD&quot;, &quot;YEN&quot;, &quot;TWD&quot;];
+DataGenerator.addFieldInfo(&quot;currency&quot;, { type: &quot;set&quot;, members: currencies});
 
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-import &#39;./resources/grid-loader-app.min.js&#39;
+var fields = [&quot;number_1&quot;, &quot;currency&quot;, &quot;CF_NETCHNG&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 20 });
+var configObj = {
+    columns: [
+        {
+            name: &quot;SimpleLink&quot;,
+            field: fields[0],
+            alignment: &quot;center&quot;,
+            binding: SimpleLinkFormatter.create()
+        },
+        {
+            name: &quot;Input&quot;,
+            field: fields[0],
+            alignment: &quot;center&quot;,
+            binding: EFNumberFieldFormatter.create()
+        },
+        {
+            name: &quot;Select&quot;,
+            field: fields[1],
+            alignment: &quot;center&quot;,
+            binding: EFSelectFormatter.create({
+                data: currencies
+            })
+        },
+        {
+            name: &quot;PercentBar&quot;,
+            field: fields[2],
+            alignment: &quot;center&quot;,
+            binding: PercentBarFormatter.create()
+        }
+    ],
+    staticDataRows: records
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
 </code></pre>
-</code-sandbox>
+</code-sandbox><h2 id="advance-usage">Advance usage</h2>
+<p>Customizations are allowed through various options, as detailed in the following sections.</p>
+<h3 id="common-options">Common options</h3>
+<p>There are some options that are available for all formatters, see the below table for more details.</p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Attributes</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>attributes</td>
+<td>Object</td>
+<td>optional</td>
+<td>List of attributes name and values</td>
+</tr>
+<tr>
+<td>styles</td>
+<td>Object</td>
+<td>optional</td>
+<td>List of inline styles for the element</td>
+</tr>
+<tr>
+<td>events</td>
+<td>Object</td>
+<td>optional</td>
+<td>List of event names and listeners</td>
+</tr>
+<tr>
+<td>disablingField</td>
+<td>string</td>
+<td>optional</td>
+<td>Field to be used for representing disabled attribute of the element</td>
+</tr>
+<tr>
+<td>errorField</td>
+<td>string</td>
+<td>optional</td>
+<td>Field to be used for representing error attribute of the element</td>
+</tr>
+<tr>
+<td>onElementRendered</td>
+<td>Function</td>
+<td>optional</td>
+<td>Event handler after default rendering. It is useful for additional styling</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>Note: The available value for each option is dependent on the type of element. In the case of the EF element, more information about attributes and events can be found <a href="https://ui.refinitiv.com">here</a>.</p>
+</blockquote>
+<p>Below is an example of showing a button with a label, icon, light coral background color, and listen for click and active-changed event.</p>
+<pre><code class="language-js">var config = {
+    columns: [{
+        name: &quot;Number&quot;,
+        field: &quot;number&quot;,
+        binding: EFButtonFormatter.create({
+            label: &quot;More detail&quot;,
+            attributes: {
+                &quot;icon&quot;: &quot;info&quot;
+            },
+            styles: {
+                &quot;background&quot;: &quot;lightcoral&quot;
+            },
+            events: {
+                &quot;active-changed&quot;: function(e, context) { // Custom event exposed by the element
+
+                },
+                &quot;click&quot;: function(e, context) { // Native events are also supported
+
+                }
+            },
+            onElementRendered: function(element, context) {
+
+            }
+        })
+    }]
+}
+</code></pre>
+<h3 id="event-listeners-parameters">Event listener&#39;s parameters</h3>
+<p>Available parameters for all listeners are described below:</p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>event</td>
+<td>Event</td>
+<td>Native event argument object</td>
+</tr>
+<tr>
+<td>context</td>
+<td>Object</td>
+<td>Context object, contains all kind of information and methods</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>Context object also contains information about the position of the element (the same information from <a href="#/apis/rt-grid/grid">getRelativePosition</a> method).</p>
+</blockquote>
+<h3 id="context-object-methods">Context object methods</h3>
+<p>Context object also provides helper methods as shown below:</p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>getData(field)</td>
+<td>Get field value from the current row</td>
+</tr>
+<tr>
+<td>setData(field, value)</td>
+<td>Set field value to the current row</td>
+</tr>
+<tr>
+<td>isElementDisabled()</td>
+<td>Get data from the disablingField of the current row</td>
+</tr>
+<tr>
+<td>disableElement(bool)</td>
+<td>Set data to the disablingField of the current row</td>
+</tr>
+<tr>
+<td>getError()</td>
+<td>Get data from the errorField of the current row</td>
+</tr>
+<tr>
+<td>setError(value)</td>
+<td>Set data to the errorField of the current row</td>
+</tr>
+</tbody></table>
+<h3 id="specific-options">Specific Options</h3>
+<p>The specific options for each formatters are separately described on each formatter page.</p>

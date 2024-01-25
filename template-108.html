@@ -1,68 +1,59 @@
-<h1 id="ef-text-field-formatter">EF Text Field Formatter</h1>
-<p>This formatter creates a <a href="https://ui.refinitiv.com/elements/text-field">ef-text-field</a> without a margin and 100% width. By default the input&#39;s value will be the column&#39;s field.</p>
-<h2 id="example">Example</h2>
-<code-sandbox hash="bf4feb53"><pre><code class="language-css">efx-grid {
-    height: 320px;
-}
+<h1 id="using-typescript-with-grid">Using TypeScript with Grid</h1>
+<p><a href="https://www.typescriptlang.org/">TypeScript</a> is a typed superset of JavaScript that compiles to plain JavaScript.</p>
+<p>To apply Typescript for <code>EFX Grid</code>, first you are required to install <code>@refinitiv-ui/efx-grid</code> in your project.</p>
+<pre><code class="language-sh">npm install @refinitiv-ui/efx-grid
 </code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+<p>Use <code>import</code> syntax to import the Grid and theme into your app.</p>
+<pre><code class="language-js">// Import element and its Halo dark theme
+import &quot;@refinitiv-ui/efx-grid&quot;;
+import &quot;@refinitiv-ui/efx-grid/themes/halo/dark&quot;;
+
+// Import native styles for typography, css variables, etc.
+import &quot;@refinitiv-ui/halo-theme/dark/imports/native-elements&quot;;
 </code></pre>
-<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;number_1&quot;, &quot;word&quot;];
-var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 20 });
-
-var configObj = {
-    columns: [
-        { 
-            name: &quot;Word&quot;,
-            field: fields[1],
-            sort: fields[1]
-        },
-        { 
-            name: &quot;Simplest&quot;,
-            field: fields[1],
-            sort: fields[1],
-            alignment: &quot;c&quot;,
-            binding: EFTextFieldFormatter.create()
-        },
-        { 
-            name: &quot;Identified field&quot;,
-            field: fields[0],
-            sort: fields[0],
-            alignment: &quot;c&quot;,
-            binding: EFTextFieldFormatter.create({
-                field: fields[1]
-            })
-        },
-        {
-            name: &quot;Some options&quot;,
-            field: fields[1],
-            sort: fields[1],
-            alignment: &quot;c&quot;,
-            binding: EFTextFieldFormatter.create({
-                attributes: {
-                    icon: &quot;edit&quot;
-                },
-                events: {
-                    &quot;value-changed&quot;: function(e) {
-                        // console.log(&quot;value changed: &quot; + e.detail.value);
-                    }
-                }
-            })
-        }
-    ],
-    extensions: [],
-    staticDataRows: records
+<p>Then import types from <code>efx-grid</code> package to your file. These types are typically for properties on a configuration object or APIs defined by Grid components. You don&#39;t need to import every type, if you don&#39;t use them. All of the types are optional.</p>
+<pre><code class="language-js">import {
+    RealtimeGrid, // Provide types for api object
+    ColumnDefinition, // Provide types for column config and ColumnDefinition object
+    CoreGrid // Provide types for core object
+} from &quot;@refinitiv-ui/efx-grid&quot;;
+</code></pre>
+<p>Optionally, you can also import Grid&#39;s <a href="#/extensions/readme">extensions</a> from <code>efx-grid/extensions</code> package to extend its functionalities. </p>
+<pre><code class="language-js">import { ColumnResizing } from &quot;@refinitiv-ui/efx-grid/extensions&quot;;
+</code></pre>
+<p>To define how the grid renders its content, use <code>ColumnDefinition.Options</code> as shown below:</p>
+<pre><code class="language-js">let columns: ColumnDefinition.Options[] = [
+    { name: &quot;Integer&quot;, field: &quot;intCol&quot; },
+    { name: &quot;String&quot;, field: &quot;strCol&quot; },
+    { name: &quot;Float&quot;, field: &quot;floatCol&quot; }
+];
+let records: Array&lt;Object&gt; = [
+    { intCol: 1, strCol: &quot;Sample data&quot;, floatCol: 1.1 },
+    { intCol: 2, strCol: &quot;Sample data&quot;, floatCol: 2.2 },
+    { intCol: 3, strCol: &quot;Sample data&quot;, floatCol: 3.3 }
+];
+</code></pre>
+<p>To define a configuration object, use <code>RealtimeGrid.GridOptions</code> as shown below:</p>
+<pre><code class="language-js">let configObj: RealtimeGrid.GridOptions = {
+    columns: columns,
+    staticDataRows: records,
+    extensions: [
+        new ColumnResizing()
+    ]
 };
+</code></pre>
+<p>Finally assign configuration to <code>efx-grid</code> element. Note that <code>efx-grid</code> element already has type defined. There is no need to cast it to some other types.</p>
+<pre><code class="language-js">let grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
+grid.addEventListener(&quot;configured&quot;, function (e: any) {
+    let api: RealtimeGrid = e.detail.api;
+    let core: CoreGrid = api.getCoreGrid();
 
-var grid = document.getElementById(&quot;grid&quot;);
+    console.log(&quot;Grid has been configured.&quot;);
+});
+
 grid.config = configObj;
 </code></pre>
-</code-sandbox>
+<blockquote>
+<p>Grid element is not immediately initialized when it is put on to the document. Only after it has been configured, then you can use its <code>api</code> to perform any runtime change or custom task.</p>
+</blockquote>
+<p>For a complete list of APIs, please see the <a href="#/apis/readme">API document</a>.</p>

@@ -1,103 +1,188 @@
-<h1 id="simple-ticker-formatter">Simple Ticker Formatter</h1>
-<p>This formatter creates a ticker column.</p>
-<h2 id="specific-options">Specific options</h2>
+<h1 id="migrating-from-emerald-grid">Migrating from Emerald Grid</h1>
+<p>Emerald Grid has a lot of built-in features which make it big. Moving from Emerald Grid to EFX Grid usually involves around using extensions as a replacement for the built-ins. In this guide, we are going to list out all the differences and how you can migrate those features to EFX grid. </p>
+<h2 id="deprecated-properties">Deprecated properties</h2>
+<p>The following properties are available in Emerald Grid configuration object, but not available in EFX Grid configuration object. </p>
+<h3 id="formatter-property"><code>formatter</code> property</h3>
+<h4 id="change">Change</h4>
+<p><code>formatter</code>, <code>formatter.render</code>, and <code>formatter.bind</code> properties should be replaced by <code>binding</code> property. Any logic in <code>formatter.render</code> method should be combined with <code>formatter.bind</code> method for simplication. The parameters passed to <code>formatter.render</code> and <code>formatter.bind</code> methods are grouped into a single parameter in <code>binding</code> method.</p>
+<h4 id="reason">Reason</h4>
+<p><code>formatter</code> property requires <code>render</code> and <code>bind</code> methods to be defined, which is quite clunky. In addition, there are too many parameters passed to the methods. Most of them are not useful in most cases. They are locked into the function signature. They are inflexible and cumbersome to write.</p>
+<h4 id="sample">Sample</h4>
+<p>If you have the following Emerald Grid configuration:</p>
+<pre><code class="language-js">var configObj = {
+    columns: [
+        {
+            // Column options
+            formatter: {
+                render: function() {},
+                binding: function(rowIndex, colIndex, data, cell) {
+                    var inputElem = cell.getContent();
+                    if (!inputElem) {
+                        inputElem = document.createElement(&quot;input&quot;);
+                    }
+                    
+                    inputElem.value = data;
+                    cell.setContent(inputElem);
+                }
+            }
+        },
+        ...
+    ]
+        
+};
+</code></pre>
+<p>then you would change to the following EFX Grid configuration:</p>
+<pre><code class="language-js">var configObj = {
+    columns: [
+        {
+            // Column options
+            binding: function(e) {
+                var cell = e.cell;
+                var inputElem = cell.getContent();
+                if (!inputElem) {
+                    inputElem = document.createElement(&quot;input&quot;);
+                }
+                
+                inputElem.value = e.data;
+                cell.setContent(inputElem);
+            }
+        },
+        ...
+    ]
+    
+};
+</code></pre>
+<blockquote>
+<p>Note that the parameter names are now defined by the event argument. Some parameters may have its name changed. Please use the debugger to check for the parameters&#39; availability.</p>
+</blockquote>
+<h3 id="datamodel-property"><code>dataModel</code> property</h3>
+<h4 id="change-1">Change</h4>
+<p><code>dataModel</code> property is replaced by <code>staticDataRows</code> property. value in <code>dataModel.data</code> should be used as <code>staticDataRows</code> value. <code>dataModel.fields</code> and <code>dataModel.format</code> will be automatically resolved by EFX Grid and should be safely removed. For reliable conversion, array of object maps should be used instead of two dimentional array. </p>
+<h4 id="reason-1">Reason</h4>
+<p>A row in EFX Grid can contains some information (i.e., real-time related metadata) other than just data content. <code>rows</code> property is created to hold the additional information. In the same sense, <code>staticDataRows</code> property is created for rows with only data content.</p>
+<h4 id="sample-1">Sample</h4>
+<p>If you have the following Emerald Grid configuration:</p>
+<pre><code class="language-js">var configObj = {
+    dataModel: {
+        fields: [&quot;field1&quot;, &quot;field2&quot;],
+        format: &quot;array&quot;,
+        data: [
+            [1, 2],
+            [3, 4]
+        ]
+    }
+};
+</code></pre>
+<p>then you would change to the following EFX Grid configuration:</p>
+<pre><code class="language-js">var configObj = {
+    staticDataRows: [
+        {&quot;field1&quot;: 1, &quot;field2&quot;: 2},
+        {&quot;field1&quot;: 3, &quot;field2&quot;: 4}
+    ]
+};
+</code></pre>
+<h3 id="title-and-titlealignment-properties"><code>title</code> and <code>titleAlignment</code> properties</h3>
+<p>Title keyword is used in HTML tag as <a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/title">global attribute</a> for tooltips. To avoid confusion between tooltip and header text, <code>title</code> and <code>titleAlignment</code> properties are renamed to <code>name</code> and <code>headerAlignment</code>, respectively.</p>
+<h3 id="blinkby-and-blinker-properties"><code>blinkBy</code> and <code>blinker</code> properties</h3>
+<p>Blinking related features have been moved to <a href="#/extensions/tr-grid-conditional-coloring">Conditional Coloring extension</a>. </p>
+<h3 id="cellediting-and-autoedit-properties"><code>cellEditing</code> and <code>autoEdit</code> properties</h3>
+<p>Cell editing related features have been moved to <a href="#/extensions/tr-grid-in-cell-editing">In-Cell Editing extension</a>.</p>
+<h3 id="checkboxselector-property"><code>checkboxSelector</code> property</h3>
+<p>Checkbox related features have been moved to <a href="#/extensions/tr-grid-checkbox">Checkbox extension</a>.</p>
+<h3 id="filterrow-property"><code>filterRow</code> property</h3>
+<p>Filter row feature has been moved to <a href="#/extensions/tr-grid-filter-input">Filter Input extension</a>.</p>
+<h2 id="built-in-filter-related-methods-and-events">Built-in filter related methods and events</h2>
+<p>Filter related feature has been moved to <a href="#/extensions/tr-grid-row-filtering">Row Filtering extension</a>.</p>
+<p>The following filter related methods are not available in EFX Grid. Use methods provided from the extension instead. </p>
+<ul>
+<li>filter</li>
+<li>addFilter</li>
+<li>removeFilter</li>
+<li>modifyFilter</li>
+<li>execFilter</li>
+<li>getFilterStates</li>
+<li>getColumnFilterStates</li>
+<li>restoreColumnFilterStates</li>
+<li>clearAllFilters</li>
+<li>showFilterRow</li>
+<li>hideFilterRow</li>
+</ul>
+<p>The following custom events are not available in EFX Grid. Use events provided from the extension instead.</p>
+<ul>
+<li>filterAdded</li>
+<li>filterRemoved</li>
+<li>filterModified</li>
+<li>filterCleared</li>
+</ul>
+<h2 id="built-in-cell-editing-related-methods-and-events">Built-in cell editing related methods and events</h2>
+<p>Cell editing related features have been moved to <a href="#/extensions/tr-grid-in-cell-editing">In-Cell Editing extension</a>.</p>
+<p>The following cell editing related methods are not available in EFX Grid. Use methods provided from the extension instead. </p>
+<ul>
+<li>editCell</li>
+<li>detachEditor</li>
+</ul>
+<p>The following custom events are not available in EFX Grid. Use events provided from the extension instead.</p>
+<ul>
+<li>editorDetached</li>
+<li>editorAttached</li>
+</ul>
+<h2 id="built-in-formatters">Built-in formatters</h2>
+<p>All provided built-in formatters (<code>formatter/AsyncFormatter</code>, <code>formatter/CheckBox</code>, and <code>formatter/UpDownColor</code>) are replaced by <a href="#/rendering/predefined-formatter">predefined formatters</a>.</p>
+<h2 id="built-in-plugins">Built-in plugins</h2>
+<p>the following table shows plugins and its equivalent extension </p>
 <table>
 <thead>
 <tr>
-<th>Name</th>
-<th>Type</th>
-<th>Attributes</th>
-<th>Description</th>
+<th>Plugin:</th>
+<th>Extension</th>
 </tr>
 </thead>
 <tbody><tr>
-<td>negativeColor</td>
-<td>string</td>
-<td>optional</td>
-<td>Color code</td>
+<td>CellBlinkingPlugin</td>
+<td><a href="#/extensions/tr-grid-conditional-coloring">Conditional Coloring extension</a></td>
 </tr>
 <tr>
-<td>positiveColor</td>
-<td>string</td>
-<td>optional</td>
-<td>Color code</td>
+<td>CellEditingPlugin</td>
+<td><a href="#/extensions/tr-grid-in-cell-editing">In-Cell Editing extension</a></td>
+</tr>
+<tr>
+<td>ColumnGroupingPlugin</td>
+<td><a href="#/extensions/tr-grid-column-stack">Column Stack extension</a></td>
+</tr>
+<tr>
+<td>GroupStatisticsPlugin</td>
+<td><a href="#/extensions/statistics-row">Statistics Row extension</a></td>
+</tr>
+<tr>
+<td>RowHeightAdjustingPlugin</td>
+<td><a href="#/extensions/tr-grid-content-wrap">Content Wrap extension</a></td>
+</tr>
+<tr>
+<td>ColumnWidthAdjustingPlugin</td>
+<td><a href="#/extensions/tr-grid-column-fitter">Column Fitter extension</a></td>
 </tr>
 </tbody></table>
-<h2 id="example">Example</h2>
-<code-sandbox hash="7359e46f"><pre><code class="language-css">efx-grid {
-    height: 320px;
-}
-</code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+<h2 id="accessing-data">Accessing Data</h2>
+<p>Accessing data in Emerald Grid is done directly to its internal data stores (i.e., <code>DataTable</code> and <code>DataView</code>). This works fine, since rows in Emerald Grid contain only data content. However, the direct interaction with internal data store can cause out of synchronization with other parts in EFX Grid. </p>
+<h3 id="change-2">Change</h3>
+<p>Direct access to grid&#39;s internal data stores are removed. Data can be set or retrieved through grid&#39;s APIs or row definition objects instead.</p>
+<h3 id="reason-2">Reason</h3>
+<p>The change in data has to be recognized by Grid in order to synchronize with their corresponding rows and real-time data requests. </p>
+<h3 id="sample-2">Sample</h3>
+<p>If you have the following code with Emerald Grid:</p>
+<pre><code class="language-js">var dv = grid.api.getDataView();
 
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;last&quot;, &quot;changes&quot;, &quot;percent&quot;, &quot;tick_1&quot;];
-var records = new Array(40);
-for(var i = 0; i &lt; 40; ++i) {
-    var changes = i * (i % 7) - i % 13;
-    var last = 5 + i % 13;
-    var percent = (changes / last) * 100;
-    var tick;
-    if (percent &gt; 0) {
-        tick = 1;
-    } else if (percent &lt; 0) {
-        tick = -1;
-    } else {
-        tick = 0;
-    }
-    var record = records[i] = {};
-    record[fields[0]] = last;
-    record[fields[1]] = changes;
-    record[fields[2]] = percent.toFixed(2);
-    record[fields[3]] = tick;
-}
-var configObj = {
-    sorting: {
-        sortableColumns: true
-    },
-    columns: [
-        { 
-            name: &quot;Last&quot;,
-            field: fields[0],
-            alignment: &quot;c&quot;
-        },
-        { 
-            name: &quot;Changes&quot;,
-            field: fields[1],
-            alignment: &quot;c&quot;,
-        },
-        { 
-            name: &quot;Changes %&quot;,
-            field: fields[2],
-            alignment: &quot;c&quot;,
-        },
-        { 
-            name: &quot;Default&quot;,
-            field: fields[3],
-            alignment: &quot;c&quot;,
-            binding: SimpleTickerFormatter.create()
-        },
-        { 
-            name: &quot;Custom&quot;,
-            field: fields[3],
-            alignment: &quot;c&quot;,
-            binding: SimpleTickerFormatter.create({
-                negativeColor: &quot;#FF6333&quot;,
-                positiveColor: &quot;#607EFF&quot;,
-            })
-        }
-    ],
-    staticDataRows: records
-};
+dv.getRowDataAt(1);
 
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
+dv.getMultipleRowData([&quot;1&quot;, &quot;2&quot;]);
+
+dv.getAllRowData();
 </code></pre>
-</code-sandbox>
+<p>then you would change to the following code for EFX Grid:</p>
+<pre><code class="language-js">grid.api.getRowData(1); // Note getRowDataAt is shorthen to getRowData
+grid.api.getRowDefinition(1).getRowData(); // Alternatively, RowDefinition object can be used for referencing
+
+grid.api.getMultipleRowData([&quot;1&quot;, &quot;2&quot;]);
+
+grid.api.getMultipleRowData(); // getAllRowData is replaced with getMultipleRowData() for simplicity
+</code></pre>

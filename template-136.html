@@ -1,26 +1,34 @@
-<h1 id="default-sort">Default Sort</h1>
-<p>You can sort data in the grid automatically after initialization by specifying the <code>initialSort</code> option, which receives the following two options: <code>colIndex</code> and <code>sortOrder</code>.</p>
-<p>The possible values of <code>sortOrder</code> are:</p>
-<ul>
-<li><em>a</em> for Ascending</li>
-<li><em>d</em> for Descending</li>
-<li><em>n</em> for Neutral</li>
-</ul>
-<p>You can see all possible values for the sort order <a href="#/apis/core/sortabletitleplugin#~SortOrder">here</a>.</p>
-<pre><code class="language-js">var config = {
-    // any other grid&#39;s options
-    sorting: {
-        sortableColumns: true,
-        initialSort: {
-            colIndex: 0,
-            sortOrder: &quot;d&quot;
-        }
-    }
-}
-</code></pre>
+<h1 id="ef-icon-formatter">Coral Icon Formatter</h1>
+<p>This formatter creates a ef-icon from the column&#39;s field by default.</p>
+<blockquote>
+<p>A full list of available icons can be found <a href="https://elf.int.refinitiv.com/styles/icons.html">here</a>. </p>
+</blockquote>
+<h2 id="specific-options">Specific options</h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Attributes</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>icon</td>
+<td>string or object</td>
+<td>optional</td>
+<td>Icon shown in the cell</td>
+</tr>
+<tr>
+<td>size</td>
+<td>string or number</td>
+<td>optional</td>
+<td>Size of an icon in pixels</td>
+</tr>
+</tbody></table>
 <h2 id="example">Example</h2>
-<code-sandbox hash="62389292"><pre><code class="language-css">efx-grid {
-    height: 200px;
+<code-sandbox hash="f5a8bad9"><pre><code class="language-css">efx-grid {
+    height: 320px;
 }
 </code></pre>
 <pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
@@ -33,22 +41,49 @@
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 10 });
+var icons = [&quot;up&quot;, &quot;down&quot;, &quot;phone&quot;, &quot;calendar&quot;, &quot;flame&quot;];
+var fields = [&quot;icon_1&quot;, &quot;icon_2&quot;, &quot;icon_3&quot;];
+var records = new Array(40);
+for(var i = 0; i &lt; 40; ++i) {
+    var record = records[i] = {};
+    record[fields[0]] = i;
+    record[fields[1]] = i % 5;
+    record[fields[2]] = icons[(i + 3) % 5];
+}
 var configObj = {
     sorting: {
-        sortableColumns: true,
-        initialSort: {
-            colIndex: 0, // Column index
-            sortOrder: &quot;d&quot;
-        }
+        sortableColumns: true
     },
     columns: [
-        {name: &quot;Company&quot;, field: fields[0]},
-        {name: &quot;Market&quot;, field: fields[1], width: 120},
-        {name: &quot;Last&quot;, field: fields[2], width: 100},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
-        {name: &quot;Industry&quot;, field: fields[4]}
+        {
+            name: &quot;Static Icon&quot;,
+            alignment: &quot;c&quot;,
+            field: fields[0],
+            binding: EFIconFormatter.create({
+                icon: &quot;up&quot;,
+            })
+        },
+        {
+            name: &quot;Dynamic Icon With Mapper&quot;,
+            field: fields[1],
+            alignment: &quot;c&quot;,
+            binding: EFIconFormatter.create({
+                icon: {
+                    0: icons[0],
+                    1: icons[1],
+                    2: icons[2],
+                    3: icons[3],
+                    4: icons[4]
+                },
+                size: 20
+            })
+        },
+        {
+            name: &quot;Dynamic Icon&quot;,
+            field: fields[2],
+            alignment: &quot;c&quot;,
+            binding: EFIconFormatter.create()
+        },
     ],
     staticDataRows: records
 };
@@ -56,4 +91,47 @@ var configObj = {
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 </code></pre>
-</code-sandbox>
+</code-sandbox><h3 id="static-icon">Static icon</h3>
+<pre><code class="language-js">var configObj = {
+    columns: [
+        {
+            name: &quot;Icon&quot;,
+            field: &quot;someField&quot;,
+            binding: CoralIconFormatter.create({
+                icon: &quot;up&quot;,
+                size: 18
+            })
+        }
+    ]
+}
+</code></pre>
+<h3 id="mapping-icon-from-field-field-as-icon-name">Mapping icon from field (field as icon name)</h3>
+<pre><code class="language-js">var configObj = {
+    columns: [
+        {
+            name: &quot;Icon&quot;,
+            field: &quot;someField&quot;,
+            binding: CoralIconFormatter.create()
+        }
+    ]
+}
+</code></pre>
+<h3 id="mapping-an-icon-from-an-object-field-as-key-or-index">Mapping an icon from an object (field as key or index)</h3>
+<pre><code class="language-js">var configObj = {
+    columns: [
+        {
+            name: &quot;Icon&quot;,
+            field: &quot;someField&quot;,
+            binding: CoralIconFormatter.create({
+                icon: {
+                    0: &quot;up&quot;,
+                    1: &quot;down&quot;,
+                    2: &quot;phone&quot;,
+                    3: &quot;calendar&quot;,
+                    4: &quot;flame&quot;,
+                },
+            })
+        }
+    ]
+}
+</code></pre>
