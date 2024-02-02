@@ -1,60 +1,19 @@
-<h1 id="percent-bar-formatter">Percent Bar Formatter</h1>
-<p>This formatter creates a percent bar.</p>
+<h1 id="numeric-input-formatter">Numeric Input Formatter</h1>
+<p>This formatter creates a numeric input without a margin and 100% width. By default the input&#39;s value will be the column&#39;s field.</p>
+<blockquote>
+<p>Note: Using the formatter with ELF v4 the input element is <code>ef-number-field</code>, but with ELF v3 the input element is <code>ef-input</code>.</p>
+</blockquote>
 <h2 id="specific-options">Specific options</h2>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Type</th>
-<th>Attributes</th>
-<th>Default</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>alignment</td>
-<td>string</td>
-<td>optional</td>
-<td>&quot;left&quot;</td>
-<td>Possible values are l, r, c, left, right, and center</td>
-</tr>
-<tr>
-<td>movementColor</td>
-<td>boolean</td>
-<td>optional</td>
-<td>true</td>
-<td>If disabled, percent bar will not use up and down colors</td>
-</tr>
-<tr>
-<td>barColor</td>
-<td>string</td>
-<td>optional</td>
-<td>&quot;&quot;</td>
-<td>Custom color for bar element</td>
-</tr>
-<tr>
-<td>textHidden</td>
-<td>boolean</td>
-<td>optional</td>
-<td>false</td>
-<td>If enabled, text label will not be shown</td>
-</tr>
-<tr>
-<td>textWidth</td>
-<td>number or string</td>
-<td>optional</td>
-<td>56</td>
-<td>Number of pixel or percentage width</td>
-</tr>
-</tbody></table>
+<p>There are no specific options for this formatter.</p>
 <h2 id="example">Example</h2>
-<code-sandbox hash="23cf3d58"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="ab89d715"><pre><code class="language-css">efx-grid {
     height: 320px;
 }
 </code></pre>
 <pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
-<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
   DataGenerator, Formatters and extensions are exposed to global scope
@@ -62,42 +21,58 @@
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;myPercent&quot;, &quot;word&quot;];
-var num = -100;
-DataGenerator.addFieldInfo(&quot;myPercent&quot;, function(e) {
-    return num += 5;
-});
+var fields = [&quot;number_2&quot;, &quot;boolean&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 100 });
 
-var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 40 });
 var configObj = {
     sorting: {
         sortableColumns: true
     },
     columns: [
         {
-            name: &quot;Percent bar (Default)&quot;,
-            field: fields[0],
-            alignment: &quot;c&quot;, 
-            binding: PercentBarFormatter.create()
+            name: &quot;Number&quot;,
+            alignment: &quot;c&quot;,
+            field: fields[0]
         },
         {
-            name: &quot;Center alignment + No Movement Color&quot;,
+            name: &quot;Numeric Input&quot;,
             field: fields[0],
             alignment: &quot;c&quot;,
-            binding: PercentBarFormatter.create({
-                alignment: &quot;c&quot;,
-                movementColor: false
+            binding: tr.NumericInputFormatter.create({
+                events: {
+                    &quot;click&quot;: function(e) {
+                    }
+                }
             })
         },
         {
-            name: &quot;No Label + Custom Color&quot;,
+            name: &quot;Disabled&quot;,
             field: fields[0],
             alignment: &quot;c&quot;,
-            binding: PercentBarFormatter.create({
-                alignment: &quot;r&quot;,
-                textHidden: true,
-                barColor: &quot;purple&quot;
+            binding: tr.NumericInputFormatter.create({
+                disablingField: fields[1]
             })
+        },
+        {
+            name: &quot;Readonly&quot;,
+            field: fields[0],
+            alignment: &quot;c&quot;,
+            binding: tr.NumericInputFormatter.create({
+                onElementRendered: function(element, ctx) {
+                    var field = &quot;boolean&quot;;
+                    var bool = ctx.getData(field);
+                    if(bool) {
+                        element.setAttribute(&quot;readonly&quot;, &quot;&quot;);
+                    } else {
+                        element.removeAttribute(&quot;readonly&quot;);
+                    }
+                }
+            })
+        },
+        {
+            name: &quot;Boolean&quot;,
+            field: fields[1],
+            alignment: &quot;c&quot;
         }
     ],
     staticDataRows: records

@@ -1,64 +1,22 @@
-<h1 id="horizontal-scrollbar">Horizontal Scrollbar</h1>
-<p>By default, Grid behaves like a native div element that has CSS &quot;display: block;&quot;. So, Grid has a default size of 100% of the parent width. </p>
-<p>Grid&#39;s default column widths have no fixed size. The column size will be divided equally on the available space. And Grid columns will fit within the available space. So, Grid will never show a horizontal scrollbar by default, as the content (column) width does not exceed its container (grid element) width.</p>
-<p>If you want to enable the horizontal scrollbar, two conditions must be met:</p>
-<ol>
-<li>All of the grid columns must have a fixed size.</li>
-<li>The total column width must exceed the grid width.</li>
-</ol>
+<h1 id="row---showhide">Row - Show/Hide</h1>
+<p>Content rows can be hidden and shown based on their row ID, and an additional API unhides all currently hidden rows.</p>
 <blockquote>
-<p>Note: once Grid&#39;s horizontal scrollbar is shown, column virtualization will be activated as well.</p>
+<p><strong>Note:</strong> In most cases, the row ID is not equivalent to the row index. It can, however, be retrieved if you know the index (refer to the JavaScript section in the demo).</p>
 </blockquote>
+<p>Both the <code>showRows()</code> and <code>hideRows()</code> APIs accept either an individual value (string or integer) or an array of values.  This kind of state is independent of the programmatic filtering of content, and will correctly reclassify hidden rows on sorting/grouping.</p>
 <h2 id="example">Example</h2>
-<code-sandbox hash="21b690fd"><pre><code class="language-html">&lt;button id=&quot;reset_btn&quot;&gt;Reset All Column Widths to Default&lt;/button&gt;
-&lt;button id=&quot;fixate_all_btn&quot;&gt;Fixate All Column Widths&lt;/button&gt;
-&lt;button id=&quot;fixate_first_btn&quot;&gt;Fixate the First Column&lt;/button&gt;
+<code-sandbox hash="712732c2"><pre><code class="language-css">efx-grid {
+    height: 200px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;button id=&quot;hide_btn&quot;&gt;Hide First 3 Rows&lt;/button&gt;
+&lt;button id=&quot;show_btn&quot;&gt;Show Rows&lt;/button&gt;
+&lt;button id=&quot;clear_btn&quot;&gt;Unhide All&lt;/button&gt;
 &lt;br&gt;&lt;br&gt;
 &lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
-<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 6 });
-var configObj = {
-    columns: [
-        {name: &quot;Company&quot;, field: fields[0]},
-        {name: &quot;Market&quot;, field: fields[1]},
-        {name: &quot;Last&quot;, field: fields[2]},
-        {name: &quot;Net. Chng&quot;, field: fields[3]},
-        {name: &quot;Industry&quot;, field: fields[4]}
-    ],
-    staticDataRows: records
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
-
-document.getElementById(&quot;reset_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
-    grid.api.getCoreGrid().setColumnWidths([1, 1, 1, 1, 1], true); // All columns will have equal width
-});
-document.getElementById(&quot;fixate_all_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
-    grid.api.getCoreGrid().setColumnWidths([300, 150, 150, 150, 200], false); // Set all column widths to the specified size.
-});
-document.getElementById(&quot;fixate_first_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
-    var core = grid.api.getCoreGrid();
-    core.setColumnWidth(0, 200); // Set the first column to have fixed width (200px);
-    core.setColumnWidths([null, 1, 1, 1, 3], true); // Set the last four columns to have no size
-});
-</code></pre>
-</code-sandbox><h1 id="non-overlap-horizontal-scrollbar">Non-overlap horizontal scrollbar</h1>
-<p>The Grid horizontal scrollbar, by default, is shown on top of the grid. This is to avoid the content jittering when the layout is changed. However, in some cases, the horizontal scrollbar may hinder or prevent interaction with the content, especially for the bottommost row. Use the <code>contentBottomPadding</code> flag to reserve some space on the bottom to stop this from happening.</p>
-<p><code>autoHideScrollbar</code> can also be used to stop automatic scrollbar hiding.</p>
-<h2 id="example-1">Example</h2>
-<code-sandbox hash="19def1f8"><pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
   DataGenerator, Formatters and extensions are exposed to global scope
@@ -69,19 +27,37 @@ document.getElementById(&quot;fixate_first_btn&quot;).addEventListener(&quot;cli
 var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
 var records = DataGenerator.generateRecords(fields, { numRows: 10 });
 var configObj = {
-    autoHideScrollbar: false,
-    contentBottomPadding: 9,
     columns: [
-        {name: &quot;Company&quot;, field: fields[0], width: 300},
-        {name: &quot;Market&quot;, field: fields[1], width: 150},
-        {name: &quot;Last&quot;, field: fields[2], width: 150},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 150},
-        {name: &quot;Industry&quot;, field: fields[4], width: 200}
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market&quot;, field: fields[1], width: 100},
+        {name: &quot;Last&quot;, field: fields[2], width: 80},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 80},
+        {name: &quot;Industry&quot;, field: fields[4]}
     ],
-    staticDataRows: records
+    dataModel: {
+        data: records
+    }
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
+var rowId1, rowId2, rowId3;
+document.getElementById(&quot;hide_btn&quot;).addEventListener(&quot;click&quot;, function() {
+        // Hide rows at index 0 and 1 (rowIds are &quot;0&quot; and &quot;1&quot; respectively since rows haven&quot;t been sorted/filtered)
+        var dataView = grid.api.getDataView();
+        rowId1 = dataView.getRowId(0);
+        rowId2 = dataView.getRowId(1)
+        rowId3 = dataView.getRowId(2)
+        grid.api.hideRows([rowId1, rowId2, rowId3]);
+});
+
+document.getElementById(&quot;show_btn&quot;).addEventListener(&quot;click&quot;, function() {
+        grid.api.showRows([rowId1, rowId2]);
+});
+
+document.getElementById(&quot;clear_btn&quot;).addEventListener(&quot;click&quot;, function() {
+        // Unhide all currently hidden rows
+        grid.api.unhideAllRows();
+});
 </code></pre>
 </code-sandbox>

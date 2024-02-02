@@ -1,21 +1,31 @@
-<h1 id="ef-checkbox-formatter">Coral Checkbox Formatter</h1>
-<p>This formatter creates a checkbox which will be unchecked by default.</p>
-<h3 id="using-elfs-checkbox">Using ELF&#39;s checkbox</h3>
-<p>This extension is only for using <a href="https://elf.int.refinitiv.com/elements/ef-checkbox.html">ef-checkbox</a> and the following dependency is required:</p>
-<pre><code class="language-bash">npm install @elf/ef-checkbox
-</code></pre>
-<p>Then import this required dependencies to your project <code>index.js</code> file.</p>
-<pre><code class="language-jsx">import &quot;@elf/ef-checkbox&quot;;
-import &quot;@elf/elf-theme-halo/dark/ef-checkbox&quot;; // Can be any theme.
-</code></pre>
+<h1 id="ef-button-formatter">Coral Button Formatter</h1>
+<p>This formatter creates a button without a margin. By default the text inside the button will be data from the column&#39;s field.</p>
+<h2 id="specific-options">Specific options</h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Attributes</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>label</td>
+<td>string</td>
+<td>optional</td>
+<td>Text inside the button, default text is the value from the column&#39;s field</td>
+</tr>
+</tbody></table>
 <h2 id="example">Example</h2>
-<code-sandbox hash="fc9bfb1f"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="c5dabd6e"><pre><code class="language-css">efx-grid {
     height: 320px;
 }
 </code></pre>
 <pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
-<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
   DataGenerator, Formatters and extensions are exposed to global scope
@@ -23,88 +33,44 @@ import &quot;@elf/elf-theme-halo/dark/ef-checkbox&quot;; // Can be any theme.
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;word&quot;];
-var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 100 });
-
+var fields = [&quot;word&quot;, &quot;id&quot;, &quot;float_1&quot;];
+var records = DataGenerator.generateRecords(fields, 30);
 var configObj = {
-    sorting: {
-        sortableColumns: true
-    },
     columns: [
-        {
-            alignment: &quot;c&quot;,
-            field: &quot;myCheckBoxState&quot;,
-            width: 34,
-            binding: EFCheckboxFormatter.create({
+        { 
+            name: &quot;Button&quot;,
+            field: fields[0],
+            alignment: &quot;center&quot;,
+            binding: EFButtonFormatter.create({
+                label: &quot;More Info&quot;,
                 events: {
-                    &quot;click&quot;: function(e) {
-                        console.log(&quot;clicked&quot;);
+                    click: function(event, context) {
+                        alert(
+                            &quot;clicked at row: &quot; + 
+                            context.rowIndex + 
+                            &quot;, column: &quot; + 
+                            context.colIndex + 
+                            &quot;, data: &quot; + 
+                            context.getData(context.field)
+                        );
                     }
                 }
             })
         },
-        {
-            name: &quot;Grid Checkbox State&quot;,
-            field: &quot;myCheckBoxState&quot;,
-            alignment: &quot;c&quot;,
-        },
-        {
-            name: &quot;Text&quot;,
+        { 
+            name: &quot;Column 2&quot;,
             field: fields[0],
-            alignment: &quot;c&quot;,
-        }
-    ],
-    staticDataRows: records
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
-</code></pre>
-</code-sandbox><h3 id="checkbox-with-a-label">Checkbox with a label</h3>
-<code-sandbox hash="9477ef77"><pre><code class="language-css">efx-grid {
-    height: 320px;
-}
-</code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;word&quot;, &quot;words&quot;];
-var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 30 });
-
-var configObj = {
-    sorting: {
-        sortableColumns: true
-    },
-    columns: [
-        {
-            alignment: &quot;l&quot;,
-            field: &quot;myCheckBoxState&quot;,
-            width: 150,
-            binding: EFCheckboxFormatter.create({
-                events: {
-                    &quot;click&quot;: function(e) {
-                        console.log(&quot;clicked&quot;);
-                    }
-                },
-                labelField: &quot;word&quot;
-            })
+            alignment: &quot;center&quot;
         },
-        {
-            name: &quot;Grid Checkbox State&quot;,
-            field: &quot;myCheckBoxState&quot;,
-            alignment: &quot;c&quot;,
-        },
-        {
-            name: &quot;Text&quot;,
+        { 
+            name: &quot;Column 3&quot;,
             field: fields[1],
-            alignment: &quot;c&quot;,
+            alignment: &quot;center&quot;
+        },
+        { 
+            name: &quot;Column 4&quot;,
+            field: fields[2],
+            alignment: &quot;center&quot;
         }
     ],
     staticDataRows: records

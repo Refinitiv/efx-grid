@@ -1,30 +1,14 @@
-<h1 id="ef-radio-button-formatter">EF Radio Button Formatter</h1>
-<p>This formatter creates a <a href="https://ui.refinitiv.com/elements/radio-button">ef-radio-button</a> which will be unchecked by default.</p>
-<h2 id="specific-options">Specific options</h2>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Type</th>
-<th>Attributes</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>initialIndex</td>
-<td>number</td>
-<td>optional</td>
-<td>Initial checked row index</td>
-</tr>
-</tbody></table>
+<h1 id="ef-number-field-formatter">EF Number Field Formatter</h1>
+<p>This formatter creates a <a href="https://ui.refinitiv.com/elements/number-field">ef-number-field</a> without a margin and 100% width. By default the input&#39;s value will be the column&#39;s field.</p>
 <h2 id="example">Example</h2>
-<code-sandbox hash="74bd8b5d"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="a5b3b135"><pre><code class="language-css">efx-grid {
     height: 320px;
 }
 </code></pre>
 <pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
-<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
   DataGenerator, Formatters and extensions are exposed to global scope
@@ -32,39 +16,35 @@
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;number&quot;, &quot;word&quot;];
+var fields = [&quot;number_1&quot;];
 var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 20 });
 
 var configObj = {
-    sorting: {
-        sortableColumns: true
-    },
     columns: [
-        {
-            name: &quot; &quot;,
-            alignment: &quot;c&quot;,
-            field: &quot;radio&quot;,
-            width: 34,
-            binding: EFRadioButtonFormatter.create({
-                initialIndex: 0,
-                events: {
-                    &quot;click&quot;: function(e) {
-                        console.log(&quot;clicked&quot;);
-                    }
-                }
-            })
-        },
-        {
+        { 
             name: &quot;Number&quot;,
             field: fields[0],
-            alignment: &quot;c&quot;,
+            sort: fields[0],
+            alignment: &quot;c&quot;
+        },
+        { 
+            name: &quot;Simplest&quot;,
+            field: fields[0],
+            sort: fields[0],
+            binding: EFNumberFieldFormatter.create()
         },
         {
-            name: &quot;Description&quot;,
-            field: fields[1],
-            alignment: &quot;c&quot;,
+            name: &quot;Some options (Step)&quot;,
+            field: fields[0],
+            sort: fields[0],
+            binding: EFNumberFieldFormatter.create({
+                attributes: {
+                    step: 100
+                }
+            })
         }
     ],
+    extensions: [],
     staticDataRows: records
 };
 

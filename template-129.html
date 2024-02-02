@@ -1,51 +1,29 @@
-<h1 id="formatter-default">Formatter (default)</h1>
-<p>Formatter is what Grid uses to render content. Grid&#39;s default formatter will render any data in plain text. When data is updated, Grid will bind the data from its own internal data source to render the data in plain text using the formatter. The data given to grid can be any data type.</p>
+<h1 id="changing-formatter-at-runtime">Changing Formatter at Runtime</h1>
+<p>Sometimes you might want to change a custom rendering at runtime. This can be achieved by using  <code>setColumnFormatter</code> method.</p>
 <blockquote>
-<p>Note: The formatter will be repeatedly executed multiple times for every update and scrolling. </p>
+<p>APIs for Grid and the <code>setColumnFormatter()</code> method description can be found <a href="#/apis/rt-grid/grid">here</a>.</p>
 </blockquote>
-<p>Default rendering is already optimized for row virtualization. This means that grid uses the same text element to render different data for different rows. It should be fast enough to handle rendering a million of rows.</p>
-<p>To update what is shown on the Grid, please use Grid&#39;s APIs to <a href="#/general-concept/accessing-data">manipulate the data</a> from the instance.</p>
-<h2 id="example">Example</h2>
-<code-sandbox hash="f6392815"><pre><code class="language-css">efx-grid {
-    height: 200px;
+<pre><code class="language-js">var grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
+
+// formatter can be a function
+var formatter = function(e) {
+    var value = e.grid.getRowData(e.rowIndex)[e.field];
+    e.cell.setContent(value);
+};
+
+/*
+// or can be an object.
+var formatter = {
+    binding: function(e) {
+        var value = e.grid.getRowData(e.rowIndex)[e.field];
+        e.cell.setContent(value);
+    }
+};
+// or can be a predefined formatter
+var formatter = SimpleLinkFormatter.create()
+*/
+
+function handleChangeFormatter() {
+    grid.api.setColumnFormatter(0 /* Column Index */, formatter);
 }
 </code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 40 });
-var configObj = {
-    columns: [
-        {name: &quot;Company&quot;, field: fields[0]},
-        {name: &quot;Market&quot;, field: fields[1]},
-        {name: &quot;Last&quot;, field: fields[2]},
-        {name: &quot;Net. Chng&quot;, field: fields[3]},
-        {name: &quot;Industry&quot;, field: fields[4]}
-    ],
-    staticDataRows: records
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
-</code></pre>
-</code-sandbox><h2 id="internal-default-formatter-implementation">Internal Default Formatter Implementation</h2>
-<p>Internally, Grid implements the formatter as the following code: </p>
-<pre><code class="language-js">var configObj = {
-    columns: [
-        { binding: function(e){
-                e.cell.setContent(e.data);
-            }
-        }
-    ]
-};
-</code></pre>
-<h1 id="custom-formatter">Custom Formatter</h1>
-<p>If we want anything other than simple text, we need to define a custom formatter. You can find more details about this in the <a href="#/rendering/custom-formatter">Custom Formatter section</a>.</p>

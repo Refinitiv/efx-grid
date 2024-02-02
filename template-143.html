@@ -1,13 +1,31 @@
-<h1 id="ef-datetime-picker-formatter">EF DateTime Picker Formatter</h1>
-<p>This formatter creates <a href="https://ui.refinitiv.com/elements/datetime-picker">ef-datetime-picker</a> without margin. </p>
+<h1 id="ef-combo-box-formatter">EF Combo Box Formatter</h1>
+<p>This formatter creates a <a href="https://ui.refinitiv.com/elements/combo-box">ef-combo-box</a> without margin. Its options come from passed <code>options.data</code>.</p>
+<h2 id="specific-options">Specific options</h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Attributes</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>data</td>
+<td>array</td>
+<td>required</td>
+<td>List of items, see <a href="https://ui.refinitiv.com/elements/combo-box">ef-combo-box</a> for more detail.</td>
+</tr>
+</tbody></table>
 <h2 id="example">Example</h2>
-<code-sandbox hash="8d4c4a31"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="f491a83"><pre><code class="language-css">efx-grid {
     height: 320px;
 }
 </code></pre>
 <pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
-<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
   DataGenerator, Formatters and extensions are exposed to global scope
@@ -15,46 +33,30 @@
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;date&quot;];
+var currencies = [&quot;THB&quot;, &quot;AUD&quot;, &quot;USD&quot;, &quot;YEN&quot;, &quot;TWD&quot;];
+DataGenerator.addFieldInfo(&quot;currency&quot;, { type: &quot;set&quot;, members: currencies });
+
+var fields = [&quot;number_1&quot;, &quot;boolean&quot;, &quot;currency&quot;];
 var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 20 });
 
 var configObj = {
     columns: [
         { 
-            name: &quot;Data&quot;,
+            name: &quot;Column 1&quot;,
             field: fields[0],
-            sortBy: fields[0],
-            alignment: &quot;c&quot;,
-            binding: function(e) {
-                var value = e[&quot;data&quot;];
-                var cell = e[&quot;cell&quot;];
-                cell.setContent(value.toDateString());
-            }
-        },
-        { 
-            name: &quot;Simplest&quot;,
-            field: fields[0],
-            sortBy: fields[0],
-            alignment: &quot;c&quot;,
-            binding: EFDateTimePickerFormatter.create()
+            alignment: &quot;center&quot;
         },
         {
-            name: &quot;Some options&quot;,
-            field: fields[0],
-            sortBy: fields[0],
-            alignment: &quot;c&quot;,
-            binding: EFDateTimePickerFormatter.create({
-                attributes: {
-                    format: &quot;yyyy-MM-dd&quot;
-                },
-                styles: {
-                    width: &quot;120px&quot;
-                },
-                events: {
-                    &quot;value-changed&quot;: function(e) {
-                        // console.log(&quot;value changed: &quot; + e.detail.value);
-                    }
-                }
+            name: &quot;Column 2&quot;,
+            field: fields[1],
+            alignment: &quot;center&quot;
+        },
+        {
+            name: &quot;Select&quot;,
+            field: fields[2],
+            alignment: &quot;center&quot;,
+            binding: EFComboBoxFormatter.create({
+                data: currencies
             })
         }
     ],

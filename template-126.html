@@ -1,19 +1,21 @@
-<h1 id="real-time-market-data-with-legacy-jet">Real-time Market Data with Legacy JET</h1>
-<blockquote>
-<p>This libary is deprecated. Please use <a href="#/realtime-data/jet">JET.Qoutes2</a> instead.</p>
-</blockquote>
-<p><code>JET.Quotes</code> is a legacy way of retrieving real-time data. The data provided from <code>JET.Quotes</code> is two-level nested data, so it cannot be consumed directly. Custom formatters are required to render the data. The data consists of two properties, which are <code>raw</code> and <code>formatted</code>. This also means you need to define custom sorting logic to sort the data through <code>sorting</code> and <code>sortLogic</code> in the configuration object.</p>
-<h2 id="jetquotes-example">JET.Quotes example</h2>
-<code-sandbox hash="39f5cfde"><pre><code class="language-css">emerald-grid {
+<h1 id="realtime-market-data-with-jetqoutes2">Realtime Market Data with JET.Qoutes2</h1>
+<p>JET is a library that creates a communication channel between applications and container for retrieving data from the LSEG platform. JET will provide all the real-time data, so there&#39;s no need to initialize and use the <code>dataModel</code> property in the configuration object.</p>
+<p>Please note that you can no longer use the row index to refer to row data anymore, as Grid will asynchronously receive the data and updates from JET or a server data provider. For reference, you must specify the row ID (string) for each row that is inserted into Grid&#39;s data table.</p>
+<p>In the examples below, the RIC name is used as the row ID. You can then keep updating the same RIC on the correct row position using the row ID.</p>
+<code-sandbox hash="b31e486d"><pre><code class="language-css">efx-grid {
     height: 250px;
 }
 </code></pre>
 <pre><code class="language-html">&lt;input id=&quot;ric_in&quot; placeholder=&quot;Enter RIC&quot; value=&quot;CHF=&quot;&gt;
 &lt;button id=&quot;insert_btn&quot;&gt;Click To Insert&lt;/button&gt;
+&lt;button id=&quot;insert_usd&quot;&gt;USD&lt;/button&gt;
+&lt;button id=&quot;insert_eur&quot;&gt;EUR&lt;/button&gt;
+&lt;button id=&quot;insert_jpy&quot;&gt;JPY&lt;/button&gt;
 &lt;br&gt;&lt;br&gt;
-&lt;emerald-grid&gt;&lt;/emerald-grid&gt;
+&lt;efx-grid&gt;&lt;/efx-grid&gt;
 </code></pre>
-<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
   DataGenerator, Formatters and extensions are exposed to global scope
@@ -21,85 +23,101 @@
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var ricList = [&quot;EUR=&quot;,&quot;JPY=&quot;,&quot;THB=&quot;,&quot;GBP=&quot;];
-var fields = [&quot;X_RIC_NAME&quot;, &quot;CF_NAME&quot;, &quot;CF_LAST&quot;, &quot;CF_BID&quot;, &quot;CF_ASK&quot;, &quot;NETCHNG_1&quot;, &quot;PCTCHNG&quot;];
-
 JET = new tr.MockJET(); // Use Mock for illustrative purpose only
 
 document.getElementById(&#39;insert_btn&#39;).addEventListener(&quot;click&quot;, onClickInsertButton);
-
-var realtimeDataFormatter = {
-    reunder: function() {},
-    bind: function(rowIndex, columnIndex, value, cell, columnDef, dataRow, dataTable) {
-        var color = &quot;&quot;;
-        var content = &quot;&quot;;
-        if (value) { // Some RIC may not have all the fields so need to check if value is available
-            content = value.formatted;
-            var pct = dataRow[&quot;PCTCHNG&quot;] ? dataRow[&quot;PCTCHNG&quot;].raw : NaN;
-
-            if (pct &gt; 0) {
-                color = &quot;red&quot;;
-            } else if (pct &lt; 0) {
-                color = &quot;green&quot;;
-            }
-        }
-        cell.setStyle(&quot;color&quot;, color);
-        cell.setContent(content);
-    }
-};
+document.getElementById(&#39;insert_usd&#39;).addEventListener(&quot;click&quot;, insertRic.bind(null, &quot;USD=&quot;));
+document.getElementById(&#39;insert_eur&#39;).addEventListener(&quot;click&quot;, insertRic.bind(null, &quot;EUR=&quot;));
+document.getElementById(&#39;insert_jpy&#39;).addEventListener(&quot;click&quot;, insertRic.bind(null, &quot;JPY=&quot;));
 
 var configObj = {
     rowSelection: true,
-    sorting: {
-        sortLogic: {
-            &quot;*&quot; : function(a, b, order) { // &quot;*&quot; means this sorting logic is used for any column
-                return (a.raw - b.raw) * order;
-            },
-            &quot;X_RIC_NAME&quot;: function(a, b, order) {
-                if(b.raw &lt; a.raw) {
-                    return order
-                } else if(a.raw &lt; b.raw) {
-                    return -order;
-                }
-                return 0;
-            }
-        }
-    },
     columns: [
-        {title: &quot;RIC&quot;, field: &quot;X_RIC_NAME&quot;, formatter: realtimeDataFormatter},
-        {title: &quot;Name&quot;, field: &quot;CF_NAME&quot;, formatter: realtimeDataFormatter},
-        {title: &quot;Last&quot;, field: &quot;CF_LAST&quot;, formatter: realtimeDataFormatter},
-        {title: &quot;Bid&quot;, field: &quot;CF_BID&quot;, formatter: realtimeDataFormatter},
-        {title: &quot;Ask&quot;, field: &quot;CF_ASK&quot;, formatter: realtimeDataFormatter},
-        {title: &quot;Net Change&quot;, field: &quot;NETCHNG_1&quot;, formatter: realtimeDataFormatter},
-        {title: &quot;Pct.Change&quot;, field: &quot;PCTCHNG&quot;, formatter: realtimeDataFormatter}
+        {
+            field: &quot;X_RIC_NAME&quot;,
+            tickColor: &quot;CF_NETCHNG&quot;
+        },
+        {
+            field: &quot;CF_NAME&quot;
+        },
+        {
+            field: &quot;CF_LAST&quot;,
+            tickColor: &quot;CF_NETCHNG&quot;,
+            blinking: true
+        },
+        {
+            field: &quot;CF_NETCHNG&quot;,
+            tickColor: true,
+            blinking: true
+        },
+        {
+            field: &quot;PCTCHNG&quot;,
+            tickColor: &quot;CF_NETCHNG&quot;,
+            blinking: true
+        }
+    ],
+    rows: [
+        { ric: &quot;EUR=&quot; },
     ]
 };
 
-var grid = document.getElementsByTagName(&quot;emerald-grid&quot;)[0];
+var grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
 grid.config = configObj;
-addRics(ricList);
-
-function onSubscriptionUpdate(sub, ric, data) {
-        if (grid.api) {
-            var dt = grid.api.getDataTable();
-            dt.setRowData(ric, data);
-        }
-}
-
-function addRics(rics) {
-    var newSubscription = JET.Quotes.create().rics(rics).rawFields(fields);
-    newSubscription.onUpdate(onSubscriptionUpdate);
-    newSubscription.start();
-}
 
 function onClickInsertButton(e) {
     var ric = document.getElementById(&quot;ric_in&quot;).value;
-    ric = ric.toUpperCase();
-    if (ric &amp;&amp; ricList.indexOf(ric) &lt; 0) {
-        ricList.push(ric);
-        addRics(ric);
-    }
+    insertRic(ric.toUpperCase());
+}
+
+function insertRic(ric) {
+    grid.api.insertRow(ric, 0);
 }
 </code></pre>
-</code-sandbox>
+</code-sandbox><p>To use <code>efx-grid</code> on your application and run it on the Eikon container follow the steps below.</p>
+<ol>
+<li>Install <code>jet-api</code>, <code>jet-plugin-quotes2</code> and <code>jet-plugin-settings</code> by running the following commands.</li>
+</ol>
+<pre><code class="language-bash">npm install jet-api
+npm install jet-plugin-quotes2
+npm install jet-plugin-settings
+</code></pre>
+<ol start="2">
+<li>create an <code>efx-grid</code> in your index.html</li>
+</ol>
+<pre><code class="language-html">&lt;efx-grid id=&quot;blotter&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<ol start="3">
+<li>Import the JET library and plugin to your application.</li>
+</ol>
+<pre><code class="language-js">import &#39;jet-api/dist/JET.min.js&#39;;
+import &#39;jet-plugin-quotes2/src/jet-plugin-quotes2.js&#39;;
+import &#39;jet-plugin-settings/src/jet-plugin-settings.js&#39;;
+</code></pre>
+<ol start="4">
+<li>Initialize JET. <code>ID</code> is your application&#39;s ID.</li>
+</ol>
+<pre><code class="language-js">JET.init({
+  ID: &#39;efx-grid-app&#39;
+});
+</code></pre>
+<ol start="5">
+<li>Then you can configure <code>efx-grid</code> using <code>config</code> property.</li>
+</ol>
+<pre><code class="language-js">var grid = document.getElementById(&#39;blotter&#39;);
+grid.config = {
+    &#39;columns&#39;: [
+        { &#39;field&#39;: &#39;X_RIC_NAME&#39; },
+        { &#39;field&#39;: &#39;CF_ASK&#39; },
+        { &#39;field&#39;: &#39;CF_LAST&#39; }
+    ],
+    &#39;rows&#39;: [
+        { &#39;ric&#39;: &#39;TRI.TO&#39; },
+        { &#39;ric&#39;: &#39;.SETI&#39; },
+        { &#39;ric&#39;: &#39;.SPX&#39; },
+        { &#39;ric&#39;: &#39;TRI.TO&#39; },
+        { &#39;ric&#39;: &#39;IBM&#39; }
+    ]
+};
+</code></pre>
+<h2 id="next-steps">Next steps</h2>
+<p>Read the <a href="https://amp.int.refinitiv.com/#/package/@elf/efx-grid">full documentation</a> about <code>efx-grid</code> features.</p>

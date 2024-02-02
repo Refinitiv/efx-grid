@@ -1,5 +1,8 @@
-<h1 id="ef-radio-button-formatter">Coral Radio Button Formatter</h1>
-<p>This formatter creates a radio button which will be  unchecked by default.</p>
+<h1 id="ef-icon-formatter">Coral Icon Formatter</h1>
+<p>This formatter creates a ef-icon from the column&#39;s field by default.</p>
+<blockquote>
+<p>A full list of available icons can be found <a href="https://elf.int.refinitiv.com/styles/icons.html">here</a>. </p>
+</blockquote>
 <h2 id="specific-options">Specific options</h2>
 <table>
 <thead>
@@ -11,20 +14,27 @@
 </tr>
 </thead>
 <tbody><tr>
-<td>initialIndex</td>
-<td>number</td>
+<td>icon</td>
+<td>string or object</td>
 <td>optional</td>
-<td>Initial checked row index</td>
+<td>Icon shown in the cell</td>
+</tr>
+<tr>
+<td>size</td>
+<td>string or number</td>
+<td>optional</td>
+<td>Size of an icon in pixels</td>
 </tr>
 </tbody></table>
 <h2 id="example">Example</h2>
-<code-sandbox hash="76949e5b"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="ddff720c"><pre><code class="language-css">efx-grid {
     height: 320px;
 }
 </code></pre>
 <pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
-<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
   DataGenerator, Formatters and extensions are exposed to global scope
@@ -32,37 +42,49 @@
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;number&quot;, &quot;word&quot;];
-var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 100 });
-
+var icons = [&quot;up&quot;, &quot;down&quot;, &quot;phone&quot;, &quot;calendar&quot;, &quot;flame&quot;];
+var fields = [&quot;icon_1&quot;, &quot;icon_2&quot;, &quot;icon_3&quot;];
+var records = new Array(40);
+for(var i = 0; i &lt; 40; ++i) {
+    var record = records[i] = {};
+    record[fields[0]] = i;
+    record[fields[1]] = i % 5;
+    record[fields[2]] = icons[(i + 3) % 5];
+}
 var configObj = {
     sorting: {
         sortableColumns: true
     },
     columns: [
         {
+            name: &quot;Static Icon&quot;,
             alignment: &quot;c&quot;,
-            field: &quot;radio&quot;,
-            width: 34,
-            binding: EFRadioButtonFormatter.create({
-                initialIndex: 0,
-                events: {
-                    &quot;click&quot;: function(e) {
-                        console.log(&quot;clicked&quot;);
-                    }
-                }
+            field: fields[0],
+            binding: EFIconFormatter.create({
+                icon: &quot;up&quot;,
             })
         },
         {
-            name: &quot;Number&quot;,
-            field: fields[0],
-            alignment: &quot;c&quot;,
-        },
-        {
-            name: &quot;Description&quot;,
+            name: &quot;Dynamic Icon With Mapper&quot;,
             field: fields[1],
             alignment: &quot;c&quot;,
-        }
+            binding: EFIconFormatter.create({
+                icon: {
+                    0: icons[0],
+                    1: icons[1],
+                    2: icons[2],
+                    3: icons[3],
+                    4: icons[4]
+                },
+                size: 20
+            })
+        },
+        {
+            name: &quot;Dynamic Icon&quot;,
+            field: fields[2],
+            alignment: &quot;c&quot;,
+            binding: EFIconFormatter.create()
+        },
     ],
     staticDataRows: records
 };
@@ -70,4 +92,47 @@ var configObj = {
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 </code></pre>
-</code-sandbox>
+</code-sandbox><h3 id="static-icon">Static icon</h3>
+<pre><code class="language-js">var configObj = {
+    columns: [
+        {
+            name: &quot;Icon&quot;,
+            field: &quot;someField&quot;,
+            binding: CoralIconFormatter.create({
+                icon: &quot;up&quot;,
+                size: 18
+            })
+        }
+    ]
+}
+</code></pre>
+<h3 id="mapping-icon-from-field-field-as-icon-name">Mapping icon from field (field as icon name)</h3>
+<pre><code class="language-js">var configObj = {
+    columns: [
+        {
+            name: &quot;Icon&quot;,
+            field: &quot;someField&quot;,
+            binding: CoralIconFormatter.create()
+        }
+    ]
+}
+</code></pre>
+<h3 id="mapping-an-icon-from-an-object-field-as-key-or-index">Mapping an icon from an object (field as key or index)</h3>
+<pre><code class="language-js">var configObj = {
+    columns: [
+        {
+            name: &quot;Icon&quot;,
+            field: &quot;someField&quot;,
+            binding: CoralIconFormatter.create({
+                icon: {
+                    0: &quot;up&quot;,
+                    1: &quot;down&quot;,
+                    2: &quot;phone&quot;,
+                    3: &quot;calendar&quot;,
+                    4: &quot;flame&quot;,
+                },
+            })
+        }
+    ]
+}
+</code></pre>

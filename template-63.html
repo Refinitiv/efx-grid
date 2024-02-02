@@ -1,37 +1,52 @@
-<h1 id="reading-or-getting-data">Reading or Getting Data</h1>
+<h1 id="reading-or-getting-data-from-grid">Reading or getting data from Grid</h1>
 <p>As Grid may need to display and store tons of rows, Grid does not provide two-way data binding or a way to directly reference the stored data. All data manipulations, such as sorting, grouping, or filtering, must be done through APIs. To access data stored inside Grid, we need to use Grid&#39;s <a href="#/apis/readme">APIs</a>.</p>
 <h2 id="apis">APIs</h2>
-<p>Use <code>getRowData(rowIndex)</code> to get data of the specified row.</p>
-<pre><code class="language-js">console.log(grid.api.getRowData(2));
+<p>Use <code>getRowData(rowIndex)</code> to get data from a specific row.</p>
+<pre><code class="language-js">var record = grid.api.getRowData(2);
 </code></pre>
-<p>Use <code>getMultipleRowData()</code> to retrieve all rows</p>
-<pre><code class="language-js">console.log(grid.api.getMultipleRowData());
+<p>Use <code>getMultipleRowData()</code> to retrieve all visible rows. Note that the returned row data is from the transformed data view, meaning hidden, collapsed, or filtered out rows are not returned. </p>
+<pre><code class="language-js">var records = grid.api.getMultipleRowData();
 </code></pre>
-<p><code>getMultipleRowData(rowIndices)</code> to get multiple row data from specific row indices at once.</p>
-<pre><code class="language-js">grid.api.getMultipleRowData([0, 2, 4]);
+<p>Use <code>getMultipleRowData(rowIndices)</code> to get multiple row data from specific row indices at once.</p>
+<pre><code class="language-js">var records = grid.api.getMultipleRowData([0, 2, 4]);
 </code></pre>
-<p>Use <code>logDV()</code> or <code>logDT()</code> to quickly log data in <strong>table format</strong> to developer console</p>
+<p>Use <code>logDV()</code> or <code>logDT()</code> to quickly log data in <strong>table format</strong> to developer console.</p>
 <pre><code class="language-js">console.log(&quot;=== Data View ===&quot;);
 grid.api.logDV(); // Rows after sorting and filtering
 
 console.log(&quot;=== Data Table ===&quot;);
 grid.api.logDT(); // Rows in original order
 </code></pre>
+<h2 id="getting-all-data-in-its-original-form">Getting all data in its original form</h2>
+<p>The APIs in previous section return row data from the transformed data view. This means some row data may not be returned, if they are hidden, collapsed, or filtered out. To actually retrieve all row data from an untransformed data view, use <code>getAllRowDefinitions()</code> with <code>getRowData</code> as shown in the following code snippet.</p>
+<pre><code class="language-js">function toRowData(rowDef) {
+    return rowDef.getRowData();
+}
+var rowDefs = grid.api.getAllRowDefinitions();
+var records = rowDefs.map(toRowData);
+</code></pre>
 <h2 id="example">Example</h2>
-<code-sandbox hash="3ae0ba1a"><pre><code class="language-css">efx-grid {
-    margin-bottom: 40px;
+<code-sandbox hash="a615dfbc"><pre><code class="language-css">textarea {
+    height: 200px;
+    width: 100%;
+    overflow: auto;
+    margin-bottom: 20px;
 }
 html hr {
     margin: 5px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;button id=&quot;top_row_btn&quot;&gt;Get Top Row Data&lt;/button&gt;
-&lt;button id=&quot;col_btn&quot;&gt;Get Data from Column&lt;/button&gt;
-&lt;button id=&quot;all_btn&quot;&gt;Get All Data&lt;/button&gt;
+<pre><code class="language-html">&lt;button id=&quot;top_row_btn&quot;&gt;Get data from top row&lt;/button&gt;
+&lt;button id=&quot;col_btn&quot;&gt;Get company names&lt;/button&gt;
+&lt;button id=&quot;all_btn1&quot;&gt;Get all data from transformed view&lt;/button&gt;
+&lt;button id=&quot;all_btn2&quot;&gt;Get all data&lt;/button&gt;
 &lt;hr&gt;
 &lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+&lt;hr&gt;
+&lt;textarea id=&quot;msg_ta&quot;&gt;&lt;/textarea&gt;
 </code></pre>
-<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
   DataGenerator, Formatters and extensions are exposed to global scope
@@ -40,7 +55,7 @@ html hr {
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
 var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 5 });
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 5 });
 var configObj = {
     columns: [
         {name: &quot;Company&quot;, field: fields[0]},
@@ -56,33 +71,36 @@ var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 
 document.getElementById(&quot;top_row_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
-    var rowData = grid.api.getRowData(0);
-    alert(JSON.stringify(rowData, function replacer(key, value) {
-        if(key === &quot;ROW_DEF&quot;) {
-            return undefined;
-        }
-        return value;
-    }));
+    var record = grid.api.getRowData(0);
+    logMessage(record);
 });
 document.getElementById(&quot;col_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
-    var allRowData = grid.api.getMultipleRowData();
-    var columnData = allRowData.map(function toCompanyName(rowData) {
-        return rowData[&quot;companyName&quot;];
-    });
-    alert(JSON.stringify(columnData));
+    var records = grid.api.getMultipleRowData();
+    var columnData = records.map(toCompanyName);
+    logMessage(columnData);
 });
-document.getElementById(&quot;all_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
-    var allRowData = grid.api.getMultipleRowData();
-    alert(JSON.stringify(
-        allRowData, 
-        function replacer(key, value) {
-            if(key === &quot;ROW_DEF&quot;) {
-                return undefined;
-            }
-            return value;
-        },
-        2
-    ));
+document.getElementById(&quot;all_btn1&quot;).addEventListener(&quot;click&quot;, function(e) {
+    var records = grid.api.getMultipleRowData();
+    logMessage(records);
 });
+document.getElementById(&quot;all_btn2&quot;).addEventListener(&quot;click&quot;, function(e) {
+    var rowDefs = grid.api.getAllRowDefinitions();
+    var records = rowDefs.map(toRowData);
+    logMessage(records);
+});
+
+function logMessage(data) {
+    console.log(data);
+    document.getElementById(&quot;msg_ta&quot;).value = JSON.stringify(data, exceptRowDef, 2);
+}
+function exceptRowDef(key, value) {
+    return (key !== &quot;ROW_DEF&quot;) ? value : undefined;
+}
+function toCompanyName(rowData) {
+    return rowData[&quot;companyName&quot;];
+}
+function toRowData(rowDef) {
+    return rowDef.getRowData();
+}
 </code></pre>
 </code-sandbox>

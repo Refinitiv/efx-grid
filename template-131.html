@@ -1,87 +1,191 @@
-<h1 id="event-handling-and-event-listeners-in-formatter">Event handling and event listeners in formatter</h1>
-<p>If your custom formatter contains some input elements or controls, it&#39;s important to bind data back to Grid&#39;s internal data source when users input new data through the UI from your custom formatter. Remember, the same element will be used on different rows due to the row virtualization mechanic. If the data is changed by user actions, you need to update the change back to Grid&#39;s data source, or else the binding mechanism will replace what the user has changed with the data stored from the Grid&#39;s internal source. </p>
-<p>In short, data should be updated after users interact with the UI input. <code>getRelativePosition()</code> method should be used to resolve current positions relative to the grid element.</p>
+<h1 id="custom-formatter">Custom Formatter</h1>
+<p>Since Grid utilizes a row virtualization technique, where the same cell is reused across different rows, you cannot simply just create any content and stop there. With row virtualization the custom content that you are trying to create or render will be reused in the different rows. So you have to create the content once and reuse it from the cache. Then, you need to bind data from Grid&#39;s data store to the content for each data update and scrolling.</p>
+<p>The process for writing the formatter is usually something like the following code:</p>
+<pre><code class="language-js">var formatter = function(e) {
+    var cell = e.cell;
+    // Cache checking part (Reuse the same element)
+    var element = cell.getContent();
+    if (!element) {
+        // Element creation part
+        element = document.createElement(&#39;tag-name&#39;);
+
+        // Apply common static settings (once per element creation) here
+        // This could be attributes, styles, event listeners, and etc.
+        element.style.color = &quot;red&quot;;
+    }
+
+    // Element updating part (bind data to the UI element)
+    element.value = e.data; // IMPORTANT
+
+    // The below code is required. It does not post any significant performance impact
+    cell.setContent(element);
+};
+</code></pre>
+<h2 id="defining-the-formatter">Defining the formatter</h2>
+<p>The formatter can be specified as a function on the <code>binding</code> property of the column configuration object.</p>
+<pre><code class="language-js">var configObj = {
+    ...
+    columns: [
+        {
+            field: &quot;Field 1&quot;, 
+            binding: function(e) {
+                e.cell.setContent(e.data);
+            }
+        },
+        ...
+    ],
+    ...
+}
+</code></pre>
 <blockquote>
-<p>APIs for data manipulation can be found <a href="#/data/update">here</a>. APIs for Grid and <code>getRelativePosition()</code> method description can be found <a href="#/apis/rt-grid/grid">here</a>.</p>
+<p>For displaying simple text you do not need to create a custom formatter, as Grid already has simple text as its default formatter.</p>
 </blockquote>
-<h2 id="the-reverted-problem">The &#39;reverted&#39; problem</h2>
-<p>When we don&#39;t set data back, row virtualization will not work properly and content will not be rendered properly. Suppose that we have a dropdown element in one of the grid columns. Any change that is done to the dropdown box will be reverted if we don&#39;t update the data.</p>
-<p>In the live example below, try the following steps to produce the problem:</p>
+<h3 id="common-form-and-structure">Common form and structure</h3>
+<p><code>binding</code> method will be called multiple times during user scrolling. The key here is to create a DOM element only once, reuse the same element and update the data every time the method is called. </p>
+<p>In general, the steps are as the following steps:</p>
 <ol>
-<li>Change the selected option from the dropdown box on the first row. Remember the new selected option</li>
-<li>Scroll down to the bottom of the grid</li>
-<li>Scroll back up to the top of the grid</li>
+<li>Check if the content already exists</li>
+<li>If it exists, skip to the next step. If the content does not exist, create the content</li>
+<li>Update the data to the content</li>
+<li>Set the content to the cell</li>
 </ol>
-<code-sandbox hash="fb9a9d18"><pre><code class="language-css">efx-grid {
-    height: 200px;
-    margin-bottom: 40px;
-}
+<p>Below is the most common form of formatter. It is recommended to write most custom formatters in this form and structure. </p>
+<pre><code class="language-js">var formatter = function(e){
+    var cell = e.cell;
+    var content = cell.getContent(); // Utilize cache
+    if (!content) { // Check if cache exists
+        content = document.createElement(&quot;xxx-xxxx&quot;);
+        // Initialize element once
+        var subContent = document.createElement(&quot;yyyy&quot;);
+        subContent.style.color = &quot;brown&quot;; 
+        
+        var subContent2 = document.createElement(&quot;zz-zzz&quot;);
+        content._myContent = subContent2;
+        
+        content.appendChild(subContent);
+        content.appendChild(subContent2);
+    }
+    
+    content._myContent.textContent = e.data; // IMPORTANT
+    
+    cell.setContent(content); // Always set the content to allow multiple types of content in the same column
+};
 </code></pre>
-<pre><code class="language-html">&lt;efx-grid&gt;&lt;/efx-grid&gt;
+<h3 id="setting-styles-in-the-formatter">Setting styles in the formatter</h3>
+<p>When making any type of modification in the <code>binding</code> method, you must reset the value back because the same cell will be reused by different rows.</p>
+<pre><code class="language-js">var formatter = function(e){
+    var cell = e.cell;
+    var data = e.data;
+    var content = cell.getContent();
+    if (!content) {
+        content = document.createElement(&quot;span&quot;);
+        content.style.color = &quot;salmon&quot;; // Static styling
+    }
+    
+    // Dynamic styling
+    if(data &gt; 0) {
+        content.style.backgroundColor = &quot;green&quot;;
+    } else if(data &lt; 0) {
+        content.style.backgroundColor = &quot;red&quot;;
+    } else {
+        content.style.backgroundColor = &quot;&quot;; // Reset the background
+    }
+    cell.setStyle(&quot;fontSize&quot;, Math.abs(data) &gt; 10 ? &quot;1.5em&quot; : &quot;&quot;); // Styles can be applied to either the cell content or the cell itself.
+    
+    content.textContent = data;
+    cell.setContent(content);
+};
 </code></pre>
-<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;id&quot;, &quot;dropdownVal&quot;, &quot;boolean&quot;, &quot;text&quot;];
-// For static data initialization
-var records = [];
-for (var i = 0; i &lt; 50; i++) {
-    var record = {};
-    record[fields[0]] = i;
-    record[fields[1]] = i % 4; 
-    record[fields[2]] = i &amp; 1 ? true : false;
-    record[fields[3]] = i + &quot; Some Texts&quot;;
-    records.push(record);
-}
-
-var dropdownFormatter = function(e) {
+<h3 id="interactive-content">Interactive content</h3>
+<p>States must be saved back to Grid after users make changes to the content. This is because Grid&#39;s row virtualization will reuse the same content during the scroll. Also note that user interaction does not happen during the data binding. User interaction is an asynchronous operation. So do not rely on closure variables or inline functions. </p>
+<p>Contexts and values may be a different. You will need to resolve the position or context at runtime by using [getRelativePosition(./rendering/).</p>
+<pre><code class="language-js">var formatter = function(e){
     var cell = e.cell;
     var dropdown = cell.getContent();
-    if (!dropdown || !dropdown._myDropdown) {
+    if (!dropdown) {
         dropdown = document.createElement(&quot;select&quot;);
-        dropdown._myDropdown = true;
-        [0, 1, 2, 3].forEach(function(val) {
+        dropdown.addEventListener(&quot;change&quot;, dropdownChangeHandler); // Handle user interaction
+        
+        for(var i = 0; i &lt; 3; ++i) {
             var option = document.createElement(&quot;option&quot;);
-            option.value = val;
-            option.textContent = &quot;Value &quot; + val;
+            option.value = i;
+            option.textContent = &quot;Value &quot; + i;
             dropdown.appendChild(option);
-        });
+        }
     }
     
     dropdown.selectedIndex = e.data;
     cell.setContent(dropdown);
 };
-
-var configObj = {
-    columns: [
-        { name: &quot;Row Index&quot;, field: fields[0], width: 80 },
-        { name: &quot;Dropdown&quot;, field: fields[1], binding: dropdownFormatter },
-        { name: &quot;Dropdown Value&quot;, field: fields[1] },
-        { name: &quot;Column 3&quot;, field: fields[2], alignment: &quot;center&quot; },
-        { name: &quot;Column 4&quot;, field: fields[3] }
-    ],
-    staticDataRows: records
+var dropdownChangeHandler = function(e) {
+    var dropdown = e.currentTarget;
+    var selectedIndex = dropdown.selectedIndex;
+    
+    var pos = grid.api.getRelativePosition(e);
+    var rowDef = grid.api.getRowDefinition(pos.rowIndex);
+    
+    rowDef.setData(&quot;Field XXXX&quot;, selectedIndex); // It is important to set the new data
 };
-
-var grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
-grid.config = configObj;
 </code></pre>
-</code-sandbox><p>You will see that the selected option is reverted back to the original option.</p>
-<h2 id="the-fix">The fix</h2>
-<p>To avoid the problem, we have to add an event listener to our custom formatter for binding the change from users. You have added <code>dropdownChangeHandler</code> to fix the problem as shown below:</p>
-<code-sandbox hash="8181c362"><pre><code class="language-css">efx-grid {
+<blockquote>
+<p>Find out more information about event handling <a href="#/rendering/formatter-event-handling">here</a>.</p>
+</blockquote>
+<h3 id="content-with-multiple-states">Content with multiple states</h3>
+<p>Content with multiple states (for example, colors, disabled and invalid states) must have all states stored in the Grid. You can have as many columns&#39; data or fields as we want in order to represent the content. </p>
+<p>The example below shows input with multiple states depending on the data on other fields.</p>
+<pre><code class="language-js">var formatter = function(e){
+    var cell = e.cell;
+    var rowData = e.rowData;
+    var inputElem = cell.getContent();
+    if (!inputElem) {
+        inputElem = document.createElement(&quot;input&quot;);
+    }
+    
+    var state1 = rowData[&quot;someField&quot;];
+    if(state1) {
+        inputElem.setAttribute(&quot;disabled&quot;, &quot;&quot;);
+    } else {
+        inputElem.removeAttribute(&quot;disabled&quot;);
+    }
+    
+    var state2 = rowData[&quot;anotherField&quot;];
+    if(state2) {
+        inputElem.setAttribute(&quot;error&quot;, &quot;&quot;);
+    } else {
+        inputElem.removeAttribute(&quot;error&quot;);
+    }
+    
+    inputElem.value = e.data;
+    cell.setContent(inputElem);
+};
+</code></pre>
+<blockquote>
+<p>Note: <strong>data is completely independent from column UIs</strong>. This means you do not have to create a column for data to exist. Data can be added or removed separately from Grid&#39;s columns.</p>
+</blockquote>
+<h2 id="formatterbinding-method-parameters">Formatter/binding method parameters</h2>
+<p>Event argument <code>binding</code> method has the following parameter list:</p>
+<ul>
+<li><em>data</em> : The data value corresponding to the field and row of the cell</li>
+<li><em>cell</em> : The cell object that provides access to the DOM element of the cell</li>
+<li><em>rowIndex</em> : Index of the current row of the cell being rendered</li>
+<li><em>rowDef</em> : The row definition object</li>
+<li><em>rowData</em> : The data object that stores data of the entire row</li>
+<li><em>colIndex</em> : Index of the current column of the cell being rendered</li>
+<li><em>secton</em> : The section object hosting the current column</li>
+</ul>
+<h2 id="understanding-row-virtualization">Understanding row virtualization</h2>
+<p>The row virtualization technique is <strong>different from the lazy initialization</strong> technique, which creates more content as users scroll down through all the available rows. For example, suppose you have 10,000 rows and Grid&#39;s view port can show 20 rows. With row virtualization Grid will create content for around 24 rows (20 rows + buffer rows) throughout Grid&#39;s life cycle. With lazy initialization Grid will create content for 24 rows at first load. As users scroll down through the available rows, more and more content will be created. Eventually, all content will be created for all 10,000 rows when using the lazy initialization technique.</p>
+<p>A web page will get slower as more content/elements are put into the DOM tree. So it&#39;s better to reuse the same element whenever possible.</p>
+<h2 id="examples">Examples</h2>
+<p>Click the green button on the bottom right corner of the live example to see the code.</p>
+<code-sandbox hash="f6b3be17"><pre><code class="language-css">efx-grid {
     height: 200px;
-    margin-bottom: 40px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;efx-grid&gt;&lt;/efx-grid&gt;
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
-<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
   DataGenerator, Formatters and extensions are exposed to global scope
@@ -89,76 +193,179 @@ grid.config = configObj;
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;id&quot;, &quot;dropdownVal&quot;, &quot;boolean&quot;, &quot;text&quot;];
-// For static data initialization
-var records = [];
-for (var i = 0; i &lt; 50; i++) {
-    var record = {};
-    record[fields[0]] = i;
-    record[fields[1]] = i % 4; 
-    record[fields[2]] = i &amp; 1 ? true : false;
-    record[fields[3]] = i + &quot; Some Texts&quot;;
-    records.push(record);
-}
-
-// Show how to render custom content with an event listener
-var dropdownFormatter = function(e) {
+var rangeBarFormatter = function(e) {
     var cell = e.cell;
-    var dropdown = cell.getContent();
-    if (!dropdown || !dropdown._myDropdown) {
-        dropdown = document.createElement(&quot;select&quot;);
-        dropdown._myDropdown = true;
-        [0, 1, 2, 3].forEach(function(val) {
-            var option = document.createElement(&quot;option&quot;);
-            option.value = val;
-            option.textContent = &quot;Value &quot; + val;
-            dropdown.appendChild(option);
-        });
+    var bar = cell.getContent();    // Utilize caching
+    if(!bar) {
+        bar = document.createElement(&quot;div&quot;);
+        bar.style.height = &quot;8px&quot;;
+        bar.style.position = &quot;relative&quot;;
+        bar.style.backgroundColor = &quot;#EA7D22&quot;;
         
-        dropdown.addEventListener(&quot;change&quot;, dropdownChangeHandler);
+        var indi = bar.indi = document.createElement(&quot;div&quot;);
+        indi.style.position = &quot;absolute&quot;;
+        indi.style.top = &quot;0&quot;;
+        indi.style.left = &quot;10px&quot;;
+        indi.style.width = &quot;3px&quot;;
+        indi.style.height = &quot;100%&quot;;
+        indi.style.backgroundColor = &quot;white&quot;;
+        bar.appendChild(indi);
     }
-    dropdown.selectedIndex = e.data;
-    cell.setContent(dropdown);
-};
-// Show how to set data based on interaction from custom content
-var dropdownChangeHandler = function(e) {
-    var dropdown = e.currentTarget;
-    var selectedIndex = +(dropdown.options[dropdown.selectedIndex].value);
-
-    var pos = grid.api.getRelativePosition(e);
-    var rowDef = grid.api.getRowDefinition(pos.rowIndex);
-    rowDef.setData(grid.api.getColumnField(pos.colIndex), selectedIndex);
+    cell.setContent(bar);
+    bar.indi.style.left = (e.data * 100)+&quot;%&quot;;
 };
 
+var capitalizer = function(e) {
+    e.cell.setContent(e.data.toString().toUpperCase());
+};
+
+var yearDisplay = function(e) {
+    var cell = e.cell;
+    cell.setStyle(&quot;color&quot;, &quot;black&quot;);
+    cell.setStyle(&quot;background-color&quot;, &quot;#EA7D22&quot;);
+    cell.setContent(&quot;Year &quot; + e.data.getFullYear());
+};
+
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;float_1&quot;, &quot;ISODate&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 40 });
 var configObj = {
     columns: [
-        { name: &quot;Row Index&quot;, field: fields[0], width: 80 },
-        { name: &quot;Dropdown&quot;, field: fields[1], binding: dropdownFormatter },
-        { name: &quot;Dropdown Value&quot;, field: fields[1] },
-        { name: &quot;Column 3&quot;, field: fields[2], alignment: &quot;center&quot; },
-        { name: &quot;Column 4&quot;, field: fields[3] }
+        {name: &quot;Company&quot;, field: fields[0], binding: capitalizer},
+        {name: &quot;Market&quot;, field: fields[1], width: 100},
+        {name: &quot;Last&quot;, field: fields[2], width: 80},
+        {name: &quot;Buy/Sell&quot;, field: fields[3], width: 100, binding: rangeBarFormatter},
+        {name: &quot;IPO&quot;, field: fields[4], alienment: &quot;center&quot;, binding: yearDisplay}
     ],
     staticDataRows: records
 };
 
-var grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
+var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 </code></pre>
-</code-sandbox><h2 id="writing-event-listeners">Writing event listeners</h2>
-<p>Since the same element will be used on different rows, you cannot use closure variables that are created or given from the event arguments. Row index, column index, or cell reference must be resolved at runtime inside the event listener. You can resolve the position by using Grid&#39;s <code>getRelativePosition()</code> method.</p>
-<pre><code class="language-js">    var dropdownChangeHandler = function(e) {
-        var dropdown = e.currentTarget;
-        var selectedIndex = +(dropdown.options[dropdown.selectedIndex].value);
+</code-sandbox><h1 id="formatting-custom-content-with-text-formatting-extension">Formatting custom content with Text Formatting Extension</h1>
+<p>When using Text Formatting Extension, by default, custom content will be overwritten due to the need for rendering a formatted text by the extension. To format the text inside the custom content and avoid the overriding, you will need to instruct the extension on how and where to do the formatting. See <a href="#/extensions/tr-grid-textformatting">this page</a> for more information.</p>
+<h1 id="writing-a-good-formatter">Writing a good formatter</h1>
+<p>Be mindful that the <code>binding</code> method will be executed repeatedly and multiple times during data updates and scrolling. Performance is crucial, so you should write the code with caution. See the following guidelines for writing a good formatter.</p>
+<h2 id="use-predefined-formatters">Use predefined formatters</h2>
+<p>The most common formatters are already prewritten for you. Predefined formatters are optimized and easy to use. See <a href="#/rendering/predefined-formatter">this page for more details</a>.</p>
+<h2 id="avoid-using-innerhtml-and-innertext">Avoid using innerHTML and innerText</h2>
+<p><strong>innerHTML</strong> and <strong>innerText</strong> from native elements involve text parsing and element creation, both of which are computationally expensive. You can improve performance by avoiding using them.</p>
+<pre><code class="language-js">function binding1(e) {
+    var content = document.createElement(&quot;div&quot;); // Unneccessary creation as it will be called and created multiple times
+    content.innerHTML = &quot;&lt;span&gt;&quot; + e.data + &quot;&lt;/span&gt;&lt;span&gt;2&lt;/span&gt;&quot;; // Slow due to text parsing and element creations
+    
+    e.cell.setContent(content);
+}
 
-        var pos = grid.api.getRelativePosition(e);
-        var rowDef = grid.api.getRowDefinition(pos.rowIndex);
-        rowDef.setData(grid.api.getColumnField(pos.colIndex), selectedIndex);
-    };
+// The above function can be re-writen as the following function
+function binding2(e) {
+    var cell = e.cell;
+    var content = cell.getContent();
+    if(!content) {
+        content = document.createElement(&quot;div&quot;);
+        var span1 = content._span1 = document.createElement(&quot;span&quot;); 
+        var span2 = document.createElement(&quot;span&quot;);
+        span2.textContent = 2;
+        
+        content.appendChild(span1);
+        content.appendChild(span2);
+    }
+    content._span1.textContent = e.data;
+    cell.setContent(content);
+}
 </code></pre>
-<ul>
-<li><code>currentTarget</code> property will always give an element attached by the event listener</li>
-<li><code>getRelativePosition()</code> method resolves the position when the dropdown value is changed</li>
-</ul>
+<h2 id="avoid-creating-an-element-for-simple-text">Avoid creating an element for simple text</h2>
+<p><code>setContent</code> method is already optimized for simple text.</p>
+<pre><code class="language-js">function binding1(e) {
+    var content = document.createElement(&quot;div&quot;); // Unneccessary creation
+    content.textContent = e.data + &quot; text&quot;;
+    
+    e.cell.setContent(content);
+}
+
+// The above function can be re-writen as the following function
+function binding2(e) {
+    e.cell.setContent(e.data + &quot; text&quot;);
+}
+</code></pre>
+<h2 id="reuse-the-same-content-to-avoid-element-creation">Reuse the same content to avoid element creation</h2>
+<p>Bind method will be executed repeatedly and multiple times during data update and scrolling. Minimize element creation by using cache.</p>
+<pre><code class="language-js">function binding1(e) {
+    var content = document.createElement(&quot;input&quot;); // Slow
+    content.value = e.data;
+    e.cell.setContent(content);
+}
+
+// The above function can be re-writen as the following function
+function binding2(e) {
+    var cell = e.cell;
+    var content = cell.getContent(); // Get previous content
+    if(!content) {
+        content = document.createElement(&quot;input&quot;);
+    }
+    content.value = e.data;
+    cell.setContent(content);
+}
+</code></pre>
+<h2 id="store-element-in-a-variable-for-easy-access">Store element in a variable for easy access</h2>
+<p>For complex structure content, it is faster and easier to use a variable for referencing rather than navigating through a DOM tree.</p>
+<pre><code class="language-js">function binding1(e) {
+    var cell = e.cell;
+    var content = cell.getContent();
+    if(!content) {
+        content = document.createElement(&quot;div&quot;);
+        var span1 = document.createElement(&quot;span&quot;);
+        var span2 = document.createElement(&quot;span&quot;);
+        
+        content.appendChild(span1);
+        content.appendChild(span2);
+    }
+    cell.setContent(content);
+    var spans = content.getElementsByTagName(&quot;span&quot;); // Slow
+    spans[0].textContent = e.data % 5;
+    spans[1].textContent = e.data % 3;
+}
+
+// The above function can be re-writen as the following function
+function binding2(e) {
+    var cell = e.cell;
+    var content = cell.getContent();
+    if(!content) {
+        content = document.createElement(&quot;div&quot;);
+        var span1 = content._span1 = document.createElement(&quot;span&quot;);
+        var span2 = content._span2 = document.createElement(&quot;span&quot;);
+        
+        content.appendChild(span1);
+        content.appendChild(span2);
+    }
+    content._span1.textContent = e.data % 5;
+    content._span2.textContent = e.data % 3;
+    cell.setContent(content);
+}
+</code></pre>
 <blockquote>
-<p>See <a href="#/data/update">this page</a> on how to update data.</p>
+<p>Note: Cell can contain only one top level node/element (such as, single content). But a content element can have multiple nested elements.</p>
 </blockquote>
+<h2 id="use-rowdefinition-object-for-asynchronous-operation">Use RowDefinition object for asynchronous operation</h2>
+<p>When dealing with asynchronous operations such as server request and response, it is important to use the correct context and data. Row index, cell element, and page can all be changed during the waiting time. Sorting, filtering, grouping, and pagination can also affect row order. So the most reliable way to identify Grid&#39;s row is to use RowDefinition object. </p>
+<pre><code class="language-js">function binding1(e) {
+    var cell = e.cell;
+    var content = cell.getContent();
+    if(!content) {
+        content = document.createElement(&quot;button&quot;);
+        content.addEventListener(&quot;click&quot;, onRequestingData);
+    }
+    cell.setContent(content);
+}
+
+function onRequestingData(e) {
+    var pos = grid.api.getRelativePosition(e);
+    var rowDef = grid.api.getRowDefinition(pos.rowIndex);
+    
+    requestServerData({}, onServerResponse.bind(null, rowDef));
+}
+
+function onServerResponse(rowDef, resp) {
+    // do something
+}
+</code></pre>

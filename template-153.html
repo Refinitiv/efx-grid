@@ -1,13 +1,61 @@
-<h1 id="simple-image-formatter">Simple Image Formatter</h1>
-<p>This formatter creates an image from the column&#39;s field by default.</p>
+<h1 id="percent-bar-formatter">Percent Bar Formatter</h1>
+<p>This formatter creates a percent bar.</p>
+<h2 id="specific-options">Specific options</h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Attributes</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>alignment</td>
+<td>string</td>
+<td>optional</td>
+<td>&quot;left&quot;</td>
+<td>Possible values are l, r, c, left, right, and center</td>
+</tr>
+<tr>
+<td>movementColor</td>
+<td>boolean</td>
+<td>optional</td>
+<td>true</td>
+<td>If disabled, percent bar will not use up and down colors</td>
+</tr>
+<tr>
+<td>barColor</td>
+<td>string</td>
+<td>optional</td>
+<td>&quot;&quot;</td>
+<td>Custom color for bar element</td>
+</tr>
+<tr>
+<td>textHidden</td>
+<td>boolean</td>
+<td>optional</td>
+<td>false</td>
+<td>If enabled, text label will not be shown</td>
+</tr>
+<tr>
+<td>textWidth</td>
+<td>number or string</td>
+<td>optional</td>
+<td>56</td>
+<td>Number of pixel or percentage width</td>
+</tr>
+</tbody></table>
 <h2 id="example">Example</h2>
-<code-sandbox hash="efc53fab"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="38cc0f6d"><pre><code class="language-css">efx-grid {
     height: 320px;
 }
 </code></pre>
 <pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
-<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
   DataGenerator, Formatters and extensions are exposed to global scope
@@ -15,29 +63,42 @@
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;image&quot;, &quot;s_image&quot;];
-var records = new Array(40);
-for(var i = 0; i &lt; 40; ++i) {
-    var record = records[i] = {};
-    record[fields[0]] = &quot;https://dummyimage.com/40x40&amp;text=&quot; + i;
-    record[fields[1]] = &quot;https://dummyimage.com/15x15&amp;text=&quot; + i;
-}
+var fields = [&quot;myPercent&quot;, &quot;word&quot;];
+var num = -100;
+DataGenerator.addFieldInfo(&quot;myPercent&quot;, function(e) {
+    return num += 5;
+});
+
+var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 40 });
 var configObj = {
     sorting: {
         sortableColumns: true
     },
     columns: [
         {
-            name: &quot;Image&quot;,
+            name: &quot;Percent bar (Default)&quot;,
             field: fields[0],
-            alignment: &quot;c&quot;,
-            binding: SimpleImageFormatter.create()
+            alignment: &quot;c&quot;, 
+            binding: PercentBarFormatter.create()
         },
         {
-            name: &quot;Small Image&quot;,
-            field: fields[1],
+            name: &quot;Center alignment + No Movement Color&quot;,
+            field: fields[0],
             alignment: &quot;c&quot;,
-            binding: SimpleImageFormatter.create()
+            binding: PercentBarFormatter.create({
+                alignment: &quot;c&quot;,
+                movementColor: false
+            })
+        },
+        {
+            name: &quot;No Label + Custom Color&quot;,
+            field: fields[0],
+            alignment: &quot;c&quot;,
+            binding: PercentBarFormatter.create({
+                alignment: &quot;r&quot;,
+                textHidden: true,
+                barColor: &quot;purple&quot;
+            })
         }
     ],
     staticDataRows: records

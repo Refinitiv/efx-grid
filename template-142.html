@@ -1,30 +1,14 @@
-<h1 id="ef-combo-box-formatter">EF Combo Box Formatter</h1>
-<p>This formatter creates a <a href="https://ui.refinitiv.com/elements/combo-box">ef-combo-box</a> without margin. Its options come from passed <code>options.data</code>.</p>
-<h2 id="specific-options">Specific options</h2>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Type</th>
-<th>Attributes</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>data</td>
-<td>array</td>
-<td>required</td>
-<td>List of items, see <a href="https://ui.refinitiv.com/elements/combo-box">ef-combo-box</a> for more detail.</td>
-</tr>
-</tbody></table>
+<h1 id="ef-checkbox-formatter">EF Checkbox Formatter</h1>
+<p>This formatter creates a <a href="https://ui.refinitiv.com/elements/checkbox">ef-checkbox</a> which will be unchecked by default.</p>
 <h2 id="example">Example</h2>
-<code-sandbox hash="50b85536"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="b18c9437"><pre><code class="language-css">efx-grid {
     height: 320px;
 }
 </code></pre>
 <pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
-<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
   DataGenerator, Formatters and extensions are exposed to global scope
@@ -32,31 +16,89 @@
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var currencies = [&quot;THB&quot;, &quot;AUD&quot;, &quot;USD&quot;, &quot;YEN&quot;, &quot;TWD&quot;];
-DataGenerator.addFieldInfo(&quot;currency&quot;, { type: &quot;set&quot;, members: currencies });
-
-var fields = [&quot;number_1&quot;, &quot;boolean&quot;, &quot;currency&quot;];
+var fields = [&quot;word&quot;];
 var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 20 });
 
 var configObj = {
+    sorting: {
+        sortableColumns: true
+    },
     columns: [
-        { 
-            name: &quot;Column 1&quot;,
-            field: fields[0],
-            alignment: &quot;center&quot;
-        },
         {
-            name: &quot;Column 2&quot;,
-            field: fields[1],
-            alignment: &quot;center&quot;
-        },
-        {
-            name: &quot;Select&quot;,
-            field: fields[2],
-            alignment: &quot;center&quot;,
-            binding: EFComboBoxFormatter.create({
-                data: currencies
+            alignment: &quot;c&quot;,
+            field: &quot;myCheckBoxState&quot;,
+            width: 34,
+            binding: EFCheckboxFormatter.create({
+                events: {
+                    &quot;click&quot;: function(e) {
+                        console.log(&quot;clicked&quot;);
+                    }
+                }
             })
+        },
+        {
+            name: &quot;Grid Checkbox State&quot;,
+            field: &quot;myCheckBoxState&quot;,
+            alignment: &quot;c&quot;,
+        },
+        {
+            name: &quot;Text&quot;,
+            field: fields[0],
+            alignment: &quot;c&quot;,
+        }
+    ],
+    staticDataRows: records
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h3 id="checkbox-with-a-label">Checkbox with a label</h3>
+<code-sandbox hash="e43eb48d"><pre><code class="language-css">efx-grid {
+    height: 320px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;word&quot;, &quot;words&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 20 });
+
+var configObj = {
+    sorting: {
+        sortableColumns: true
+    },
+    columns: [
+        {
+            alignment: &quot;l&quot;,
+            field: &quot;myCheckBoxState&quot;,
+            width: 150,
+            binding: EFCheckboxFormatter.create({
+                events: {
+                    &quot;click&quot;: function(e) {
+                        console.log(&quot;clicked&quot;);
+                    }
+                },
+                labelField: &quot;word&quot;
+            })
+        },
+        {
+            name: &quot;Grid Checkbox State&quot;,
+            field: &quot;myCheckBoxState&quot;,
+            alignment: &quot;c&quot;,
+        },
+        {
+            name: &quot;Text&quot;,
+            field: fields[1],
+            alignment: &quot;c&quot;,
         }
     ],
     staticDataRows: records

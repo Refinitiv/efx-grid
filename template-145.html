@@ -1,13 +1,40 @@
-<h1 id="ef-number-field-formatter">EF Number Field Formatter</h1>
-<p>This formatter creates a <a href="https://ui.refinitiv.com/elements/number-field">ef-number-field</a> without a margin and 100% width. By default the input&#39;s value will be the column&#39;s field.</p>
+<h1 id="ef-icon-formatter">EF Icon Formatter</h1>
+<p>This formatter creates a <a href="https://ui.refinitiv.com/elements/icon">ef-icon</a> from the column&#39;s field by default.</p>
+<blockquote>
+<p>A full list of available icons can be found <a href="https://ui.refinitiv.com/elements/icon">here</a>. </p>
+</blockquote>
+<h2 id="specific-options">Specific options</h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Attributes</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>icon</td>
+<td>string or object</td>
+<td>optional</td>
+<td>Icon shown in the cell</td>
+</tr>
+<tr>
+<td>size</td>
+<td>string or number</td>
+<td>optional</td>
+<td>Size of an icon in pixels</td>
+</tr>
+</tbody></table>
 <h2 id="example">Example</h2>
-<code-sandbox hash="5238ff80"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="c18996b8"><pre><code class="language-css">efx-grid {
     height: 320px;
 }
 </code></pre>
 <pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
-<pre><code class="language-javascript">await (await import(&quot;./theme-loader.js&quot;)).default; // This line is only required for demo purpose. It is not relevant for using EFX Grid in your application.
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
   DataGenerator, Formatters and extensions are exposed to global scope
@@ -15,35 +42,45 @@
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;number_1&quot;];
+var icons = [&quot;3d-surface&quot;, &quot;api&quot;, &quot;eye&quot;, &quot;conference&quot;, &quot;flame&quot;];
+DataGenerator.addFieldInfo(&quot;number&quot;, { type: &quot;number&quot;, min: 0, max: 5    });
+DataGenerator.addFieldInfo(&quot;icon&quot;, { type: &quot;set&quot;,    members: icons    });
+var fields = [&quot;number&quot;, &quot;icon&quot;];
 var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 20 });
 
 var configObj = {
     columns: [
-        { 
-            name: &quot;Number&quot;,
-            field: fields[0],
-            sort: fields[0],
-            alignment: &quot;c&quot;
-        },
-        { 
-            name: &quot;Simplest&quot;,
-            field: fields[0],
-            sort: fields[0],
-            binding: EFNumberFieldFormatter.create()
+        {
+            name: &quot;Static Icon&quot;,
+            alignment: &quot;c&quot;,
+            binding: EFIconFormatter.create({
+                icon: &quot;3d-surface&quot;,
+            })
         },
         {
-            name: &quot;Some options (Step)&quot;,
+            name: &quot;Dynamic Icon With Mapper&quot;,
             field: fields[0],
             sort: fields[0],
-            binding: EFNumberFieldFormatter.create({
-                attributes: {
-                    step: 100
-                }
+            alignment: &quot;c&quot;,
+            binding: EFIconFormatter.create({
+                icon: {
+                    0: &quot;up&quot;,
+                    1: &quot;down&quot;,
+                    2: &quot;left&quot;,
+                    3: &quot;right&quot;,
+                    4: &quot;line&quot;
+                },
+                size: 20
             })
+        },
+        {
+            name: &quot;Dynamic Icon&quot;,
+            field: fields[1],
+            sort: fields[1],
+            alignment: &quot;c&quot;,
+            binding: EFIconFormatter.create()
         }
     ],
-    extensions: [],
     staticDataRows: records
 };
 
