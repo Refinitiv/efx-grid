@@ -30,11 +30,10 @@ setTimeout(function(){
     console.log(rowDef.getData(&quot;field2&quot;));
 }, 1000);
 </code></pre>
-<h2 id="example">Example</h2>
+<h3 id="updating-a-row-example">Updating a row example</h3>
 <p>The following example use object to map between RIC (text) and RowDefinition created from <code>insertRow</code> method.</p>
-<code-sandbox hash="f07ee0b4"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="9da1556f"><pre><code class="language-css">efx-grid {
     height: 230px;
-    margin-bottom: 40px;
 }
 html hr {
     margin: 5px;
@@ -155,5 +154,113 @@ var configObj = {
 
     var grid = document.getElementById(&quot;grid&quot;);
     grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="updating-multiple-rows-or-large-data-set">Updating multiple rows or large data set</h2>
+<p>Sometimes, updating a row one by one can be slow as it triggers sorting for every API calls. Some other times, we can only fetch for entire table image because real-time data service is not available. So, updating data using the method from the section above may not be very efficient. <code>updateDataSet(records, rowIdentifier)</code> API provides a way to update entire data set all at once. The second paramter, rowIdentifier, is used for mapping rows between existing data set and new data set. In addition to updating data, the method will performs the following operations:</p>
+<ul>
+<li>Remove any row that does not exist in the given data set</li>
+<li>Add new rows that do not exist before</li>
+<li>Reorder/move rows to positions according to the new data set</li>
+</ul>
+<p>If the row identifier is not specified, row index of the data will be used as the row identifier instead. The following code snippet illustrates how <code>updateDataSet</code> works:</p>
+<pre><code class="language-js">var dataSet1 = [
+    {ric: &quot;EUR&quot;, field1: 10, field2: &quot;aaa&quot;},
+    {ric: &quot;DJI&quot;, field1: 10, field2: &quot;bbb&quot;},
+    {ric: &quot;SPX&quot;, field1: 20, field2: &quot;aaa&quot;},
+];
+
+// &quot;ric&quot; field is used as row identifier as it contains a unique value for each row
+grid.api.updateDataSet(dataSet1, &quot;ric&quot;);
+
+
+var dataSet2 = [
+    {ric: &quot;SPX&quot;, field1: 30, field2: &quot;ccc&quot;, field3: true },
+    {ric: &quot;DJI&quot;, field2: &quot;ddd&quot; },
+    {ric: &quot;THB&quot;, field1: 10, field2: &quot;aaa&quot;},
+    {ric: &quot;FTSE&quot;, field1: 10, field2: &quot;aaa&quot;},
+];
+
+// 4 different things will happen after calling updateDataSet with dataSet2
+// 1. EUR row is no longer presented. It will be removed
+// 2. THB and FTSE rows get added.
+// 3. SPX and DJI rows get new updates to the given fields
+//        3.1 field1, field2, and field3 on SPX row will be updated
+//        3.2 field2 on DJI row will be updated
+// 4. All row orders will be changed according to the row order in the second data set
+grid.api.updateDataSet(dataSet2, &quot;ric&quot;);
+</code></pre>
+<h3 id="updating-large-data-set-example">Updating large data set example</h3>
+<p>The following example shows how rows are added, removed, and updated when switching between different datasets using <code>updateDataSet</code> method.</p>
+<code-sandbox hash="174ea67f"><pre><code class="language-css">efx-grid {
+    height: 400px;
+}
+html hr {
+    margin: 5px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;button id=&quot;dataset_btn1&quot;&gt;Dataset 1&lt;/button&gt;
+&lt;button id=&quot;dataset_btn2&quot;&gt;Dataset 2&lt;/button&gt;
+&lt;button id=&quot;dataset_btn3&quot;&gt;Dataset 3&lt;/button&gt;
+&lt;hr&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;market&quot;];
+var rowCount = 1000;
+var dataset1 = DataGenerator.generateRecords(fields, {seed: 1, numRows: rowCount});
+
+document.getElementById(&quot;dataset_btn1&quot;).addEventListener(&quot;click&quot;, function(e) {
+    grid.api.updateDataSet(dataset1, &quot;id&quot;);
+});
+document.getElementById(&quot;dataset_btn2&quot;).addEventListener(&quot;click&quot;, function(e) {
+    var dataset2 = dataset1.map(newRecord);
+    grid.api.updateDataSet(dataset2, &quot;id&quot;);
+});
+document.getElementById(&quot;dataset_btn3&quot;).addEventListener(&quot;click&quot;, function(e) {
+    var dataset3 = dataset1.slice(0, 5).map(newRecord);
+    var randNum = randInt(0, 5);
+    var record = dataset3.splice(randNum, 1)[0];
+    dataset3.push(record);
+    
+    grid.api.updateDataSet(dataset3, &quot;id&quot;);
+});
+
+var configObj = {
+    columns: [
+        { name: &quot;Id&quot;, field: fields[0], width: 70 },
+        { name: &quot;companyName&quot;, field: fields[1] },
+        { name: &quot;Last&quot;, field: fields[2], alignment: &quot;right&quot;, blinking: {level: false} },
+        { name: &quot;Net. Chng&quot;, field: fields[3], alignment: &quot;right&quot;, blinking: {level: false} },
+        { name: &quot;Market&quot;, field: fields[4] }
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+
+function newRecord(record, idx) {
+    var newRecord = {};
+    newRecord.id = record.id;
+    newRecord.companyName = record.companyName;
+    newRecord.CF_LAST = record.CF_LAST + randInt(-2, 3);
+    newRecord.CF_NETCHNG = record.CF_NETCHNG + randInt(-2, 3);
+    newRecord.market = record.market;
+    return newRecord;
+}
+
+function randInt(min, exclusive_max) {
+    return Math.floor(randFloat(min, exclusive_max));
+}
+function randFloat(min, exclusive_max) {
+    return Math.random() * (exclusive_max - min) + min;
+}
 </code></pre>
 </code-sandbox>

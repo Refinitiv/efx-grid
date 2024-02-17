@@ -1,20 +1,19 @@
 <link rel="stylesheet" href="./resources/styles/elf-template.css">
 
 <h1 id="cell-selection">Cell Selection</h1>
-<p>The Cell Selection Extension lets you select a cell&#39;s content in Grid. You can then use the copy (Ctrl+C) command to retrieve text and store it in the clipboard. Copied text will then be available for pasting to a text editor or Excel. </p>
-<code-sandbox hash="1b7dc8a9"><pre><code class="language-css">efx-grid {
+<p>The Cell Selection Extension lets you select cells in Grid. By default, the extension enables copying of selected cell content through <code>Ctrl/Command + C</code> key. The copied content will be stored as a text in the system clipboard. The format of the text will be Tab Separated Values (TSV) format, and so it can be pasted on to Excel&#39;s table. </p>
+<code-sandbox hash="c5ada515"><pre><code class="language-css">efx-grid {
     height: 200px;
 }
-
 textarea {
     width: 100%;
-    font:-webkit-small-control;
-    overflow-x:hidden;
-    overflow-y:auto;
+    height: 150px;
+    overflow: auto;
+    font-size: 1.5em;
 }
 </code></pre>
 <pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-&lt;textarea rows=&quot;5&quot; placeholder=&quot;Copy (Ctrl+C) the selected cells to retrieve text and store it in clipboard. Paste it to Excel or here and see if it is in tab separated format.&quot;&gt;&lt;/textarea&gt;
+&lt;textarea placeholder=&quot;Use Ctrl+C to copy the selected cells&quot;&gt;&lt;/textarea&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
@@ -28,6 +27,9 @@ await halo(); // This line is only required for demo purpose. It is not relevant
 var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
 var records = DataGenerator.generateRecords(fields, { numRows: 5 });
 var configObj = {
+    cellSelection: {
+        autoDeselecting: false
+    },
     columns: [
         {name: &quot;Company&quot;, field: fields[0]},
         {name: &quot;Market&quot;, field: fields[1], width: 120},
@@ -43,6 +45,10 @@ var configObj = {
 
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
+
+grid.addEventListener(&quot;click&quot;, function onClick(e) {
+    grid.api.focus();
+});
 </code></pre>
 </code-sandbox><h2 id="installation-and-how-to-import-to-a-project">Installation and how to import to a project</h2>
 <p>Installation examples and details of how to import the extension to a project are available on the <a href="#/extensions/readme">Overview</a> page.</p>

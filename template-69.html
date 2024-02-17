@@ -2,7 +2,7 @@
 
 <h1 id="auto-tooltip">Auto Tooltip</h1>
 <p>The Auto Tooltip Extension displays clipped information when the user hovers the pointer over the content or title.</p>
-<code-sandbox hash="d27c713c"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="2ea5f11b"><pre><code class="language-css">efx-grid {
     height: 200px;
 }
 </code></pre>
@@ -48,7 +48,7 @@ grid.config = configObj;
 <p>To enable <code>Auto Tooltip</code> in a specific column only:
     * Set <code>content: false</code> in the extension&#39;s option
     * Set <code>autoTooltip: true</code> in the column&#39;s option</p>
-<code-sandbox hash="af4ccc93"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="d4a3a514"><pre><code class="language-css">efx-grid {
     height: 200px;
 }
 </code></pre>
@@ -104,7 +104,7 @@ grid.config = {
 </code></pre>
 <h2 id="custom-tooltip">Custom tooltip</h2>
 <p>Adding custom tooltip doesn&#39;t require auto-tooltip extension. Therefore, The mechanism to make tooltip appear is depend on your logic. You can use cell api to set custom tooltip. For detail, please see <a href="#/apis/apis/core/cell">Cell API</a>.</p>
-<code-sandbox hash="51508059"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="138e3d7e"><pre><code class="language-css">efx-grid {
  height: 200px;
 }
 </code></pre>
@@ -150,7 +150,7 @@ function customRenderer(e) {
 <img src="./resources/images/safari_tooltip.png" alt="Double tooltip in Safari" width="395"/>
 
 <p>For live example</p>
-<code-sandbox hash="93d8205c"><pre><code class="language-css">.container {
+<code-sandbox hash="d526f17e"><pre><code class="language-css">.container {
  padding: 5px;
 }
 .clipped {
@@ -171,8 +171,16 @@ function customRenderer(e) {
   &lt;h5&gt;Short text is fine&lt;/h5&gt;
   &lt;div class=&quot;clipped&quot; title=&quot;Short text is fine.&quot;&gt;Short text&lt;/div&gt;
 &lt;/div&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
-&lt;script&gt;&lt;/script&gt;
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
 </code></pre>
 </code-sandbox><blockquote>
 <p>Note: Please be aware that double tooltip can still be appeared in other part of your page.</p>
@@ -184,7 +192,14 @@ function customRenderer(e) {
 <p>But javascript will only return round value of scrollWidth and clientWidth, eg. scrollWidth: 118.42 ~ 118, clientWidth: 118.</p>
 <p>So that we cannot detect ellipsis in some of edge case.</p>
 <p>Please see the example below for better understanding.</p>
-<code-sandbox hash="7e30f82f"><pre><code class="language-css">.example {
+<code-sandbox hash="af9a9c3b"><pre><code class="language-css">h3 {
+    margin: 0;
+}
+hr {
+    margin: 5px;
+}
+.example {
+    margin-top: 10px;
     display: inline-block;
     border: 0;
     color: white;
@@ -193,9 +208,7 @@ function customRenderer(e) {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    margin-top: 10px;
 }
-
 .detail {
     margin-top: 5px;
     font-size: 16px;
@@ -210,6 +223,7 @@ function customRenderer(e) {
     tooltip will be setted
 &lt;/div&gt;
 &lt;div class=&#39;example&#39; style=&quot;width: 112px;&quot;&gt;sample text ~~~&lt;/div&gt;
+&lt;hr&gt;
 &lt;h3&gt;Round down case&lt;/h3&gt;
 &lt;div class=&#39;detail&#39;&gt;
     Actual scrollWidth: 118.42px, javascript will round down to 118 &lt;br&gt;
