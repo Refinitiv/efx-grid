@@ -126,25 +126,43 @@ window.grid = grid;
 </code></pre>
 </code-sandbox><h2 id="copying-all-content-in-the-grid-without-text-selection">Copying all content in the grid without text selection</h2>
 <p>If you want to copy all the data in the grid, you can do it by focusing on the grid element and modifying the clipboard without text selection.
-To do this, you can listen for the <code>click</code> event on the grid element and call the focus method on the grid API to focus on the grid.
+To do this, you can listen for the <code>click</code> event on the grid element and call <code>focus</code> method on the grid API to focus on the grid.
 Then, you can listen for the <code>copy</code> event on the grid element and modify the clipboard as shown in the example below.</p>
 <h3 id="example-2">Example</h3>
-<code-sandbox hash="61ea4aff"><pre><code class="language-css">efx-grid {
-    height: 300px;
+<code-sandbox hash="9730f9b3"><pre><code class="language-css">html body {
+    padding: 5px;
+    box-sizing: border-box;
+}
+html hr {
+    margin: 5px;
+}
+efx-grid {
+    height: 200px;
+}
+efx-grid:focus-within {
+    outline-width: 1px;
+    outline-style: solid;
+    outline-color: blue;
 }
 textarea {
-    height: 200px;
     width: 100%;
+    height: 200px;
 }
-#feedback {
-    color: green;
+mark {
+    opacity: 0;
+    padding: 4px;
+    transition: opacity 0.5s ease-out;
 }
 </code></pre>
-<pre><code class="language-html">&lt;div id=&quot;header&quot;&gt; Click for focus in the grid and copy text with &quot;ctrl+c&quot; inside grid, it will be write your clipboard with all data in the grid &lt;/div&gt;
-&lt;div id=&quot;feedback&quot;&gt;&lt;/div&gt;
+<pre><code class="language-html">&lt;big&gt;Try clicking grid and copying (&lt;b&gt;Ctrl/Command + C&lt;/b&gt;) grid&#39;s content.&lt;/big&gt;
+&lt;br&gt;
+&lt;big&gt;Then, paste the content on the text box below.&lt;/big&gt;
+&lt;hr&gt;
+&lt;mark id=&quot;key_indi&quot;&gt;&lt;/mark&gt;
+&lt;hr&gt;
 &lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 &lt;hr&gt;
-&lt;textarea placeholder=&quot;Paste text here&quot;&gt;&lt;/textarea&gt;
+&lt;textarea placeholder=&quot;Paste clipboard content here&quot;&gt;&lt;/textarea&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
@@ -155,86 +173,66 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [
-    &quot;id&quot;,
-    &quot;companyName&quot;,
-    &quot;market&quot;,
-    &quot;CF_LAST&quot;,
-    &quot;CF_NETCHNG&quot;,
-    &quot;industry&quot;
-];
-var records = DataGenerator.generateRecords(fields, { numRows: 50, seed: 0 });
-var config = {
+
+var fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 20 });
+
+function onClick(e) {
+    grid.api.focus();
+}
+function onCopy(e) {
+    var columnNames = grid.api.getColumnNames();
+    var rows = grid.api.getMultipleRowData(); // Get all row data from existing view
+    
+    // Build text in TSV format 
+    var text = columnNames.join(&quot;\t&quot;) + &quot;\n&quot; +
+        rows.map(recordToTSV).join(&quot;\n&quot;);
+    
+    e.clipboardData.setData(&quot;text/plain&quot;, text);
+    e.preventDefault();
+    
+    showKeyIndicator(&quot;Data is copied to clipboard&quot;);
+}
+function recordToTSV(record) {
+    return ([
+        record[fields[0]],
+        record[fields[1]],
+        record[fields[2]],
+        record[fields[3]],
+        record[fields[4]]
+    ]).join(&quot;\t&quot;); // TSV (Tab Separated Values)
+}
+function showKeyIndicator(text) {
+    if(text) {
+        key_indi.textContent = text;
+    }
+    key_indi.style.opacity = &quot;1&quot;;
+    setTimeout(onHideKeyIndicator, 1000);
+}
+function onHideKeyIndicator() {
+    key_indi.style.opacity = &quot;&quot;;
+}
+
+var configObj = {
+    sorting: {
+        sortableColumns: true
+    },
     columns: [
-        {
-            field: fields[0],
-            name: &quot;ID&quot;
-        },
-        {
-            field: fields[1],
-            name: &quot;Company Name&quot;
-        },
-        {
-            field: fields[2],
-            name: &quot;Market&quot;
-        },
-        {
-            field: fields[3],
-            name: &quot;Last&quot;
-        },
-        {
-            field: fields[4],
-            name: &quot;Net. Chng&quot;
-        },
-        {
-            field: fields[5],
-            name: &quot;Industry&quot;
-        },
+        { name: &quot;Id&quot;, field: fields[0], width: 40 },
+        { name: &quot;Company&quot;, field: fields[1] },
+        { name: &quot;Market&quot;, field: fields[2], width: 100 },
+        { name: &quot;Last&quot;, field: fields[3], width: 80 },
+        { name: &quot;Net. Chng&quot;, field: fields[4], width: 80 },
+        { name: &quot;Industry&quot;, field: fields[5] }
     ],
-    staticDataRows: records
+    staticDataRows: records,
+    extensions: []
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
-grid.config = config;
-window.grid = grid;
+grid.config = configObj;
 
-grid.addEventListener(&quot;click&quot;, onGridClick);
-grid.addEventListener(&quot;copy&quot;, onGridCopy);
-
-function onGridClick(e) {
-    // We need to listen for a click event on the grid to focus on it, which will allow us to track the copy event
-    grid.api.focus();
-}
-
-function onGridCopy(e) {
-    // When the grid is focused, the listen function will be triggered and we can provide data to be copied to the clipboard before the copy event occurs
-    var allNames = grid.api.getColumnNames();
-
-    var i;
-    var colValues = allNames;
-
-    var rows = grid.api.getMultipleRowData();
-
-    // We can use the join method to map the rows of object data to a string, separating each row with a tab character. This can be useful when trying to paste the data into an Excel spreadsheet.
-    var rowValues = rows.map(function (row) {
-        return [
-            row[&quot;id&quot;],
-            row[&quot;companyName&quot;],
-            row[&quot;market&quot;],
-            row[&quot;CF_LAST&quot;],
-            row[&quot;CF_NETCHNG&quot;],
-            row[&quot;industry&quot;]
-        ].join(&quot;\t&quot;);
-    });
-    var text = colValues.join(&quot;\t&quot;) + &quot;\n&quot; + rowValues.join(&quot;\n&quot;);
-    e.clipboardData.setData(&quot;text/plain&quot;, text);
-    // Below is a feedback message that is displayed to the user when they have successfully copied text. The message will automatically clear after 3 seconds
-    feedback.textContent = &quot;Successfully copied text from the grid&quot;;
-    setTimeout(function (e) {
-        feedback.textContent = &quot;&quot;;
-    }, 3000);
-
-    e.preventDefault();
-}
+grid.addEventListener(&quot;click&quot;, onClick);
+grid.addEventListener(&quot;copy&quot;, onCopy);
 </code></pre>
 </code-sandbox><p><br><br></p>

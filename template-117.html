@@ -71,7 +71,7 @@ function onHideKeyIndicator() {
 };
 </code></pre>
 <h3 id="tab-navigation-with-grids-content-example">Tab navigation with Grid&#39;s content example</h3>
-<code-sandbox hash="e809d77c"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="cd2a27ba"><pre><code class="language-css">efx-grid {
     height: 220px;
 }
 html hr {
@@ -154,7 +154,7 @@ grid.config = configObj;
 window.addEventListener(&quot;keydown&quot;, function onKeyDown(e) {
     if(e.keyCode === 9) {
         key_indi.style.opacity = &quot;1&quot;;
-        setTimeout(onHideKeyIndicator, 200);
+        setTimeout(onHideKeyIndicator, 400);
     }
 });
 function onHideKeyIndicator() {
@@ -164,21 +164,21 @@ function onHideKeyIndicator() {
 </code-sandbox><h2 id="copy-and-paste-operations">Copy and paste operations</h2>
 <p>Although Grid can get focus through Tab key, it does not get focus through mouse click by default. This is to allow mouse interaction with its content by not automatically shifting focus on Grid element (e.g., text selection requires focus to stay on the same element). If Grid does not contain any interactive content, you can listening to <code>click</code> event and put focus on the grid. To put the focus on Grid element, use <code>focus()</code> method from Grid&#39;s APIs. </p>
 <p>Once Grid is in focus, you can catch native <code>copy</code> and <code>paste</code> events from Grid to manipulate or retrieve data from system clipboard. The example below shows how to populate data on Grid using clipboard data and setting Grid data to the clipboard.</p>
-<h3 id="copying-and-pasting-tsv-tab-separated-values-example">Copying and pasting TSV (Tab Separated Values) example</h3>
-<code-sandbox hash="dff4ff2c"><pre><code class="language-css">efx-grid {
+<h3 id="copying-and-pasting-grids-content-in-tsv-format-example">Copying and pasting grid&#39;s content in TSV format example</h3>
+<code-sandbox hash="1c315101"><pre><code class="language-css">html body {
+    padding: 5px;
+    box-sizing: border-box;
+}
+html hr {
+    margin: 5px;
+}
+efx-grid {
     height: 200px;
 }
 efx-grid:focus-within {
     outline-width: 1px;
     outline-style: solid;
     outline-color: blue;
-}
-html hr {
-    margin: 5px;
-}
-html body {
-    padding: 5px;
-    box-sizing: border-box;
 }
 mark {
     opacity: 0;
@@ -190,8 +190,13 @@ textarea {
     height: 120px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;big&gt;Try copying texts below and pasting them onto grid&lt;/big&gt;
+<pre><code class="language-html">&lt;big&gt;Try copying texts below and pasting them onto grid.&lt;/big&gt;
+&lt;hr&gt;
 &lt;textarea id=&quot;msg_ta&quot;&gt;&lt;/textarea&gt;
+&lt;hr&gt;
+&lt;big&gt;Try clicking grid and copying (&lt;b&gt;Ctrl/Command + C&lt;/b&gt;) grid&#39;s content.&lt;/big&gt;
+&lt;br&gt;
+&lt;big&gt;Then, paste the content on some other places.&lt;/big&gt;
 &lt;hr&gt;
 &lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 &lt;hr&gt;
@@ -211,6 +216,9 @@ var dataset1 = DataGenerator.generateRecords(fields, { seed: 0, numRows: 4 });
 var dataset2 = DataGenerator.generateRecords(fields, { seed: 20, numRows: 7 });
 
 msg_ta.value = recordsToTSV(dataset2);
+msg_ta.addEventListener(&quot;focus&quot;, function(e) {
+    e.currentTarget.select();
+});
 
 var configObj = {
     columns: [
@@ -230,28 +238,38 @@ grid.addEventListener(&quot;click&quot;, function onClick(e) {
     grid.api.focus();
 });
 grid.addEventListener(&quot;copy&quot;, function onCopy(e) {
-    var records = grid.api.getMultipleRowData();
-    var tsv = recordsToTSV(records);
-    e.clipboardData.setData(&quot;text/plain&quot;, tsv);
+    var columnNames = grid.api.getColumnNames();
+    var rows = grid.api.getMultipleRowData(); // Get all row data from existing view
+    
+    // Build text in TSV format 
+    var text = columnNames.join(&quot;\t&quot;) + &quot;\n&quot; +
+        rows.map(recordToTSV).join(&quot;\n&quot;);
+    
+    e.clipboardData.setData(&quot;text/plain&quot;, text);
     e.preventDefault();
-    showKeyIndicator(&quot;data is copied to clipboard&quot;);
+    
+    showKeyIndicator(&quot;Data is copied to clipboard&quot;);
 });
 grid.addEventListener(&quot;paste&quot;, function onPaste(e) {
     e.preventDefault();
+    
     var tsv = e.clipboardData.getData(&quot;text/plain&quot;);
     grid.data = tsvToRecords(tsv);
-    showKeyIndicator(&quot;data is pasted onto Grid&quot;);
+    
+    showKeyIndicator(&quot;Data is pasted onto Grid&quot;);
 });
+
+function recordToTSV(record) {
+    return ([
+        record[fields[0]],
+        record[fields[1]],
+        record[fields[2]],
+        record[fields[3]],
+        record[fields[4]]
+    ]).join(&quot;\t&quot;); // TSV (Tab Separated Values)
+}
 function recordsToTSV(records) {
-    return records.map(function(record) {
-        return ([
-            record[fields[0]],
-            record[fields[1]],
-            record[fields[2]],
-            record[fields[3]],
-            record[fields[4]]
-        ]).join(&quot;\t&quot;);
-    }).join(&quot;\n&quot;);
+    return records.map(recordToTSV).join(&quot;\n&quot;);
 }
 function tsvToRecords(tsv) {
     if(!tsv) {
@@ -274,7 +292,7 @@ function showKeyIndicator(text) {
         key_indi.textContent = text;
     }
     key_indi.style.opacity = &quot;1&quot;;
-    setTimeout(onHideKeyIndicator, 500);
+    setTimeout(onHideKeyIndicator, 1000);
 }
 function onHideKeyIndicator() {
     key_indi.style.opacity = &quot;&quot;;
