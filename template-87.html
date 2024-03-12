@@ -2,16 +2,14 @@
 
 <h1 id="row-dragging">Row Dragging</h1>
 <p>The Row Dragging Extension allows the user to drag and reorder selected rows.</p>
-<code-sandbox hash="c60ef0a4"><pre><code class="language-css">efx-grid {
-    height: 308px;
-}
-html hr {
+<code-sandbox hash="92e61f32"><pre><code class="language-css">html hr {
     margin: 5px;
 }
+efx-grid {
+    height: 250px;
+}
 </code></pre>
-<pre><code class="language-html">&lt;button id=&quot;get_btn&quot;&gt;Show Data&lt;/button&gt;
-&lt;hr&gt;
-&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
@@ -23,7 +21,7 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
 var fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 10 });
+var records = DataGenerator.generateRecords(fields, { numRows: 30 });
 var configObj = {
     columns: [
         { field: fields[0], width: 30, alignment: &quot;center&quot; },
@@ -41,14 +39,6 @@ var configObj = {
 
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
-
-document.getElementById(&quot;get_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
-    var rows = grid.api.getMultipleRowData(); // Get all row definitions
-    var colData = rows.map(function getIdAndCompanyName(rowData) {
-        return rowData[&quot;id&quot;] + &quot;: &quot; + rowData[&quot;companyName&quot;];
-    });
-    alert(colData.join(&quot;\n&quot;));
-});
 </code></pre>
 </code-sandbox><h2 id="installation-and-how-to-import-to-a-project">Installation and how to import to a project</h2>
 <p>Installation examples and details of how to import the extension to a project are available on the <a href="#/extensions/readme">Overview</a> page.</p>
@@ -70,19 +60,92 @@ document.getElementById(&quot;get_btn&quot;).addEventListener(&quot;click&quot;,
     ...
 }
 </code></pre>
-<h2 id="drag-and-drop-content-outside-grids-area">Drag and drop content outside grid&#39;s area</h2>
-<p>The Row Dragging Extension can be used together with the <code>RowSelectionPlugin</code> to allow users to drag a selected row and drop it to a target outside of a Grid. Then, add <code>dragEnd</code> handler to perform content copying of the selected rows as illustrated below:</p>
-<code-sandbox hash="4fea6e01"><pre><code class="language-css">efx-grid {
-    height: 308px;
+<h2 id="draging-a-row-to-the-bottom-of-grid">Draging a row to the bottom of Grid</h2>
+<p>You can drag a row to the bottom of Grid by moving the mouse over the bottom half of the last row. The dragged row will be moved and put as the last row. Sometimes, the bottom half of the row can be small and difficult to place your mouse over. You can try to expand Grid&#39;s area beyond the last row to mitigate the issue, as the extension  allows any drag and drop operation within Grid&#39;s area.</p>
+<h3 id="extending-grids-area-example">Extending Grid&#39;s area example</h3>
+<code-sandbox hash="53ee5f19"><pre><code class="language-css">html, body {
+    height: 100% !important;
+    min-height: 400px;
+}
+.flex-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
 }
 
-#drop_target {
-    width: 100%;
+textarea {
     height: 100px;
+    width: 100%;
+    font-size: 2em;
+}
+html hr {
+    margin: 5px;
+}
+efx-grid {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
 }
 </code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-&lt;textarea id=&quot;drop_target&quot; placeholder=&quot;Drop Content Here&quot;&gt;&lt;/textarea&gt;
+<pre><code class="language-html">&lt;div class=&quot;flex-container&quot; style=&quot;height: 100%&quot;&gt;
+    &lt;textarea id=&quot;msg_ta&quot;&gt;&lt;/textarea&gt;
+    &lt;hr&gt;
+    &lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+&lt;/div&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+function onDataMoved(e) {
+    var rowIndex = e.rowIndex;
+    var rowData = grid.api.getRowData(rowIndex);
+    msg_ta.value = &quot;Row id &quot; + rowData[&quot;id&quot;] + &quot; has been moved to row index &quot; + rowIndex;
+}
+
+var fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 6 });
+var configObj = {
+    rowDragging: {
+        dataMoved: onDataMoved
+    },
+    columns: [
+        { field: fields[0], width: 30, alignment: &quot;center&quot; },
+        { name: &quot;Company&quot;, field: fields[1] },
+        { name: &quot;Market&quot;, field: fields[2], width: 120 },
+        { name: &quot;Last&quot;, field: fields[3], width: 100 },
+        { name: &quot;Net. Chng&quot;, field: fields[4], width: 100 },
+        { name: &quot;Industry&quot;, field: fields[5] }
+    ],
+    staticDataRows: records,
+    extensions: [
+        new RowDragging()
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="drag-and-drop-content-outside-of-grids-area">Drag and drop content outside of Grid&#39;s area</h2>
+<p>The Row Dragging Extension can be used together with the <code>RowSelectionPlugin</code> to allow users to drag a selected row and drop it to a target outside of a Grid. Then, add <code>dragEnd</code> handler to perform content copying of the selected rows as illustrated below:</p>
+<code-sandbox hash="c2ec26d"><pre><code class="language-css">html hr {
+    margin: 5px;
+}
+#drop_target {
+    height: 200px;
+    width: 100%;
+}
+</code></pre>
+<pre><code class="language-html">&lt;big&gt;Try select a row and then drag the selected row to the text box below&lt;/big&gt;
+&lt;hr&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+&lt;hr&gt;
+&lt;textarea id=&quot;drop_target&quot; placeholder=&quot;Drop selected row(s) here&quot;&gt;&lt;/textarea&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
@@ -115,8 +178,15 @@ function onDragEnd(e) {
 }
 
 var fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 10 });
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 8 });
 var configObj = {
+    rowDragging: {
+        autoScroll: false,
+        dragEnd: onDragEnd
+    },
+    rowSelection: {
+        basedOnContent: true
+    },
     columns: [
         { field: fields[0], width: 30, alignment: &quot;center&quot; },
         { name: &quot;Company&quot;, field: fields[1] },
@@ -126,10 +196,6 @@ var configObj = {
         { name: &quot;Industry&quot;, field: fields[5] }
     ],
     staticDataRows: records,
-    rowDragging: {
-        autoScroll: false,
-        dragEnd: onDragEnd
-    },
     extensions: [
         new RowSelection(), new RowDragging()
     ]
@@ -138,7 +204,7 @@ var configObj = {
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 </code></pre>
-</code-sandbox><h2 id="forbidden-drag-and-drop-behavior">Forbidden drag and drop behavior</h2>
+</code-sandbox><h2 id="undroppable-arearows">Undroppable area/rows</h2>
 <p>The Row Dragging extension has a default behavior for row dragging, which is accompanied by a <code>void</code> icon when a user attempts to drag a row to another location. However, there are certain restrictions in place that forbidden the dragging of certain row types to other locations. For instance, some row types cannot be dragged, while others cannot be dragged to certain areas. To ensure seamless navigation, it is essential to be mindful of these restrictions. Therefore, we have compiled a list of available <a href="#/apis/rt-grid/rowdefinition">Row Types</a>, which can be found in the table below.</p>
 <table>
 <thead>
@@ -216,7 +282,7 @@ grid.config = configObj;
 <blockquote>
 <p>Note: The Row Dragging Extension is backward compatible with the old built-in (with some breaking changes). Therefore, the new implementation is recommended.</p>
 </blockquote>
-<h2 id="built-in">Built-in</h2>
+<h3 id="built-in-drag-box-manipulation-example">Built-in drag box manipulation example</h3>
 <pre><code class="language-js">var gridConfig = {
     ...
     rowReorder: {
@@ -227,7 +293,7 @@ grid.config = configObj;
     ...
 }
 </code></pre>
-<h2 id="new-extension">New extension</h2>
+<h3 id="new-extensions-drag-box-manipulation-example">New extension&#39;s drag box manipulation example</h3>
 <pre><code class="language-js">var gridConfig = {
     ...
     rowDragging: {

@@ -2,7 +2,7 @@
 <h2 id="native-tab-navigation">Native tab navigation</h2>
 <p>Grid element is focusable which allows it to receive keyboard inputs. Thus, Grid supports tab navigation from and to another focusable elements. The example below illustrates how Tab and Shift+Tab keys shift the focus between elements.</p>
 <h3 id="native-tab-navigation-example">Native tab navigation example</h3>
-<code-sandbox hash="19f33cff"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="2d7556f9"><pre><code class="language-css">efx-grid {
     height: 200px;
 }
 html hr {
@@ -52,7 +52,7 @@ grid.config = configObj;
 window.addEventListener(&quot;keydown&quot;, function onKeyDown(e) {
     if(e.keyCode === 9) {
         key_indi.style.opacity = &quot;1&quot;;
-        setTimeout(onHideKeyIndicator, 200);
+        setTimeout(onHideKeyIndicator, 400);
     }
 });
 function onHideKeyIndicator() {
@@ -70,7 +70,7 @@ function onHideKeyIndicator() {
     ]
 };
 </code></pre>
-<h3 id="tab-navigation-with-grids-content-example">Tab navigation with Grid&#39;s content example</h3>
+<h3 id="tab-navigation-with-single-focusable-element-example">Tab navigation with single focusable element example</h3>
 <code-sandbox hash="cd2a27ba"><pre><code class="language-css">efx-grid {
     height: 220px;
 }
@@ -145,6 +145,111 @@ var configObj = {
         },
         {name: &quot;Industry&quot;, field: fields[4]}
     ],
+    staticDataRows: records
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+
+window.addEventListener(&quot;keydown&quot;, function onKeyDown(e) {
+    if(e.keyCode === 9) {
+        key_indi.style.opacity = &quot;1&quot;;
+        setTimeout(onHideKeyIndicator, 400);
+    }
+});
+function onHideKeyIndicator() {
+    key_indi.style.opacity = &quot;&quot;;
+}
+</code></pre>
+</code-sandbox><h3 id="tab-navigation-with-custom-content-example">Tab navigation with custom content example</h3>
+<p>When you have a custom content in the cell, you will need to tell Grid which element is to be focused by specifying <code>nextFocusableElement</code> property on the event argument in <code>tabNavigation</code> event. You can use <code>tabNavigation</code> event to manage order of focusable element in case of you have multiple focusable elements in a single cell.</p>
+<code-sandbox hash="e3374f9f"><pre><code class="language-css">efx-grid {
+    height: 220px;
+}
+html hr {
+    margin: 5px;
+}
+mark {
+    opacity: 0;
+    padding: 2px;
+    transition: opacity 0.2s ease-in;
+}
+</code></pre>
+<pre><code class="language-html">&lt;input id=&quot;dummy_in1&quot; value=&quot;input 1&quot;&gt;
+&lt;input id=&quot;dummy_in2&quot; value=&quot;input 2&quot;&gt;
+&lt;mark id=&quot;key_indi&quot;&gt;Tab key&lt;/mark&gt;
+&lt;hr&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+&lt;hr&gt;
+&lt;input id=&quot;dummy_in3&quot; value=&quot;input 3&quot;&gt;
+&lt;input id=&quot;dummy_in4&quot; value=&quot;input 4&quot;&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+function buttonsBinding(e) {
+    var cell = e.cell;
+    var content = cell.getContent();
+    if(!content || !content._inputs) {
+        content = document.createElement(&quot;div&quot;);
+        content._inputs = true;
+        
+        var input1 = document.createElement(&quot;input&quot;);
+        var input2 = document.createElement(&quot;input&quot;);
+        input1.style.width = &quot;30px&quot;;
+        input2.style.width = &quot;30px&quot;;
+        input1.value = &quot;A&quot;;
+        input2.value = &quot;B&quot;;
+        content.appendChild(input1);
+        content.appendChild(input2);
+        content._tabIndices = [input1, input2];
+    }
+    cell.setContent(content);
+}
+
+function onTabNavigation(e) {
+    var activeElement = e.activeElement;
+    var content = e.cellContent;
+    
+    var at = content._tabIndices.indexOf(activeElement);
+    if(e.shiftKey) {
+        e.nextFocusableElement = content._tabIndices[(at &gt;= 0) ? at - 1 : content._tabIndices.length  - 1];
+    } else {
+        e.nextFocusableElement = content._tabIndices[at + 1];
+    }
+}
+
+var fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;custom1&quot;, &quot;custom2&quot;, &quot;market&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 20 });
+var columns = fields.map(function(f, idx) {
+    return {
+        field: f
+    };
+});
+columns[0].width = 60;
+columns[1].width = 120;
+
+columns[2].width = 100;
+columns[3].width = 100;
+columns[2].focusable = true;
+columns[3].focusable = true;
+columns[2].binding = buttonsBinding;
+columns[3].binding = buttonsBinding;
+
+var configObj = {
+    tabToFocus: true,
+    defaultColumnOptions: {
+        notRealTimeField: true,
+        textAlign: &quot;c&quot;
+    },
+    columns: columns,
+    tabNavigation: onTabNavigation,
     staticDataRows: records
 };
 
