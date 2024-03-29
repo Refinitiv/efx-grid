@@ -1,24 +1,7 @@
-<h1 id="simple-link-formatter">Simple Link Formatter</h1>
-<p>This formatter creates a link with text from the column&#39;s field by default.</p>
-<h2 id="specific-options">Specific options</h2>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Type</th>
-<th>Attributes</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>urlField</td>
-<td>string</td>
-<td>optional</td>
-<td>Field used for href attribute</td>
-</tr>
-</tbody></table>
+<h1 id="simple-image-formatter">Simple Image Formatter</h1>
+<p>This formatter creates an image from the column&#39;s field by default.</p>
 <h2 id="example">Example</h2>
-<code-sandbox hash="18f49e12"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="ea42f39e"><pre><code class="language-css">efx-grid {
     height: 320px;
 }
 </code></pre>
@@ -33,63 +16,29 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var href = &quot;https://www.lseg.com/#&quot;;
-
-var fields = [&quot;id&quot;, &quot;url&quot;];
+var fields = [&quot;image&quot;, &quot;s_image&quot;];
 var records = new Array(40);
 for(var i = 0; i &lt; 40; ++i) {
     var record = records[i] = {};
-    record[fields[0]] = i;
-    record[fields[1]] = &quot;https://www.lseg.com/#&quot; + i;
+    record[fields[0]] = &quot;https://dummyimage.com/40x40&amp;text=&quot; + i;
+    record[fields[1]] = &quot;https://dummyimage.com/15x15&amp;text=&quot; + i;
 }
 var configObj = {
     sorting: {
         sortableColumns: true
     },
     columns: [
-        { 
-            name: &quot;Data&quot;,
-            field: fields[0],
-            alignment: &quot;c&quot;
-        },
-        { 
-            name: &quot;Simplest&quot;,
+        {
+            name: &quot;Image&quot;,
             field: fields[0],
             alignment: &quot;c&quot;,
-            binding: SimpleLinkFormatter.create({
-                attributes: {
-                    href: &quot;https://www.lseg.com&quot;
-                }
-            })
+            binding: SimpleImageFormatter.create()
         },
-        { 
-            name: &quot;Some options&quot;,
-            field: fields[0],
+        {
+            name: &quot;Small Image&quot;,
+            field: fields[1],
             alignment: &quot;c&quot;,
-            binding: SimpleLinkFormatter.create({
-                label: &quot;click here&quot;,
-                attributes: {
-                    href: &quot;https://www.lseg.com&quot;
-                },
-                styles: {
-                    color: &quot;red&quot;
-                },
-                events: {
-                    &quot;click&quot;: function(e) {
-                        console.log(&quot;clicked&quot;);
-                        e.preventDefault();
-                    }
-                }
-            })
-        },
-        { 
-            name: &quot;Dynamic URL&quot;,
-            field: fields[0],
-            alignment: &quot;c&quot;,
-            binding: SimpleLinkFormatter.create({
-                label: &quot;see URL&quot;,
-                urlField: fields[1]
-            })
+            binding: SimpleImageFormatter.create()
         }
     ],
     staticDataRows: records

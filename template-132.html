@@ -1,23 +1,16 @@
-<h1 id="event-handling-and-event-listeners-in-formatter">Event handling and event listeners in formatter</h1>
-<p>If your custom formatter contains some input elements or controls, it&#39;s important to bind data back to Grid&#39;s internal data source when users input new data through the UI from your custom formatter. Remember, the same element will be used on different rows due to the row virtualization mechanic. If the data is changed by user actions, you need to update the change back to Grid&#39;s data source, or else the binding mechanism will replace what the user has changed with the data stored from the Grid&#39;s internal source. </p>
-<p>In short, data should be updated after users interact with the UI input. <code>getRelativePosition()</code> method should be used to resolve current positions relative to the grid element.</p>
+<h1 id="formatter-default">Formatter (default)</h1>
+<p>Formatter is what Grid uses to render content. Grid&#39;s default formatter will render any data in plain text. When data is updated, Grid will bind the data from its own internal data source to render the data in plain text using the formatter. The data given to grid can be any data type.</p>
 <blockquote>
-<p>APIs for data manipulation can be found <a href="#/data/update">here</a>. APIs for Grid and <code>getRelativePosition()</code> method description can be found <a href="#/apis/rt-grid/grid">here</a>.</p>
+<p>Note: The formatter will be repeatedly executed multiple times for every update and scrolling. </p>
 </blockquote>
-<h2 id="the-reverted-problem">The &#39;reverted&#39; problem</h2>
-<p>When we don&#39;t set data back, row virtualization will not work properly and content will not be rendered properly. Suppose that we have a dropdown element in one of the grid columns. Any change that is done to the dropdown box will be reverted if we don&#39;t update the data.</p>
-<p>In the live example below, try the following steps to produce the problem:</p>
-<ol>
-<li>Change the selected option from the dropdown box on the first row. Remember the new selected option</li>
-<li>Scroll down to the bottom of the grid</li>
-<li>Scroll back up to the top of the grid</li>
-</ol>
-<code-sandbox hash="397c9c8d"><pre><code class="language-css">efx-grid {
+<p>Default rendering is already optimized for row virtualization. This means that grid uses the same text element to render different data for different rows. It should be fast enough to handle rendering a million of rows.</p>
+<p>To update what is shown on the Grid, please use Grid&#39;s APIs to <a href="#/general-concept/accessing-data">manipulate the data</a> from the instance.</p>
+<h2 id="example">Example</h2>
+<code-sandbox hash="910e0fa0"><pre><code class="language-css">efx-grid {
     height: 200px;
-    margin-bottom: 40px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;efx-grid&gt;&lt;/efx-grid&gt;
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
@@ -28,139 +21,32 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;id&quot;, &quot;dropdownVal&quot;, &quot;boolean&quot;, &quot;text&quot;];
-// For static data initialization
-var records = [];
-for (var i = 0; i &lt; 50; i++) {
-    var record = {};
-    record[fields[0]] = i;
-    record[fields[1]] = i % 4; 
-    record[fields[2]] = i &amp; 1 ? true : false;
-    record[fields[3]] = i + &quot; Some Texts&quot;;
-    records.push(record);
-}
-
-var dropdownFormatter = function(e) {
-    var cell = e.cell;
-    var dropdown = cell.getContent();
-    if (!dropdown || !dropdown._myDropdown) {
-        dropdown = document.createElement(&quot;select&quot;);
-        dropdown._myDropdown = true;
-        [0, 1, 2, 3].forEach(function(val) {
-            var option = document.createElement(&quot;option&quot;);
-            option.value = val;
-            option.textContent = &quot;Value &quot; + val;
-            dropdown.appendChild(option);
-        });
-    }
-    
-    dropdown.selectedIndex = e.data;
-    cell.setContent(dropdown);
-};
-
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 40 });
 var configObj = {
     columns: [
-        { name: &quot;Row Index&quot;, field: fields[0], width: 80 },
-        { name: &quot;Dropdown&quot;, field: fields[1], binding: dropdownFormatter },
-        { name: &quot;Dropdown Value&quot;, field: fields[1] },
-        { name: &quot;Column 3&quot;, field: fields[2], alignment: &quot;center&quot; },
-        { name: &quot;Column 4&quot;, field: fields[3] }
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market&quot;, field: fields[1]},
+        {name: &quot;Last&quot;, field: fields[2]},
+        {name: &quot;Net. Chng&quot;, field: fields[3]},
+        {name: &quot;Industry&quot;, field: fields[4]}
     ],
     staticDataRows: records
 };
 
-var grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
+var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 </code></pre>
-</code-sandbox><p>You will see that the selected option is reverted back to the original option.</p>
-<h2 id="the-fix">The fix</h2>
-<p>To avoid the problem, we have to add an event listener to our custom formatter for binding the change from users. You have added <code>dropdownChangeHandler</code> to fix the problem as shown below:</p>
-<code-sandbox hash="1ab010b7"><pre><code class="language-css">efx-grid {
-    height: 200px;
-    margin-bottom: 40px;
-}
-</code></pre>
-<pre><code class="language-html">&lt;efx-grid&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;id&quot;, &quot;dropdownVal&quot;, &quot;boolean&quot;, &quot;text&quot;];
-// For static data initialization
-var records = [];
-for (var i = 0; i &lt; 50; i++) {
-    var record = {};
-    record[fields[0]] = i;
-    record[fields[1]] = i % 4; 
-    record[fields[2]] = i &amp; 1 ? true : false;
-    record[fields[3]] = i + &quot; Some Texts&quot;;
-    records.push(record);
-}
-
-// Show how to render custom content with an event listener
-var dropdownFormatter = function(e) {
-    var cell = e.cell;
-    var dropdown = cell.getContent();
-    if (!dropdown || !dropdown._myDropdown) {
-        dropdown = document.createElement(&quot;select&quot;);
-        dropdown._myDropdown = true;
-        [0, 1, 2, 3].forEach(function(val) {
-            var option = document.createElement(&quot;option&quot;);
-            option.value = val;
-            option.textContent = &quot;Value &quot; + val;
-            dropdown.appendChild(option);
-        });
-        
-        dropdown.addEventListener(&quot;change&quot;, dropdownChangeHandler);
-    }
-    dropdown.selectedIndex = e.data;
-    cell.setContent(dropdown);
-};
-// Show how to set data based on interaction from custom content
-var dropdownChangeHandler = function(e) {
-    var dropdown = e.currentTarget;
-    var selectedIndex = +(dropdown.options[dropdown.selectedIndex].value);
-
-    var pos = grid.api.getRelativePosition(e);
-    var rowDef = grid.api.getRowDefinition(pos.rowIndex);
-    rowDef.setData(grid.api.getColumnField(pos.colIndex), selectedIndex);
-};
-
-var configObj = {
+</code-sandbox><h2 id="internal-default-formatter-implementation">Internal Default Formatter Implementation</h2>
+<p>Internally, Grid implements the formatter as the following code: </p>
+<pre><code class="language-js">var configObj = {
     columns: [
-        { name: &quot;Row Index&quot;, field: fields[0], width: 80 },
-        { name: &quot;Dropdown&quot;, field: fields[1], binding: dropdownFormatter },
-        { name: &quot;Dropdown Value&quot;, field: fields[1] },
-        { name: &quot;Column 3&quot;, field: fields[2], alignment: &quot;center&quot; },
-        { name: &quot;Column 4&quot;, field: fields[3] }
-    ],
-    staticDataRows: records
+        { binding: function(e){
+                e.cell.setContent(e.data);
+            }
+        }
+    ]
 };
-
-var grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
-grid.config = configObj;
 </code></pre>
-</code-sandbox><h2 id="writing-event-listeners">Writing event listeners</h2>
-<p>Since the same element will be used on different rows, you cannot use closure variables that are created or given from the event arguments. Row index, column index, or cell reference must be resolved at runtime inside the event listener. You can resolve the position by using Grid&#39;s <code>getRelativePosition()</code> method.</p>
-<pre><code class="language-js">    var dropdownChangeHandler = function(e) {
-        var dropdown = e.currentTarget;
-        var selectedIndex = +(dropdown.options[dropdown.selectedIndex].value);
-
-        var pos = grid.api.getRelativePosition(e);
-        var rowDef = grid.api.getRowDefinition(pos.rowIndex);
-        rowDef.setData(grid.api.getColumnField(pos.colIndex), selectedIndex);
-    };
-</code></pre>
-<ul>
-<li><code>currentTarget</code> property will always give an element attached by the event listener</li>
-<li><code>getRelativePosition()</code> method resolves the position when the dropdown value is changed</li>
-</ul>
-<blockquote>
-<p>See <a href="#/data/update">this page</a> on how to update data.</p>
-</blockquote>
+<h1 id="custom-formatter">Custom Formatter</h1>
+<p>If we want anything other than simple text, we need to define a custom formatter. You can find more details about this in the <a href="#/rendering/custom-formatter">Custom Formatter section</a>.</p>

@@ -1,1 +1,325 @@
-<h1 id="wrapper-for-angular">Wrapper for Angular</h1>
+<link rel="stylesheet" href="./resources/styles/elf-template.css">
+
+<h1 id="filter-dialog">Filter Dialog</h1>
+<p>The Filter Dialog is a user-friendly interface for filtering and sorting. The example below shows how Filter Dialog can be used in conjunction with <a href="#/extensions/tr-grid-row-filtering">Row Filtering Extension</a>. Users can hover over column header to show filter icon. Clicking on the icon will open Filter Dialog.</p>
+<code-sandbox hash="4d621a46"><pre><code class="language-css">efx-grid {
+    height: 500px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 20 });
+var configObj = {
+    columns: [
+        { name: &quot;Company&quot;, field: fields[0] },
+        { name: &quot;Market&quot;, field: fields[1], width: 120 },
+        { name: &quot;Last&quot;, field: fields[2], width: 100 },
+        { name: &quot;Net. Chng&quot;, field: fields[3], width: 100 },
+        { name: &quot;Industry&quot;, field: fields[4] }
+    ],
+    staticDataRows: records,
+    rowFiltering:{
+        iconActivation: &quot;onHover&quot;
+    },
+    extensions: [
+        new RowFiltering()
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="setup-guide">Setup guide</h2>
+<pre><code class="language-js"> // efx-grid
+import &quot;@refinitiv-ui/efx-grid&quot;;
+import &quot;@refinitiv-ui/efx-grid/themes/halo/light&quot;;
+
+// Extensions
+import { RowFiltering } from &quot;@refinitiv-ui/efx-grid/extensions&quot;;
+
+// Filter Dialog module
+import &quot;@refinitiv-ui/efx-grid/filter-dialog&quot;;
+import &quot;@refinitiv-ui/efx-grid/filter-dialog/themes/halo/light&quot;;  // !Important. Theme must be imported.
+</code></pre>
+<p>The dialog cannot be used without Row Filtering Extension. So, initialize Row Filtering Extension instance and add it to <code>extensions</code> property on the grid configuration object. To open the dialog, you can either use <code>iconActivation</code> property or <code>openDialog</code> method from the extension.</p>
+<pre><code class="language-js">var rowFilteringExt = new RowFiltering();
+
+var configObj = {
+    extensions: [
+        rowFilteringExt
+    ],
+    rowFiltering:{
+        iconActivation: &quot;onHover&quot;
+    },
+    columns: columns, // Columns config
+    staticDataRows: records
+};
+
+var grid = document.getElementById(&quot;grid_id&quot;);
+grid.config = configObj;
+
+function onClickButton(e) {
+  rowFilteringExt.openDialog(columnIndex);
+}
+</code></pre>
+<h2 id="advanced-condition-tab">Advanced condition tab</h2>
+<p>Filter dialog has three types of condition tabs: generic value condition (default), numeric value condition, and date time value condition. Each type has a different list of available operators. For example, numeric value condition contains only nemeric operators, such as Less than or Greater than operators. To specify the type for the dialog, define <code>fieldDataType</code> property on the column configuration object to one of the following values: <code>number</code>, <code>datetime</code>, and <code>text</code> or nothing (default). </p>
+<code-sandbox hash="b99e7b1d"><pre><code class="language-css">efx-grid {
+    height: 500px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;companyName&quot;, &quot;CF_NETCHNG&quot;, &quot;ISODate&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 20 });
+var configObj = {
+    columns: [
+        { name: &quot;Company&quot;, field: &quot;companyName&quot; },
+        { name: &quot;Company (text)&quot;, field: &quot;companyName&quot;, fieldDataType: &quot;text&quot; },
+        { name: &quot;Date (generic)&quot;, field: &quot;ISODate&quot;, width: 180 },
+        { name: &quot;Date (datetime)&quot;, field: &quot;ISODate&quot;, width: 180, fieldDataType: &quot;datetime&quot; },
+        { name: &quot;Change (generic)&quot;, field: &quot;CF_NETCHNG&quot;, width: 130 },
+        { name: &quot;Change (number)&quot;, field: &quot;CF_NETCHNG&quot;, width: 130, fieldDataType: &quot;number&quot; }
+    ],
+    staticDataRows: records,
+    rowFiltering:{
+        iconActivation: &quot;onHover&quot;
+    },
+    extensions: [
+        new RowFiltering()
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="dialog-options">Dialog options</h2>
+<p>Filter Dialog can be customized by setting <code>dialogOptions</code> property on the Row Filtering Extension configuration object as shown in the following code snippet:</p>
+<pre><code class="language-js">var configObj = {
+    rowFiltering: {
+        dialogOptions: {
+            sortUI: false
+        }
+    }
+};
+</code></pre>
+<p>The options will be applied for every column in the grid. The options can be overriden on a column basis by using <code>beforeDialogOpened</code> event. You can specify <code>dialogOptions</code> property on the event argument and override the options set on the grid level as shown in the following code snippet:</p>
+<pre><code class="language-js">var configObj = {
+    rowFiltering: {
+        dialogOptions: {
+            sortUI: false
+        },
+        beforeDialogOpened: function(e) {
+            if(e.field === &quot;field A&quot;) {
+                e.dialogOptions = {
+                    sortUI: true
+                };
+            }
+        }
+    }
+};
+</code></pre>
+<h2 id="customizing-filter-item-list">Customizing filter item list</h2>
+<p>By default, the item list in Filter Dialog is generated from existing data on the column, where the dialog is openned. Any duplicate value is automatically removed from the list. If there is formatting applied by Text Formatting Extension on the column, the items will also be formatted. </p>
+<p><code>itemList</code> property on the dialog options can be used to replace the autogenerated one. This is useful when you want to prevent some values from being available for  filtering. </p>
+<p><code>additionalItems</code> property on the dialog options can be used to add more values to the existing list. The property can be used to include some nonexistent values (e.g., you have some server side filtering).</p>
+<p><code>formattedDataAccessor</code> property on the dialog options allows you to specify a method for transforming and displaying items on the list. The method will be called on each item and it should return the formatted text you want to display in the dialog. The method can also be used to retrieve data from an object (i.e., data with non-premitive data type).</p>
+<p><code>sortLogic</code> property on the dialog options allows you to specify a method for reordering items on the list. The method will be used by <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort">Array.sort method</a></p>
+<code-sandbox hash="b216fe9c"><pre><code class="language-css">efx-grid {
+    height: 300px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var sortIdInDescendingOrder = function(valA, valB) {
+    if(valA &lt; valB) {
+        return 1;
+    }
+    if(valB &lt; valA) {
+        return -1;
+    }
+    return 0;
+};
+var booleanToYesNo = function(val) {
+    if(val != null) {
+        return val ? &quot;Yes&quot; : &quot;No&quot;;
+    }
+    return &quot;&quot;;
+};
+var onBeforeDialogOpened = function(e) {
+    var colIndex = e.colIndex;
+    if(colIndex === 0) { // id
+        e.dialogOptions = {
+            sortLogic: sortIdInDescendingOrder
+        };
+    } else if(colIndex === 2) { // replacement
+        e.dialogOptions = {
+            itemList: [&quot;Left&quot;, &quot;Center&quot;, &quot;Right&quot;]
+        };
+    } else if(colIndex === 3) { // addition
+        e.dialogOptions = {
+            additionalItems: [1, 0, &quot;N/A&quot;]
+        };
+    } else if(colIndex === 4) { // formatted
+        e.dialogOptions = {
+            formattedDataAccessor: booleanToYesNo
+        };
+    }
+};
+var fields = [&quot;id&quot;, &quot;boolean&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 10 });
+var configObj = {
+    rowFiltering: {
+        iconActivation: &quot;onHover&quot;,
+        beforeDialogOpened: onBeforeDialogOpened
+    },
+    columns: [
+        { name: &quot;Id&quot;, field: &quot;id&quot;, width: 80 },
+        { name: &quot;Boolean (default)&quot;, field: &quot;boolean&quot;},
+        { name: &quot;Boolean (replacement)&quot;, field: &quot;boolean&quot;},
+        { name: &quot;Boolean (addition)&quot;, field: &quot;boolean&quot;},
+        { name: &quot;Boolean (formatted)&quot;, field: &quot;boolean&quot;}
+    ],
+    staticDataRows: records,
+    extensions: [
+        new RowFiltering()
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="changing-dialog-language">Changing dialog language</h2>
+<p>For more information about internationalization and how is it applied in different contexts see <a href="#/widgets/language-support">Language Support</a>.</p>
+<h2 id="opening-filter-dialog-using-an-api">Opening Filter Dialog using an API</h2>
+<p>The dialog can be openned from anywhere, not just from filter icon on the column header. Use <code>openDialog</code> method from Row Filtering extension instance, so that the dialog can be openned for specific column and linked up with grid instance. </p>
+<p>The following example illustrates how the dialog can be opened from context menu using <a href="#/extensions/tr-grid-contextmenu">Context Menu Extension</a>. Right click on the column header to see the dialog.</p>
+<code-sandbox hash="4b03210e"><pre><code class="language-css">html hr {
+    margin: 5px;
+}
+efx-grid {
+    height: 500px;
+}
+</code></pre>
+<pre><code class="language-html">Language:
+&lt;select id=&quot;lang_selector&quot;&gt;
+    &lt;option value=&quot;en&quot;&gt;English&lt;/option&gt;
+    &lt;option value=&quot;ja&quot;&gt;Japanese&lt;/option&gt;
+    &lt;option value=&quot;de&quot;&gt;German&lt;/option&gt;
+    &lt;option value=&quot;zh&quot;&gt;Simplified Chinese&lt;/option&gt;
+    &lt;option value=&quot;zh-Hant&quot;&gt;Traditional Chinese&lt;/option&gt;
+&lt;/select&gt;
+&lt;hr&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var rowFilteringExt = new RowFiltering();
+var contextMenuExt = new ContextMenu();
+
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;ISODate&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 10 });
+var configObj = {
+    columns: [
+        {name: &quot;Company&quot;, field: fields[0], sortable: true, fieldDataType: &quot;text&quot;},
+        {name: &quot;Market&quot;, field: fields[1], width: 100, sortable: true, fieldDataType: &quot;text&quot;},
+        {name: &quot;Last&quot;, field: fields[2], width: 100, sortable: true, fieldDataType: &quot;number&quot;},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100, sortable: true, fieldDataType: &quot;number&quot;},
+        {name: &quot;IPO Date&quot;, field: fields[4], sortable: true, fieldDataType: &quot;datetime&quot;}
+    ],
+    dataModel: {
+        data: records
+    },
+    contextMenu: {
+        items: {
+            MENU_1: {
+                text: &quot;Filter&quot;,
+                callback: function (e) {
+                    var colIndex = e.colIndex;
+                    var lang = document.getElementById(&quot;lang_selector&quot;).value;
+                    var dialogOptions = {
+                        sortUI: true, // Show sorting section
+                        filterUI: true, // Show filtering section
+                        lang: lang,
+                        fieldDataType: grid.api.getColumnDataType(colIndex)
+                    };
+                    rowFilteringExt.openDialog(colIndex, dialogOptions);
+                }
+            },
+        },
+        onMenu: function (e) {
+            e.menu.addItem(&quot;MENU_1&quot;);
+        }
+    },
+    extensions: [
+        rowFilteringExt,
+        contextMenuExt
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="listening-an-event">Listening an event</h2>
+<p>If you want to do a custom task after the dialog has been commited, you can listen for <code>dialogCommitted</code> event from Row Filtering Extension. The change from the dialog will be passed as <code>value</code> property in the event argument. </p>
+<pre><code class="language-js">var onDialogCommitted = function (e) {
+    if(e.value) { // When user confirm dialog
+        console.log(e)
+    } else { // When user sort data from dialog
+        console.log(e);
+    }
+}
+
+var gridConfig = {
+    rowFiltering: {
+        dialogCommitted: onDialogCommitted
+    }
+};
+
+// Alternatively
+rowFilteringExt.addEventListener(&quot;dialogCommitted&quot;, onDialogCommitted);
+</code></pre>
+<h2 style="margin-bottom:5px" id="api-refs">API Reference</h2>
+<div id="elf-api-container"><div id="main-template" class="elf-template">    <section><header>            <h1 class="subsection-title"><span class="attribs"><span class="type-signature"></span></span>FilterDialog<span class="signature">()</span><span class="type-signature"></span></h1>            </header><article>                                                <h3 class="subsection-title" id="type_definitions">Type Definitions</h3>                        
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~ComboBoxItem">ComboBoxItem</h4>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>label</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                                    <td class="description last">text of item</td>        </tr>            <tr>                            <td class="name"><code>value</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                                    <td class="description last">value of item when item is selected</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~Config">Config</h4>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>data</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                            <td class="attributes">                                                </td>                                    <td class="description last">Column data</td>        </tr>            <tr>                            <td class="name"><code>sortState</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">"a" for ascending or "d" for descending</td>        </tr>            <tr>                            <td class="name"><code>sortUI</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Show Sort area</td>        </tr>            <tr>                            <td class="name"><code>filterUI</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Show Filter area</td>        </tr>            <tr>                            <td class="name"><code>advancedFilter</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Show advanced tab</td>        </tr>            <tr>                            <td class="name"><code>compactMode</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Force compact mode in dialog</td>        </tr>            <tr>                            <td class="name"><code>blankValues</code></td>                        <td class="type">                            <span class="param-type">string</span> | <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Display a Blanks item in the filter dialog to represent an empty value. If a string is passed, it will be used as the label for the blank item</td>        </tr>            <tr>                            <td class="name"><code>filterChanged</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Filter changed handler</td>        </tr>            <tr>                            <td class="name"><code>confirm</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Alias of filterChanged</td>        </tr>            <tr>                            <td class="name"><code>cancel</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Alias of dialog cancel</td>        </tr>            <tr>                            <td class="name"><code>sortChanged</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Sort changed handler</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            <h3 class="subsection-title" id="methods">Methods</h3>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="hide"><span class="type-signature"></span>hide<span class="signature">()</span><span class="type-signature"></span></h4>                            <div class="description">        Hide the dialog    </div>                        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="hideSortUI"><span class="type-signature"></span>hideSortUI<span class="signature">(val)</span><span class="type-signature"></span></h4>                            <div class="description">        Hide Sort UI block    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">val</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                                                    <div class="description">                    value                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="init"><span class="type-signature"></span>init<span class="signature">(options)</span><span class="type-signature"></span></h4>                            <div class="description">        Initialize dialog    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type"><a href="#/widgets/filter-dialog#~Config">FilterDialog~Config</a></span>                        </div>                                                    <div class="description">                    initial data                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setSortState"><span class="type-signature"></span>setSortState<span class="signature">(val)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">val</div>                        <div class="type">                            <span class="param-type">string</span>                        </div>                                                    <div class="description">                    Sorting state "d" or "a"                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="show"><span class="type-signature"></span>show<span class="signature">()</span><span class="type-signature"></span></h4>                            <div class="description">        Show the dialog as a popup    </div>                        <div class="details">                                                            </div>                                    </div>                </article></section></div></div>

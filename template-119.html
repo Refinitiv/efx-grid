@@ -1,33 +1,27 @@
-<h1 id="server-side-pagination">Server Side Pagination</h1>
-<p>In case you want to retrieve a chunk of data from the server and do not want to load all of the data at once, you need to do server side pagination. The <a href="https://ui.refinitiv.com/elements/pagination">pagination</a> component is enough to do this. <strong>Do not</strong> use the Pagination Extension for server side pagination. </p>
-<p>All related logics (such as data requesting, validation, and transformation) must be implemented on the application side. Once data is received, you can just assign data to Grid&#39;s <code>data</code> property. </p>
-<p>See more details about data setting at <a href="#/data/columns-and-data">Columns and Data Properties</a>.</p>
-<h2 id="example">Example</h2>
-<pre><code class="language-js">    function onServerResponse(data) {
-        hideLoadingMask();
-        grid.data = data; // Setting data from server
-    }
-    function onRowCountRecieved(total) {
-        pagination_ui.max = Math.ceil(total / PAGE_SIZE);
-    }
-    function onPageChanged(e) {
-        requestData(e.detail.value, PAGE_SIZE, onServerResponse);
-    }
-</code></pre>
-<code-sandbox hash="5db5cb84"><pre><code class="language-css">efx-grid {
-    height: 169px;
+<h1 id="keyboard-inputs">Keyboard inputs</h1>
+<h2 id="native-tab-navigation">Native tab navigation</h2>
+<p>Grid element is focusable which allows it to receive keyboard inputs. Thus, Grid supports tab navigation from and to another focusable elements. The example below illustrates how Tab and Shift+Tab keys shift the focus between elements.</p>
+<h3 id="native-tab-navigation-example">Native tab navigation example</h3>
+<code-sandbox hash="2d7556f9"><pre><code class="language-css">efx-grid {
+    height: 200px;
 }
-ef-pagination {
-    margin-bottom: 30px;
+html hr {
+    margin: 5px;
 }
-.blur {
-    filter: blur(2px);
+mark {
+    opacity: 0;
+    padding: 2px;
+    transition: opacity 0.2s ease-in;
 }
 </code></pre>
-<pre><code class="language-html">&lt;div id=&quot;container_div&quot;&gt;
-    &lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-    &lt;ef-pagination id=&#39;pagination_ui&#39; value=&quot;1&quot;&gt;&lt;/ef-pagination&gt;
-&lt;/div&gt;
+<pre><code class="language-html">&lt;input id=&quot;dummy_in1&quot; value=&quot;input 1&quot;&gt;
+&lt;input id=&quot;dummy_in2&quot; value=&quot;input 2&quot;&gt;
+&lt;mark id=&quot;key_indi&quot;&gt;Tab key&lt;/mark&gt;
+&lt;hr&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+&lt;hr&gt;
+&lt;input id=&quot;dummy_in3&quot; value=&quot;input 3&quot;&gt;
+&lt;input id=&quot;dummy_in4&quot; value=&quot;input 4&quot;&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
@@ -38,145 +32,375 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var paginationUI = document.getElementById(&quot;pagination_ui&quot;);
-var SERVER_DELAY = 300;
-var loading_mask = document.createElement(&quot;ef-loader&quot;);
-var PAGE_SIZE = 5;
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 5 });
 
-function showLoadingMask() {
-    if (!loading_mask.parentElement) {
-        container_div.classList.add(&#39;blur&#39;);
-        container_div.append(loading_mask);
-    }
-
-    paginationUI.disabled = true;
-}
-function hideLoadingMask() {
-    if (loading_mask.parentElement) {
-        container_div.classList.remove(&#39;blur&#39;);
-        loading_mask.parentElement.removeChild(loading_mask);
-    }
-
-    paginationUI.disabled = false;
-}
-
-// Event handlers
-function onServerResponse(data) {
-    hideLoadingMask();
-    grid.data = data; // Setting data from server
-}
-function onRowCountRecieved(total) {
-    paginationUI.max = Math.ceil(total / PAGE_SIZE);
-}
-function onPageChanged(e) {
-    requestData(e.detail.value, PAGE_SIZE, onServerResponse);
-}
-
-// Mocking Server
-function requestTotalPage(callback) {
-    setTimeout(function () { // Simulate network delay when requesting data from server
-        callback(serverData.length);
-    }, SERVER_DELAY);
-}
-function requestData(page, itemPerPage, callback) {
-    showLoadingMask();
-    page = parseInt(page);
-    itemPerPage = parseInt(itemPerPage);
-    setTimeout(function () { // Simulate network delay when requesting data from server
-        var start = itemPerPage * (page - 1);
-        var end = start + itemPerPage;
-        callback(serverData.slice(start, end));
-    }, SERVER_DELAY);
-}
-
-// Mocking Data
-var totalCount = 100;
-DataGenerator.addFieldInfo(&quot;rowNumber&quot;, {
-    type: &quot;function&quot;,
-    generate: function(info, seed) {
-        return ++info.count;
-    },
-    count: 0,
-});
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;rowNumber&quot;];
-var serverData = DataGenerator.generateRecords(fields, { numRows: totalCount });
-
-// Initializing UIs
 var configObj = {
     columns: [
-        {name: &quot;ID&quot;, field: fields[5], alignment: &quot;center&quot;, width: 40},
-        {name: &quot;Company&quot;, field: fields[0]},
-        {name: &quot;Market&quot;, field: fields[1], width: 120},
-        {name: &quot;Last&quot;, field: fields[2], width: 100},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
-        {name: &quot;Industry&quot;, field: fields[4]}
-    ]
-    // ,dataModel: {...} Initial data is optional
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
-
-paginationUI.addEventListener(&quot;value-changed&quot;, onPageChanged);
-
-// Start app by getting total number of items and data
-requestTotalPage(onRowCountRecieved);
-requestData(paginationUI.value, PAGE_SIZE, onServerResponse);
-</code></pre>
-</code-sandbox><h1 id="client-side-pagination">Client side pagination</h1>
-<p>If you have all the data available on the client side and want to show data in pagination style, you can use the Pagination Extension and the <a href="https://ui.refinitiv.com/elements/pagination">pagination</a> element. The current page and page size can be configured using the <code>pagination</code> option. The pagination behaviors are then implemented by the extension. See <a href="#/extensions/tr-grid-pagination">Pagination Extension</a> for more details.</p>
-<h2 id="example-1">Example</h2>
-<code-sandbox hash="a12bd869"><pre><code class="language-css">efx-grid {
-    height: 169px;
-}
-ef-pagination {
-    margin-bottom: 30px;
-}
-</code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-&lt;ef-pagination id=&#39;pagination&#39;&gt;&lt;/ef-pagination&gt;
-</code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-DataGenerator.addFieldInfo(&quot;rowNumber&quot;, {
-    type: &quot;function&quot;,
-    generate: function(info, seed) {
-        return ++info.count;
-    },
-    count: 0,
-});
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;rowNumber&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 100 });
-var configObj = {
-    columns: [
-        {name: &quot;ID&quot;, field: fields[5], alignment: &quot;center&quot;, width: 40},
         {name: &quot;Company&quot;, field: fields[0]},
         {name: &quot;Market&quot;, field: fields[1], width: 120},
         {name: &quot;Last&quot;, field: fields[2], width: 100},
         {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
         {name: &quot;Industry&quot;, field: fields[4]}
     ],
-    dataModel: {
-        data: records
+    staticDataRows: records
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+
+window.addEventListener(&quot;keydown&quot;, function onKeyDown(e) {
+    if(e.keyCode === 9) {
+        key_indi.style.opacity = &quot;1&quot;;
+        setTimeout(onHideKeyIndicator, 400);
+    }
+});
+function onHideKeyIndicator() {
+    key_indi.style.opacity = &quot;&quot;;
+}
+</code></pre>
+</code-sandbox><h2 id="tab-navigation-with-grids-content">Tab navigation with Grid&#39;s content</h2>
+<p>Since Grid utilizes row virtualization, not all Grid&#39;s content are rendered in the document. Thus, tab navigation needs to be managed by Grid. To enable tab navigation for Grid&#39;s content, set <code>tabToFocus</code> property to true on Grid configuration object and set <code>focusable</code> property to true on each column with focusable content, as shown on the following code snippet.</p>
+<pre><code class="language-js">var configObj = {
+    tabToFocus: true,
+    columns: [
+        {field: &quot;column1&quot;, focusable: true},
+        {field: &quot;column2&quot;},
+        {field: &quot;column3&quot;, focusable: true},
+    ]
+};
+</code></pre>
+<h3 id="tab-navigation-with-single-focusable-element-example">Tab navigation with single focusable element example</h3>
+<code-sandbox hash="cd2a27ba"><pre><code class="language-css">efx-grid {
+    height: 220px;
+}
+html hr {
+    margin: 5px;
+}
+mark {
+    opacity: 0;
+    padding: 2px;
+    transition: opacity 0.2s ease-in;
+}
+</code></pre>
+<pre><code class="language-html">&lt;input id=&quot;dummy_in1&quot; value=&quot;input 1&quot;&gt;
+&lt;input id=&quot;dummy_in2&quot; value=&quot;input 2&quot;&gt;
+&lt;mark id=&quot;key_indi&quot;&gt;Tab key&lt;/mark&gt;
+&lt;hr&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+&lt;hr&gt;
+&lt;input id=&quot;dummy_in3&quot; value=&quot;input 3&quot;&gt;
+&lt;input id=&quot;dummy_in4&quot; value=&quot;input 4&quot;&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 20 });
+
+function onDropdownBinding(e) {
+    var cell = e.cell;
+    var content = cell.getContent();
+    if(!content || !content._myDropdown) {
+        content = document.createElement(&quot;select&quot;);
+        content._myDropdown = true;
+        for(var i = 0; i &lt; 3; ++i) {
+            var opt = document.createElement(&quot;option&quot;);
+            opt.value = i;
+            opt.textContent = &quot;Item &quot; + (i + 1);
+            content.appendChild(opt);
+        }
+    }
+    cell.setContent(content);
+}
+function onInputBinding(e) {
+    var cell = e.cell;
+    var content = cell.getContent();
+    if(!content || !content._myInput) {
+        content = document.createElement(&quot;input&quot;);
+        content._myInput = true;
+    }
+    content.value = e.data;
+    cell.setContent(content);
+}
+
+var configObj = {
+    tabToFocus: true,
+    columns: [
+        {name: &quot;Company&quot;, field: fields[0]},
+        {
+            name: &quot;Market&quot;, field: fields[1], width: 120, 
+            binding: onInputBinding, focusable: true
+        },
+        {name: &quot;Last&quot;, field: fields[2], width: 100},
+        {
+            name: &quot;Dropdown&quot;, width: 100, 
+            binding: onDropdownBinding, focusable: true
+        },
+        {name: &quot;Industry&quot;, field: fields[4]}
+    ],
+    staticDataRows: records
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+
+window.addEventListener(&quot;keydown&quot;, function onKeyDown(e) {
+    if(e.keyCode === 9) {
+        key_indi.style.opacity = &quot;1&quot;;
+        setTimeout(onHideKeyIndicator, 400);
+    }
+});
+function onHideKeyIndicator() {
+    key_indi.style.opacity = &quot;&quot;;
+}
+</code></pre>
+</code-sandbox><h3 id="tab-navigation-with-custom-content-example">Tab navigation with custom content example</h3>
+<p>When you have a custom content in the cell, you will need to tell Grid which element is to be focused by specifying <code>nextFocusableElement</code> property on the event argument in <code>tabNavigation</code> event. You can use <code>tabNavigation</code> event to manage order of focusable element in case of you have multiple focusable elements in a single cell.</p>
+<code-sandbox hash="e3374f9f"><pre><code class="language-css">efx-grid {
+    height: 220px;
+}
+html hr {
+    margin: 5px;
+}
+mark {
+    opacity: 0;
+    padding: 2px;
+    transition: opacity 0.2s ease-in;
+}
+</code></pre>
+<pre><code class="language-html">&lt;input id=&quot;dummy_in1&quot; value=&quot;input 1&quot;&gt;
+&lt;input id=&quot;dummy_in2&quot; value=&quot;input 2&quot;&gt;
+&lt;mark id=&quot;key_indi&quot;&gt;Tab key&lt;/mark&gt;
+&lt;hr&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+&lt;hr&gt;
+&lt;input id=&quot;dummy_in3&quot; value=&quot;input 3&quot;&gt;
+&lt;input id=&quot;dummy_in4&quot; value=&quot;input 4&quot;&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+function buttonsBinding(e) {
+    var cell = e.cell;
+    var content = cell.getContent();
+    if(!content || !content._inputs) {
+        content = document.createElement(&quot;div&quot;);
+        content._inputs = true;
+        
+        var input1 = document.createElement(&quot;input&quot;);
+        var input2 = document.createElement(&quot;input&quot;);
+        input1.style.width = &quot;30px&quot;;
+        input2.style.width = &quot;30px&quot;;
+        input1.value = &quot;A&quot;;
+        input2.value = &quot;B&quot;;
+        content.appendChild(input1);
+        content.appendChild(input2);
+        content._tabIndices = [input1, input2];
+    }
+    cell.setContent(content);
+}
+
+function onTabNavigation(e) {
+    var activeElement = e.activeElement;
+    var content = e.cellContent;
+    
+    var at = content._tabIndices.indexOf(activeElement);
+    if(e.shiftKey) {
+        e.nextFocusableElement = content._tabIndices[(at &gt;= 0) ? at - 1 : content._tabIndices.length  - 1];
+    } else {
+        e.nextFocusableElement = content._tabIndices[at + 1];
+    }
+}
+
+var fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;custom1&quot;, &quot;custom2&quot;, &quot;market&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 20 });
+var columns = fields.map(function(f, idx) {
+    return {
+        field: f
+    };
+});
+columns[0].width = 60;
+columns[1].width = 120;
+
+columns[2].width = 100;
+columns[3].width = 100;
+columns[2].focusable = true;
+columns[3].focusable = true;
+columns[2].binding = buttonsBinding;
+columns[3].binding = buttonsBinding;
+
+var configObj = {
+    tabToFocus: true,
+    defaultColumnOptions: {
+        notRealTimeField: true,
+        textAlign: &quot;c&quot;
     },
-    pagination: {
-        element: document.getElementById(&quot;pagination&quot;),
-        page: 1,
-        pageSize: 5
-    },
-    extensions: [
-        new Pagination()
+    columns: columns,
+    tabNavigation: onTabNavigation,
+    staticDataRows: records
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+
+window.addEventListener(&quot;keydown&quot;, function onKeyDown(e) {
+    if(e.keyCode === 9) {
+        key_indi.style.opacity = &quot;1&quot;;
+        setTimeout(onHideKeyIndicator, 400);
+    }
+});
+function onHideKeyIndicator() {
+    key_indi.style.opacity = &quot;&quot;;
+}
+</code></pre>
+</code-sandbox><h2 id="copy-and-paste-operations">Copy and paste operations</h2>
+<p>Although Grid can get focus through Tab key, it does not get focus through mouse click by default. This is to allow mouse interaction with its content by not automatically shifting focus on Grid element (e.g., text selection requires focus to stay on the same element). If Grid does not contain any interactive content, you can listening to <code>click</code> event and put focus on the grid. To put the focus on Grid element, use <code>focus()</code> method from Grid&#39;s APIs. </p>
+<p>Once Grid is in focus, you can catch native <code>copy</code> and <code>paste</code> events from Grid to manipulate or retrieve data from system clipboard. The example below shows how to populate data on Grid using clipboard data and setting Grid data to the clipboard.</p>
+<h3 id="copying-and-pasting-grids-content-in-tsv-format-example">Copying and pasting grid&#39;s content in TSV format example</h3>
+<code-sandbox hash="1c315101"><pre><code class="language-css">html body {
+    padding: 5px;
+    box-sizing: border-box;
+}
+html hr {
+    margin: 5px;
+}
+efx-grid {
+    height: 200px;
+}
+efx-grid:focus-within {
+    outline-width: 1px;
+    outline-style: solid;
+    outline-color: blue;
+}
+mark {
+    opacity: 0;
+    padding: 4px;
+    transition: opacity 0.5s ease-out;
+}
+textarea {
+    width: 100%;
+    height: 120px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;big&gt;Try copying texts below and pasting them onto grid.&lt;/big&gt;
+&lt;hr&gt;
+&lt;textarea id=&quot;msg_ta&quot;&gt;&lt;/textarea&gt;
+&lt;hr&gt;
+&lt;big&gt;Try clicking grid and copying (&lt;b&gt;Ctrl/Command + C&lt;/b&gt;) grid&#39;s content.&lt;/big&gt;
+&lt;br&gt;
+&lt;big&gt;Then, paste the content on some other places.&lt;/big&gt;
+&lt;hr&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+&lt;hr&gt;
+&lt;mark id=&quot;key_indi&quot;&gt;&lt;/mark&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var dataset1 = DataGenerator.generateRecords(fields, { seed: 0, numRows: 4 });
+var dataset2 = DataGenerator.generateRecords(fields, { seed: 20, numRows: 7 });
+
+msg_ta.value = recordsToTSV(dataset2);
+msg_ta.addEventListener(&quot;focus&quot;, function(e) {
+    e.currentTarget.select();
+});
+
+var configObj = {
+    columns: [
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market&quot;, field: fields[1], width: 120},
+        {name: &quot;Last&quot;, field: fields[2], width: 100},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
+        {name: &quot;Industry&quot;, field: fields[4]}
     ]
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
+grid.data = dataset1;
+
+grid.addEventListener(&quot;click&quot;, function onClick(e) {
+    grid.api.focus();
+});
+grid.addEventListener(&quot;copy&quot;, function onCopy(e) {
+    var columnNames = grid.api.getColumnNames();
+    var rows = grid.api.getMultipleRowData(); // Get all row data from existing view
+    
+    // Build text in TSV format 
+    var text = columnNames.join(&quot;\t&quot;) + &quot;\n&quot; +
+        rows.map(recordToTSV).join(&quot;\n&quot;);
+    
+    e.clipboardData.setData(&quot;text/plain&quot;, text);
+    e.preventDefault();
+    
+    showKeyIndicator(&quot;Data is copied to clipboard&quot;);
+});
+grid.addEventListener(&quot;paste&quot;, function onPaste(e) {
+    e.preventDefault();
+    
+    var tsv = e.clipboardData.getData(&quot;text/plain&quot;);
+    grid.data = tsvToRecords(tsv);
+    
+    showKeyIndicator(&quot;Data is pasted onto Grid&quot;);
+});
+
+function recordToTSV(record) {
+    return ([
+        record[fields[0]],
+        record[fields[1]],
+        record[fields[2]],
+        record[fields[3]],
+        record[fields[4]]
+    ]).join(&quot;\t&quot;); // TSV (Tab Separated Values)
+}
+function recordsToTSV(records) {
+    return records.map(recordToTSV).join(&quot;\n&quot;);
+}
+function tsvToRecords(tsv) {
+    if(!tsv) {
+        return [];
+    }
+    var lines = tsv.split(&quot;\n&quot;);
+    return lines.map(function(line) {
+        var obj = {};
+        line.split(&quot;\t&quot;).map(function(item, idx) {
+            var field = fields[idx] || &quot;&quot;;
+            if(field) {
+                obj[field] = item;
+            }
+        });
+        return obj;
+    });
+}
+function showKeyIndicator(text) {
+    if(text) {
+        key_indi.textContent = text;
+    }
+    key_indi.style.opacity = &quot;1&quot;;
+    setTimeout(onHideKeyIndicator, 1000);
+}
+function onHideKeyIndicator() {
+    key_indi.style.opacity = &quot;&quot;;
+}
 </code></pre>
 </code-sandbox>

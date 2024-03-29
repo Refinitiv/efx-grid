@@ -1,188 +1,63 @@
-<h1 id="migrating-from-emerald-grid">Migrating from Emerald Grid</h1>
-<p>Emerald Grid has a lot of built-in features which make it big. Moving from Emerald Grid to EFX Grid usually involves around using extensions as a replacement for the built-ins. In this guide, we are going to list out all the differences and how you can migrate those features to EFX grid. </p>
-<h2 id="deprecated-properties">Deprecated properties</h2>
-<p>The following properties are available in Emerald Grid configuration object, but not available in EFX Grid configuration object. </p>
-<h3 id="formatter-property"><code>formatter</code> property</h3>
-<h4 id="change">Change</h4>
-<p><code>formatter</code>, <code>formatter.render</code>, and <code>formatter.bind</code> properties should be replaced by <code>binding</code> property. Any logic in <code>formatter.render</code> method should be combined with <code>formatter.bind</code> method for simplication. The parameters passed to <code>formatter.render</code> and <code>formatter.bind</code> methods are grouped into a single parameter in <code>binding</code> method.</p>
-<h4 id="reason">Reason</h4>
-<p><code>formatter</code> property requires <code>render</code> and <code>bind</code> methods to be defined, which is quite clunky. In addition, there are too many parameters passed to the methods. Most of them are not useful in most cases. They are locked into the function signature. They are inflexible and cumbersome to write.</p>
-<h4 id="sample">Sample</h4>
-<p>If you have the following Emerald Grid configuration:</p>
-<pre><code class="language-js">var configObj = {
-    columns: [
-        {
-            // Column options
-            formatter: {
-                render: function() {},
-                binding: function(rowIndex, colIndex, data, cell) {
-                    var inputElem = cell.getContent();
-                    if (!inputElem) {
-                        inputElem = document.createElement(&quot;input&quot;);
-                    }
-                    
-                    inputElem.value = data;
-                    cell.setContent(inputElem);
-                }
-            }
-        },
-        ...
-    ]
-        
-};
-</code></pre>
-<p>then you would change to the following EFX Grid configuration:</p>
-<pre><code class="language-js">var configObj = {
-    columns: [
-        {
-            // Column options
-            binding: function(e) {
-                var cell = e.cell;
-                var inputElem = cell.getContent();
-                if (!inputElem) {
-                    inputElem = document.createElement(&quot;input&quot;);
-                }
-                
-                inputElem.value = e.data;
-                cell.setContent(inputElem);
-            }
-        },
-        ...
-    ]
-    
-};
-</code></pre>
-<blockquote>
-<p>Note that the parameter names are now defined by the event argument. Some parameters may have its name changed. Please use the debugger to check for the parameters&#39; availability.</p>
-</blockquote>
-<h3 id="datamodel-property"><code>dataModel</code> property</h3>
-<h4 id="change-1">Change</h4>
-<p><code>dataModel</code> property is replaced by <code>staticDataRows</code> property. value in <code>dataModel.data</code> should be used as <code>staticDataRows</code> value. <code>dataModel.fields</code> and <code>dataModel.format</code> will be automatically resolved by EFX Grid and should be safely removed. For reliable conversion, array of object maps should be used instead of two dimentional array. </p>
-<h4 id="reason-1">Reason</h4>
-<p>A row in EFX Grid can contains some information (i.e., real-time related metadata) other than just data content. <code>rows</code> property is created to hold the additional information. In the same sense, <code>staticDataRows</code> property is created for rows with only data content.</p>
-<h4 id="sample-1">Sample</h4>
-<p>If you have the following Emerald Grid configuration:</p>
-<pre><code class="language-js">var configObj = {
-    dataModel: {
-        fields: [&quot;field1&quot;, &quot;field2&quot;],
-        format: &quot;array&quot;,
-        data: [
-            [1, 2],
-            [3, 4]
-        ]
-    }
-};
-</code></pre>
-<p>then you would change to the following EFX Grid configuration:</p>
-<pre><code class="language-js">var configObj = {
-    staticDataRows: [
-        {&quot;field1&quot;: 1, &quot;field2&quot;: 2},
-        {&quot;field1&quot;: 3, &quot;field2&quot;: 4}
-    ]
-};
-</code></pre>
-<h3 id="title-and-titlealignment-properties"><code>title</code> and <code>titleAlignment</code> properties</h3>
-<p>Title keyword is used in HTML tag as <a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/title">global attribute</a> for tooltips. To avoid confusion between tooltip and header text, <code>title</code> and <code>titleAlignment</code> properties are renamed to <code>name</code> and <code>headerAlignment</code>, respectively.</p>
-<h3 id="blinkby-and-blinker-properties"><code>blinkBy</code> and <code>blinker</code> properties</h3>
-<p>Blinking related features have been moved to <a href="#/extensions/tr-grid-conditional-coloring">Conditional Coloring extension</a>. </p>
-<h3 id="cellediting-and-autoedit-properties"><code>cellEditing</code> and <code>autoEdit</code> properties</h3>
-<p>Cell editing related features have been moved to <a href="#/extensions/tr-grid-in-cell-editing">In-Cell Editing extension</a>.</p>
-<h3 id="checkboxselector-property"><code>checkboxSelector</code> property</h3>
-<p>Checkbox related features have been moved to <a href="#/extensions/tr-grid-checkbox">Checkbox extension</a>.</p>
-<h3 id="filterrow-property"><code>filterRow</code> property</h3>
-<p>Filter row feature has been moved to <a href="#/extensions/tr-grid-filter-input">Filter Input extension</a>.</p>
-<h2 id="built-in-filter-related-methods-and-events">Built-in filter related methods and events</h2>
-<p>Filter related feature has been moved to <a href="#/extensions/tr-grid-row-filtering">Row Filtering extension</a>.</p>
-<p>The following filter related methods are not available in EFX Grid. Use methods provided from the extension instead. </p>
+<h1 id="atlas-blotter-to-efx-grid">Atlas Blotter to EFX Grid</h1>
+<p>After migrating to Atlas Blotter, you can now proceed to migrate to EFX Grid. Since Element Framework v4 has several limitations, we recommend transitioning to Element Framework v6, which introduces more features and functionality. For instance, in Element Framework v6, we have begun supporting Accessibility. Therefore, we strongly recommend migrating to EFX Grid to leverage the capabilities of Element Framework v6.</p>
+<h2 id="overview">Overview</h2>
+<p>On this page, our focus is on migrating from Atlas Blotter to EFX Grid. We recommend migrating Element Framework before migrating to EFX Grid.</p>
+<h2 id="prerequisites">Prerequisites</h2>
 <ul>
-<li>filter</li>
-<li>addFilter</li>
-<li>removeFilter</li>
-<li>modifyFilter</li>
-<li>execFilter</li>
-<li>getFilterStates</li>
-<li>getColumnFilterStates</li>
-<li>restoreColumnFilterStates</li>
-<li>clearAllFilters</li>
-<li>showFilterRow</li>
-<li>hideFilterRow</li>
+<li>Migration to Atlas Blotter: We suggest migrating from Emerald Grid to Atlas Blotter first and then proceeding from Atlas Blotter to EFX Grid. However, you can directly migrate from Emerald Grid to EFX Grid without going through Atlas Blotter. Just be aware that there may be some errors, which you can learn about on the <a href="#/migrating/migration-emerald-grid-to-atlas-blotter">Migration page</a>.</li>
+<li>Migrate Element Framework from v4 to <a href="https://lsegroup.sharepoint.com/teams/ElementFramework/SitePages/Element-Framework-v6-Migration-Guide.aspx">Element Framework v6</a> or <a href="https://lsegroup.sharepoint.com/teams/ElementFramework/SitePages/Element-Framework-v7-Upgrade-Guide.aspx">Element Framework v7</a></li>
+<li>Follow the <a href="https://ui.refinitiv.com/start/upgrade-guide">Upgrade Element Framework Guide</a></li>
+<li>Understand the <a href="https://ui.refinitiv.com/guides/compatibility">Compatibility</a> of bundle tools. For example, in v6, we do not directly support webpack4; if you want to use it with webpack4, you&#39;ll need to configure some extra settings in Babel. However, it supports webpack5 as well.</li>
 </ul>
-<p>The following custom events are not available in EFX Grid. Use events provided from the extension instead.</p>
-<ul>
-<li>filterAdded</li>
-<li>filterRemoved</li>
-<li>filterModified</li>
-<li>filterCleared</li>
-</ul>
-<h2 id="built-in-cell-editing-related-methods-and-events">Built-in cell editing related methods and events</h2>
-<p>Cell editing related features have been moved to <a href="#/extensions/tr-grid-in-cell-editing">In-Cell Editing extension</a>.</p>
-<p>The following cell editing related methods are not available in EFX Grid. Use methods provided from the extension instead. </p>
-<ul>
-<li>editCell</li>
-<li>detachEditor</li>
-</ul>
-<p>The following custom events are not available in EFX Grid. Use events provided from the extension instead.</p>
-<ul>
-<li>editorDetached</li>
-<li>editorAttached</li>
-</ul>
-<h2 id="built-in-formatters">Built-in formatters</h2>
-<p>All provided built-in formatters (<code>formatter/AsyncFormatter</code>, <code>formatter/CheckBox</code>, and <code>formatter/UpDownColor</code>) are replaced by <a href="#/rendering/predefined-formatter">predefined formatters</a>.</p>
-<h2 id="built-in-plugins">Built-in plugins</h2>
-<p>the following table shows plugins and its equivalent extension </p>
-<table>
-<thead>
-<tr>
-<th>Plugin:</th>
-<th>Extension</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>CellBlinkingPlugin</td>
-<td><a href="#/extensions/tr-grid-conditional-coloring">Conditional Coloring extension</a></td>
-</tr>
-<tr>
-<td>CellEditingPlugin</td>
-<td><a href="#/extensions/tr-grid-in-cell-editing">In-Cell Editing extension</a></td>
-</tr>
-<tr>
-<td>ColumnGroupingPlugin</td>
-<td><a href="#/extensions/tr-grid-column-stack">Column Stack extension</a></td>
-</tr>
-<tr>
-<td>GroupStatisticsPlugin</td>
-<td><a href="#/extensions/statistics-row">Statistics Row extension</a></td>
-</tr>
-<tr>
-<td>RowHeightAdjustingPlugin</td>
-<td><a href="#/extensions/tr-grid-content-wrap">Content Wrap extension</a></td>
-</tr>
-<tr>
-<td>ColumnWidthAdjustingPlugin</td>
-<td><a href="#/extensions/tr-grid-column-fitter">Column Fitter extension</a></td>
-</tr>
-</tbody></table>
-<h2 id="accessing-data">Accessing Data</h2>
-<p>Accessing data in Emerald Grid is done directly to its internal data stores (i.e., <code>DataTable</code> and <code>DataView</code>). This works fine, since rows in Emerald Grid contain only data content. However, the direct interaction with internal data store can cause out of synchronization with other parts in EFX Grid. </p>
-<h3 id="change-2">Change</h3>
-<p>Direct access to grid&#39;s internal data stores are removed. Data can be set or retrieved through grid&#39;s APIs or row definition objects instead.</p>
-<h3 id="reason-2">Reason</h3>
-<p>The change in data has to be recognized by Grid in order to synchronize with their corresponding rows and real-time data requests. </p>
-<h3 id="sample-2">Sample</h3>
-<p>If you have the following code with Emerald Grid:</p>
-<pre><code class="language-js">var dv = grid.api.getDataView();
-
-dv.getRowDataAt(1);
-
-dv.getMultipleRowData([&quot;1&quot;, &quot;2&quot;]);
-
-dv.getAllRowData();
+<h2 id="installation">Installation</h2>
+<p>Ensure you have installed Element Framework v6 to load themes and elements. In Element Framework v6, we have changed the package to an <code>npm</code> package. For EFX Grid, the package is <code>@refinitiv-ui/efx-grid</code>. You can install this package using the following command:
+<code>npm i @refinitiv-ui/efx-grid</code></p>
+<h2 id="setup-guide">Setup Guide</h2>
+<p>Use the <code>import</code> syntax to import Atlas Blotter, its dependent elements, and their themes into your app. EFX Grid has a different path from Atlas Blotter, so adjustments are needed.</p>
+<h3 id="grid-and-themes">Grid and Themes</h3>
+<p>In Atlas Blotter, we have the following imports:</p>
+<pre><code>// Import native styles for typography, CSS variables, etc.
+import &#39;@elf/elf-theme-halo/dark/imports/native-elements&#39;; 
+import &#39;@elf/atlas-blotter&#39;;
+import &#39;@elf/atlas-blotter/themes/halo/dark/atlas-blotter&#39;;
 </code></pre>
-<p>then you would change to the following code for EFX Grid:</p>
-<pre><code class="language-js">grid.api.getRowData(1); // Note getRowDataAt is shorthen to getRowData
-grid.api.getRowDefinition(1).getRowData(); // Alternatively, RowDefinition object can be used for referencing
-
-grid.api.getMultipleRowData([&quot;1&quot;, &quot;2&quot;]);
-
-grid.api.getMultipleRowData(); // getAllRowData is replaced with getMultipleRowData() for simplicity
+<p>For EFX Grid, they need to be changed to:</p>
+<pre><code>// Import native styles for typography, CSS variables, etc.
+import &quot;@refinitiv-ui/halo-theme/dark/imports/native-elements&quot;;
+// Import the element and its Halo dark theme
+import &quot;@refinitiv-ui/efx-grid&quot;;
+import &quot;@refinitiv-ui/efx-grid/themes/halo/dark&quot;;
 </code></pre>
+<h3 id="extensions">Extensions</h3>
+<p>In Atlas Blotter, each extension has its own package. The imports look like this:</p>
+<pre><code>// import { MODULE_NAME } from &quot;PROJECT_NAME/es6&quot;;
+import { AutoTooltip } from &quot;tr-grid-auto-tooltip/es6&quot;;
+import { ColumnResizing } from &quot;tr-grid-column-resizing/es6&quot;;
+import { ColumnGrouping } from &quot;tr-grid-column-grouping/es6&quot;;
+</code></pre>
+<p>For EFX Grid, it&#39;s as follows:</p>
+<pre><code>// import { EXTENSION_NAME } from &#39;@refinitiv-ui/efx-grid/extensions&#39;;
+import { AutoTooltip, ColumnResizing, ColumnGrouping } from &quot;@refinitiv-ui/efx-grid/extensions&quot;;
+</code></pre>
+<p>As you can see, now we can import extensions from only one path.</p>
+<h3 id="formatters">Formatters</h3>
+<p>In Atlas Blotter, each formatter has its own package, which is <code>@grid/formatters</code>. When importing, we have to specify the file name, like this:</p>
+<pre><code>import CoralButtonFormatter from &quot;node_modules/@grid/formatters/es6/CoralButtonFormatter.js&quot;;
+import CoralSelectFormatter from &quot;node_modules/@grid/formatters/es6/CoralSelectFormatter.js&quot;;
+</code></pre>
+<p>For EFX Grid, it can be used in only one path, similar to extensions:</p>
+<pre><code>import { EFButtonFormatter, EFSelectFormatter } from &quot;@refinitiv-ui/efx-grid/formatters&quot;;
+</code></pre>
+<p>Please be careful with these formatters. Element Framework has changed elements from v4 to v6, so the formatters will follow the ELF element. Please follow <a href="#/rendering/predefined-formatter">Predefined Formatter</a>.</p>
+<h3 id="element-usages">Element Usages</h3>
+<p>For Atlas Blotter, we use <code>&lt;atlas-blotter&gt;&lt;/atlas-blotter&gt;</code>, while for EFX Grid, we use <code>&lt;efx-grid&gt;&lt;/efx-grid&gt;</code>.</p>
+<h2 id="post-migration-reminder">Post-Migration Reminder</h2>
+<ul>
+<li>Serve Grid: Ensure that the server application runs correctly and that the grid functions as expected.</li>
+<li>Check CSS Classes: Remember to update tags in CSS classes accordingly.</li>
+<li>Remove Atlas Blotter Dependencies: Remove any unnecessary dependencies related to Atlas Blotter.</li>
+<li>Update <code>@refinitiv-ui/efx-grid</code></li>
+<li>Add Unit Tests (if necessary): Include unit tests to ensure that all modified methods are functioning correctly.</li>
+</ul>
+<h2 id="summary">Summary</h2>
+<p>If you can serve the application now, congratulations! You have successfully migrated to EFX Grid. Thank you for following.</p>

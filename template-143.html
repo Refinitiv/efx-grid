@@ -1,5 +1,5 @@
-<h1 id="ef-combo-box-formatter">EF Combo Box Formatter</h1>
-<p>This formatter creates a <a href="https://ui.refinitiv.com/elements/combo-box">ef-combo-box</a> without margin. Its options come from passed <code>options.data</code>.</p>
+<h1 id="ef-button-formatter">EF Button Formatter</h1>
+<p>This formatter creates a <a href="https://ui.refinitiv.com/elements/button">ef-button</a> without a margin. By default the text inside the button will be data from the column&#39;s field.</p>
 <h2 id="specific-options">Specific options</h2>
 <table>
 <thead>
@@ -11,14 +11,14 @@
 </tr>
 </thead>
 <tbody><tr>
-<td>data</td>
-<td>array</td>
-<td>required</td>
-<td>List of items, see <a href="https://ui.refinitiv.com/elements/combo-box">ef-combo-box</a> for more detail.</td>
+<td>label</td>
+<td>string</td>
+<td>optional</td>
+<td>Text inside the button, default text is the value from the column&#39;s field</td>
 </tr>
 </tbody></table>
 <h2 id="example">Example</h2>
-<code-sandbox hash="f491a83"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="afa3c40b"><pre><code class="language-css">efx-grid {
     height: 320px;
 }
 </code></pre>
@@ -33,33 +33,46 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var currencies = [&quot;THB&quot;, &quot;AUD&quot;, &quot;USD&quot;, &quot;YEN&quot;, &quot;TWD&quot;];
-DataGenerator.addFieldInfo(&quot;currency&quot;, { type: &quot;set&quot;, members: currencies });
-
-var fields = [&quot;number_1&quot;, &quot;boolean&quot;, &quot;currency&quot;];
+var fields = [&quot;number_1&quot;];
 var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 20 });
 
 var configObj = {
     columns: [
         { 
-            name: &quot;Column 1&quot;,
+            name: &quot;Data&quot;,
             field: fields[0],
-            alignment: &quot;center&quot;
+            sort: fields[0],
+            alignment: &quot;c&quot;
         },
-        {
-            name: &quot;Column 2&quot;,
-            field: fields[1],
-            alignment: &quot;center&quot;
+        { 
+            name: &quot;Simplest&quot;,
+            field: fields[0],
+            sort: fields[0],
+            alignment: &quot;c&quot;,
+            binding: EFButtonFormatter.create()
         },
-        {
-            name: &quot;Select&quot;,
-            field: fields[2],
-            alignment: &quot;center&quot;,
-            binding: EFComboBoxFormatter.create({
-                data: currencies
+        { 
+            name: &quot;Some options&quot;,
+            field: fields[0],
+            sort: fields[0],
+            alignment: &quot;c&quot;,
+            binding: EFButtonFormatter.create({
+                label: &quot;&quot;,
+                attributes: {
+                    icon: &quot;cross&quot;
+                },
+                styles: {
+                    width: &quot;23px&quot;
+                },
+                events: {
+                    &quot;click&quot;: function(e) {
+                        console.log(&quot;clicked&quot;);
+                    }
+                }
             })
         }
     ],
+    extensions: [],
     staticDataRows: records
 };
 

@@ -1,29 +1,106 @@
-<h1 id="changing-formatter-at-runtime">Changing Formatter at Runtime</h1>
-<p>Sometimes you might want to change a custom rendering at runtime. This can be achieved by using  <code>setColumnFormatter</code> method.</p>
+<h1 id="real-time-market-data-with-legacy-jet">Real-time Market Data with Legacy JET</h1>
 <blockquote>
-<p>APIs for Grid and the <code>setColumnFormatter()</code> method description can be found <a href="#/apis/rt-grid/grid">here</a>.</p>
+<p>This libary is deprecated. Please use <a href="#/realtime-data/jet">JET.Qoutes2</a> instead.</p>
 </blockquote>
-<pre><code class="language-js">var grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
-
-// formatter can be a function
-var formatter = function(e) {
-    var value = e.grid.getRowData(e.rowIndex)[e.field];
-    e.cell.setContent(value);
-};
-
-/*
-// or can be an object.
-var formatter = {
-    binding: function(e) {
-        var value = e.grid.getRowData(e.rowIndex)[e.field];
-        e.cell.setContent(value);
-    }
-};
-// or can be a predefined formatter
-var formatter = SimpleLinkFormatter.create()
-*/
-
-function handleChangeFormatter() {
-    grid.api.setColumnFormatter(0 /* Column Index */, formatter);
+<p><code>JET.Quotes</code> is a legacy way of retrieving real-time data. The data provided from <code>JET.Quotes</code> is two-level nested data, so it cannot be consumed directly. Custom formatters are required to render the data. The data consists of two properties, which are <code>raw</code> and <code>formatted</code>. This also means you need to define custom sorting logic to sort the data through <code>sorting</code> and <code>sortLogic</code> in the configuration object.</p>
+<h2 id="jetquotes-example">JET.Quotes example</h2>
+<code-sandbox hash="182ff98b"><pre><code class="language-css">emerald-grid {
+    height: 250px;
 }
 </code></pre>
+<pre><code class="language-html">&lt;input id=&quot;ric_in&quot; placeholder=&quot;Enter RIC&quot; value=&quot;CHF=&quot;&gt;
+&lt;button id=&quot;insert_btn&quot;&gt;Click To Insert&lt;/button&gt;
+&lt;br&gt;&lt;br&gt;
+&lt;emerald-grid&gt;&lt;/emerald-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var ricList = [&quot;EUR=&quot;,&quot;JPY=&quot;,&quot;THB=&quot;,&quot;GBP=&quot;];
+var fields = [&quot;X_RIC_NAME&quot;, &quot;CF_NAME&quot;, &quot;CF_LAST&quot;, &quot;CF_BID&quot;, &quot;CF_ASK&quot;, &quot;NETCHNG_1&quot;, &quot;PCTCHNG&quot;];
+
+JET = new tr.MockJET(); // Use Mock for illustrative purpose only
+
+document.getElementById(&#39;insert_btn&#39;).addEventListener(&quot;click&quot;, onClickInsertButton);
+
+var realtimeDataFormatter = {
+    reunder: function() {},
+    bind: function(rowIndex, columnIndex, value, cell, columnDef, dataRow, dataTable) {
+        var color = &quot;&quot;;
+        var content = &quot;&quot;;
+        if (value) { // Some RIC may not have all the fields so need to check if value is available
+            content = value.formatted;
+            var pct = dataRow[&quot;PCTCHNG&quot;] ? dataRow[&quot;PCTCHNG&quot;].raw : NaN;
+
+            if (pct &gt; 0) {
+                color = &quot;red&quot;;
+            } else if (pct &lt; 0) {
+                color = &quot;green&quot;;
+            }
+        }
+        cell.setStyle(&quot;color&quot;, color);
+        cell.setContent(content);
+    }
+};
+
+var configObj = {
+    rowSelection: true,
+    sorting: {
+        sortLogic: {
+            &quot;*&quot; : function(a, b, order) { // &quot;*&quot; means this sorting logic is used for any column
+                return (a.raw - b.raw) * order;
+            },
+            &quot;X_RIC_NAME&quot;: function(a, b, order) {
+                if(b.raw &lt; a.raw) {
+                    return order
+                } else if(a.raw &lt; b.raw) {
+                    return -order;
+                }
+                return 0;
+            }
+        }
+    },
+    columns: [
+        {title: &quot;RIC&quot;, field: &quot;X_RIC_NAME&quot;, formatter: realtimeDataFormatter},
+        {title: &quot;Name&quot;, field: &quot;CF_NAME&quot;, formatter: realtimeDataFormatter},
+        {title: &quot;Last&quot;, field: &quot;CF_LAST&quot;, formatter: realtimeDataFormatter},
+        {title: &quot;Bid&quot;, field: &quot;CF_BID&quot;, formatter: realtimeDataFormatter},
+        {title: &quot;Ask&quot;, field: &quot;CF_ASK&quot;, formatter: realtimeDataFormatter},
+        {title: &quot;Net Change&quot;, field: &quot;NETCHNG_1&quot;, formatter: realtimeDataFormatter},
+        {title: &quot;Pct.Change&quot;, field: &quot;PCTCHNG&quot;, formatter: realtimeDataFormatter}
+    ]
+};
+
+var grid = document.getElementsByTagName(&quot;emerald-grid&quot;)[0];
+grid.config = configObj;
+addRics(ricList);
+
+function onSubscriptionUpdate(sub, ric, data) {
+        if (grid.api) {
+            var dt = grid.api.getDataTable();
+            dt.setRowData(ric, data);
+        }
+}
+
+function addRics(rics) {
+    var newSubscription = JET.Quotes.create().rics(rics).rawFields(fields);
+    newSubscription.onUpdate(onSubscriptionUpdate);
+    newSubscription.start();
+}
+
+function onClickInsertButton(e) {
+    var ric = document.getElementById(&quot;ric_in&quot;).value;
+    ric = ric.toUpperCase();
+    if (ric &amp;&amp; ricList.indexOf(ric) &lt; 0) {
+        ricList.push(ric);
+        addRics(ric);
+    }
+}
+</code></pre>
+</code-sandbox>

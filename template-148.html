@@ -1,24 +1,7 @@
-<h1 id="ef-select-formatter">EF Select Formatter</h1>
-<p>This formatter creates <a href="https://ui.refinitiv.com/elements/select">ef-select</a> without margin. Its options come from passed <code>options.data</code>.</p>
-<h2 id="specific-options">Specific options</h2>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Type</th>
-<th>Attributes</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>data</td>
-<td>Array</td>
-<td>required</td>
-<td>List of items, see <a href="https://ui.refinitiv.com/elements/select">ef-select</a> for more detail.</td>
-</tr>
-</tbody></table>
+<h1 id="ef-number-field-formatter">EF Number Field Formatter</h1>
+<p>This formatter creates a <a href="https://ui.refinitiv.com/elements/number-field">ef-number-field</a> without a margin and 100% width. By default the input&#39;s value will be the column&#39;s field.</p>
 <h2 id="example">Example</h2>
-<code-sandbox hash="3ff151f9"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="a5b3b135"><pre><code class="language-css">efx-grid {
     height: 320px;
 }
 </code></pre>
@@ -33,16 +16,13 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var currencies = [&quot;THB&quot;, &quot;AUD&quot;, &quot;USD&quot;, &quot;YEN&quot;, &quot;TWD&quot;];
-DataGenerator.addFieldInfo(&quot;currency&quot;, { type: &quot;set&quot;, members: currencies});
-
-var fields = [&quot;currency&quot;];
-var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 20    });
+var fields = [&quot;number_1&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 20 });
 
 var configObj = {
     columns: [
         { 
-            name: &quot;Data&quot;,
+            name: &quot;Number&quot;,
             field: fields[0],
             sort: fields[0],
             alignment: &quot;c&quot;
@@ -51,32 +31,20 @@ var configObj = {
             name: &quot;Simplest&quot;,
             field: fields[0],
             sort: fields[0],
-            alignment: &quot;c&quot;,
-            binding: EFSelectFormatter.create({
-                entries: currencies
-            })
+            binding: EFNumberFieldFormatter.create()
         },
-        { 
-            name: &quot;Some options&quot;,
+        {
+            name: &quot;Some options (Step)&quot;,
             field: fields[0],
             sort: fields[0],
-            alignment: &quot;c&quot;,
-            binding: EFSelectFormatter.create({
-                data: currencies,
+            binding: EFNumberFieldFormatter.create({
                 attributes: {
-
-                },
-                styles: {
-                    width: &quot;80px&quot;
-                },
-                events: {
-                    &quot;value-changed&quot;: function(e) {
-                        // console.log(&quot;value changed: &quot; + e.detail.value);
-                    }
+                    step: 100
                 }
             })
         }
     ],
+    extensions: [],
     staticDataRows: records
 };
 

@@ -1,146 +1,52 @@
 <link rel="stylesheet" href="./resources/styles/elf-template.css">
 
-<h1 id="column-selection-dialog">Column Selection Dialog</h1>
-<p>The Column Selection Dialog is UI for managing Grid&#39;s columns.</p>
-<h2 id="features">Features</h2>
-<ul>
-<li>Allow users to show/hide columns and change order of the visible columns.</li>
-<li>Allow users to search columns by name.</li>
-<li>Allow users to add a tag and search only for columns with the specified tags.</li>
-</ul>
-<h2 id="demo">Demo</h2>
-<p>Click on <code>Open Dialog</code> button to see the dialog.</p>
-<code-sandbox hash="dcf4fab0"><pre><code class="language-css">html hr {
-    margin: 5px;
-}
-
-efx-grid {
-    height: 500px;
-}
-</code></pre>
-<pre><code class="language-html">Language:
-&lt;select id=&quot;lang_selector&quot;&gt;
-  &lt;option value=&quot;en&quot;&gt;English&lt;/option&gt;
-  &lt;option value=&quot;ja&quot;&gt;Japanese&lt;/option&gt;
-  &lt;option value=&quot;de&quot;&gt;German&lt;/option&gt;
-  &lt;option value=&quot;zh&quot;&gt;Simplified Chinese&lt;/option&gt;
-  &lt;option value=&quot;zh-Hant&quot;&gt;Traditional Chinese&lt;/option&gt;
-&lt;/select&gt;
-&lt;ef-button id=&quot;open_btn&quot;&gt;Open Dialog&lt;/ef-button&gt;
-&lt;hr&gt;
-&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;CF_VOLUMN&quot;, &quot;date&quot;, &quot;PCTCHNG2&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 6 });
-
-var allColumns = [
-  {name: &quot;Company&quot;, field: fields[0], disabled: true},
-  {name: &quot;Market&quot;, field: fields[1], width: 100},
-  {name: &quot;Last&quot;, field: fields[2], width: 80, alignment: &quot;right&quot;},
-  {name: &quot;Net. Chng&quot;, field: fields[3], width: 80, alignment: &quot;right&quot;},
-  {name: &quot;Industry&quot;, field: fields[4]},
-  {name: &quot;Volumn&quot;, field: fields[5], alignment: &quot;right&quot;},
-  {name: &quot;IPO Date&quot;, field: fields[6]},
-  {name: &quot;Pct. Chng&quot;, field: fields[7], alignment: &quot;right&quot;}
-];
-
-var configObj = {
-  dataModel: {
-    data: records
-  }
+<h1 id="printing">Printing</h1>
+<p>You can print Grid using the Printing Utility or the native printer feature within a browser. The native printer is more difficult to use, however.</p>
+<h2 id="using-a-native-printer">Using a native printer</h2>
+<p>Since content can scroll inside Grid, native printers do not work well with it, as the final print preview truncates any components that are not currently visible on the screen.</p>
+<p>To solve this, you need to update the grid&#39;s configuration to show all hidden information before you preview it. See the steps below.</p>
+<h3 id="1-initialize-grid">1. Initialize Grid</h3>
+<pre><code class="language-js">var config = {
+  // ... See column options for available options
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
-
-grid.columns = [
-  allColumns[0],
-  allColumns[1],
-  allColumns[2],
-  allColumns[3],
-  allColumns[4]
-];
-
-var dialog = document.createElement(&quot;column-selection-dialog&quot;);
-dialog.config = {
-  data: allColumns,
-  defaultItems: grid.columns
-};
-dialog.addEventListener(&quot;confirm&quot;, function (e) {
-    grid.columns = e.detail.value;
-});
-
-document.getElementById(&quot;open_btn&quot;).addEventListener(&quot;click&quot;, function () {
-  var lang = document.getElementById(&quot;lang_selector&quot;).value;
-  dialog.lang = lang;
-  dialog.visibleItems = grid.api.getConfigObject().columns;
-  dialog.show();
-});
+grid.config = config;
 </code></pre>
-</code-sandbox><h2 id="setup-guide">Setup guide</h2>
-<pre><code class="language-js">// efx-grid
-import &#39;@refinitiv-ui/efx-grid&#39;;
-import &#39;@refinitiv-ui/efx-grid/themes/halo/light&#39;;
-
-// Column Selection Dialog module
-import &#39;@refinitiv-ui/efx-grid/column-selection-dialog&#39;;
-import &#39;@refinitiv-ui/efx-grid/column-selection-dialog/themes/halo/light&#39;;
-</code></pre>
-<p>Create a <code>column-selection-dialog</code> using the <code>document.createElement</code> method. This way, the column-selection-dialog DOM instance will not be mounted initially.</p>
-<pre><code class="language-js">var dialog = document.createElement(&quot;column-selection-dialog&quot;);
-</code></pre>
-<p>Then you need to subscribe to <code>confirm</code> event which will be fired when the user has confirmed their changes. It is also required to directly manipulate <code>grid.columns</code> with the <code>e.detail.value</code> like below.</p>
-<pre><code class="language-js">dialog.addEventListener(&quot;confirm&quot;, function (e) {
-  var grid = document.getElementById(&quot;grid&quot;);
-  grid.columns = e.detail.value;
-});
-</code></pre>
-<p>By default, once users click <code>Done</code> the dialog will automatically hide. In order to prevent the dialog from closing (eg. Validate something before closing), use <code>beforeConfirm</code> event and set <code>e.cancel</code> to true.</p>
-<pre><code class="language-js">dialog.addEventListener(&quot;beforeConfirm&quot;, function (e) {
-  if (/*Some logic*/) {
-    e.cancel = true;
-    window.alert(&quot;Don&#39;t hide the dialog&quot;);
-  }
-});
-</code></pre>
-<p>Then set initial data using the <code>init(configObj)</code> method. This takes a configuration object consisting of two properties, <code>data</code> and <code>visibleItems</code>. Alternatively, the same configuration can be set through <code>config</code> property. For example, dialog.config = configObj;</p>
-<pre><code class="language-js">var columns = [/* Grid Column Option */];
-var grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
-grid.config = {/* Grid Option */};
-grid.columns = columns; // Explicitly set columns, otherwise it will be undefined
-
-dialog.config = {
-  data: columns, // All columns
-  visibleItems: grid.columns // Currently visible columns
-};
-</code></pre>
+<h3 id="2-adjust-the-grids-resolution">2. Adjust the Grid&#39;s resolution</h3>
+<p>Adjust the Grid&#39;s resolution to reflect the paper size (for example, A3, A4, A5).</p>
 <blockquote>
-<p>Note: <code>grid.columns</code> needs to be set explicitly due to limitations of the Grid.</p>
+<p><code>@media print</code> CSS properties cannot be used to adjust Grid&#39;s style, as Grid will not re-render itself with CSS properties. They can only be used to adjust the layout before the print preview.</p>
 </blockquote>
-<p>Finally, to open the dialog you need to call <code>dialog.show()</code> method on dialog element.</p>
-<pre><code class="language-js">dialog.show();
-</code></pre>
-<h2 id="changing-language">Changing Language</h2>
-<p>For more information about internationalization and how is it applied in different contexts see <a href="#/widgets/language-support">Language Support</a>.</p>
-<h2 id="multi-level-with-column-selection">Multi Level with Column Selection</h2>
-<code-sandbox hash="ad712ddc"><pre><code class="language-css">html hr {
-    margin: 5px;
-}
-efx-grid {
-    height: 500px;
+<pre><code class="language-js">function beforePrint() {
+  grid.style.width = &quot;180mm&quot;; // A4 width
+  grid.style.height = &quot;unset&quot;;
 }
 </code></pre>
-<pre><code class="language-html">&lt;button id=&quot;open_btn&quot;&gt;Open Dialog&lt;/button&gt;
-&lt;hr&gt;
+<h3 id="3-delayed-windowprint">3. Delayed <code>window.print</code></h3>
+<p>Grid needs approximately 300ms to recalculate and re-render itself. So you need to make sure Grid has enough time to update its state before the print preview appears.</p>
+<pre><code class="language-js">function print() {
+  beforePrint();
+  setTimeout(function () {
+    window.print();
+  }, 500); // Grid needs at least 300ms  to recalculate and repaint itself.
+}
+</code></pre>
+<h3 id="4-after-printing">4. After printing</h3>
+<p>Lastly, the grid&#39;s configuration needs to be restored to its initial state. For this, the <code>window.onafterprint</code> hook will be triggered once printing is finished.</p>
+<pre><code class="language-js">window.onafterprint = function () {
+  grid.style.width = &quot;100%&quot;;
+  grid.style.height = &quot;500px&quot;;
+}
+</code></pre>
+<h2 id="using-the-printing-utility">Using the Printing Utility</h2>
+<p>Unlike the native printer above, the Printing Utility has been created to help print the grid without other components. Rows and columns will not be truncated when using the utility.</p>
+<p>Basically, the utility creates a new grid DOM dynamically and copies its data into this newly created grid. It will be destroyed automatically when printing is finished.</p>
+<code-sandbox hash="bb8a7d5e"><pre><code class="language-css">efx-grid {
+    height: 300px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;button id=&quot;print&quot;&gt;print&lt;/button&gt;
 &lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
@@ -152,398 +58,54 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;CF_VOLUMN&quot;, &quot;date&quot;, &quot;PCTCHNG2&quot;];
-  var records = DataGenerator.generateRecords(fields, 20);
-
-  var allColumns = [
-    {name: &quot;Company&quot;, field: fields[0], disabled: true},
-    {name: &quot;Market&quot;, field: fields[1], width: 100},
-    {name: &quot;Last&quot;, field: fields[2], width: 80, alignment: &quot;right&quot;},
-    {name: &quot;Net. Chng&quot;, field: fields[3], width: 80, alignment: &quot;right&quot;},
-    {name: &quot;Industry&quot;, field: fields[4]},
-    {name: &quot;Volumn&quot;, field: fields[5], alignment: &quot;right&quot;},
-    {name: &quot;IPO Date&quot;, field: fields[6]},
-    {name: &quot;Pct. Chng&quot;, field: fields[7], alignment: &quot;right&quot;}
-  ];
-
-  var configObj = {
-    dataModel: {
-        data: records
-    }
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
-
-grid.columns = [
-    allColumns[0],
-    allColumns[1],
-    allColumns[2],
-    allColumns[3],
-    allColumns[4]
-];
-
-var columnTree = [
-    allColumns[0],
-    {
-        label: &#39;Basic Info&#39;,
-        items: [
-            allColumns[1],
-            allColumns[4],
-            allColumns[6]
-        ]
-    },
-    {
-        label: &#39;Trading Info&#39;,
-        items: [
-            {
-                label: &#39;Net.&#39;,
-                items: [
-                    allColumns[2],
-                    allColumns[3],
-                    allColumns[5]
-                ]
-            },
-            {
-                label: &#39;Percent&#39;,
-                items: [
-                    allColumns[7]
-                ]
-            }
-        ]
-    }
-];
-
-var dialog = document.createElement(&quot;column-selection-dialog&quot;);
-dialog.config = {
-    data: columnTree
-};
-
-dialog.addEventListener(&quot;confirm&quot;, function (e) {
-        grid.columns = e.detail.value;
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;icon&quot;];
+DataGenerator.addFieldInfo(&quot;icon&quot;, {
+    type: &quot;set&quot;,
+    members: [&quot;up&quot;, &quot;down&quot;, &quot;phone&quot;, &quot;calendar&quot;, &quot;flame&quot;]
 });
-
-document.getElementById(&quot;open_btn&quot;).addEventListener(&quot;click&quot;, function () {
-    dialog.visibleItems = grid.api.getConfigObject().columns;
-    dialog.show();
-});
-</code></pre>
-</code-sandbox><h2 id="disabled-column">Disabled column</h2>
-<p>In case you do not want specific columns to move out of the grid, you can set the flag as disabled for that specific column, as the example below:</p>
-<pre><code class="language-js">var columns = [/* Grid Column Option */];
-var grid = document.getElementById(&quot;grid_id&quot;);
-grid.config = {/* Grid Option */};
-grid.columns = columns; // Explicitly set columns, otherwise it will be undefined
-
-columns[1].disabled = true; // To prevent this column from moving between the lists
-dialog.config = {
-    data: columns, // All columns
-    visibleItems: columns// Currently visible columns
-};
-</code></pre>
-<h2 id="stationary-column">Stationary column</h2>
-<p>In case you are having pinned columns, and you do not want pinned columns to be moved or removed from the grid, you can enable the stationary flag to disable select and moving operation for that specific column.</p>
-<code-sandbox hash="3b03347e"><pre><code class="language-css">html hr {
-    margin: 5px;
-}
-</code></pre>
-<pre><code class="language-html">&lt;button id=&quot;open_btn&quot;&gt;Open Dialog&lt;/button&gt;
-&lt;hr&gt;
-&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;CF_VOLUMN&quot;, &quot;date&quot;, &quot;PCTCHNG2&quot;];
-  var records = DataGenerator.generateRecords(fields, 20);
-
-  var allColumns = [
-    {name: &quot;Company&quot;, field: fields[0], width: 250, leftPinned: true, stationary: true},
-    {name: &quot;Market&quot;, field: fields[1], width: 250},
-    {name: &quot;Last&quot;, field: fields[2], width: 120, alignment: &quot;right&quot;},
-    {name: &quot;Net. Chng&quot;, field: fields[3], width: 100, alignment: &quot;right&quot;},
-    {name: &quot;Industry&quot;, field: fields[4], width: 200},
-    {name: &quot;Volumn&quot;, field: fields[5], width: 100, alignment: &quot;right&quot;},
-    {name: &quot;IPO Date&quot;, field: fields[6], width: 100},
-    {name: &quot;Pct. Chng&quot;, field: fields[7], width: 100, alignment: &quot;right&quot;}
-  ];
-
-  var configObj = {
-    dataModel: {
-        data: records
-    }
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
-
-grid.columns = [
-    allColumns[0],
-    allColumns[1],
-    allColumns[2],
-    allColumns[3],
-    allColumns[4]
-];
-
-var columnTree = [
-    allColumns[0],
-    {
-        label: &#39;Basic Info&#39;,
-        items: [
-            allColumns[1],
-            allColumns[4],
-            allColumns[6]
-        ]
-    },
-    {
-        label: &#39;Trading Info&#39;,
-        items: [
-            {
-                label: &#39;Net.&#39;,
-                items: [
-                    allColumns[2],
-                    allColumns[3],
-                    allColumns[5]
-                ]
-            },
-            {
-                label: &#39;Percent&#39;,
-                items: [
-                    allColumns[7]
-                ]
-            }
-        ]
-    }
-];
-
-var dialog = document.createElement(&quot;column-selection-dialog&quot;);
-dialog.config = {
-    data: columnTree
-};
-
-dialog.addEventListener(&quot;confirm&quot;, function (e) {
-        grid.columns = e.detail.value;
-});
-
-document.getElementById(&quot;open_btn&quot;).addEventListener(&quot;click&quot;, function () {
-    dialog.visibleItems = grid.api.getConfigObject().columns;
-    dialog.show();
-});
-</code></pre>
-</code-sandbox><blockquote>
-<p><strong>Note:</strong> </p>
-<ul>
-<li>Disabled column will only prevent column from selection and deselection, but the column is still movable.</li>
-<li>Stationary column will not allow the column to be deselected or changing its order.</li>
-</ul>
-</blockquote>
-<h2 id="hide-columns-in-visible-columns">Hide Columns in Visible Columns</h2>
-<p>There is a use case where you might not want some columns to be moved. You can disable the number of columns in the visible columns using <code>excludedColumns</code> config.</p>
-<pre><code class="language-js">dialog.config = {
-    // Other dialog config
-    excludedColumns: 2, // This will make column index 0-1 hidden in the Visible Columns.
-};
-</code></pre>
-<h2 id="default-columns">Default Columns</h2>
-<p>The &quot;RESTORE DEFAULT&quot; button will show only when defaultItems has been set. This button will reset all visible columns to default.</p>
-<pre><code class="language-js">var allColumns = [
-    {name: &quot;Company&quot;, field: fields[0], disabled: true},
-    {name: &quot;Market&quot;, field: fields[1], width: 100},
-    {name: &quot;Last&quot;, field: fields[2], width: 80, alignment: &quot;right&quot;},
-    {name: &quot;Net. Chng&quot;, field: fields[3], width: 80, alignment: &quot;right&quot;},
-    {name: &quot;Industry&quot;, field: fields[4]},
-    {name: &quot;Volumn&quot;, field: fields[5], alignment: &quot;right&quot;},
-    {name: &quot;IPO Date&quot;, field: fields[6]},
-    {name: &quot;Pct. Chng&quot;, field: fields[7], alignment: &quot;right&quot;}
-];
-
-grid.columns = [
-    allColumns[0],
-    allColumns[1],
-    allColumns[2],
-    allColumns[3],
-    allColumns[4]
-];
-
-dialog.config = {
-    // Other dialog config
-    defaultItems: grid.columns
-};
-</code></pre>
-<blockquote>
-<p>Note: <code>availableItems</code> is deprecated.</p>
-</blockquote>
-<h2 id="restoring-columns-with-retaining-sorting-and-filtering-states">Restoring columns with retaining sorting and filtering states</h2>
-<p>The Column Selection Dialog only provides column information to the user. If you wish to retain certain states, such as sorting and filtering, you will need to utilize the grid API to restore the updated data back to the grid from your side.</p>
-<p>In the example below, we will demonstrate how to retain the sorting and filtering state in the grid when confirming the column selection dialog.</p>
-<code-sandbox hash="2441796f"><pre><code class="language-css">html hr {
-    margin: 5px;
-}
-efx-grid {
-    height: 500px;
-}
-</code></pre>
-<pre><code class="language-html">&lt;button id=&quot;open_btn&quot;&gt;Open Dialog&lt;/button&gt;
-&lt;hr&gt;
-&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var rowFilteringExt = new RowFiltering();
-
-  var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;CF_VOLUMN&quot;, &quot;date&quot;, &quot;PCTCHNG2&quot;];
-  var records = DataGenerator.generateRecords(fields, 20);
-  var allColumns = [
-    {name: &quot;Company&quot;, field: fields[0], disabled: true},
-    {name: &quot;Market&quot;, field: fields[1], width: 100},
-    {name: &quot;Last&quot;, field: fields[2], width: 80, alignment: &quot;right&quot;},
-    {name: &quot;Net. Chng&quot;, field: fields[3], width: 80, alignment: &quot;right&quot;},
-    {name: &quot;Industry&quot;, field: fields[4]},
-    {name: &quot;Volumn&quot;, field: fields[5], alignment: &quot;right&quot;},
-    {name: &quot;IPO Date&quot;, field: fields[6]},
-    {name: &quot;Pct. Chng&quot;, field: fields[7], alignment: &quot;right&quot;}
-  ];
-
-  var configObj = {
-        dataModel: {
-            data: records
-        },
-        extensions: [rowFilteringExt],
-        rowFiltering: {
-            iconActivation: &quot;always&quot;
-        },
-    };
-
-    var grid = document.getElementById(&quot;grid&quot;);
-    grid.config = configObj;
-
-    grid.columns = [
-        allColumns[0],
-        allColumns[1],
-        allColumns[2],
-        allColumns[3],
-        allColumns[4]
-    ];
-
-    var dialog = document.createElement(&quot;column-selection-dialog&quot;);
-    dialog.config = {
-        data: allColumns,
-        defaultItems: grid.columns
-    };
-
-    dialog.addEventListener(&quot;confirm&quot;, function (e) {
-        grid.api.restoreColumns(e.detail.data, true);
-    });
-
-    document.getElementById(&quot;open_btn&quot;).addEventListener(&quot;click&quot;, function () {
-        dialog.visibleItems = grid.api.getConfigObject().columns;
-        dialog.show();
-    });
-</code></pre>
-</code-sandbox><h2 id="tag-searching">Tag searching</h2>
-<p>To add available tag list to the dialog, set an array of tags to <code>tags</code> property on the dialog configuration object. <code>tags</code> property can also be set on column configuration object for matching. </p>
-<code-sandbox hash="ba53034d"><pre><code class="language-css">html hr {
-    margin: 5px;
-}
-efx-grid {
-    height: 500px;
-}
-</code></pre>
-<pre><code class="language-html">&lt;button id=&quot;open_btn&quot;&gt;Open Dialog&lt;/button&gt;
-&lt;hr&gt;
-&lt;big id=&quot;msg_big&quot;&gt;&lt;/big&gt;
-&lt;hr&gt;
-&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var availableTags = [&quot;Runner&quot;, &quot;Swimmer&quot;, &quot;Flier&quot;, &quot;red&quot;, &quot;green&quot;, &quot;blue&quot;];
-var fieldDefs = [
-    [&quot;Red Dog&quot;, [&quot;red&quot;, &quot;runner&quot;, &quot;running&quot;]],
-    [&quot;Red Snake&quot;, [&quot;red&quot;]],
-    [&quot;Blue Penguin&quot;, [&quot;Blue&quot;, &quot;Runner&quot;, &quot;Running&quot;, &quot;Swimmer&quot;]],
-    [&quot;Blue Bird&quot;, [&quot;Blue&quot;, &quot;Flier&quot;]],
-    [&quot;Blue Chicken&quot;, [&quot;Blue&quot;, &quot;runner&quot;, &quot;running&quot;]],
-    [&quot;Green Lion&quot;, [&quot;Green&quot;, &quot;Runner&quot;, &quot;running&quot;]],
-    [&quot;Red Bat&quot;, [&quot;red&quot;, &quot;Flier&quot;]],
-    [&quot;Green Frog&quot;, [&quot;Green&quot;, &quot;Swimmer&quot;]],
-    [&quot;Blue Rabbit&quot;, [&quot;Blue&quot;, &quot;Runner&quot;, &quot;running&quot;]],
-    [&quot;Red Fish&quot;, [&quot;red&quot;, &quot;Swimmer&quot;]]
-];
-document.getElementById(&quot;msg_big&quot;).textContent = &quot;Available tags: &quot; + availableTags.join(&quot;, &quot;);
-var columnDefMap = fieldDefs.reduce(function(obj, def) { 
-    var field = def[0];
-    var tag = def[1];
-    obj[field] = {
-        field: field,
-        id: field,
-        tags: tag
-    };
-    return obj;
-}, {});
-function idToColumnDef(colId) {
-    return columnDefMap[colId] || null;
-}
-
-var fields = Object.keys(columnDefMap);
-var availableColumns = Object.values(columnDefMap);
-
-var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 20 });
+var records = DataGenerator.generateRecords(fields, { numRows: 20 });
 var configObj = {
+    columns: [
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market&quot;, field: fields[1], width: 100},
+        {name: &quot;Last&quot;, field: fields[2], width: 80},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 80},
+        {name: &quot;Industry&quot;, field: fields[4]},
+        {name: &quot;Icon&quot;, field: fields[5], binding: EFIconFormatter.create()}
+    ],
     staticDataRows: records
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
-grid.columns = availableColumns.slice(0, 4);
 
-function onConfirm(e) {
-    grid.columns = e.detail.value;
-}
-
-var dialog = null;
-document.getElementById(&quot;open_btn&quot;).addEventListener(&quot;click&quot;, function () {
-    if (!dialog) {
-        dialog = document.createElement(&quot;column-selection-dialog&quot;);
-
-        dialog.config = {
-            data: availableColumns,
-            confirm: onConfirm,
-            tags: availableTags,
-            infoTooltip: &quot;Search Column to add to the right list. Press Tab to add a Tag. Available tags for Search: Red, Blue, Green, Runner, Swimmer, and Flier&quot;,
-            searchPlaceholder: &quot;Search Column. Press Tab to add a Tag&quot;
-        };
-    }
-    
-    var columnIds = grid.api.getColumnIds();
-    dialog.visibleItems = columnIds.map(idToColumnDef);
-    
-    dialog.show();
-});
+document.getElementById(&quot;print&quot;).addEventListener(&quot;click&quot;, function() {
+    GridPrinter.print(grid);
+  });
 </code></pre>
-</code-sandbox><h2 style="margin-bottom:5px" id="api-refs">API Reference</h2>
-<div id="elf-api-container"><div id="main-template" class="elf-template">    <section><header>            <h1 class="subsection-title"><span class="attribs"><span class="type-signature"></span></span>ColumnSelectionDialog<span class="signature">()</span><span class="type-signature"></span></h1>            </header><article>                                                <h3 class="subsection-title" id="type_definitions">Type Definitions</h3>                        
-<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~Config">Config</h4>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>data</code></td>                        <td class="type">                            <span class="param-type">Array.&lt;Object&gt;</span>                        </td>                            <td class="attributes">                                                </td>                                        <td class="default">                                </td>                        <td class="description last">All possible columns for selection.</td>        </tr>            <tr>                            <td class="name"><code>visibleItems</code></td>                        <td class="type">                            <span class="param-type">Array.&lt;Object&gt;</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Column list that is in existing Grid.</td>        </tr>            <tr>                            <td class="name"><code>defaultItems</code></td>                        <td class="type">                            <span class="param-type">Array.&lt;Object&gt;</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Column list that is default.</td>        </tr>            <tr>                            <td class="name"><code>confirm</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Confirm event callback.</td>        </tr>            <tr>                            <td class="name"><code>cancel</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Cancel event callback.</td>        </tr>            <tr>                            <td class="name"><code>excludedColumns</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Deprecated, Alias wigh excludedLeftColumns.</td>        </tr>            <tr>                            <td class="name"><code>excludedLeftColumns</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Number of columns on the left side that should be hidden from Visible Columns.</td>        </tr>            <tr>                            <td class="name"><code>excludedRightColumns</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Number of columns on the right side that should be hidden from Visible Columns.</td>        </tr>            <tr>                            <td class="name"><code>unmovableColumns</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Depricated, Alias with stationary column option. Number of columns that is unmovable in Visible Columns.</td>        </tr>            <tr>                            <td class="name"><code>descriptionBox</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Show description box</td>        </tr>            <tr>                            <td class="name"><code>middleSeparator</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Field of column which used as middle separator to divide grid into two sides</td>        </tr>            <tr>                            <td class="name"><code>collapseAll</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">Default collapse property applies to all groups</td>        </tr>            <tr>                            <td class="name"><code>width</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Specify width of the dialog, with the minimum width of 490px</td>        </tr>            <tr>                            <td class="name"><code>height</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Specify height of the dialog</td>        </tr>            <tr>                            <td class="name"><code>tags</code></td>                        <td class="type">                            <span class="param-type">Array.&lt;string&gt;</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">All available tags for filtering</td>        </tr>            <tr>                            <td class="name"><code>infoTooltip</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    ""                                </td>                        <td class="description last">If specified, an informational icon will appear on the top with the given text as its tooltip</td>        </tr>            <tr>                            <td class="name"><code>searchPlaceholder</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    "Search"                                </td>                        <td class="description last">Placeholder text inside the search input.</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            <h3 class="subsection-title" id="methods">Methods</h3>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="hide"><span class="type-signature"></span>hide<span class="signature">()</span><span class="type-signature"></span></h4>                            <div class="description">        Hide the dialog    </div>                        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="init"><span class="type-signature"></span>init<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type"><a href="#/widgets/column-selection-dialog#~Config">ColumnSelectionDialog~Config</a></span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="show"><span class="type-signature"></span>show<span class="signature">()</span><span class="type-signature"></span></h4>                            <div class="description">        Show the dialog    </div>                        <div class="details">                                                            </div>                                    </div>                </article></section></div></div>
+</code-sandbox><p>First, install package from npm.</p>
+<pre><code class="language-bash">npm install @refinitiv-ui/efx-grid
+</code></pre>
+<p>Then, use <code>import</code> syntax for importing the utility into your app.</p>
+<pre><code class="language-js">import { GridPrinter } from &quot;@refinitiv-ui/efx-grid/utils&quot;;
+</code></pre>
+<p>Finally, send Grid into the GridPrinter utility.</p>
+<pre><code class="language-js">var config = {
+    // ... See column options for available options
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = config;
+
+GridPrinter.print(grid);
+</code></pre>
+<h2 style="margin-bottom:5px" id="api-refs">GridPrinter API Reference</h2>
+<div id="elf-api-container"><div id="main-template" class="elf-template">    <section><header>            <h1 class="subsection-title">GridPrinter</h1>            </header><article>                                                <h3 class="subsection-title" id="type_definitions">Type Definitions</h3>                        
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~Options">Options</h4><div class="description">    Configuration object for customizing priting behavior can be passed through `GridPrinter.setPrintOptions` method</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>pageWidth</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Paper width in pixel. This limits number of columns to be shown on a single page</td>        </tr>            <tr>                            <td class="name"><code>pageHeight</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Paper height in pixel. This limits number of rows to be shown on a single page</td>        </tr>            <tr>                            <td class="name"><code>primaryColumn</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Column index that will be placed as the first column on each page.</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            <h3 class="subsection-title" id="methods">Methods</h3>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id=".createPrintElement"><span class="type-signature"></span>createPrintElement<span class="signature">(grid, options<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Element}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">grid</div>                        <div class="type">                            <span class="param-type">*</span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    grid element, currently supports efx-grid, emerald-grid, tr.CompositeGrid, rt.Grid and Core                </div>                    </div>                <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Element</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id=".enableDebugMode"><span class="type-signature"></span>enableDebugMode<span class="signature">(bool<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">bool</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id=".getPreFlightInfo"><span class="type-signature"></span>getPreFlightInfo<span class="signature">(grid, options<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Object}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">grid</div>                        <div class="type">                            <span class="param-type">tr.Grid</span>                        </div>                            <div class="attributes">                                                                </div>                                            </div>                <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id=".observe"><span class="type-signature"></span>observe<span class="signature">(iFrameElement<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">iFrameElement</div>                        <div class="type">                            <span class="param-type">HTMLIFrameElement</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    If not specified, current window is used instead. Specify null to un-observe existing window object.                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id=".print"><span class="type-signature"></span>print<span class="signature">(grid)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">grid</div>                        <div class="type">                            <span class="param-type">*</span>                        </div>                                                    <div class="description">                    grid element, currently supports efx-grid, efx-grid, emerald-grid, tr.CompositeGrid, rt.Grid and Core                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id=".setPrintOptions"><span class="type-signature"></span>setPrintOptions<span class="signature">(options)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">GridPrinter.Options</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id=".unobserve"><span class="type-signature"></span>unobserve<span class="signature">()</span><span class="type-signature"></span></h4>                                            <div class="details">                                                            </div>                                    </div>                </article></section></div></div>

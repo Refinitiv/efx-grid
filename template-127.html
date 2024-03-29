@@ -1,17 +1,57 @@
-<h1 id="real-time-market-data-with-legacy-jet">Real-time Market Data with Legacy JET</h1>
-<blockquote>
-<p>This libary is deprecated. Please use <a href="#/realtime-data/jet">JET.Qoutes2</a> instead.</p>
-</blockquote>
-<p><code>JET.Quotes</code> is a legacy way of retrieving real-time data. The data provided from <code>JET.Quotes</code> is two-level nested data, so it cannot be consumed directly. Custom formatters are required to render the data. The data consists of two properties, which are <code>raw</code> and <code>formatted</code>. This also means you need to define custom sorting logic to sort the data through <code>sorting</code> and <code>sortLogic</code> in the configuration object.</p>
-<h2 id="jetquotes-example">JET.Quotes example</h2>
-<code-sandbox hash="182ff98b"><pre><code class="language-css">emerald-grid {
+<h1 id="custom-data-source">Custom Data Source</h1>
+<p>In some case, you might want to update Efx Grid&#39;s data with your own data feed. The Grid team has exposed the APIs for these scenarios.</p>
+<p>Here is an example of what the data provider might looks like:</p>
+<pre><code class="language-js">/**
+ * NOTE: DO NOT COPY AND PASTE THIS CODE
+ */ 
+var MyBasicProvider = {
+    subscribeSymbol(symbol) {
+        // When a new row is added to a Grid, we will subscribe that symbol from the datasource.
+    },
+    unsubscribeSymbol(symbol) {
+        // When row is removed from a Grid, we will stop subscribing that symbol from the datasource.
+    },
+    setDataChangeHandler(callback) {
+        // Each time the datasource has some new updates, we will need to tell Grid to update its data row.
+    }
+}
+</code></pre>
+<p>Once we have our custom data provider, then you will have to plug it into the Grid. </p>
+<p>Take a look at the next example:</p>
+<pre><code class="language-js">var grid = document.getElementById(&quot;grid_id&quot;);
+grid.addEventListener(&quot;configured&quot;, function(e) {
+    var api = e.detail.api;
+    api.listen(&quot;ricAdded&quot;, onRicAdded);
+    api.listen(&quot;ricRemoved&quot;, onRicRemoved);
+});
+
+function onRicAdded(e) {
+    var symbols = e.addedRics;
+    for (var i = 0; i &lt; symbols.length; i++) {
+        MyBasicProvider.subscribeSymbol(symbols[i]);
+    }
+}
+function onRicRemoved(e) {
+    var symbols = e.addedRics;
+    for (var i = 0; i &lt; symbols.length; i++) {
+        MyBasicProvider.unsubscribeSymbol(symbols[i]);
+    }
+}
+</code></pre>
+<p>In the above example, you are able to add a subscription to each symbol. Next you need to set the Grid&#39;s data according to the data received from the datasource.</p>
+<pre><code class="language-js">function onDataChanged(symbol, value) {
+    grid.api.setRicData(symbol, value);
+}
+
+MyBasicProvider.setDataChangeHandler(onDataChanged);
+</code></pre>
+<p>Now all the data that is updated from the datasource will also be updated to the Grid.</p>
+<h2 id="live-demo">Live demo</h2>
+<code-sandbox hash="108a33af"><pre><code class="language-css">efx-grid {
     height: 250px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;input id=&quot;ric_in&quot; placeholder=&quot;Enter RIC&quot; value=&quot;CHF=&quot;&gt;
-&lt;button id=&quot;insert_btn&quot;&gt;Click To Insert&lt;/button&gt;
-&lt;br&gt;&lt;br&gt;
-&lt;emerald-grid&gt;&lt;/emerald-grid&gt;
+<pre><code class="language-html">&lt;efx-grid&gt;&lt;/efx-grid&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
@@ -22,85 +62,186 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var ricList = [&quot;EUR=&quot;,&quot;JPY=&quot;,&quot;THB=&quot;,&quot;GBP=&quot;];
-var fields = [&quot;X_RIC_NAME&quot;, &quot;CF_NAME&quot;, &quot;CF_LAST&quot;, &quot;CF_BID&quot;, &quot;CF_ASK&quot;, &quot;NETCHNG_1&quot;, &quot;PCTCHNG&quot;];
+var dataGen = DataGenerator;
+var Toolkit = tr.MockRTK;
+Toolkit.init({ ID: &#39;rtk-efx-grid&#39; }, [&#39;Quotes&#39;, &#39;Data&#39;]).then(onInit);
 
-JET = new tr.MockJET(); // Use Mock for illustrative purpose only
-
-document.getElementById(&#39;insert_btn&#39;).addEventListener(&quot;click&quot;, onClickInsertButton);
-
-var realtimeDataFormatter = {
-    reunder: function() {},
-    bind: function(rowIndex, columnIndex, value, cell, columnDef, dataRow, dataTable) {
-        var color = &quot;&quot;;
-        var content = &quot;&quot;;
-        if (value) { // Some RIC may not have all the fields so need to check if value is available
-            content = value.formatted;
-            var pct = dataRow[&quot;PCTCHNG&quot;] ? dataRow[&quot;PCTCHNG&quot;].raw : NaN;
-
-            if (pct &gt; 0) {
-                color = &quot;red&quot;;
-            } else if (pct &lt; 0) {
-                color = &quot;green&quot;;
-            }
+/**
+* NOTE: DO NOT COPY AND PASTE THIS CODE
+* 
+* This is only an example of a simple data provider. In real world scenario, you would need to implement the logics base on your requirements.
+* For example:
+* 1. Define an endpoint to a real domain name.
+* 2. Store a data base on your need.
+* 3. Implement only neccessary methods.
+* 4, Remove any timer and setInterval.
+*/ 
+var MyBasicProvider = {
+    _fields: {},
+    _ricInterval: {},
+    addField(field) {
+        switch(field) { // Filter out non custom field
+            case &quot;X_RIC_NAME&quot;: return;
+            case &quot;CF_ASK&quot;: return;
+            case &quot;CF_LAST&quot;: return;
+            default: break;
         }
-        cell.setStyle(&quot;color&quot;, color);
-        cell.setContent(content);
-    }
-};
-
-var configObj = {
-    rowSelection: true,
-    sorting: {
-        sortLogic: {
-            &quot;*&quot; : function(a, b, order) { // &quot;*&quot; means this sorting logic is used for any column
-                return (a.raw - b.raw) * order;
-            },
-            &quot;X_RIC_NAME&quot;: function(a, b, order) {
-                if(b.raw &lt; a.raw) {
-                    return order
-                } else if(a.raw &lt; b.raw) {
-                    return -order;
-                }
-                return 0;
-            }
+        this._fields[field] = 1;
+    },
+    removeField(field) {
+        delete this._fields[field];
+    },
+    subscribe(rics, callback) {
+        for (var ric of rics) {
+            this._ricInterval[ric] = setInterval(this.onSubscribeUpdate.bind(this, ric, callback), 1500);
         }
     },
-    columns: [
-        {title: &quot;RIC&quot;, field: &quot;X_RIC_NAME&quot;, formatter: realtimeDataFormatter},
-        {title: &quot;Name&quot;, field: &quot;CF_NAME&quot;, formatter: realtimeDataFormatter},
-        {title: &quot;Last&quot;, field: &quot;CF_LAST&quot;, formatter: realtimeDataFormatter},
-        {title: &quot;Bid&quot;, field: &quot;CF_BID&quot;, formatter: realtimeDataFormatter},
-        {title: &quot;Ask&quot;, field: &quot;CF_ASK&quot;, formatter: realtimeDataFormatter},
-        {title: &quot;Net Change&quot;, field: &quot;NETCHNG_1&quot;, formatter: realtimeDataFormatter},
-        {title: &quot;Pct.Change&quot;, field: &quot;PCTCHNG&quot;, formatter: realtimeDataFormatter}
-    ]
+    onSubscribeUpdate(ric, callback) {
+        var res = {
+            ric: ric,
+            data: dataGen.generateRecord(Object.keys(this._fields))
+        };
+        callback(res);
+    },
+    unsubscribe(rics) {
+        for (var ric of rics) {
+            clearInterval(this._ricInterval[ric]);
+            delete this._ricInterval[ric];
+        }
+    }
 };
 
-var grid = document.getElementsByTagName(&quot;emerald-grid&quot;)[0];
-grid.config = configObj;
-addRics(ricList);
-
-function onSubscriptionUpdate(sub, ric, data) {
-        if (grid.api) {
-            var dt = grid.api.getDataTable();
-            dt.setRowData(ric, data);
-        }
+function onDataRecieved(res) {
+    grid.api.setRicData(res.ric, res.data);
 }
 
-function addRics(rics) {
-    var newSubscription = JET.Quotes.create().rics(rics).rawFields(fields);
-    newSubscription.onUpdate(onSubscriptionUpdate);
-    newSubscription.start();
-}
-
-function onClickInsertButton(e) {
-    var ric = document.getElementById(&quot;ric_in&quot;).value;
-    ric = ric.toUpperCase();
-    if (ric &amp;&amp; ricList.indexOf(ric) &lt; 0) {
-        ricList.push(ric);
-        addRics(ric);
+function onFieldAdded(e) {
+    var addedFields = e.addedFields;
+    for (var i = 0; i &lt; addedFields.length; i++) {
+        MyBasicProvider.addField(addedFields[i]);
     }
 }
+
+function onFieldRemoved(e) {
+    var removedFields = e.removedFields;
+    for (var i = 0; i &lt; removedFields.length; i++) {
+        MyBasicProvider.removeField(removedFields[i]); // Subscribe field update
+    }
+}
+
+function onRicAdded(e) {
+    var addedRics = e.addedRics;
+    MyBasicProvider.subscribe(addedRics, onDataRecieved); // Subscribe ric update
+}
+
+function onRicRemoved(e) {
+    MyBasicProvider.unsubscribe(e.removedRics); // Subscribe ric update
+}
+
+
+var grid = null;
+function onInit(rtk) {
+    var config = {
+        RTK: rtk,
+        columns: [
+            {
+                &quot;name&quot;: &quot;Ric&quot;,
+                &quot;field&quot;: &quot;X_RIC_NAME&quot;,
+            },
+            {
+                &quot;name&quot;: &quot;Custom Field Name&quot;,
+                &quot;field&quot;: &quot;fieldName&quot;,
+                &quot;className&quot;: &quot;highlighted-column&quot;
+            },
+            {
+                &quot;field&quot;: &quot;CF_ASK&quot;
+            },
+            {
+                &quot;field&quot;: &quot;Combined fields&quot;,
+                &quot;requiredFields&quot;: [&quot;fieldA&quot;, &quot;fieldB&quot;],
+                &quot;notRealTimeField&quot;: true,
+            },
+            {
+                &quot;field&quot;: &quot;CF_LAST&quot;
+            }
+        ],
+        rows: [
+            { &quot;ric&quot;: &quot;TRI.TO&quot; },
+            { &quot;ric&quot;: &quot;&quot; },
+            { &quot;ric&quot;: &quot;.SETI&quot; },
+            { &quot;ric&quot;: &quot;0#.DJI&quot; },
+            { &quot;ric&quot;: &quot;.SPX&quot; },
+            { &quot;ric&quot;: &quot;TRI.TO&quot; },
+            { &quot;ric&quot;: &quot;.SETI&quot; },
+            { &quot;ric&quot;: &quot;.SPX&quot; },
+            { }
+        ]
+    };
+
+    grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
+    grid.addEventListener(&quot;configured&quot;, function(e) {
+        var api = e.detail.api;
+        api.listen(&quot;fieldAdded&quot;, onFieldAdded);
+        api.listen(&quot;fieldRemoved&quot;, onFieldRemoved);
+        api.listen(&quot;ricAdded&quot;, onRicAdded);
+        api.listen(&quot;ricRemoved&quot;, onRicAdded);
+        
+    });
+    grid.config = config;
+}
 </code></pre>
-</code-sandbox>
+</code-sandbox><h2 id="events-argument">Events argument</h2>
+<table>
+<thead>
+<tr>
+<th>Event Name</th>
+<th>Arguments</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>fieldAdded</td>
+<td>e.addedFields</td>
+<td>An array of newly added fields.</td>
+</tr>
+<tr>
+<td>fieldRemoved</td>
+<td>e.removedFields</td>
+<td>An array of recently removed fields.</td>
+</tr>
+<tr>
+<td>ricAdded</td>
+<td>e.addedRics</td>
+<td>An array of newly added rics.</td>
+</tr>
+<tr>
+<td>ricRemoved</td>
+<td>e.removedRics</td>
+<td>An array of recently removed rics.</td>
+</tr>
+</tbody></table>
+<p>The following arguments are provided in every events:</p>
+<table>
+<thead>
+<tr>
+<th>Event Name</th>
+<th>Arguments</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>*</td>
+<td>e.fields</td>
+<td>All fields.</td>
+</tr>
+<tr>
+<td></td>
+<td>e.rics</td>
+<td>All rics.</td>
+</tr>
+<tr>
+<td></td>
+<td>e.rowDefs</td>
+<td>All row definitions.</td>
+</tr>
+</tbody></table>

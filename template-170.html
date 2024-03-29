@@ -1,11 +1,9 @@
-<h1 id="right-side-column-pinningfreezing">Right Side Column Pinning/Freezing</h1>
-<p>When Grid contains controls or buttons on the right side you should freeze or pin these columns, as they should not be part of the scrollable content. To do this use the <code>rightPinned</code> property on the column configuration object.</p>
+<h1 id="left-side-column-pinningfreezing">Left Side Column Pinning/Freezing</h1>
+<p>Sometimes Grid can contain a large number of columns and when scrolled to the right, without the row header, users might lose track of what kind of data is in the row.
+To solve this, you can freeze or pin columns on the left side to act like a row indicator. To do this, set the <code>leftPinned</code> property to true on the column configuration object for the column you want to be frozen/pinned.</p>
+<p>Similarly, <code>rightPinned</code> property can be used to pin the columns on the right side.  </p>
 <h2 id="example">Example</h2>
-<code-sandbox hash="7d63042b"><pre><code class="language-css">efx-grid {
-    height: 200px;
-}
-</code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+<code-sandbox hash="2e171b68"><pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
@@ -16,28 +14,16 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var buttonFormatter = function(e) {
-    var cell = e.cell;
-    var btn = cell.getContent();
-    if(!btn) {
-        btn = document.createElement(&quot;button&quot;);
-    }
-    btn.textContent = e.data;
-    cell.setContent(btn);
-};
-
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;id&quot;];
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
 var records = DataGenerator.generateRecords(fields, { numRows: 10 });
 var configObj = {
     columns: [
-        {name: &quot;Company&quot;, field: fields[0], width: 250},
-        {name: &quot;Market&quot;, field: fields[1], width: 100},
-        {name: &quot;Last&quot;, field: fields[2], width: 100},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
-        {name: &quot;Industry&quot;, field: fields[4], width: 300},
-        {name: &quot;Op.1&quot;, field: fields[5], width: 60, rightPinned: true, binding: buttonFormatter, alignment: &quot;center&quot;},
-        {name: &quot;Op.2&quot;, field: fields[5], width: 60, rightPinned: true, binding: buttonFormatter, alignment: &quot;center&quot;},
-        {name: &quot;Op.3&quot;, field: fields[5], width: 60, rightPinned: true, binding: buttonFormatter, alignment: &quot;center&quot;}
+        {name: &quot; &quot;, width: 24},
+        {name: &quot;Company&quot;, field: fields[0], width: 250, leftPinned: true },
+        {name: &quot;Market&quot;, field: fields[1], width: 150},
+        {name: &quot;Last&quot;, field: fields[2], width: 150},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 150},
+        {name: &quot;Industry&quot;, field: fields[4], width: 300}
     ],
     staticDataRows: records
 };
@@ -45,4 +31,71 @@ var configObj = {
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 </code></pre>
-</code-sandbox>
+</code-sandbox><h1 id="pinning-column-at-runtime">Pinning column at runtime</h1>
+<p>Pinning column at runtime can be done through <code>pinColumn</code> method from Grid&#39;s API. The pinned column will be move to the right most of frozen area. To unpin a column, call <code>unpinColumn</code>. The unpinned column will be moved to the left most of unfrozen area.</p>
+<h2 id="example-1">Example</h2>
+<code-sandbox hash="7adb326e"><pre><code class="language-css">html hr, button {
+    margin: 5px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;fieldset id=&quot;pinning_set&quot;&gt;
+    &lt;legend&gt;Pinning&lt;/legend&gt;
+&lt;/fieldset&gt;
+&lt;fieldset id=&quot;unpinning_set&quot;&gt;
+    &lt;legend&gt;Unpinning&lt;/legend&gt;
+&lt;/fieldset&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;Column 6&quot;, &quot;Column 7&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 10 });
+
+var onClickPinning = function(e) {
+    var btn = e.currentTarget;
+    grid.api.pinColumn(btn.colIndex);
+};
+var onClickUnpinning = function(e) {
+    var btn = e.currentTarget;
+    grid.api.unpinColumn(btn.colIndex);
+};
+
+var len = fields.length; 
+for(var i = 0; i &lt; 4; ++i) {
+    var btn = document.createElement(&quot;button&quot;);
+    btn.colIndex = i;
+    btn.addEventListener(&quot;click&quot;, onClickPinning);
+    btn.textContent = &quot;Column &quot; + (i + 1);
+    pinning_set.appendChild(btn);
+    
+    btn = document.createElement(&quot;button&quot;);
+    btn.colIndex = i;
+    btn.addEventListener(&quot;click&quot;, onClickUnpinning);
+    btn.textContent = &quot;Column &quot; + (i + 1);
+    unpinning_set.appendChild(btn);
+}
+
+var configObj = {
+    columns: [
+        {name: &quot;Company&quot;, field: fields[0], width: 250},
+        {name: &quot;Market&quot;, field: fields[1], width: 150},
+        {name: &quot;Last&quot;, field: fields[2], width: 150},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 150},
+        {name: &quot;Industry&quot;, field: fields[4], width: 200},
+        {field: fields[5], width: 150},
+        {field: fields[6], width: 150}
+    ],
+    staticDataRows: records
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><p><br><br><br></p>

@@ -1,7 +1,54 @@
-<h1 id="simple-input-formatter">Simple Input Formatter</h1>
-<p>This formatter creates an input without a margin and 100% width. By default the input&#39;s value will be the column&#39;s field.</p>
+<h1 id="percent-bar-formatter">Percent Bar Formatter</h1>
+<p>This formatter creates a percent bar.</p>
+<h2 id="specific-options">Specific options</h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Attributes</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>alignment</td>
+<td>string</td>
+<td>optional</td>
+<td>&quot;left&quot;</td>
+<td>Possible values are l, r, c, left, right, and center</td>
+</tr>
+<tr>
+<td>movementColor</td>
+<td>boolean</td>
+<td>optional</td>
+<td>true</td>
+<td>If disabled, percent bar will not use up and down colors</td>
+</tr>
+<tr>
+<td>barColor</td>
+<td>string</td>
+<td>optional</td>
+<td>&quot;&quot;</td>
+<td>Custom color for bar element</td>
+</tr>
+<tr>
+<td>textHidden</td>
+<td>boolean</td>
+<td>optional</td>
+<td>false</td>
+<td>If enabled, text label will not be shown</td>
+</tr>
+<tr>
+<td>textWidth</td>
+<td>number or string</td>
+<td>optional</td>
+<td>56</td>
+<td>Number of pixel or percentage width</td>
+</tr>
+</tbody></table>
 <h2 id="example">Example</h2>
-<code-sandbox hash="459ebc10"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="38cc0f6d"><pre><code class="language-css">efx-grid {
     height: 320px;
 }
 </code></pre>
@@ -16,26 +63,42 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;number_1&quot;, &quot;float_1&quot;];
-var records = DataGenerator.generateRecords(fields, 40);
+var fields = [&quot;myPercent&quot;, &quot;word&quot;];
+var num = -100;
+DataGenerator.addFieldInfo(&quot;myPercent&quot;, function(e) {
+    return num += 5;
+});
 
+var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 40 });
 var configObj = {
+    sorting: {
+        sortableColumns: true
+    },
     columns: [
-        { 
-            name: &quot;Column 1&quot;,
+        {
+            name: &quot;Percent bar (Default)&quot;,
             field: fields[0],
-            alignment: &quot;center&quot;
+            alignment: &quot;c&quot;, 
+            binding: PercentBarFormatter.create()
         },
-        { 
-            name: &quot;Column 2&quot;,
-            field: fields[1],
-            alignment: &quot;center&quot;
-        },
-        { 
-            name: &quot;Input&quot;,
+        {
+            name: &quot;Center alignment + No Movement Color&quot;,
             field: fields[0],
-            alignment: &quot;center&quot;,
-            binding: SimpleInputFormatter.create()
+            alignment: &quot;c&quot;,
+            binding: PercentBarFormatter.create({
+                alignment: &quot;c&quot;,
+                movementColor: false
+            })
+        },
+        {
+            name: &quot;No Label + Custom Color&quot;,
+            field: fields[0],
+            alignment: &quot;c&quot;,
+            binding: PercentBarFormatter.create({
+                alignment: &quot;r&quot;,
+                textHidden: true,
+                barColor: &quot;purple&quot;
+            })
         }
     ],
     staticDataRows: records

@@ -1,5 +1,5 @@
-<h1 id="coral-radio-button-formatter">Coral Radio Button Formatter</h1>
-<p>This formatter creates a radio button which will be  unchecked by default.</p>
+<h1 id="coral-combo-box-formatter">Coral Combo Box Formatter</h1>
+<p>This formatter creates a <code>ef-combo-box</code> without margin. Its options come from passed <code>options.data</code>.</p>
 <h2 id="specific-options">Specific options</h2>
 <table>
 <thead>
@@ -11,14 +11,14 @@
 </tr>
 </thead>
 <tbody><tr>
-<td>initialIndex</td>
-<td>number</td>
-<td>optional</td>
-<td>Initial checked row index</td>
+<td>data</td>
+<td>array</td>
+<td>required</td>
+<td>List of items, similar format to <a href="https://elf.int.refinitiv.com/elements/ef-list.html">ef-list</a></td>
 </tr>
 </tbody></table>
 <h2 id="example">Example</h2>
-<code-sandbox hash="f43aef40"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="3b36cf36"><pre><code class="language-css">efx-grid {
     height: 320px;
 }
 </code></pre>
@@ -33,36 +33,41 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;number&quot;, &quot;word&quot;];
-var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 100 });
+var currencies = [&quot;THB&quot;, &quot;AUD&quot;, &quot;USD&quot;, &quot;YEN&quot;, &quot;TWD&quot;];
+DataGenerator.addFieldInfo(&quot;currency&quot;, { type: &quot;set&quot;, members: currencies});
+
+var fields = [&quot;number_1&quot;, &quot;boolean&quot;, &quot;currency&quot;];
+var records = DataGenerator.generateRecords(fields, {
+    numRows: 40,
+    seed: 1
+});
+
+var selectorData = currencies.map(function(data) {
+    return {
+        label: data,
+        value: data
+    };
+});
 
 var configObj = {
-    sorting: {
-        sortableColumns: true
-    },
     columns: [
-        {
-            alignment: &quot;c&quot;,
-            field: &quot;radio&quot;,
-            width: 34,
-            binding: EFRadioButtonFormatter.create({
-                initialIndex: 0,
-                events: {
-                    &quot;click&quot;: function(e) {
-                        console.log(&quot;clicked&quot;);
-                    }
-                }
-            })
-        },
-        {
-            name: &quot;Number&quot;,
+        { 
+            name: &quot;Column 1&quot;,
             field: fields[0],
-            alignment: &quot;c&quot;,
+            alignment: &quot;center&quot;
         },
         {
-            name: &quot;Description&quot;,
+            name: &quot;Column 2&quot;,
             field: fields[1],
-            alignment: &quot;c&quot;,
+            alignment: &quot;center&quot;
+        },
+        {
+            name: &quot;Select&quot;,
+            field: fields[2],
+            alignment: &quot;center&quot;,
+            binding: EFComboBoxFormatter.create({
+                data: selectorData
+            })
         }
     ],
     staticDataRows: records

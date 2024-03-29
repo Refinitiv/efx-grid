@@ -1,7 +1,24 @@
-<h1 id="ef-toggle-formatter">EF Toggle Formatter</h1>
-<p>This formatter creates a <a href="https://ui.refinitiv.com/elements/toggle">ef-toggle</a>. The toggle will be off by default.</p>
+<h1 id="ef-select-formatter">EF Select Formatter</h1>
+<p>This formatter creates <a href="https://ui.refinitiv.com/elements/select">ef-select</a> without margin. Its options come from passed <code>options.data</code>.</p>
+<h2 id="specific-options">Specific options</h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Attributes</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>data</td>
+<td>Array</td>
+<td>required</td>
+<td>List of items, see <a href="https://ui.refinitiv.com/elements/select">ef-select</a> for more detail.</td>
+</tr>
+</tbody></table>
 <h2 id="example">Example</h2>
-<code-sandbox hash="29027e4b"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="3ff151f9"><pre><code class="language-css">efx-grid {
     height: 320px;
 }
 </code></pre>
@@ -16,54 +33,48 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;boolean&quot;];
-var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 20 });
+var currencies = [&quot;THB&quot;, &quot;AUD&quot;, &quot;USD&quot;, &quot;YEN&quot;, &quot;TWD&quot;];
+DataGenerator.addFieldInfo(&quot;currency&quot;, { type: &quot;set&quot;, members: currencies});
+
+var fields = [&quot;currency&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 20    });
 
 var configObj = {
-    sorting: {
-        sortableColumns: true
-    },
     columns: [
-        {
-            name: &quot; &quot;,
-            field: fields[0],
-            sort: fields[0],
-            alignment: &quot;c&quot;,
-            width: 100,
-            binding: EFToggleFormatter.create({
-                events: {
-                    &quot;click&quot;: function(e) {
-                        // blotter.api.getDataView().log();
-                    }
-                }
-            })
-        },
-        {
-            name: &quot;Label&quot;,
-            field: fields[0],
-            sort: fields[0],
-            alignment: &quot;c&quot;,
-            width: 100,
-            binding: EFToggleFormatter.create({
-                events: {
-                    &quot;checked-changed&quot;: function(e) {
-
-                    }
-                },
-                styles: {
-                    width: &quot;54px&quot;
-                },
-                attributes: {
-                    label: &quot;OFF&quot;,
-                    &quot;checked-label&quot;: &quot;ON&quot;
-                }
-            })
-        },
-        {
-            name: &quot;Checked&quot;,
+        { 
+            name: &quot;Data&quot;,
             field: fields[0],
             sort: fields[0],
             alignment: &quot;c&quot;
+        },
+        { 
+            name: &quot;Simplest&quot;,
+            field: fields[0],
+            sort: fields[0],
+            alignment: &quot;c&quot;,
+            binding: EFSelectFormatter.create({
+                entries: currencies
+            })
+        },
+        { 
+            name: &quot;Some options&quot;,
+            field: fields[0],
+            sort: fields[0],
+            alignment: &quot;c&quot;,
+            binding: EFSelectFormatter.create({
+                data: currencies,
+                attributes: {
+
+                },
+                styles: {
+                    width: &quot;80px&quot;
+                },
+                events: {
+                    &quot;value-changed&quot;: function(e) {
+                        // console.log(&quot;value changed: &quot; + e.detail.value);
+                    }
+                }
+            })
         }
     ],
     staticDataRows: records

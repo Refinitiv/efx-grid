@@ -1,12 +1,24 @@
-<h1 id="coral-toggle-formatter">Coral Toggle Formatter</h1>
-<p>This formatter creates a toggle. The toggle will be off by default.</p>
-<blockquote>
-<p>Note: the <code>ef-toggle</code> element is available in ELF v4 only, so CoralToggleFormatter will only work when using with ELF v4.</p>
-</blockquote>
+<h1 id="coral-radio-button-formatter">Coral Radio Button Formatter</h1>
+<p>This formatter creates a radio button which will be  unchecked by default.</p>
 <h2 id="specific-options">Specific options</h2>
-<p>There are no specific options for this formatter.</p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Attributes</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>initialIndex</td>
+<td>number</td>
+<td>optional</td>
+<td>Initial checked row index</td>
+</tr>
+</tbody></table>
 <h2 id="example">Example</h2>
-<code-sandbox hash="d179bd7e"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="f43aef40"><pre><code class="language-css">efx-grid {
     height: 320px;
 }
 </code></pre>
@@ -21,7 +33,7 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;boolean&quot;];
+var fields = [&quot;number&quot;, &quot;word&quot;];
 var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 100 });
 
 var configObj = {
@@ -30,33 +42,27 @@ var configObj = {
     },
     columns: [
         {
-            name: &quot;No Label&quot;,
             alignment: &quot;c&quot;,
-            field: fields[0],
-            width: 100,
-            binding: EFToggleFormatter.create({
+            field: &quot;radio&quot;,
+            width: 34,
+            binding: EFRadioButtonFormatter.create({
+                initialIndex: 0,
                 events: {
                     &quot;click&quot;: function(e) {
+                        console.log(&quot;clicked&quot;);
                     }
                 }
             })
         },
         {
-            name: &quot;With Label&quot;,
-            alignment: &quot;c&quot;,
+            name: &quot;Number&quot;,
             field: fields[0],
-            width: 100,
-            binding: EFToggleFormatter.create({
-                attributes: {
-                    &quot;label&quot;: &quot;OFF&quot;,
-                    &quot;checked-label&quot;: &quot;ON&quot;
-                }
-            })
+            alignment: &quot;c&quot;,
         },
         {
-            name: &quot;Checked&quot;,
-            field: fields[0],
-            alignment: &quot;c&quot;
+            name: &quot;Description&quot;,
+            field: fields[1],
+            alignment: &quot;c&quot;,
         }
     ],
     staticDataRows: records

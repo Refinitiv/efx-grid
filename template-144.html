@@ -1,7 +1,7 @@
-<h1 id="ef-datetime-picker-formatter">EF DateTime Picker Formatter</h1>
-<p>This formatter creates <a href="https://ui.refinitiv.com/elements/datetime-picker">ef-datetime-picker</a> without margin. </p>
+<h1 id="ef-checkbox-formatter">EF Checkbox Formatter</h1>
+<p>This formatter creates a <a href="https://ui.refinitiv.com/elements/checkbox">ef-checkbox</a> which will be unchecked by default.</p>
 <h2 id="example">Example</h2>
-<code-sandbox hash="d3e74484"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="f57416c3"><pre><code class="language-css">efx-grid {
     height: 320px;
 }
 </code></pre>
@@ -16,50 +16,138 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;date&quot;];
-var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 20 });
+var fields = [&quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 25 });
+
+records[1][&quot;myCheckBoxState&quot;] = true; // Initialize checkbox state
+records[2][&quot;myCheckBoxState&quot;] = true;
+records[3][&quot;myCheckBoxState&quot;] = true;
 
 var configObj = {
     columns: [
-        { 
-            name: &quot;Data&quot;,
-            field: fields[0],
-            sortBy: fields[0],
-            alignment: &quot;c&quot;,
-            binding: function(e) {
-                var value = e[&quot;data&quot;];
-                var cell = e[&quot;cell&quot;];
-                cell.setContent(value.toDateString());
-            }
-        },
-        { 
-            name: &quot;Simplest&quot;,
-            field: fields[0],
-            sortBy: fields[0],
-            alignment: &quot;c&quot;,
-            binding: EFDateTimePickerFormatter.create()
-        },
         {
-            name: &quot;Some options&quot;,
-            field: fields[0],
-            sortBy: fields[0],
             alignment: &quot;c&quot;,
-            binding: EFDateTimePickerFormatter.create({
-                attributes: {
-                    format: &quot;yyyy-MM-dd&quot;
-                },
-                styles: {
-                    width: &quot;120px&quot;
-                },
+            name: &quot;&quot;,
+            field: &quot;myCheckBoxState&quot;,
+            width: 34,
+            binding: EFCheckboxFormatter.create({
                 events: {
-                    &quot;value-changed&quot;: function(e) {
-                        // console.log(&quot;value changed: &quot; + e.detail.value);
+                    &quot;click&quot;: function(e) {
+                        console.log(&quot;clicked&quot;);
                     }
                 }
             })
+        },
+        {
+            name: &quot;Grid Checkbox State&quot;,
+            field: &quot;myCheckBoxState&quot;,
+            alignment: &quot;c&quot;,
+            width: 150
+        },
+        {
+            name: &quot;Industry&quot;,
+            field: fields[0],
         }
     ],
     staticDataRows: records
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h3 id="checkbox-with-a-label">Checkbox with a label</h3>
+<code-sandbox hash="1812a6e9"><pre><code class="language-css">efx-grid {
+    height: 320px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;companyName&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 25 });
+
+var configObj = {
+    columns: [
+        {
+            name: &quot;Checkboxes&quot;,
+            field: &quot;myCheckBoxState&quot;,
+            width: 150,
+            binding: EFCheckboxFormatter.create({
+                events: {
+                    &quot;click&quot;: function(e) {
+                        console.log(&quot;clicked&quot;);
+                    }
+                },
+                labelField: fields[0]
+            })
+        },
+        {
+            name: &quot;Grid Checkbox State&quot;,
+            field: &quot;myCheckBoxState&quot;,
+            alignment: &quot;c&quot;,
+            width: 150
+        },
+        {
+            name: &quot;Industry&quot;,
+            field: fields[1]
+        }
+    ],
+    staticDataRows: records
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h3 id="checkbox-and-pagination">Checkbox and pagination</h3>
+<code-sandbox hash="73d168e9"><pre><code class="language-css">hr {
+    margin: 5px;
+}
+efx-grid {
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+&lt;hr&gt;
+&lt;ef-pagination id=&quot;pagination_elem&quot;&gt;&lt;/ef-pagination&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 40 });
+
+var configObj = {
+    columns: [
+        {
+            name: &quot;&quot;,
+            field: &quot;myCheckBoxState&quot;,
+            width: 34,
+            binding: EFCheckboxFormatter.create({})
+        },
+        {field: fields[0]},
+        {field: fields[1]},
+        {field: fields[2]}
+    ],
+    staticDataRows: records,
+    pagination: {
+        element: document.getElementById(&quot;pagination_elem&quot;),
+        page: 1,
+        pageSize: 8
+    },
+    extensions: [new Pagination()]
 };
 
 var grid = document.getElementById(&quot;grid&quot;);

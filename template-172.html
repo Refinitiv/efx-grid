@@ -1,8 +1,7 @@
-<h1 id="scrollbar-visibility">Scrollbar Visibility</h1>
-<p>Instead of fading in or out on hover (default behavior), Grid scrollbars can be set to always be visible whenever the content is scrollable.</p>
-<p>This behavior can be enabled upon grid initialization using the <code>autoHideScrollbar</code> option. The values can be <em>false</em> for always-on, and <em>true</em> for fade in/out (default).</p>
+<h1 id="right-side-column-pinningfreezing">Right Side Column Pinning/Freezing</h1>
+<p>When Grid contains controls or buttons on the right side you should freeze or pin these columns, as they should not be part of the scrollable content. To do this use the <code>rightPinned</code> property on the column configuration object.</p>
 <h2 id="example">Example</h2>
-<code-sandbox hash="934a91f7"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="7d63042b"><pre><code class="language-css">efx-grid {
     height: 200px;
 }
 </code></pre>
@@ -17,16 +16,28 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var buttonFormatter = function(e) {
+    var cell = e.cell;
+    var btn = cell.getContent();
+    if(!btn) {
+        btn = document.createElement(&quot;button&quot;);
+    }
+    btn.textContent = e.data;
+    cell.setContent(btn);
+};
+
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;id&quot;];
 var records = DataGenerator.generateRecords(fields, { numRows: 10 });
 var configObj = {
-    autoHideScrollbar: false,
     columns: [
         {name: &quot;Company&quot;, field: fields[0], width: 250},
-        {name: &quot;Market&quot;, field: fields[1], width: 150},
-        {name: &quot;Last&quot;, field: fields[2], width: 150},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 150},
-        {name: &quot;Industry&quot;, field: fields[4], width: 300}
+        {name: &quot;Market&quot;, field: fields[1], width: 100},
+        {name: &quot;Last&quot;, field: fields[2], width: 100},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
+        {name: &quot;Industry&quot;, field: fields[4], width: 300},
+        {name: &quot;Op.1&quot;, field: fields[5], width: 60, rightPinned: true, binding: buttonFormatter, alignment: &quot;center&quot;},
+        {name: &quot;Op.2&quot;, field: fields[5], width: 60, rightPinned: true, binding: buttonFormatter, alignment: &quot;center&quot;},
+        {name: &quot;Op.3&quot;, field: fields[5], width: 60, rightPinned: true, binding: buttonFormatter, alignment: &quot;center&quot;}
     ],
     staticDataRows: records
 };
