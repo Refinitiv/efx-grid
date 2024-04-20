@@ -97,8 +97,54 @@ grid.config = configObj;
 </code></pre>
 </code-sandbox><h2 id="installation-and-how-to-import-to-a-project">Installation and how to import to a project</h2>
 <p>Installation examples and details of how to import the extension to a project are available on the <a href="#/extensions/readme">Overview</a> page.</p>
-<h2 id="blinking-feature">Blinking feature</h2>
-<p>For required scenarios, there are features to deal with real-time data. For example, stock market data changes all the time, and a user needs to know that the data has changed. The <code>Blinking</code> feature was created to deal with scenarios like this. See the <code>Blinking&#39;s typedef</code> section for more details on this feature.</p>
+<h2 id="text-coloring-and-blinking">Text coloring and blinking</h2>
+<p>You can change text color based on its own numeric value by setting <code>colorText</code> to <code>true</code> on the column configuration object. With <code>colorText</code> option, any positive value will have up color from the current theme. Negative value will have down color from the current theme. This is useful for displaying the current state of the value by using different colors, such as showing net change of a stock price.</p>
+<p>You can briefly blink a cell when content value is changed by setting <code>blinking</code> to <code>true</code> on the column configuration object. This is useful for displaying the change, such as showing change of a stock price.</p>
+<h3 id="default-text-coloring-with-theme-colors-example">Default text coloring with theme colors example</h3>
+<code-sandbox hash="d3334d69"><pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 10 });
+var configObj = {
+    columns: [
+        { name: &quot;Company&quot;, field: fields[0] },
+        { name: &quot;Market&quot;, field: fields[1], width: 120 },
+        { name: &quot;Last&quot;, field: fields[2], width: 100, blinking: true },
+        { name: &quot;Net. Chng&quot;, field: fields[3], width: 100, colorText: true, blinking: true },
+        { name: &quot;Industry&quot;, field: fields[4] }
+    ],
+    staticDataRows: records,
+    extensions: [
+        new ConditionalColoring()
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+
+setInterval(function() { // Simulate real-time data updates
+    var randBetween = DataGenerator.randBetween;
+    var rowCount = grid.api.getRowCount();
+    for(var i = 0; i &lt; rowCount; ++i) {
+        if(randBetween(0, 3) === 1) {
+            grid.api.getRowDefinition(i).setRowData(
+                DataGenerator.generateRecord([&quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;])
+            );
+        }
+    }
+}, 1500);
+</code></pre>
+</code-sandbox><h3 id="advanced-blinking-example">Advanced blinking example</h3>
+<p>The example below shows various ways on how to define <code>blinking</code> options. All available options for blinking can be find in the Type Definitions section on this page.</p>
 <code-sandbox hash="e2deb3be"><pre><code class="language-css">efx-grid {
     height: 208px;
 }
