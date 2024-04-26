@@ -3,7 +3,7 @@
 <h1 id="column-grouping">Column Grouping</h1>
 <p>The Column Grouping Extension is a categorization based on the column field. Columns can be grouped and put under a spanned header cell. Groups can be defined hierarchically, with an unlimited number of levels in the structure. Grouped columns can be dragged together to reorder columns without breaking the group structure.</p>
 <p>A group header can be formatted using a formatter just like a normal cell.</p>
-<code-sandbox hash="fe4abc37"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="61322b92"><pre><code class="language-css">efx-grid {
     height: 200px;
 }
 </code></pre>
@@ -30,33 +30,35 @@ var configObj = {
         {id: &quot;c5&quot;, name: &quot;Industry&quot;, field: fields[4]}
     ],
     staticDataRows: records,
-    columnGrouping: [
-        {
-            id: &quot;g1&quot;,
-            name: &quot;Company Info&quot;,
-            alignment: &quot;center&quot;,
-            children: [&quot;c1&quot;, &quot;c2&quot;]
-        },
-        {
-            id: &quot;g2&quot;,
-            name: &quot;Price&quot;,
-            alignment: &quot;center&quot;,
-            children: [&quot;c3&quot;, &quot;c4&quot;]
-        },
-        {
-            id: &quot;g4&quot;,
-            name: &quot;Top 6 Companies&quot;,
-            alignment: &quot;center&quot;,
-            children: [&quot;g1&quot;, &quot;g2&quot;],
-            render: function(e) {
-                var cell = e.cell;
-                var colIndex = e.colIndex;
-                var groupNode = e.groupNode;
-                cell.setStyle(&quot;color&quot;, &quot;orange&quot;);
-                cell.setContent(groupNode.name);
+    columnGrouping: {
+        groupDefinitions: [
+            {
+                id: &quot;g1&quot;,
+                name: &quot;Company Info&quot;,
+                alignment: &quot;center&quot;,
+                children: [&quot;c1&quot;, &quot;c2&quot;]
+            },
+            {
+                id: &quot;g2&quot;,
+                name: &quot;Price&quot;,
+                alignment: &quot;center&quot;,
+                children: [&quot;c3&quot;, &quot;c4&quot;]
+            },
+            {
+                id: &quot;g4&quot;,
+                name: &quot;Top 6 Companies&quot;,
+                alignment: &quot;center&quot;,
+                children: [&quot;g1&quot;, &quot;g2&quot;],
+                render: function(e) {
+                    var cell = e.cell;
+                    var colIndex = e.colIndex;
+                    var groupNode = e.groupNode;
+                    cell.setStyle(&quot;color&quot;, &quot;orange&quot;);
+                    cell.setContent(groupNode.name);
+                }
             }
-        }
-    ],
+        ]
+    },
     extensions: [
         new ColumnGrouping()
     ]
@@ -73,13 +75,15 @@ grid.config = configObj;
         { id: &quot;c1&quot;, name: &quot;Column 1&quot; },
         { id: &quot;c2&quot;, name: &quot;Column 2&quot; },
         { id: &quot;c3&quot;, name: &quot;Column 3&quot; },
-        { id: &quot;c4&quot;, name: &quot;Column 4&quot; },
+        { id: &quot;c4&quot;, name: &quot;Column 4&quot; }
     ],
-    columnGrouping: [
-        { id: &quot;g1&quot;, name: &quot;Group 1&quot;, children: [&quot;c1&quot;, &quot;c2&quot;] },
-        { id: &quot;g2&quot;, name: &quot;Group 2&quot;, children: [&quot;c3&quot;] },
-        { id: &quot;g3&quot;, name: &quot;Group 3&quot;, children: [&quot;c4&quot;, &quot;g1&quot;, &quot;g2&quot;] },
-    ]
+    columnGrouping: {
+        groupDefinitions: [
+            { id: &quot;g1&quot;, name: &quot;Group 1&quot;, children: [&quot;c1&quot;, &quot;c2&quot;] },
+            { id: &quot;g2&quot;, name: &quot;Group 2&quot;, children: [&quot;c3&quot;] },
+            { id: &quot;g3&quot;, name: &quot;Group 3&quot;, children: [&quot;c4&quot;, &quot;g1&quot;, &quot;g2&quot;] }
+        ]
+    }
 }
 </code></pre>
 <p>You can also assign a nested <code>columnGrouping</code> object in the children.</p>
@@ -88,17 +92,19 @@ grid.config = configObj;
         { id: &quot;c1&quot;, name: &quot;Column 1&quot; },
         { id: &quot;c2&quot;, name: &quot;Column 2&quot; },
         { id: &quot;c3&quot;, name: &quot;Column 3&quot; },
-        { id: &quot;c4&quot;, name: &quot;Column 4&quot; },
+        { id: &quot;c4&quot;, name: &quot;Column 4&quot; }
     ],
-    columnGrouping: [
-        {
-            id: &quot;g3&quot;, name: &quot;Group 3&quot;, children: [
-                &quot;c4&quot;,
-                { id: &quot;g2&quot;, name: &quot;Group 2&quot;, children: [&quot;c3&quot;] },
-                { id: &quot;g1&quot;, name: &quot;Group 1&quot;, children: [&quot;c1&quot;, &quot;c2&quot;] },
-            ]
-        },
-    ]
+    columnGrouping: {
+        groupDefinitions: [
+            {
+                id: &quot;g3&quot;, name: &quot;Group 3&quot;, children: [
+                    &quot;c4&quot;,
+                    { id: &quot;g2&quot;, name: &quot;Group 2&quot;, children: [&quot;c3&quot;] },
+                    { id: &quot;g1&quot;, name: &quot;Group 1&quot;, children: [&quot;c1&quot;, &quot;c2&quot;] }
+                ]
+            }
+        ]
+    }
 }
 </code></pre>
 <h2 id="custom-render-the-group-header">Custom render the group header</h2>
@@ -108,20 +114,22 @@ grid.config = configObj;
         { id: &quot;c1&quot;, name: &quot;Column 1&quot; },
         { id: &quot;c2&quot;, name: &quot;Column 2&quot; },
         { id: &quot;c3&quot;, name: &quot;Column 3&quot; },
-        { id: &quot;c4&quot;, name: &quot;Column 4&quot; },
+        { id: &quot;c4&quot;, name: &quot;Column 4&quot; }
     ],
-    columnGrouping: [
-        {
-            id: &quot;g1&quot;,
-            name: &quot;Group 1&quot;,
-            children: [&quot;c1&quot;, &quot;c2&quot;],
-            render: function(e) {
-                e.cell.setStyle(&quot;color&quot;, &quot;red&quot;);
-            }
-        },
-        { id: &quot;g2&quot;, name: &quot;Group 2&quot;, children: [&quot;c3&quot;] },
-        { id: &quot;g3&quot;, name: &quot;Group 3&quot;, children: [&quot;c4&quot;, &quot;g1&quot;, &quot;g2&quot;] },
-    ]
+    columnGrouping: {
+        groupDefinitions: [
+            {
+                id: &quot;g1&quot;,
+                name: &quot;Group 1&quot;,
+                children: [&quot;c1&quot;, &quot;c2&quot;],
+                render: function(e) {
+                    e.cell.setStyle(&quot;color&quot;, &quot;red&quot;);
+                }
+            },
+            { id: &quot;g2&quot;, name: &quot;Group 2&quot;, children: [&quot;c3&quot;] },
+            { id: &quot;g3&quot;, name: &quot;Group 3&quot;, children: [&quot;c4&quot;, &quot;g1&quot;, &quot;g2&quot;] }
+        ]
+    }
 }
 </code></pre>
 <h2 id="migrating-from-built-in-column-grouping">Migrating from built-in column grouping</h2>
@@ -135,7 +143,7 @@ grid.config = configObj;
     columns: [
         { id: &quot;c1&quot;, name: &quot;Column 1&quot;, columnGroup: &quot;g1&quot; },
         { id: &quot;c2&quot;, name: &quot;Column 2&quot;, columnGroup: &quot;g1&quot; },
-        { id: &quot;c3&quot;, name: &quot;Column 3&quot;, columnGroup: &quot;g2&quot; },
+        { id: &quot;c3&quot;, name: &quot;Column 3&quot;, columnGroup: &quot;g2&quot; }
     ],
     columnGroups: [
         { id: &quot;g1&quot;, name: &quot;Group 1&quot;, parent: &quot;g3&quot; },
@@ -148,7 +156,7 @@ grid.config = configObj;
                     cell.setStyle(&quot;color&quot;, &quot;red&quot;);
                 }
             }
-        },
+        }
     ]
 }
 </code></pre>
@@ -159,26 +167,28 @@ grid.config = configObj;
         { id: &quot;c1&quot;, name: &quot;Column 1&quot; },
         { id: &quot;c2&quot;, name: &quot;Column 2&quot; },
         { id: &quot;c3&quot;, name: &quot;Column 3&quot; },
-        { id: &quot;c4&quot;, name: &quot;Column 4&quot; },
+        { id: &quot;c4&quot;, name: &quot;Column 4&quot; }
     ],
-    columnGrouping: [
-        { id: &quot;g1&quot;, name: &quot;Group 1&quot;, children: [&quot;c1&quot;, &quot;c2&quot;] },
-        { id: &quot;g2&quot;, name: &quot;Group 2&quot;, children: [&quot;c3&quot;] },
-        {
-            id: &quot;g3&quot;,
-            name: &quot;Group 3&quot;,
-            children: [&quot;c4&quot;, &quot;g1&quot;, &quot;g2&quot;],
-            render: function(e) {
-                e.cell.setStyle(&quot;color&quot;, &quot;red&quot;);
+    columnGrouping: {
+        groupDefinitions: [
+            { id: &quot;g1&quot;, name: &quot;Group 1&quot;, children: [&quot;c1&quot;, &quot;c2&quot;] },
+            { id: &quot;g2&quot;, name: &quot;Group 2&quot;, children: [&quot;c3&quot;] },
+            {
+                id: &quot;g3&quot;,
+                name: &quot;Group 3&quot;,
+                children: [&quot;c4&quot;, &quot;g1&quot;, &quot;g2&quot;],
+                render: function(e) {
+                    e.cell.setStyle(&quot;color&quot;, &quot;red&quot;);
+                }
             }
-        },
-    ]
+        ]
+    }
 }
 </code></pre>
 <p>For the new implementation, the new <code>children</code> option is used and you can specify an array of either <code>Group or Column ID</code> for how you want it to be grouped.</p>
 <p>Also, note that the <code>render</code> config has moved out of the formatter config and receives only <code>e</code> as an argument.</p>
 <h2 id="column-moving">Column Moving</h2>
-<code-sandbox hash="68137027"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="e4881b22"><pre><code class="language-css">efx-grid {
     height: 200px;
 }
 html hr {
@@ -262,26 +272,28 @@ var configObj = {
         {id: &quot;c6&quot;, name: &quot;Status&quot;, field: fields[5]}
     ],
     staticDataRows: records,
-    columnGrouping: [
-        {
-            id: &quot;g1&quot;,
-            name: &quot;Group 1&quot;,
-            alignment: &quot;center&quot;,
-            children: [&quot;c1&quot;, &quot;c2&quot;]
-        },
-        {
-            id: &quot;g2&quot;,
-            name: &quot;Group 2&quot;,
-            alignment: &quot;center&quot;,
-            children: [&quot;c4&quot;, &quot;c5&quot;]
-        },
-        {
-            id: &quot;g3&quot;,
-            name: &quot;Group 3&quot;,
-            alignment: &quot;center&quot;,
-            children: [&quot;g1&quot;,&quot;c3&quot;, &quot;g2&quot;],
-        }
-    ],
+    columnGrouping: {
+        groupDefinitions: [
+            {
+                id: &quot;g1&quot;,
+                name: &quot;Group 1&quot;,
+                alignment: &quot;center&quot;,
+                children: [&quot;c1&quot;, &quot;c2&quot;]
+            },
+            {
+                id: &quot;g2&quot;,
+                name: &quot;Group 2&quot;,
+                alignment: &quot;center&quot;,
+                children: [&quot;c4&quot;, &quot;c5&quot;]
+            },
+            {
+                id: &quot;g3&quot;,
+                name: &quot;Group 3&quot;,
+                alignment: &quot;center&quot;,
+                children: [&quot;g1&quot;,&quot;c3&quot;, &quot;g2&quot;],
+            }
+        ]
+    },
     extensions: [
         ext
     ]
@@ -419,7 +431,7 @@ grid.config = configObj;
 <div id="elf-api-container"><div id="main-template" class="elf-template">    <section><header>            <h1 class="subsection-title"><span class="attribs"><span class="type-signature"></span></span>ColumnGroupingPlugin<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h1>            </header><article>                                                                        <h3 class="subsection-title" id="type_definitions">Type Definitions</h3>                        
 <div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~GroupDefinition">GroupDefinition</h4><div class="description">    Definition object that defined relationship of its children and how to render its content</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>id</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Group id</td>        </tr>            <tr>                            <td class="name"><code>name</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Display group name</td>        </tr>            <tr>                            <td class="name"><code>tooltip</code></td>                        <td class="type">                            <span class="param-type">boolean</span> | <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    true                                </td>                        <td class="description last">Show tooltip in column's header</td>        </tr>            <tr>                            <td class="name"><code>children</code></td>                        <td class="type">                            <span class="param-type">Array.&lt;string&gt;</span>                        </td>                            <td class="attributes">                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Child member in this group</td>        </tr>            <tr>                            <td class="name"><code>alignment</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">eg. left, center, right</td>        </tr>            <tr>                            <td class="name"><code>render</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">render function handler</td>        </tr>            <tr>                            <td class="name"><code>backgroundColor</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Background color of group header</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            
 <div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~GroupDefinitions">GroupDefinitions</h4><div class="description">    A collection of group definition objects</div>    <h5>Type:</h5>    <span class="param-type">Array.&lt;<a href="#/extensions/tr-grid-column-grouping#~GroupDefinition">ColumnGroupingPlugin~GroupDefinition</a>&gt;</span><div class="details">                                                            </div></div>                            
-<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~Options">Options</h4><div class="description">    This options can be specified by `columnGrouping` property of the main grid's options or extension options.</div>    <h5>Type:</h5>    <span class="param-type">Array.&lt;<a href="#/extensions/tr-grid-column-grouping#~GroupDefinition">ColumnGroupingPlugin~GroupDefinition</a>&gt;</span><div class="details">                                                            </div></div>                            <h3 class="subsection-title" id="methods">Methods</h3>                    
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~Options">Options</h4><div class="description">    This options can be specified by `columnGrouping` property of the main grid's options or extension options.</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>groupDefinitions</code></td>                        <td class="type">                            <span class="param-type"><a href="#/extensions/tr-grid-column-grouping#~GroupDefinitions">ColumnGroupingPlugin~GroupDefinitions</a></span>                        </td>                            <td class="attributes">                                                </td>                                        <td class="default">                                </td>                        <td class="description last">A collection of group definition objects</td>        </tr>            <tr>                            <td class="name"><code>minChildCount</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    2                                </td>                        <td class="description last">The minimum number of child columns required for group to be visible</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            <h3 class="subsection-title" id="methods">Methods</h3>                    
 <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id=".getObjectId"><span class="type-signature"></span>getObjectId<span class="signature">(column)</span><span class="type-signature"> → {string}</span></h4>                            <div class="description">        Get column id from column object    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">column</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">string</span>    </div>                </div>                    
 <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id=".getObjectIndex"><span class="type-signature"></span>getObjectIndex<span class="signature">(column)</span><span class="type-signature"> → {number}</span></h4>                            <div class="description">        Get column index from column object    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">column</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">number</span>    </div>                </div>                    
 <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="addColumnGrouping"><span class="type-signature"></span>addColumnGrouping<span class="signature">(groupDef)</span><span class="type-signature"></span></h4>                            <div class="description">        Deprecated. Use addGroup() method instead    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">groupDef</div>                        <div class="type">                            <span class="param-type"><a href="#/extensions/tr-grid-column-grouping#~GroupDefinition">ColumnGroupingPlugin~GroupDefinition</a></span>                        </div>                                                    <div class="description">                    Group definition object                </div>                    </div>            </div>        <div class="details">                                        <dt class="important tag-deprecated">Deprecated:</dt><dd class="yes-def tag-deprecated">Yes</dd>                                <dt class="tag-see">See:</dt>    <dd class="tag-see">        <ul>            <li><a href="#/extensions/tr-grid-column-grouping#addGroup">ColumnGroupingPlugin#addGroup</a></li>        </ul>    </dd>        </div>                                    </div>                    
