@@ -1,15 +1,24 @@
-<h1 id="coral-checkbox-formatter">Coral Checkbox Formatter</h1>
-<p>This formatter creates a checkbox which will be unchecked by default.</p>
-<h3 id="using-elfs-checkbox">Using ELF&#39;s checkbox</h3>
-<p>This extension is only for using <a href="https://elf.int.refinitiv.com/elements/ef-checkbox.html">ef-checkbox</a> and the following dependency is required:</p>
-<pre><code class="language-bash">npm install @elf/ef-checkbox
-</code></pre>
-<p>Then import this required dependencies to your project <code>index.js</code> file.</p>
-<pre><code class="language-jsx">import &quot;@elf/ef-checkbox&quot;;
-import &quot;@elf/elf-theme-halo/dark/ef-checkbox&quot;; // Can be any theme.
-</code></pre>
+<h1 id="coral-button-formatter">Coral Button Formatter</h1>
+<p>This formatter creates a button without a margin. By default the text inside the button will be data from the column&#39;s field.</p>
+<h2 id="specific-options">Specific options</h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Attributes</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>label</td>
+<td>string</td>
+<td>optional</td>
+<td>Text inside the button, default text is the value from the column&#39;s field</td>
+</tr>
+</tbody></table>
 <h2 id="example">Example</h2>
-<code-sandbox hash="f57416c3"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="b46310e0"><pre><code class="language-css">efx-grid {
     height: 320px;
 }
 </code></pre>
@@ -24,138 +33,47 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 25 });
-
-records[1][&quot;myCheckBoxState&quot;] = true; // Initialize checkbox state
-records[2][&quot;myCheckBoxState&quot;] = true;
-records[3][&quot;myCheckBoxState&quot;] = true;
-
+var fields = [&quot;word&quot;, &quot;id&quot;, &quot;float_1&quot;];
+var records = DataGenerator.generateRecords(fields, 30);
 var configObj = {
     columns: [
-        {
-            alignment: &quot;c&quot;,
-            name: &quot;&quot;,
-            field: &quot;myCheckBoxState&quot;,
-            width: 34,
-            binding: EFCheckboxFormatter.create({
+        { 
+            name: &quot;Button&quot;,
+            field: fields[0],
+            alignment: &quot;center&quot;,
+            binding: EFButtonFormatter.create({
+                label: &quot;More Info&quot;,
                 events: {
-                    &quot;click&quot;: function(e) {
-                        console.log(&quot;clicked&quot;);
+                    click: function(event, context) {
+                        alert(
+                            &quot;clicked at row: &quot; + 
+                            context.rowIndex + 
+                            &quot;, column: &quot; + 
+                            context.colIndex + 
+                            &quot;, data: &quot; + 
+                            context.getData(context.field)
+                        );
                     }
                 }
             })
         },
-        {
-            name: &quot;Grid Checkbox State&quot;,
-            field: &quot;myCheckBoxState&quot;,
-            alignment: &quot;c&quot;,
-            width: 150
-        },
-        {
-            name: &quot;Industry&quot;,
+        { 
+            name: &quot;Column 2&quot;,
             field: fields[0],
+            alignment: &quot;center&quot;
+        },
+        { 
+            name: &quot;Column 3&quot;,
+            field: fields[1],
+            alignment: &quot;center&quot;
+        },
+        { 
+            name: &quot;Column 4&quot;,
+            field: fields[2],
+            alignment: &quot;center&quot;
         }
     ],
     staticDataRows: records
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
-</code></pre>
-</code-sandbox><h3 id="checkbox-with-a-label">Checkbox with a label</h3>
-<code-sandbox hash="1812a6e9"><pre><code class="language-css">efx-grid {
-    height: 320px;
-}
-</code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 25 });
-
-var configObj = {
-    columns: [
-        {
-            name: &quot;Checkboxes&quot;,
-            field: &quot;myCheckBoxState&quot;,
-            width: 150,
-            binding: EFCheckboxFormatter.create({
-                events: {
-                    &quot;click&quot;: function(e) {
-                        console.log(&quot;clicked&quot;);
-                    }
-                },
-                labelField: fields[0]
-            })
-        },
-        {
-            name: &quot;Grid Checkbox State&quot;,
-            field: &quot;myCheckBoxState&quot;,
-            alignment: &quot;c&quot;,
-            width: 150
-        },
-        {
-            name: &quot;Industry&quot;,
-            field: fields[1]
-        }
-    ],
-    staticDataRows: records
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
-</code></pre>
-</code-sandbox><h3 id="checkbox-and-pagination">Checkbox and pagination</h3>
-<code-sandbox hash="73d168e9"><pre><code class="language-css">hr {
-    margin: 5px;
-}
-efx-grid {
-}
-</code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-&lt;hr&gt;
-&lt;ef-pagination id=&quot;pagination_elem&quot;&gt;&lt;/ef-pagination&gt;
-</code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 40 });
-
-var configObj = {
-    columns: [
-        {
-            name: &quot;&quot;,
-            field: &quot;myCheckBoxState&quot;,
-            width: 34,
-            binding: EFCheckboxFormatter.create({})
-        },
-        {field: fields[0]},
-        {field: fields[1]},
-        {field: fields[2]}
-    ],
-    staticDataRows: records,
-    pagination: {
-        element: document.getElementById(&quot;pagination_elem&quot;),
-        page: 1,
-        pageSize: 8
-    },
-    extensions: [new Pagination()]
 };
 
 var grid = document.getElementById(&quot;grid&quot;);

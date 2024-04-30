@@ -1,33 +1,7 @@
-<h1 id="ef-icon-formatter">EF Icon Formatter</h1>
-<p>This formatter creates a <a href="https://ui.refinitiv.com/elements/icon">ef-icon</a> from the column&#39;s field by default.</p>
-<blockquote>
-<p>A full list of available icons can be found <a href="https://ui.refinitiv.com/elements/icon">here</a>. </p>
-</blockquote>
-<h2 id="specific-options">Specific options</h2>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Type</th>
-<th>Attributes</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>icon</td>
-<td>string or object</td>
-<td>optional</td>
-<td>Icon shown in the cell</td>
-</tr>
-<tr>
-<td>size</td>
-<td>string or number</td>
-<td>optional</td>
-<td>Size of an icon in pixels</td>
-</tr>
-</tbody></table>
+<h1 id="ef-datetime-picker-formatter">EF DateTime Picker Formatter</h1>
+<p>This formatter creates <a href="https://ui.refinitiv.com/elements/datetime-picker">ef-datetime-picker</a> without margin. </p>
 <h2 id="example">Example</h2>
-<code-sandbox hash="c18996b8"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="d3e74484"><pre><code class="language-css">efx-grid {
     height: 320px;
 }
 </code></pre>
@@ -42,43 +16,47 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var icons = [&quot;3d-surface&quot;, &quot;api&quot;, &quot;eye&quot;, &quot;conference&quot;, &quot;flame&quot;];
-DataGenerator.addFieldInfo(&quot;number&quot;, { type: &quot;number&quot;, min: 0, max: 5    });
-DataGenerator.addFieldInfo(&quot;icon&quot;, { type: &quot;set&quot;,    members: icons    });
-var fields = [&quot;number&quot;, &quot;icon&quot;];
+var fields = [&quot;date&quot;];
 var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 20 });
 
 var configObj = {
     columns: [
-        {
-            name: &quot;Static Icon&quot;,
-            alignment: &quot;c&quot;,
-            binding: EFIconFormatter.create({
-                icon: &quot;3d-surface&quot;,
-            })
-        },
-        {
-            name: &quot;Dynamic Icon With Mapper&quot;,
+        { 
+            name: &quot;Data&quot;,
             field: fields[0],
-            sort: fields[0],
+            sortBy: fields[0],
             alignment: &quot;c&quot;,
-            binding: EFIconFormatter.create({
-                icon: {
-                    0: &quot;up&quot;,
-                    1: &quot;down&quot;,
-                    2: &quot;left&quot;,
-                    3: &quot;right&quot;,
-                    4: &quot;line&quot;
-                },
-                size: 20
-            })
+            binding: function(e) {
+                var value = e[&quot;data&quot;];
+                var cell = e[&quot;cell&quot;];
+                cell.setContent(value.toDateString());
+            }
+        },
+        { 
+            name: &quot;Simplest&quot;,
+            field: fields[0],
+            sortBy: fields[0],
+            alignment: &quot;c&quot;,
+            binding: EFDateTimePickerFormatter.create()
         },
         {
-            name: &quot;Dynamic Icon&quot;,
-            field: fields[1],
-            sort: fields[1],
+            name: &quot;Some options&quot;,
+            field: fields[0],
+            sortBy: fields[0],
             alignment: &quot;c&quot;,
-            binding: EFIconFormatter.create()
+            binding: EFDateTimePickerFormatter.create({
+                attributes: {
+                    format: &quot;yyyy-MM-dd&quot;
+                },
+                styles: {
+                    width: &quot;120px&quot;
+                },
+                events: {
+                    &quot;value-changed&quot;: function(e) {
+                        // console.log(&quot;value changed: &quot; + e.detail.value);
+                    }
+                }
+            })
         }
     ],
     staticDataRows: records

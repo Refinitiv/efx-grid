@@ -1,9 +1,9 @@
-<h1 id="scrollbar-visibility">Scrollbar Visibility</h1>
-<p>Instead of fading in or out on hover (default behavior), Grid scrollbars can be set to always be visible whenever the content is scrollable.</p>
-<p>This behavior can be enabled upon grid initialization using the <code>autoHideScrollbar</code> option. The values can be <em>false</em> for always-on, and <em>true</em> for fade in/out (default).</p>
+<h1 id="scroll-speed">Scroll Speed</h1>
+<p>Generally, Grid will contain a large number of rows. Grid elements could block page scrolling due to slow native wheel scrolling speed and long scroll distance. So, by default, Grid&#39;s wheel scroll speed will increase exponentially once the content height exceeds a certain threshold. This behavior may not be wanted, so to return to the native wheel default behavior enable <code>linearWheelScrolling</code>.</p>
+<p>You can also force scrolling to move for the whole row by using the <code>stepScroll</code> property.</p>
 <h2 id="example">Example</h2>
-<code-sandbox hash="934a91f7"><pre><code class="language-css">efx-grid {
-    height: 200px;
+<code-sandbox hash="521b2b8d"><pre><code class="language-css">efx-grid {
+    height: 400px;
 }
 </code></pre>
 <pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
@@ -17,16 +17,18 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 10 });
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;id&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 1000 });
 var configObj = {
-    autoHideScrollbar: false,
+    linearWheelScrolling: true,
+    stepScroll: true,
     columns: [
-        {name: &quot;Company&quot;, field: fields[0], width: 250},
-        {name: &quot;Market&quot;, field: fields[1], width: 150},
-        {name: &quot;Last&quot;, field: fields[2], width: 150},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 150},
-        {name: &quot;Industry&quot;, field: fields[4], width: 300}
+        {name: &quot;ID&quot;, field: fields[5], width: 40},
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market&quot;, field: fields[1], width: 100},
+        {name: &quot;Last&quot;, field: fields[2], width: 80},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 80},
+        {name: &quot;Industry&quot;, field: fields[4]}
     ],
     staticDataRows: records
 };

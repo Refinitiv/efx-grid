@@ -1,7 +1,7 @@
-<h1 id="simple-input-formatter">Simple Input Formatter</h1>
-<p>This formatter creates an input without a margin and 100% width. By default the input&#39;s value will be the column&#39;s field.</p>
+<h1 id="simple-image-formatter">Simple Image Formatter</h1>
+<p>This formatter creates an image from the column&#39;s field by default.</p>
 <h2 id="example">Example</h2>
-<code-sandbox hash="459ebc10"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="ea42f39e"><pre><code class="language-css">efx-grid {
     height: 320px;
 }
 </code></pre>
@@ -16,26 +16,29 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;number_1&quot;, &quot;float_1&quot;];
-var records = DataGenerator.generateRecords(fields, 40);
-
+var fields = [&quot;image&quot;, &quot;s_image&quot;];
+var records = new Array(40);
+for(var i = 0; i &lt; 40; ++i) {
+    var record = records[i] = {};
+    record[fields[0]] = &quot;https://dummyimage.com/40x40&amp;text=&quot; + i;
+    record[fields[1]] = &quot;https://dummyimage.com/15x15&amp;text=&quot; + i;
+}
 var configObj = {
+    sorting: {
+        sortableColumns: true
+    },
     columns: [
-        { 
-            name: &quot;Column 1&quot;,
+        {
+            name: &quot;Image&quot;,
             field: fields[0],
-            alignment: &quot;center&quot;
+            alignment: &quot;c&quot;,
+            binding: SimpleImageFormatter.create()
         },
-        { 
-            name: &quot;Column 2&quot;,
+        {
+            name: &quot;Small Image&quot;,
             field: fields[1],
-            alignment: &quot;center&quot;
-        },
-        { 
-            name: &quot;Input&quot;,
-            field: fields[0],
-            alignment: &quot;center&quot;,
-            binding: SimpleInputFormatter.create()
+            alignment: &quot;c&quot;,
+            binding: SimpleImageFormatter.create()
         }
     ],
     staticDataRows: records

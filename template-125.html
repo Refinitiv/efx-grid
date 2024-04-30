@@ -1,238 +1,29 @@
-<h1 id="text-selection">Text Selection</h1>
-<p>Text selection has 2 scopes. It&#39;s grid scope and column scope. The default value of text selection is disabled, but you can enable it. If you enable it, users can select text in scope.</p>
-<ul>
-<li>The grid scope can enable by set textSelect property to <code>true</code> in configuration of <a href="#/apis/rt-grid/grid">Grid</a></li>
-<li>The column scope can enable by set textSelect property to <code>true</code> in configuration of <a href="#/apis/rt-grid/columndefinition">Columns</a></li>
-</ul>
-<h2 id="limitation-with-safari">Limitation with safari</h2>
-<ul>
-<li>When you use Text selection with <a href="#/extensions/tr-grid-row-dragging">Row Dragging</a>, Safari is unable to select text.</li>
-<li>Safari is unable to listening pointer events such as clicks, hovers, and so on. When you use <a href="#/rendering/custom-formatter">Custom Formatter</a> in a cell, it looks like this example.</li>
-</ul>
-<h3 id="example">Example</h3>
-<p>If you use Safari, try clicking the button in column <code>Market</code> from the sample below. You won&#39;t be able to receive the click event.</p>
-<code-sandbox hash="647069a8"><pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 10 });
-var buttonDisplay = {
-binding: function (e) {
-    var cellData = e.cell;
-    var buttonContent = document.createElement(&quot;button&quot;);
-    var spanContent = document.createElement(&quot;span&quot;);
-    buttonContent.addEventListener(&quot;click&quot; , () =&gt; {
-        alert(e.data);
-    });
-    spanContent.textContent = `${e.data}`;
-    buttonContent.appendChild(spanContent);
-    cellData.setContent(buttonContent);
-    }
-};
-
-var configObj = {
-    rowVirtualRendering: false,
-    textSelect : true,
-    columns: [
-        {name: &quot;Company&quot;, field: fields[0]},
-        {name: &quot;Market&quot;, field: fields[1], formatter: buttonDisplay , width: 120}
-    ],
-    staticDataRows: records
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
-</code></pre>
-</code-sandbox><h2 id="limitation-with-row-virtualization">Limitation with row virtualization</h2>
-<p>Text selection with row virtualization cannot select all data in the grid.
-In the example below, the grid has text selection enabled and uses row virtualization.
-When you try to select and copy text from the grid and paste it into a text area, you will see that not all data from the grid is obtained.
-This is because row virtualization render only the rows that is visible in the grid&#39;s viewport. 
-For example, if you have 50 rows of data, but the grid can only show the first 10 rows at a time, then when you try to select the text, it will only select the first 14 rows (10 rows + buffer rows). 
-If you want to know about row virtualization in more detail, you can refer to the <code>Understanding row virtualization</code> section in the <a href="#/rendering/custom-formatter">Custom Formatter</a> page.</p>
-<h3 id="example-1">Example</h3>
-<code-sandbox hash="8eaf24c0"><pre><code class="language-css">efx-grid {
-    height: 300px;
-}
-textarea {
-    height: 200px;
-    width: 100%;
-}
-</code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-&lt;hr&gt;
-&lt;textarea placeholder=&quot;Paste text here&quot;&gt;&lt;/textarea&gt;
-</code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [
-    &quot;id&quot;,
-    &quot;companyName&quot;,
-    &quot;market&quot;,
-    &quot;CF_LAST&quot;,
-    &quot;CF_NETCHNG&quot;,
-    &quot;industry&quot;
-];
-var records = DataGenerator.generateRecords(fields, { numRows: 50, seed: 0 });
-var config = {
-    textSelect: true,
-    columns: [
-        {
-            field: fields[0],
-            name: &quot;ID&quot;
-        },
-        {
-            field: fields[1],
-            name: &quot;Company Name&quot;
-        },
-        {
-            field: fields[2],
-            name: &quot;Market&quot;
-        },
-        {
-            field: fields[3],
-            name: &quot;Last&quot;
-        },
-        {
-            field: fields[4],
-            name: &quot;Net. Chng&quot;
-        },
-        {
-            field: fields[5],
-            name: &quot;Industry&quot;
-        },
-    ],
-    staticDataRows: records
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = config;
-window.grid = grid;
-</code></pre>
-</code-sandbox><h2 id="copying-all-content-in-the-grid-without-text-selection">Copying all content in the grid without text selection</h2>
-<p>If you want to copy all the data in the grid, you can do it by focusing on the grid element and modifying the clipboard without text selection.
-To do this, you can listen for the <code>click</code> event on the grid element and call <code>focus</code> method on the grid API to focus on the grid.
-Then, you can listen for the <code>copy</code> event on the grid element and modify the clipboard as shown in the example below.</p>
-<h3 id="example-2">Example</h3>
-<code-sandbox hash="9730f9b3"><pre><code class="language-css">html body {
-    padding: 5px;
+<h1 id="saveload-grid-config">Save/Load grid config</h1>
+<p>In efx-grid, we provide the developer with can implement save/load grid config for restoring config to the grid. This behavior helps the developer with implementation, Such as undo/redo functionality.
+Where the grid has static data, which you can use <code>setStaticData</code> or <code>setStaticRowData</code> in runtime, the grid will store this information, and then when you want to use this config, you can just set this config into the grid.
+We divide the example into two examples.</p>
+<p>First, we have the grid and some data in the grid. You can set static data by clicking the button, and then the grid will change states, such as row coloring and segment color. And then, when you want to save this state, you can click “Save config,” and the grid will return the current state and copied to your clipboard. Then when you have a clipboard, you can pass it into example 2. Then click &quot;Start Grid&quot; and both grids look the same. </p>
+<p>::</p>
+<pre><code class="language-css">html body {
+    padding: 20px;
     box-sizing: border-box;
 }
+
 html hr {
     margin: 5px;
 }
+
 efx-grid {
-    height: 200px;
+    height: 300px;
 }
-efx-grid:focus-within {
-    outline-width: 1px;
-    outline-style: solid;
-    outline-color: blue;
+
+#copy_success {
+    color: green;
 }
-textarea {
-    width: 100%;
-    height: 200px;
-}
-mark {
-    opacity: 0;
-    padding: 4px;
-    transition: opacity 0.5s ease-out;
+
+input[type=&quot;number&quot;] {
+    width: 40px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;big&gt;Try clicking grid and copying (&lt;b&gt;Ctrl/Command + C&lt;/b&gt;) grid&#39;s content.&lt;/big&gt;
-&lt;br&gt;
-&lt;big&gt;Then, paste the content on the text box below.&lt;/big&gt;
-&lt;hr&gt;
-&lt;mark id=&quot;key_indi&quot;&gt;&lt;/mark&gt;
-&lt;hr&gt;
-&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-&lt;hr&gt;
-&lt;textarea placeholder=&quot;Paste clipboard content here&quot;&gt;&lt;/textarea&gt;
-</code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-
-var fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 20 });
-
-function onClick(e) {
-    grid.api.focus();
-}
-function onCopy(e) {
-    var columnNames = grid.api.getColumnNames();
-    var rows = grid.api.getMultipleRowData(); // Get all row data from existing view
-    
-    // Build text in TSV format 
-    var text = columnNames.join(&quot;\t&quot;) + &quot;\n&quot; +
-        rows.map(recordToTSV).join(&quot;\n&quot;);
-    
-    e.clipboardData.setData(&quot;text/plain&quot;, text);
-    e.preventDefault();
-    
-    showKeyIndicator(&quot;Data is copied to clipboard&quot;);
-}
-function recordToTSV(record) {
-    return ([
-        record[fields[0]],
-        record[fields[1]],
-        record[fields[2]],
-        record[fields[3]],
-        record[fields[4]]
-    ]).join(&quot;\t&quot;); // TSV (Tab Separated Values)
-}
-function showKeyIndicator(text) {
-    if(text) {
-        key_indi.textContent = text;
-    }
-    key_indi.style.opacity = &quot;1&quot;;
-    setTimeout(onHideKeyIndicator, 1000);
-}
-function onHideKeyIndicator() {
-    key_indi.style.opacity = &quot;&quot;;
-}
-
-var configObj = {
-    sorting: {
-        sortableColumns: true
-    },
-    columns: [
-        { name: &quot;Id&quot;, field: fields[0], width: 40 },
-        { name: &quot;Company&quot;, field: fields[1] },
-        { name: &quot;Market&quot;, field: fields[2], width: 100 },
-        { name: &quot;Last&quot;, field: fields[3], width: 80 },
-        { name: &quot;Net. Chng&quot;, field: fields[4], width: 80 },
-        { name: &quot;Industry&quot;, field: fields[5] }
-    ],
-    staticDataRows: records,
-    extensions: []
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
-
-grid.addEventListener(&quot;click&quot;, onClick);
-grid.addEventListener(&quot;copy&quot;, onCopy);
-</code></pre>
-</code-sandbox><p><br><br></p>
+<p>```html</p>
+<!--  Set predifined color with api

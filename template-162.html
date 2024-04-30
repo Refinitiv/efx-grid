@@ -1,17 +1,13 @@
-<h1 id="adding-header-and-footer-sections">Adding Header and Footer Sections</h1>
-<p>Additional header and footer sections can be added, and are automatically frozen. Both methods (header and footer) return the new section (with the row count of one), which can then be populated programmatically.</p>
+<h1 id="text-formatter">Text Formatter</h1>
+<p>This formatter creates a simple div element with text from the column&#39;s field by default. The div element can be modified in the handler (for example, <code>onElementRendered</code>) and passed through configuration object for multiple use cases. </p>
+<h2 id="specific-options">Specific options</h2>
+<p>The purpose of this formatter is creating a generic element for further modifications, so there are no specific options.</p>
 <h2 id="example">Example</h2>
-<code-sandbox hash="93d28d17"><pre><code class="language-css">html hr {
-    margin: 5px;
-}
-efx-grid {
-    height: 200px;
+<code-sandbox hash="d7ba12ad"><pre><code class="language-css">efx-grid {
+    height: 320px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;button id=&quot;header_btn&quot;&gt;Add Header Section&lt;/button&gt;
-&lt;button id=&quot;footer_btn&quot;&gt;Add Footer Section&lt;/button&gt;
-&lt;hr&gt;
-&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
@@ -22,40 +18,46 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 6 });
+var fields = [&quot;number_1&quot;, &quot;word&quot;, &quot;float_1&quot;];
+var records = DataGenerator.generateRecords(fields, 40);
+
 var configObj = {
     columns: [
-        {name: &quot;Company&quot;, field: fields[0]},
-        {name: &quot;Market&quot;, field: fields[1], width: 100},
-        {name: &quot;Last&quot;, field: fields[2], width: 80},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 80},
-        {name: &quot;Industry&quot;, field: fields[4]}
+        { 
+            name: &quot;Column 1&quot;,
+            field: fields[0],
+            alignment: &quot;right&quot;,
+            binding: TextFormatter.create()
+        },
+        { 
+            name: &quot;Column 2&quot;,
+            field: fields[1],
+            alignment: &quot;center&quot;,
+            binding: TextFormatter.create({
+                styles: {
+                    &quot;backgroundColor&quot;: &quot;thistle&quot;
+                }
+            })
+        },
+        { 
+            name: &quot;Big Text&quot;,
+            field: fields[2],
+            binding: TextFormatter.create({
+                styles: {
+                    &quot;fontSize&quot;: &quot;1.5em&quot;
+                }
+            })
+        }
     ],
     staticDataRows: records
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
-
-document.getElementById(&quot;header_btn&quot;).addEventListener(&quot;click&quot;, function() {
-    var newSection = grid.api.addHeaderSection(&quot;My_Header&quot;);
-    if(newSection) { // New section can only be created, if the name of the section is unique
-        newSection.setCellColSpan(0, 0, 5);
-        var cell = newSection.getCell(0, 0);
-        cell.setContent(&quot;Header&quot;);
-    }
-});
-
-document.getElementById(&quot;footer_btn&quot;).addEventListener(&quot;click&quot;, function() {
-    var newSection = grid.api.addFooterSection(&quot;My_Footer&quot;);
-    if(newSection) { // New section can only be created, if the name of the section is unique
-        newSection.getCell(0, 0).setContent(&quot;Footer&quot;);
-        newSection.getCell(1, 0).setContent(&quot;100&quot;);
-        newSection.getCell(2, 0).setContent(&quot;200&quot;);
-        newSection.getCell(3, 0).setContent(&quot;300&quot;);
-        newSection.getCell(4, 0).setContent(&quot;400&quot;);
-    }
-});
 </code></pre>
-</code-sandbox>
+</code-sandbox><h2 id="formatting-predefined-formatter-using-text-formatting-extension">Formatting predefined formatter using Text Formatting Extension</h2>
+<p>When using Text Formatting Extension, by default, predefined formatter will be overwritten due to the need for rendering a formatted text by the extension. To format the text inside predefined formatter and avoid the overriding, you will need to instruct the extension on how and where to do the formatting. See <a href="#/extensions/tr-grid-textformatting">this page</a> for more information.</p>
+<p>In this case, you can use <code>onElementRendered</code> and Text Formatting Extension to do the formatting.</p>
+<br>
+<br>
+<br>

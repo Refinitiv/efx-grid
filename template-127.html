@@ -1,53 +1,6 @@
-<h1 id="custom-data-source">Custom Data Source</h1>
-<p>In some case, you might want to update Efx Grid&#39;s data with your own data feed. The Grid team has exposed the APIs for these scenarios.</p>
-<p>Here is an example of what the data provider might looks like:</p>
-<pre><code class="language-js">/**
- * NOTE: DO NOT COPY AND PASTE THIS CODE
- */ 
-var MyBasicProvider = {
-    subscribeSymbol(symbol) {
-        // When a new row is added to a Grid, we will subscribe that symbol from the datasource.
-    },
-    unsubscribeSymbol(symbol) {
-        // When row is removed from a Grid, we will stop subscribing that symbol from the datasource.
-    },
-    setDataChangeHandler(callback) {
-        // Each time the datasource has some new updates, we will need to tell Grid to update its data row.
-    }
-}
-</code></pre>
-<p>Once we have our custom data provider, then you will have to plug it into the Grid. </p>
-<p>Take a look at the next example:</p>
-<pre><code class="language-js">var grid = document.getElementById(&quot;grid_id&quot;);
-grid.addEventListener(&quot;configured&quot;, function(e) {
-    var api = e.detail.api;
-    api.listen(&quot;ricAdded&quot;, onRicAdded);
-    api.listen(&quot;ricRemoved&quot;, onRicRemoved);
-});
-
-function onRicAdded(e) {
-    var symbols = e.addedRics;
-    for (var i = 0; i &lt; symbols.length; i++) {
-        MyBasicProvider.subscribeSymbol(symbols[i]);
-    }
-}
-function onRicRemoved(e) {
-    var symbols = e.addedRics;
-    for (var i = 0; i &lt; symbols.length; i++) {
-        MyBasicProvider.unsubscribeSymbol(symbols[i]);
-    }
-}
-</code></pre>
-<p>In the above example, you are able to add a subscription to each symbol. Next you need to set the Grid&#39;s data according to the data received from the datasource.</p>
-<pre><code class="language-js">function onDataChanged(symbol, value) {
-    grid.api.setRicData(symbol, value);
-}
-
-MyBasicProvider.setDataChangeHandler(onDataChanged);
-</code></pre>
-<p>Now all the data that is updated from the datasource will also be updated to the Grid.</p>
-<h2 id="live-demo">Live demo</h2>
-<code-sandbox hash="108a33af"><pre><code class="language-css">efx-grid {
+<h1 id="using-jetquotes2-with-efx-grid">Using JET.Quotes2 with Efx Grid</h1>
+<p>The <code>efx-grid</code> is a grid component that wraps <strong>rt-grid</strong> (also known as <a href="https://gitlab.dx1.lseg.com/204090/grid/rt-grid">Realtime Grid library</a>). It provides an easy way to display real-time data in a tabular format. It allows you to create lists of multiple instruments with multiple real-time and fundamentals columns.</p>
+<code-sandbox hash="f718f0af"><pre><code class="language-css">efx-grid {
     height: 250px;
 }
 </code></pre>
@@ -62,186 +15,47 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var dataGen = DataGenerator;
-var Toolkit = tr.MockRTK;
-Toolkit.init({ ID: &#39;rtk-efx-grid&#39; }, [&#39;Quotes&#39;, &#39;Data&#39;]).then(onInit);
+JET = new tr.MockJET(); // Use Mock for illustrative purpose only
 
-/**
-* NOTE: DO NOT COPY AND PASTE THIS CODE
-* 
-* This is only an example of a simple data provider. In real world scenario, you would need to implement the logics base on your requirements.
-* For example:
-* 1. Define an endpoint to a real domain name.
-* 2. Store a data base on your need.
-* 3. Implement only neccessary methods.
-* 4, Remove any timer and setInterval.
-*/ 
-var MyBasicProvider = {
-    _fields: {},
-    _ricInterval: {},
-    addField(field) {
-        switch(field) { // Filter out non custom field
-            case &quot;X_RIC_NAME&quot;: return;
-            case &quot;CF_ASK&quot;: return;
-            case &quot;CF_LAST&quot;: return;
-            default: break;
-        }
-        this._fields[field] = 1;
-    },
-    removeField(field) {
-        delete this._fields[field];
-    },
-    subscribe(rics, callback) {
-        for (var ric of rics) {
-            this._ricInterval[ric] = setInterval(this.onSubscribeUpdate.bind(this, ric, callback), 1500);
-        }
-    },
-    onSubscribeUpdate(ric, callback) {
-        var res = {
-            ric: ric,
-            data: dataGen.generateRecord(Object.keys(this._fields))
-        };
-        callback(res);
-    },
-    unsubscribe(rics) {
-        for (var ric of rics) {
-            clearInterval(this._ricInterval[ric]);
-            delete this._ricInterval[ric];
-        }
-    }
+var columns = [
+{
+    field: &quot;X_RIC_NAME&quot;,
+    tickColor: &quot;CF_NETCHNG&quot;
+},
+{
+    field: &quot;CF_NAME&quot;
+},
+{
+    field: &quot;CF_LAST&quot;,
+    tickColor: &quot;CF_NETCHNG&quot;,
+    blinking: true
+},
+{
+    field: &quot;CF_NETCHNG&quot;,
+    tickColor: true,
+    blinking: true
+},
+{
+    field: &quot;PCTCHNG&quot;,
+    tickColor: &quot;CF_NETCHNG&quot;,
+    blinking: true
+}
+];
+var configObj = {
+    rows: [
+        { ric: &quot;EUR=&quot; },
+        { ric: &quot;GBP=&quot; },
+        { ric: &quot;JPY=&quot; },
+        { ric: &quot;AUD=&quot; },
+        { ric: &quot;THB=&quot; },
+        { ric: &quot;ARS=&quot; },
+        { ric: &quot;AZN=&quot; },
+        { ric: &quot;BND=&quot; }
+    ],
+    columns: columns,
 };
-
-function onDataRecieved(res) {
-    grid.api.setRicData(res.ric, res.data);
-}
-
-function onFieldAdded(e) {
-    var addedFields = e.addedFields;
-    for (var i = 0; i &lt; addedFields.length; i++) {
-        MyBasicProvider.addField(addedFields[i]);
-    }
-}
-
-function onFieldRemoved(e) {
-    var removedFields = e.removedFields;
-    for (var i = 0; i &lt; removedFields.length; i++) {
-        MyBasicProvider.removeField(removedFields[i]); // Subscribe field update
-    }
-}
-
-function onRicAdded(e) {
-    var addedRics = e.addedRics;
-    MyBasicProvider.subscribe(addedRics, onDataRecieved); // Subscribe ric update
-}
-
-function onRicRemoved(e) {
-    MyBasicProvider.unsubscribe(e.removedRics); // Subscribe ric update
-}
-
-
-var grid = null;
-function onInit(rtk) {
-    var config = {
-        RTK: rtk,
-        columns: [
-            {
-                &quot;name&quot;: &quot;Ric&quot;,
-                &quot;field&quot;: &quot;X_RIC_NAME&quot;,
-            },
-            {
-                &quot;name&quot;: &quot;Custom Field Name&quot;,
-                &quot;field&quot;: &quot;fieldName&quot;,
-                &quot;className&quot;: &quot;highlighted-column&quot;
-            },
-            {
-                &quot;field&quot;: &quot;CF_ASK&quot;
-            },
-            {
-                &quot;field&quot;: &quot;Combined fields&quot;,
-                &quot;requiredFields&quot;: [&quot;fieldA&quot;, &quot;fieldB&quot;],
-                &quot;notRealTimeField&quot;: true,
-            },
-            {
-                &quot;field&quot;: &quot;CF_LAST&quot;
-            }
-        ],
-        rows: [
-            { &quot;ric&quot;: &quot;TRI.TO&quot; },
-            { &quot;ric&quot;: &quot;&quot; },
-            { &quot;ric&quot;: &quot;.SETI&quot; },
-            { &quot;ric&quot;: &quot;0#.DJI&quot; },
-            { &quot;ric&quot;: &quot;.SPX&quot; },
-            { &quot;ric&quot;: &quot;TRI.TO&quot; },
-            { &quot;ric&quot;: &quot;.SETI&quot; },
-            { &quot;ric&quot;: &quot;.SPX&quot; },
-            { }
-        ]
-    };
-
-    grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
-    grid.addEventListener(&quot;configured&quot;, function(e) {
-        var api = e.detail.api;
-        api.listen(&quot;fieldAdded&quot;, onFieldAdded);
-        api.listen(&quot;fieldRemoved&quot;, onFieldRemoved);
-        api.listen(&quot;ricAdded&quot;, onRicAdded);
-        api.listen(&quot;ricRemoved&quot;, onRicAdded);
-        
-    });
-    grid.config = config;
-}
+var grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
+grid.config = configObj;
 </code></pre>
-</code-sandbox><h2 id="events-argument">Events argument</h2>
-<table>
-<thead>
-<tr>
-<th>Event Name</th>
-<th>Arguments</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>fieldAdded</td>
-<td>e.addedFields</td>
-<td>An array of newly added fields.</td>
-</tr>
-<tr>
-<td>fieldRemoved</td>
-<td>e.removedFields</td>
-<td>An array of recently removed fields.</td>
-</tr>
-<tr>
-<td>ricAdded</td>
-<td>e.addedRics</td>
-<td>An array of newly added rics.</td>
-</tr>
-<tr>
-<td>ricRemoved</td>
-<td>e.removedRics</td>
-<td>An array of recently removed rics.</td>
-</tr>
-</tbody></table>
-<p>The following arguments are provided in every events:</p>
-<table>
-<thead>
-<tr>
-<th>Event Name</th>
-<th>Arguments</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>*</td>
-<td>e.fields</td>
-<td>All fields.</td>
-</tr>
-<tr>
-<td></td>
-<td>e.rics</td>
-<td>All rics.</td>
-</tr>
-<tr>
-<td></td>
-<td>e.rowDefs</td>
-<td>All row definitions.</td>
-</tr>
-</tbody></table>
+</code-sandbox><h2 id="next-steps">Next steps</h2>
+<p>Proceed to the <a href="#/realtime-data/jet">integration guide</a> for <code>JET.Qoutes2</code> with real-time market data.</p>

@@ -1,32 +1,19 @@
-<h1 id="server-side-pagination">Server Side Pagination</h1>
-<p>In case you want to retrieve a chunk of data from the server and do not want to load all of the data at once, you need to do server side pagination. The <a href="https://ui.refinitiv.com/elements/pagination">pagination</a> component is enough to do this. <strong>Do not</strong> use the Pagination Extension for server side pagination. </p>
-<p>All related logics (such as data requesting, validation, and transformation) must be implemented on the application side. Once data is received, you can just assign data to Grid&#39;s <code>data</code> property. </p>
-<p>See more details about data setting at <a href="#/data/columns-and-data">Columns and Data Properties</a>.</p>
-<h2 id="example">Example</h2>
-<pre><code class="language-js">    function onServerResponse(data) {
-        hideLoadingMask();
-        grid.data = data; // Setting data from server
-    }
-    function onRowCountRecieved(total) {
-        pagination_ui.max = Math.ceil(total / PAGE_SIZE);
-    }
-    function onPageChanged(e) {
-        requestData(e.detail.value, PAGE_SIZE, onServerResponse);
-    }
-</code></pre>
-<code-sandbox hash="5db5cb84"><pre><code class="language-css">efx-grid {
-    height: 169px;
+<h1 id="loading-mask">Loading Mask</h1>
+<p>Loading mask is not part of Grid. To follow the standard theme, the UI and functionalities are provided by <a href="https://ui.refinitiv.com/elements/loader">loader</a> component. So, you need to put an overlay on top of the grid and not inside of it. For more advanced UI and behaviors, the implementation has to be done on the application side.</p>
+<h2 id="basic-example">Basic Example</h2>
+<code-sandbox hash="d14e2dfd"><pre><code class="language-css">#container_div {
+    position: relative; /*ef-loader has position absolute*/
+    height: 250px;
 }
-ef-pagination {
-    margin-bottom: 30px;
-}
-.blur {
-    filter: blur(2px);
+efx-grid {
+    height: 100%;
 }
 </code></pre>
-<pre><code class="language-html">&lt;div id=&quot;container_div&quot;&gt;
+<pre><code class="language-html">&lt;button id=&quot;show_btn&quot;&gt;Show Masking&lt;/button&gt;
+&lt;button id=&quot;hide_btn&quot;&gt;Hide Masking&lt;/button&gt;
+&lt;br&gt;&lt;br&gt;
+&lt;div id=&quot;container_div&quot;&gt;
     &lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-    &lt;ef-pagination id=&#39;pagination_ui&#39; value=&quot;1&quot;&gt;&lt;/ef-pagination&gt;
 &lt;/div&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
@@ -38,59 +25,8 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var paginationUI = document.getElementById(&quot;pagination_ui&quot;);
-var SERVER_DELAY = 300;
-var loading_mask = document.createElement(&quot;ef-loader&quot;);
-var PAGE_SIZE = 5;
+var loadingMaskEl = document.createElement(&quot;ef-loader&quot;); // Element can be created at runtime 
 
-function showLoadingMask() {
-    if (!loading_mask.parentElement) {
-        container_div.classList.add(&#39;blur&#39;);
-        container_div.append(loading_mask);
-    }
-
-    paginationUI.disabled = true;
-}
-function hideLoadingMask() {
-    if (loading_mask.parentElement) {
-        container_div.classList.remove(&#39;blur&#39;);
-        loading_mask.parentElement.removeChild(loading_mask);
-    }
-
-    paginationUI.disabled = false;
-}
-
-// Event handlers
-function onServerResponse(data) {
-    hideLoadingMask();
-    grid.data = data; // Setting data from server
-}
-function onRowCountRecieved(total) {
-    paginationUI.max = Math.ceil(total / PAGE_SIZE);
-}
-function onPageChanged(e) {
-    requestData(e.detail.value, PAGE_SIZE, onServerResponse);
-}
-
-// Mocking Server
-function requestTotalPage(callback) {
-    setTimeout(function () { // Simulate network delay when requesting data from server
-        callback(serverData.length);
-    }, SERVER_DELAY);
-}
-function requestData(page, itemPerPage, callback) {
-    showLoadingMask();
-    page = parseInt(page);
-    itemPerPage = parseInt(itemPerPage);
-    setTimeout(function () { // Simulate network delay when requesting data from server
-        var start = itemPerPage * (page - 1);
-        var end = start + itemPerPage;
-        callback(serverData.slice(start, end));
-    }, SERVER_DELAY);
-}
-
-// Mocking Data
-var totalCount = 100;
 DataGenerator.addFieldInfo(&quot;rowNumber&quot;, {
     type: &quot;function&quot;,
     generate: function(info, seed) {
@@ -99,42 +35,50 @@ DataGenerator.addFieldInfo(&quot;rowNumber&quot;, {
     count: 0,
 });
 var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;rowNumber&quot;];
-var serverData = DataGenerator.generateRecords(fields, { numRows: totalCount });
-
-// Initializing UIs
+var records = DataGenerator.generateRecords(fields, { numRows: 10 });
 var configObj = {
     columns: [
-        {name: &quot;ID&quot;, field: fields[5], alignment: &quot;center&quot;, width: 40},
+        {name: &quot;ID&quot;, field: fields[5], alignment: &quot;center&quot;, width: 80},
         {name: &quot;Company&quot;, field: fields[0]},
         {name: &quot;Market&quot;, field: fields[1], width: 120},
         {name: &quot;Last&quot;, field: fields[2], width: 100},
         {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
         {name: &quot;Industry&quot;, field: fields[4]}
-    ]
-    // ,dataModel: {...} Initial data is optional
+    ],
+    dataModel: {
+        data: records
+    }
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 
-paginationUI.addEventListener(&quot;value-changed&quot;, onPageChanged);
+document.getElementById(&quot;show_btn&quot;).addEventListener(&quot;click&quot;, function() {
+    document.getElementById(&quot;container_div&quot;).appendChild(loadingMaskEl);
+});
 
-// Start app by getting total number of items and data
-requestTotalPage(onRowCountRecieved);
-requestData(paginationUI.value, PAGE_SIZE, onServerResponse);
+document.getElementById(&quot;hide_btn&quot;).addEventListener(&quot;click&quot;, function() {
+    loadingMaskEl.remove();
+});
 </code></pre>
-</code-sandbox><h1 id="client-side-pagination">Client side pagination</h1>
-<p>If you have all the data available on the client side and want to show data in pagination style, you can use the Pagination Extension and the <a href="https://ui.refinitiv.com/elements/pagination">pagination</a> element. The current page and page size can be configured using the <code>pagination</code> option. The pagination behaviors are then implemented by the extension. See <a href="#/extensions/tr-grid-pagination">Pagination Extension</a> for more details.</p>
-<h2 id="example-1">Example</h2>
-<code-sandbox hash="a12bd869"><pre><code class="language-css">efx-grid {
-    height: 169px;
+</code-sandbox><h2 id="infinite-scrolling-with-data-fetching-example">Infinite Scrolling with Data Fetching Example</h2>
+<code-sandbox hash="96d51945"><pre><code class="language-css">efx-grid {
+    height: 250px;
 }
-ef-pagination {
-    margin-bottom: 30px;
+.blur {
+    filter: blur(2px);
+}
+#container_div {
+    position: relative; /*ef-loader has position absolute*/
 }
 </code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-&lt;ef-pagination id=&#39;pagination&#39;&gt;&lt;/ef-pagination&gt;
+<pre><code class="language-html">&lt;button id=&quot;fetch_btn&quot;&gt;Fetch Data&lt;/button&gt;
+&lt;button id=&quot;clear_btn&quot;&gt;Clear Data&lt;/button&gt;
+&lt;big&gt;Total rows: &lt;span id=&quot;total_row&quot;&gt;0&lt;/span&gt;&lt;/big&gt;
+&lt;br&gt;
+&lt;div id=&quot;container_div&quot;&gt;
+    &lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+&lt;/div&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
@@ -145,6 +89,7 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
+var loading_mask = null; // Cache the element for re-using multiple times
 DataGenerator.addFieldInfo(&quot;rowNumber&quot;, {
     type: &quot;function&quot;,
     generate: function(info, seed) {
@@ -153,30 +98,69 @@ DataGenerator.addFieldInfo(&quot;rowNumber&quot;, {
     count: 0,
 });
 var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;rowNumber&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 100 });
+
+function fetchData() { // Simulate Data Fetching
+    if (!loading_mask) { // If we are not loading anything
+        toggleLoadingMask();
+        setTimeout(onDataReceived, 1500); // Simulate delay for communication with a server
+    }
+};
+
+function clearData() {
+    grid.api.removeAllRows();
+    document.getElementById(&quot;total_row&quot;).textContent = 0;
+};
+
+function onDataReceived() {
+    toggleLoadingMask(); // Remove loading mask
+    
+    var records = DataGenerator.generateRecords(fields, { numRows: 20 });
+    grid.api.addStaticDataRows(records);
+    
+    document.getElementById(&quot;total_row&quot;).textContent = grid.api.getRowCount(); // Update UI
+}
+
+function onScrollEnd(e) {
+    var vScrollbar = grid.api.getCoreGrid().getVScrollbar();
+    if (vScrollbar.isEndOfVerticalScroll()) {
+        fetchData();
+    }
+}
+
+function toggleLoadingMask() {
+    if (loading_mask) {
+        grid.classList.remove(&quot;blur&quot;);
+        
+        loading_mask.remove();
+        loading_mask = null;
+    } else {
+        grid.classList.add(&quot;blur&quot;);
+        
+        loading_mask = document.createElement(&quot;ef-loader&quot;);
+        document.getElementById(&quot;container_div&quot;).appendChild(loading_mask);
+    }
+}
+
 var configObj = {
     columns: [
-        {name: &quot;ID&quot;, field: fields[5], alignment: &quot;center&quot;, width: 40},
+        {name: &quot;ID&quot;, field: fields[5], alignment: &quot;center&quot;, width: 80},
         {name: &quot;Company&quot;, field: fields[0]},
         {name: &quot;Market&quot;, field: fields[1], width: 120},
         {name: &quot;Last&quot;, field: fields[2], width: 100},
         {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
         {name: &quot;Industry&quot;, field: fields[4]}
-    ],
-    dataModel: {
-        data: records
-    },
-    pagination: {
-        element: document.getElementById(&quot;pagination&quot;),
-        page: 1,
-        pageSize: 5
-    },
-    extensions: [
-        new Pagination()
     ]
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
+grid.addEventListener(&quot;configured&quot;, function(e) {
+    fetchData();
+    var vScrollbar = e.detail.api.getCoreGrid().getVScrollbar();
+    vScrollbar.listen(&quot;scroll&quot;, onScrollEnd);
+});
 grid.config = configObj;
+
+document.getElementById(&quot;fetch_btn&quot;).addEventListener(&quot;click&quot;, fetchData);
+document.getElementById(&quot;clear_btn&quot;).addEventListener(&quot;click&quot;, clearData);
 </code></pre>
-</code-sandbox>
+</code-sandbox><p><br><br><br></p>

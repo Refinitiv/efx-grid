@@ -1,51 +1,25 @@
-<h1 id="basic-sorting">Basic Sorting</h1>
-<p>Grid support sorting out of the box. By default, sorting is turned off for all columns. To turn it on, set <code>sortableCoumns</code> to <code>true</code>. This allow users to click at the Grid header section to sort the clicked column.</p>
-<pre><code class="language-js">var config = {
-    // any other grid&#39;s options
-    sorting: {
-        sortableColumns: true,
-    }
-}
+<h1 id="get-sorting-statesreset-all">Get Sorting States/Reset All</h1>
+<p>The <code>getSortedColumns()</code> method returns an array of the currently applied sorting states (with the <code>colIndex</code> and <code>sortOrder</code> properties).</p>
+<p>Additionally, the <code>clearSortState()</code> method resets the current sorting states to their default neutral state.</p>
+<p>A list of all sorting-related events can be found in the <strong>Events Handling</strong> section.</p>
+<pre><code class="language-js">var sort = grid.api.getCoreGrid().getPlugin(&quot;SortableTitle&quot;);
+var states = sort.getSortedColumns(); // Return an array of the current active sorting states
+
+sort.clearSortState(); // Reset all sorting states to neutral
 </code></pre>
-<p>To turn the sorting on or off for a specific column, the <code>sortable</code> option is available in the column option.</p>
-<pre><code class="language-js">var config = {
-    // any other grid&#39;s options
-    columns: [
-        { name: &quot;Column 1&quot;, field: &quot;field1&quot;, sortable: true },
-        { name: &quot;Column 2&quot;, field: &quot;field2&quot; },
-    ],
-}
-</code></pre>
-<p>In some use cases, you may want to turn on sorting for a particular column based on another field. If so, you can set <code>sortBy</code> in the column option to any column field.</p>
-<pre><code class="language-js">var config = {
-    // any other grid&#39;s options
-    sorting: {
-        sortableColumns: true,
-    },
-    columns: [
-        { name: &quot;Column 1&quot;, field: &quot;field1&quot; },
-        { name: &quot;Column 2&quot;, field: &quot;field2&quot;, sortBy: &quot;field1&quot; },
-    ],
-}
-</code></pre>
-<h2 id="sorting-programmatically">Sorting programmatically</h2>
-<p>Use <code>sortColumn</code> from Grid <code>api</code> instance to sort the specified column without user interaction. If the second parameter is not defined, Grid will cycle through column sorting sequence defined in its settings. </p>
-<pre><code class="language-js">var grid = document.getElementById(&quot;grid&quot;);
-grid.api.sortColumn(0, &quot;a&quot;); // Sort column index 0 in ascending order.
-grid.api.sortColumn(1); // Sort column index 1 and cycle through its sorting sequence.
-</code></pre>
-<p>For all available sorting options and APIs, please visit <a href="#/apis/core/sortabletitleplugin">SortableTitlePlugin</a></p>
 <h2 id="example">Example</h2>
-<code-sandbox hash="acc4aa62"><pre><code class="language-css">html hr {
-    margin: 5px;
-}
-efx-grid {
+<code-sandbox hash="966704e3"><pre><code class="language-css">efx-grid {
     height: 200px;
 }
+textarea {
+    width: 100%;
+    height: 50px;
+    margin: 10px 0;
+}
 </code></pre>
-<pre><code class="language-html">&lt;button id=&quot;sort_btn1&quot;&gt;Sort Column 1&lt;/button&gt;
-&lt;button id=&quot;sort_btn2&quot;&gt;Sort Column 2&lt;/button&gt;
-&lt;hr&gt;
+<pre><code class="language-html">&lt;button id=&quot;get_btn&quot;&gt;Get Current States&lt;/button&gt;
+&lt;button id=&quot;reset_btn&quot;&gt;Clear All Sorting&lt;/button&gt;
+&lt;textarea id=&quot;output_ta&quot; placeholder=&quot;Click at the grid header to sort&quot;&gt;&lt;/textarea&gt;
 &lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
@@ -57,18 +31,12 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-document.getElementById(&quot;sort_btn1&quot;).addEventListener(&quot;click&quot;, function(e){
-    grid.api.sortColumn(0);
-});
-document.getElementById(&quot;sort_btn2&quot;).addEventListener(&quot;click&quot;, function(e){
-    grid.api.sortColumn(1);
-});
-
 var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
 var records = DataGenerator.generateRecords(fields, { numRows: 10 });
 var configObj = {
     sorting: {
         sortableColumns: true,
+        threeStatesSorting: true
     },
     columns: [
         {name: &quot;Company&quot;, field: fields[0]},
@@ -84,5 +52,19 @@ var configObj = {
 
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
+
+document.getElementById(&quot;get_btn&quot;).addEventListener(&quot;click&quot;, function() {
+    // Return an array of the current active sorting states
+    var sort = grid.api.getCoreGrid().getPlugin(&quot;SortableTitle&quot;);
+    var states = sort.getSortedColumns();
+
+    var ta = document.getElementById(&#39;output_ta&#39;);
+    ta.value = JSON.stringify(states, 2, null) + &quot;\n&quot; + ta.value;
+});
+
+document.getElementById(&quot;reset_btn&quot;).addEventListener(&quot;click&quot;, function() {
+    var sort = grid.api.getCoreGrid().getPlugin(&quot;SortableTitle&quot;);
+    sort.clearSortState();
+});
 </code></pre>
 </code-sandbox>

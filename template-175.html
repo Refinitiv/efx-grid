@@ -1,64 +1,8 @@
-<h1 id="vertical-scrollbar">Vertical Scrollbar</h1>
-<p>By default, Grid behaves like a native div element that has CSS &quot;display: block;&quot;. This means Grid&#39;s height will be expanded as the number of its rows is increasing. In other words, it has a dynamic height equal to its content height. So Grid will never show a vertical scrollbar by default, as the content height does not exceed its container (grid element) height.</p>
-<p>If you want to enable the vertical scrollbar, two conditions must be met:</p>
-<ol>
-<li>Grid must have some specific height (for example, 200px, 50%, or 100%).</li>
-<li>Grid content height must exceed the height specified in #1. </li>
-</ol>
-<blockquote>
-<p>Note: once Grid&#39;s vertical scrollbar is shown, Grid&#39;s row virtualization will also be activated. Not all elements will be created or rendered. The same cells will be shared across multiple rows.</p>
-<p>Also, if the containers or Grid styles have been changed by JavaScript, you need to notify Grid about the change in order to update the layout. Use <code>getCoreGrid().updateLayout()</code> to force updating the layout.</p>
-</blockquote>
+<h1 id="scrollbar-visibility">Scrollbar Visibility</h1>
+<p>Instead of fading in or out on hover (default behavior), Grid scrollbars can be set to always be visible whenever the content is scrollable.</p>
+<p>This behavior can be enabled upon grid initialization using the <code>autoHideScrollbar</code> option. The values can be <em>false</em> for always-on, and <em>true</em> for fade in/out (default).</p>
 <h2 id="example">Example</h2>
-<code-sandbox hash="72f0dcb4"><pre><code class="language-html">&lt;button id=&quot;reset_btn&quot;&gt;Reset Grid Height to Default&lt;/button&gt;
-&lt;button id=&quot;set_200_btn&quot;&gt;Set Grid Height to 200px&lt;/button&gt;
-&lt;button id=&quot;set_600_btn&quot;&gt;Set Grid Height to 600px&lt;/button&gt;
-&lt;br&gt;&lt;br&gt;
-&lt;efx-grid id=&quot;grid&quot; style=&quot;height: 200px&quot;&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 10 });
-var configObj = {
-    columns: [
-        {name: &quot;Company&quot;, field: fields[0]},
-        {name: &quot;Market&quot;, field: fields[1], width: 100},
-        {name: &quot;Last&quot;, field: fields[2], width: 80},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 80},
-        {name: &quot;Industry&quot;, field: fields[4]}
-    ],
-    staticDataRows: records
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
-
-document.getElementById(&quot;reset_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
-    grid.style.height = &quot;&quot;;
-    grid.api.getCoreGrid().updateLayout(); // Notify grid that some CSS have been changed
-});
-document.getElementById(&quot;set_200_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
-    grid.style.height = &quot;200px&quot;;
-    grid.api.getCoreGrid().updateLayout(); // Notify grid that some CSS have been changed
-});
-document.getElementById(&quot;set_600_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
-    grid.style.height = &quot;600px&quot;;
-    grid.api.getCoreGrid().updateLayout(); // Notify grid that some CSS have been changed
-});
-</code></pre>
-</code-sandbox><h1 id="non-overlap-vertical-scrollbar">Non-overlap vertical scrollbar</h1>
-<p>The Grid vertical scrollbar, by default, is shown on top of the grid. This is to avoid jittering the content when the layout is changed. However, in some cases, the vertical scrollbar may hinder or prevent interaction with the content, especially for the rightmost column. Use the <code>contentRightPadding</code> flag to reserve some space on the right to prevent this from happening.</p>
-<p><code>autoHideScrollbar</code> could also be used to stop automatic scrollbar hiding.</p>
-<h2 id="example-1">Example</h2>
-<code-sandbox hash="6af37017"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="934a91f7"><pre><code class="language-css">efx-grid {
     height: 200px;
 }
 </code></pre>
@@ -77,13 +21,12 @@ var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, 
 var records = DataGenerator.generateRecords(fields, { numRows: 10 });
 var configObj = {
     autoHideScrollbar: false,
-    contentRightPadding: 14,
     columns: [
-        {name: &quot;Company&quot;, field: fields[0]},
-        {name: &quot;Market&quot;, field: fields[1], width: 100},
-        {name: &quot;Last&quot;, field: fields[2], width: 80},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 80},
-        {name: &quot;Industry&quot;, field: fields[4]}
+        {name: &quot;Company&quot;, field: fields[0], width: 250},
+        {name: &quot;Market&quot;, field: fields[1], width: 150},
+        {name: &quot;Last&quot;, field: fields[2], width: 150},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 150},
+        {name: &quot;Industry&quot;, field: fields[4], width: 300}
     ],
     staticDataRows: records
 };
