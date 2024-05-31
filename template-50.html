@@ -1,2 +1,366 @@
-<h1 id="column-pinning">Column Pinning</h1>
-<p>This page has moved to the <a href="#/scrollbars/left-side-column-pinning">Scrollbars</a> section.</p>
+<link rel="stylesheet" href="./resources/styles/elf-template.css">
+
+<h1 id="checkbox-column">Checkbox Column</h1>
+<p>The Checkbox Extension adds a column with checkboxes to Grid for selecting single or multiple rows. </p>
+<code-sandbox hash="797f35dd"><pre><code class="language-css">efx-grid {
+    height: 200px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 15 });
+var configObj = {
+    columns: [
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market&quot;, field: fields[1], width: 120},
+        {name: &quot;Last&quot;, field: fields[2], width: 100},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
+        {name: &quot;Industry&quot;, field: fields[4]}
+    ],
+    staticDataRows: records,
+    extensions: [
+        new Checkbox()
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="installation-and-how-to-import-to-a-project">Installation and how to import to a project</h2>
+<p>Installation examples and details of how to import the extension to a project are available on the <a href="#/extensions/readme">Overview</a> page.</p>
+<h3 id="required-dependencies">Required dependencies</h3>
+<p>Details of Required dependencies for this extension are available on the <a href="#/extensions/readme">Overview</a> page.</p>
+<h2 id="default-display">Default display</h2>
+<p>There is no specific option required by default.</p>
+<pre><code class="language-js">var config = {
+    // any other grid&#39;s options
+    extensions: [
+        new CheckboxExtension()
+    ]
+};
+</code></pre>
+<h2 id="using-with-row-grouping-extension">Using with Row Grouping Extension</h2>
+<p>The Checkbox Extension works out-of-the-box with Row Grouping Extension.</p>
+<pre><code class="language-js">var config = {
+    // any other grid&#39;s options
+    rowGrouping: {
+        groupBy: [&#39;col1&#39;, &#39;col2&#39;]
+    },
+    extensions: [
+        new CheckboxExtension(),
+        new RowGroupingExtension()
+    ]
+};
+</code></pre>
+<h2 id="using-with-pagination-extension">Using with Pagination Extension</h2>
+<p>The Checkbox Extension works out-of-the-box with the Pagination Extension. But there are some behaviors that are slightly different from the normal configuration.</p>
+<p>The Select All (Check All) action will only perform <code>checked</code> to the data on the current page. For example, if you perform <code>Select All</code> on the first page, the data on the other pages will not be selected or deselected.</p>
+<code-sandbox hash="7686e85b"><pre><code class="language-css">efx-grid {
+    height: 169px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+&lt;ef-pagination id=&quot;paging_ui&quot;&gt;&lt;/ef-pagination&gt;
+&lt;hr&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var paging = document.getElementById(&#39;paging_ui&#39;);
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 15 });
+var configObj = {
+    columns: [
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market&quot;, field: fields[1], width: 120},
+        {name: &quot;Last&quot;, field: fields[2], width: 100},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
+        {name: &quot;Industry&quot;, field: fields[4]}
+    ],
+    staticDataRows: records,
+    pagination: {
+        element: paging,
+        pageSize: 5
+    },
+    extensions: [
+        new Checkbox(),
+        new Pagination()
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><pre><code class="language-js">var config = {
+    // any other grid&#39;s options
+    pagination: {
+        pageSize: 5
+    },
+    extensions: [
+        new CheckboxExtension(),
+        new PaginationExtension()
+    ]
+};
+</code></pre>
+<h2 id="customizing-checkbox-column">Customizing checkbox column</h2>
+<p>You can customize checkbox column by setting <code>checkboxColumn</code> property to <code>true</code> on the column configuration object. The column with <code>checkboxColumn</code> will be used as the checkbox column by the extension. Any configuration on the column will be applied for the checkbox column. </p>
+<p>The example below places the checkbox column on the second column and makes it sortable with custom sorting sequence. </p>
+<code-sandbox hash="346ebab4"><pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 6 });
+var configObj = {
+    columns: [
+        {name: &quot;Company&quot;, field: fields[0]},
+        {checkboxColumn: true, sortable: true, sortingSequence: [&quot;d&quot;, &quot;n&quot;], width: 50, alignment: &quot;left&quot;},
+        {name: &quot;Market&quot;, field: fields[1], width: 100},
+        {name: &quot;Last&quot;, field: fields[2], width: 80},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 80},
+        {name: &quot;Industry&quot;, field: fields[4]}
+    ],
+    staticDataRows: records,
+    extensions: [
+        new Checkbox()
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="binding-state">Binding state</h2>
+<p>You can specify field to be used as a check state for the checkboxes in checkbox column. This can be useful, if you want to have some checkboxes initially checked after the grid creation. To bind the states, use <code>field</code> property on the extension configuration object.</p>
+<p>In the example below, the &quot;boolean&quot; field is bound as a state for the checkboxes in the checkbox column.</p>
+<code-sandbox hash="2069994a"><pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;boolean&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 6 });
+var configObj = {
+    columns: [
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market&quot;, field: fields[1], width: 100},
+        {name: &quot;Last&quot;, field: fields[2], width: 80},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 80},
+        {name: &quot;Industry&quot;, field: fields[4]}
+    ],
+    staticDataRows: records,
+    checkbox: {
+        field: &quot;boolean&quot; // Optional
+    },
+    extensions: [
+        new Checkbox()
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="using-a-checkbox-for-row-selection">Using a checkbox for row selection</h2>
+<p>If you want to select the column based on the checkbox state. just turn on the flag <code>rowSelection</code> under the <code>checkbox</code> option.</p>
+<code-sandbox hash="251219b"><pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;boolean&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 6 });
+var configObj = {
+    columns: [
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market&quot;, field: fields[1], width: 100},
+        {name: &quot;Last&quot;, field: fields[2], width: 80},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 80},
+        {name: &quot;Industry&quot;, field: fields[4]}
+    ],
+    staticDataRows: records,
+    checkbox: {
+        rowSelection: true,
+        field: &quot;boolean&quot; // Optional
+    },
+    extensions: [
+        new Checkbox()
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="checkbox-behaviors">Checkbox behaviors</h2>
+<h3 id="common-behaviors">Common behaviors:</h3>
+<ol>
+<li><code>items in view</code> means only row items that show in view, including the overflowed row, and rows that are hidden in collapsed groups that show in view. It excludes rows in other pages (so when using the pagination plugin), filtered rows, group header rows, and rows in header or footer sections.</li>
+<li>A checkbox in efx-grid normally has three states: <code>checked</code>, <code>unchecked</code>, <code>partial</code>.</li>
+<li>The top header and group header will automatically change their state according to their group member. See information below under <code>Top checkbox</code> and <code>Group checkbox</code>.</li>
+<li>When a user clicks/unchecks the top-checkbox/group-checkbox, all childs <code>in view</code> will change their state.</li>
+</ol>
+<h3 id="top-checkbox">Top checkbox</h3>
+<p>This is the checkbox that appears in the header section. It has the following behaviors:</p>
+<ol>
+<li>Auto checked when all rows items <code>in view</code> are checked.</li>
+<li>Auto unchecked when all <code>rows in view</code> are unchecked.</li>
+<li>Auto partial when some <code>rows in view</code> are checked.</li>
+</ol>
+<h3 id="group-checkbox">Group checkbox</h3>
+<p>This is the checkbox that appears in the group header row under the content section. It has the following behaviors:</p>
+<ol>
+<li>Auto checked when all filtered group items are checked.</li>
+<li>Auto unchecked when all filtered group items are unchecked.</li>
+<li>Auto partial when some filtered group items are unchecked.</li>
+<li>Group checkbox can move state from <code>partial</code> to <code>checked</code> even when not all grouped items have been checked.</li>
+</ol>
+<h3 id="apis-summary">APIs Summary</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th align="center">Collapsed</th>
+<th align="center">Other page</th>
+<th align="center">Hidden Rows</th>
+<th align="center">Disabled</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>getCheckbox(sectionRef, rowIndex)</td>
+<td align="center">&#x2717;</td>
+<td align="center">&#x2717;</td>
+<td align="center">&#x2717;</td>
+<td align="center">&#x2713;</td>
+</tr>
+<tr>
+<td>getAllCheckedIndices(sectionRef, state)</td>
+<td align="center">&#x2717;</td>
+<td align="center">&#x2717;</td>
+<td align="center">&#x2717;</td>
+<td align="center">&#x2713;</td>
+</tr>
+<tr>
+<td>setAllCheckStates(checked)</td>
+<td align="center">&#x2713;</td>
+<td align="center">&#x2713;</td>
+<td align="center">&#x2713;</td>
+<td align="center">&#x2713;</td>
+</tr>
+<tr>
+<td>getAllSelectedData(field)</td>
+<td align="center">&#x2713;</td>
+<td align="center">&#x2713;</td>
+<td align="center">&#x2713;</td>
+<td align="center">&#x2713;</td>
+</tr>
+<tr>
+<td>getFilteredSelectedData(field)</td>
+<td align="center">&#x2713;</td>
+<td align="center">&#x2717;</td>
+<td align="center">&#x2717;</td>
+<td align="center">&#x2717;</td>
+</tr>
+<tr>
+<td>checkAll(checked) (equivalent to clicking at checkbox in top header)</td>
+<td align="center">&#x2713;</td>
+<td align="center">&#x2717;</td>
+<td align="center">&#x2717;</td>
+<td align="center">&#x2717;</td>
+</tr>
+<tr>
+<td>selectAll() (equivalent to clicking at checkbox in top header)</td>
+<td align="center">&#x2713;</td>
+<td align="center">&#x2717;</td>
+<td align="center">&#x2717;</td>
+<td align="center">&#x2717;</td>
+</tr>
+<tr>
+<td>deselectAll() (equivalent to clicking at checkbox in top header)</td>
+<td align="center">&#x2713;</td>
+<td align="center">&#x2717;</td>
+<td align="center">&#x2717;</td>
+<td align="center">&#x2717;</td>
+</tr>
+<tr>
+<td>selectAllPages(checked)</td>
+<td align="center">&#x2713;</td>
+<td align="center">&#x2713;</td>
+<td align="center">&#x2717;</td>
+<td align="center">&#x2717;</td>
+</tr>
+</tbody></table>
+<h2 id="selecting-multiple-checkboxes-at-once">Selecting multiple checkboxes at once</h2>
+<p>Aside from clicking top checkbox or group checkbox, you can do <code>Shift+Click</code> to selecting all checkboxes in a range from an anchor checkbox to the clicked checkbox.</p>
+<p>To set an anchor checkbox, you can simply click a checkbox in Grid. The last clicked checkbox will become an anchor checkbox. <code>Shift+Click</code> will not change the anchor checkbox. The anchor checkbox will remain on the same row as long as no new checkbox is clicked (losing focus will not remove the anchor). However, sorting operation can change the position of the anchor, as the anchor is actually bound to the data. So, removing, filtering, or changing data can result in removing the anchor. </p>
+<p>As checkboxes always operates in a toggle mode, unlike row selection, <code>Shift+Click</code> will always select/check the affected checkboxes regardless of their current state. This is to avoid confusion when some of the checkboxes are unchecked and some others are checked. State of the checkboxes are not toggled when using <code>Shift+Click</code>. <code>Shift+Click</code> command will also ignore top and group checkboxes, as the state of these two types of checkbox are determined by their constituents. When using <code>Shift+Click</code> on an anchor checkbox, meaning no range is detected, <code>Shift+Click</code> command will be treated as a normal click. </p>
+<p>To deselect/uncheck multiple checkboxes, you can do <code>Shift+Alt+Click</code>. The same behaviors from <code>Shift+Click</code> are apply to <code>Shift+Alt+Click</code> except that the checkboxes will be deselected/unchecked.</p>
+<p>There is no extra functionality implemented for control and command keys, as checkboxes already operate in toggle mode.</p>
+<h2 id="keyboard-inputs">Keyboard inputs</h2>
+<p>As long as a checkbox is in focus, you can navigate through checkboxes by using arrow up and arrow down keys. You can use <code>Spacebar</code> key to toggle state of the focused checkbox.</p>
+<p>Using <code>Shift+Spacebar</code> will give the same result as using <code>Shift+Click</code>.</p>
+<p><code>Shift+Alt+Spacebar</code> is not supported by Checkbox Extension because the key combination is used by Windows operating system to open a window context menu, which cannot be overriden by a browser or JavaScript.</p>
+<h2 style="margin-bottom:5px" id="api-refs">API Reference</h2>
+<div id="elf-api-container"><div id="main-template" class="elf-template">    <section><header>            <h1 class="subsection-title"><span class="attribs"><span class="type-signature"></span></span>CheckboxPlugin<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h1>            </header><article>                                                                        <h3 class="subsection-title" id="type_definitions">Type Definitions</h3>                        
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~ColumnOptions">ColumnOptions</h4>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>checkboxColumn</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">If enabled, the correspondence column will use as checkbox column.</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~Options">Options</h4><div class="description">    Available options describing `checkbox` object specified in grid's option</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>rowSelection</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">If enabled, grid row will be selected as checkbox is checked.</td>        </tr>            <tr>                            <td class="name"><code>field</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    "CHECK_BOX"                                </td>                        <td class="description last">Field that will be used for storing check state</td>        </tr>            <tr>                            <td class="name"><code>disablingField</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    "CHECK_BOX_DISABLED"                                </td>                        <td class="description last">Field that will be used for storing disabling state</td>        </tr>            <tr>                            <td class="name"><code>checkboxCreated</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Function handler for checkboxCreated event</td>        </tr>            <tr>                            <td class="name"><code>checkboxBinding</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Function handler for checkboxBinding event</td>        </tr>            <tr>                            <td class="name"><code>clicked</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Function handler for checkbox clicked event</td>        </tr>            <tr>                            <td class="name"><code>width</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    34                                </td>                        <td class="description last">Width for checkbox column</td>        </tr>            <tr>                            <td class="name"><code>topCheckboxHandler</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    true                                </td>                        <td class="description last">If disabled, when clicked on header row checkbox it will not perform default behavior</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            <h3 class="subsection-title" id="methods">Methods</h3>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="beforeProcessOption"><span class="type-signature"></span>beforeProcessOption<span class="signature">(optionName, optionVal)</span><span class="type-signature"> → {*}</span></h4>                            <div class="description">        Remove redundant built-in feature    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">optionName</div>                        <div class="type">                            <span class="param-type">string</span>                        </div>                                            </div>                <div class="param">                            <div class="name">optionVal</div>                        <div class="type">                            <span class="param-type">*</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">*</span>    </div><div class="sub-content-desc">    The transformed value of the option</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="checkAll"><span class="type-signature"></span>checkAll<span class="signature">(checked)</span><span class="type-signature"></span></h4>                            <div class="description">        This is equivalent to clicking the checkbox at the top header section of the grid. <br>Use <a href="#/extensions/tr-grid-checkbox#setAllCheckStates">CheckboxPlugin#setAllCheckStates</a> to set all states regardless of filtering and pagination    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">checked</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                                                    <div class="description">                    Truthy or Falsy value                </div>                    </div>            </div>        <div class="details">                                                            <dt class="tag-see">See:</dt>    <dd class="tag-see">        <ul>            <li><a href="#/extensions/tr-grid-checkbox#setAllCheckStates">CheckboxPlugin#setAllCheckStates</a></li>        </ul>    </dd>        </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="config"><span class="type-signature"></span>config<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="deselectAll"><span class="type-signature"></span>deselectAll<span class="signature">(check)</span><span class="type-signature"></span></h4>                            <div class="description">        Deselect/uncheck all checkboxes that are not affected by filtering and pagination logics. This is equivalent to un-ticking the checkbox at the top header section of the grid    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">check</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="deselectCheckboxes"><span class="type-signature"></span>deselectCheckboxes<span class="signature">(rowRefs, checked)</span><span class="type-signature"></span></h4>                            <div class="description">        Select/check all spicified content checkboxes that are in view    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowRefs</div>                        <div class="type">                            <span class="param-type">Array.&lt;(number|string)&gt;</span>                        </div>                                            </div>                <div class="param">                            <div class="name">checked</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="disableCheckbox"><span class="type-signature"></span>disableCheckbox<span class="signature">(rowRef, disabled)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowRef</div>                        <div class="type">                            <span class="param-type">number</span> | <span class="param-type">string</span>                        </div>                                                    <div class="description">                    Row id in the data table or row index                </div>                    </div>                <div class="param">                            <div class="name">disabled</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                                                    <div class="description">                    Truthy or Falsy value                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="enableCheckbox"><span class="type-signature"></span>enableCheckbox<span class="signature">(rowRef)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowRef</div>                        <div class="type">                            <span class="param-type">number</span> | <span class="param-type">string</span>                        </div>                                                    <div class="description">                    Row id in the data table or row index                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getAllCheckedIndices"><span class="type-signature"></span>getAllCheckedIndices<span class="signature">(sectionRef, state<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Array.&lt;number&gt;}</span></h4>                            <div class="description">        WARNING: Index is not reliable when use with row grouping due to dynamic nature of the features (e.g. expanding and collapsing of the group). <br>Please use <a href="#/extensions/tr-grid-checkbox#getSelectedRowData">CheckboxPlugin#getSelectedRowData</a> instead. <br>Current behavior is to get selected index from un-filtered rows.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">sectionRef</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    Grid SectionReference object                </div>                    </div>                <div class="param">                            <div class="name">state</div>                        <div class="type">                            <span class="param-type">string</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    Specifies state for searching. Default is "checked"                </div>                    </div>            </div>        <div class="details">                                                            <dt class="tag-see">See:</dt>    <dd class="tag-see">        <ul>            <li><a href="#/extensions/tr-grid-checkbox#getSelectedRowData">CheckboxPlugin#getSelectedRowData</a></li>        </ul>    </dd>        </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Array.&lt;number&gt;</span>    </div><div class="sub-content-desc">    the indices are relative to the specified section</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getAllSelectedData"><span class="type-signature"></span>getAllSelectedData<span class="signature">(field<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Array}</span></h4>                            <div class="description">        Returns all selected rows, even if the rows are filtered or hidden due to group collapsing or pagination. <br>Note that the results are NOT shown in order of the current appearance (i.e. sorting has no impact).    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">field</div>                        <div class="type">                            <span class="param-type">string</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                        <div class="default">                                   [default: ""]                                </div>                                        <div class="description">                    When field is not provided, entire rowData is returned. If field is specified, field values will be returned. Use "ROW_ID" as the field for retrieving internal row ids.                </div>                    </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Array</span>    </div><div class="sub-content-desc">    Returns selected rows</div>                        <h5>Example:</h5>            <pre><code>chkBoxExtension.getSelectedRowData(); // Get all selected row data in this format [{}, {}, ... RowData objects, {}]
+chkBoxExtension.getSelectedRowData("field"); // Get all field values from selected row data in this format [value1, value2, ... values, valueN]</code></pre>    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getCheckbox"><span class="type-signature"></span>getCheckbox<span class="signature">(sectionRef, rowIndex)</span><span class="type-signature"> → {Element}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">sectionRef</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    Grid SectionReference object                </div>                    </div>                <div class="param">                            <div class="name">rowIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Element</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getCheckboxColumnIndex"><span class="type-signature"></span>getCheckboxColumnIndex<span class="signature">()</span><span class="type-signature"> → {number}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">number</span>    </div><div class="sub-content-desc">    Return negative number if the column not found</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getConfigObject"><span class="type-signature"></span>getConfigObject<span class="signature">(gridOptions<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Object}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">gridOptions</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getDisplayColumn"><span class="type-signature"></span>getDisplayColumn<span class="signature">()</span><span class="type-signature"> → {number}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                        <div class="type">                            <span class="param-type">number</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">number</span>    </div><div class="sub-content-desc">    Return negative number if the column not found</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getFilteredSelectedData"><span class="type-signature"></span>getFilteredSelectedData<span class="signature">(field<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Array}</span></h4>                            <div class="description">        Return selected rows, excluding rows that are filtered or hidden due to pagination.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">field</div>                        <div class="type">                            <span class="param-type">string</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                        <div class="default">                                   [default: ""]                                </div>                                        <div class="description">                    When field is not provided, entire rowData is returned. If field is specified, field values will be returned. Use "ROW_ID" as the field for retrieving internal row ids.                </div>                    </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Array</span>    </div><div class="sub-content-desc">    Returns selected rows</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getName"><span class="type-signature"></span>getName<span class="signature">()</span><span class="type-signature"> → {string}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">string</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getSelectedRowData"><span class="type-signature"></span>getSelectedRowData<span class="signature">(field<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Array}</span></h4>                            <div class="description">        Alias of <a href="#/extensions/tr-grid-checkbox#getAllSelectedData">CheckboxPlugin#getAllSelectedData</a>    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">field</div>                        <div class="type">                            <span class="param-type">string</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                        <div class="default">                                   [default: ""]                                </div>                                        <div class="description">                    When field is not provided, entire rowData is returned. If field is specified, field values will be returned. Use "ROW_ID" as the field for retrieving internal row ids.                </div>                    </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Array</span>    </div><div class="sub-content-desc">    Returns selected rows</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="hasMultiTableSupport"><span class="type-signature"></span>hasMultiTableSupport<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Plugin that has multi-table support means that it can have multiple hosts/tables and share its states across those hosts/tables.    </div>                        <div class="details">                <dt class="inherited-from">Inherited From:</dt>    <dd class="inherited-from">        <a href="#">GridPlugin#hasMultiTableSupport</a>    </dd>                                                    </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="initialize"><span class="type-signature"></span>initialize<span class="signature">(host, options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">host</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    core grid object                </div>                    </div>                <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="selectAll"><span class="type-signature"></span>selectAll<span class="signature">()</span><span class="type-signature"></span></h4>                            <div class="description">        Select/check all checkboxes that are not affected by filtering and pagination logics. This is equivalent to ticking the checkbox at the top header section of the grid    </div>                        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="selectAllPages"><span class="type-signature"></span>selectAllPages<span class="signature">(checked<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                            <div class="description">        Set state for all checkboxes regardless of pagination, state would be apply to all filtered data    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">checked</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    Truthy or Falsy value                </div>                    </div>            </div>        <div class="details">                                                            <dt class="tag-see">See:</dt>    <dd class="tag-see">        <ul>            <li><a href="#/extensions/tr-grid-checkbox#checkAll">CheckboxPlugin#checkAll</a></li>        </ul>    </dd>        </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="selectCheckboxes"><span class="type-signature"></span>selectCheckboxes<span class="signature">(rowRefs, checked)</span><span class="type-signature"></span></h4>                            <div class="description">        Select/check all spicified content checkboxes that are in view    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowRefs</div>                        <div class="type">                            <span class="param-type">Array.&lt;(number|string)&gt;</span>                        </div>                                            </div>                <div class="param">                            <div class="name">checked</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setAllCheckStates"><span class="type-signature"></span>setAllCheckStates<span class="signature">(checked)</span><span class="type-signature"></span></h4>                            <div class="description">        Set state for all checkboxes regardless of filtering and pagination    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">checked</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                                                    <div class="description">                    Truthy or Falsy value                </div>                    </div>            </div>        <div class="details">                                                            <dt class="tag-see">See:</dt>    <dd class="tag-see">        <ul>            <li><a href="#/extensions/tr-grid-checkbox#checkAll">CheckboxPlugin#checkAll</a></li>        </ul>    </dd>        </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setCheckStates"><span class="type-signature"></span>setCheckStates<span class="signature">(rowRefs, checked)</span><span class="type-signature"></span></h4>                            <div class="description">        Set check state to all spicified content checkboxes that are in view    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowRefs</div>                        <div class="type">                            <span class="param-type">Array.&lt;(number|string)&gt;</span>                        </div>                                            </div>                <div class="param">                            <div class="name">checked</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="unload"><span class="type-signature"></span>unload<span class="signature">(host)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">host</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    core grid object                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                        <h3 class="subsection-title" id="events">Events</h3>                    
+<div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:checkboxBinding">checkboxBinding</h4>                            <div class="description">        Fired on each rendering of checkbox element    </div>                            <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>checkbox</code></td>                        <td class="type">                            <span class="param-type">Element</span>                        </td>                                    <td class="description last">Checkbox element</td>        </tr>            <tr>                            <td class="name"><code>rowData</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>rowIndex</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                                    <td class="description last"></td>        </tr>        </tbody></table></div><div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:checkboxCreated">checkboxCreated</h4>                            <div class="description">        Fired on each creation of checkbox element    </div>                            <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>input</code></td>                        <td class="type">                            <span class="param-type">Element</span>                        </td>                                    <td class="description last">Checkbox element that is an alias to `checkbox`</td>        </tr>            <tr>                            <td class="name"><code>checkbox</code></td>                        <td class="type">                            <span class="param-type">Element</span>                        </td>                                    <td class="description last">Checkbox element</td>        </tr>            <tr>                            <td class="name"><code>cell</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">Grid Cell object</td>        </tr>            <tr>                            <td class="name"><code>section</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">Grid ILayoutGrid object</td>        </tr>            <tr>                            <td class="name"><code>grid</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">Core Grid object</td>        </tr>            <tr>                            <td class="name"><code>colIndex</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>rowIndex</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                                    <td class="description last"></td>        </tr>        </tbody></table></div><div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:clicked">clicked</h4>                                                <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>checkbox</code></td>                        <td class="type">                            <span class="param-type">Element</span>                        </td>                                    <td class="description last">element</td>        </tr>            <tr>                            <td class="name"><code>rowIndex</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>checked</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>checkState</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                                    <td class="description last"></td>        </tr>        </tbody></table></div><div class="details">                                                            </div>                                    </div>            </article></section></div></div>

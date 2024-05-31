@@ -1,28 +1,22 @@
-<h1 id="coral-button-formatter">Coral Button Formatter</h1>
-<p>This formatter creates a button without a margin. By default the text inside the button will be data from the column&#39;s field.</p>
-<h2 id="specific-options">Specific options</h2>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Type</th>
-<th>Attributes</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>label</td>
-<td>string</td>
-<td>optional</td>
-<td>Text inside the button, default text is the value from the column&#39;s field</td>
-</tr>
-</tbody></table>
-<h2 id="example">Example</h2>
-<code-sandbox hash="b46310e0"><pre><code class="language-css">efx-grid {
-    height: 320px;
+<h1 id="job-manager">Job Manager</h1>
+<code-sandbox hash="12bc7387"><pre><code class="language-css">body {
+    padding: 24px;
+}
+
+efx-grid {
+    height: 300px;
+}
+
+hr {
+    margin: 8px;
+}
+#search_input {
+    width: 100%;
 }
 </code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+<pre><code class="language-html">&lt;input id=&quot;search_input&quot; placeholder=&quot;Search Anything...&quot; type=&quot;search&quot;&gt;
+&lt;hr&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
@@ -33,50 +27,145 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;word&quot;, &quot;id&quot;, &quot;float_1&quot;];
-var records = DataGenerator.generateRecords(fields, 30);
-var configObj = {
+DataGenerator.addFieldInfo(&quot;status&quot;, {
+    type: &quot;set&quot;,
+    members: [&quot;Success&quot;, &quot;Fail&quot;, &quot;Partial Success&quot;]
+});
+
+DataGenerator.addFieldInfo(&quot;jobName&quot;, {
+    type: &quot;set&quot;,
+    members: [
+        &quot;Docs_Conv_021123_2&quot;,
+        &quot;UPLD_Documents_031123_3&quot;,
+        &quot;ConvUpld_Files_041123_1&quot;,
+        &quot;Upload_Batch_051123_4&quot;,
+        &quot;Files_Upld_061123_5&quot;,
+        &quot;Upld_Conversion_071123&quot;,
+        &quot;Documents_Upload_081123_1&quot;,
+        &quot;Conv_Uploads_091123_2&quot;,
+        &quot;Upload_Files_101123_3&quot;,
+        &quot;Upld_Doc_111123_4&quot;,
+        &quot;Conversion_Upload_121123_5&quot;,
+        &quot;Uploads_Docs_131123_1&quot;,
+        &quot;Docs_Conversion_141123_2&quot;,
+        &quot;Upld_Batch_151123_3&quot;,
+        &quot;Conversion_Batch_161123_4&quot;,
+        &quot;Batch_Upload_171123_5&quot;,
+        &quot;Upld_Documents_181123_1&quot;,
+        &quot;Upload_Conv_191123_2&quot;,
+        &quot;Conversion_Docs_201123_3&quot;,
+        &quot;Upld_Files_211123_4&quot;
+    ]
+});
+
+var rowSelection = new RowSelection();
+var inCellEditing = new InCellEditing();
+var rowFiltering = new RowFiltering();
+// Extensions
+var fields = [&quot;jobName&quot;, &quot;status&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 50, seed: 0 });
+var config1 = {
     columns: [
-        { 
-            name: &quot;Button&quot;,
+        {
+            title: &quot;Job Name&quot;,
             field: fields[0],
-            alignment: &quot;center&quot;,
-            binding: EFButtonFormatter.create({
-                label: &quot;More Info&quot;,
-                events: {
-                    click: function(event, context) {
-                        alert(
-                            &quot;clicked at row: &quot; + 
-                            context.rowIndex + 
-                            &quot;, column: &quot; + 
-                            context.colIndex + 
-                            &quot;, data: &quot; + 
-                            context.getData(context.field)
-                        );
-                    }
-                }
-            })
+            editableContent: true
         },
-        { 
-            name: &quot;Column 2&quot;,
-            field: fields[0],
-            alignment: &quot;center&quot;
-        },
-        { 
-            name: &quot;Column 3&quot;,
+        {
+            title: &quot;Status&quot;,
             field: fields[1],
-            alignment: &quot;center&quot;
+            width: 100
         },
-        { 
-            name: &quot;Column 4&quot;,
-            field: fields[2],
-            alignment: &quot;center&quot;
+        {
+            name: &quot;Action&quot;, field: fields[1],
+            width: 150,
+            titleAlignment: &quot;center&quot;,
+            binding: onActionBinding
         }
     ],
-    staticDataRows: records
+    staticDataRows: records,
+    rowFiltering: {
+        iconActivation: &quot;onHover&quot;
+    },
+    extensions: [rowSelection, inCellEditing, rowFiltering]
 };
 
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
+function onActionBinding(e) {
+    var data = e.data;
+    var cell = e.cell;
+    var content = cell.getContent();
+    if (!content) {
+        content = document.createElement(&quot;div&quot;);
+
+        var editIcon = document.createElement(&quot;ef-icon&quot;);
+        editIcon.icon = &quot;edit&quot;;
+        editIcon.style.cursor = &quot;pointer&quot;;
+        editIcon.style.verticalAlign = &quot;middle&quot;;
+        editIcon.addEventListener(&quot;click&quot;, onEditClicked);
+
+        var deleteIcon = document.createElement(&quot;ef-icon&quot;);
+        deleteIcon.icon = &quot;trash&quot;;
+        deleteIcon.style.cursor = &quot;pointer&quot;;
+        deleteIcon.style.verticalAlign = &quot;middle&quot;;
+        deleteIcon.addEventListener(&quot;click&quot;, onRemoveClicked);
+
+        var runButton = document.createElement(&quot;ef-button&quot;);
+        runButton.textContent = &quot;Run&quot;;
+        runButton.style.verticalAlign = &quot;middle&quot;;
+        runButton.addEventListener(&quot;click&quot;, onRunClicked);
+
+        content.appendChild(editIcon);
+        content.appendChild(deleteIcon);
+        content.appendChild(runButton);
+    }
+    cell.setContent(content);
+}
+
+function onRunClicked(e) {
+    var button = e.currentTarget;
+    var pos = grid.api.getRelativePosition(e);
+    var rowIndex = pos.rowIndex;
+    alert(&quot;Click :&quot; + rowIndex);
+}
+function onRemoveClicked(e) {
+    var button = e.currentTarget;
+    var pos = grid.api.getRelativePosition(e);
+    var rowIndex = pos.rowIndex;
+    grid.api.removeRow(rowIndex);
+}
+function onEditClicked(e) {
+    var button = e.currentTarget;
+    var pos = grid.api.getRelativePosition(e);
+    var rowIndex = + pos.rowIndex;
+    inCellEditing.openEditor(0, rowIndex);
+}
+
+var grid = window.grid = document.getElementById(&quot;grid&quot;);
+grid.config = config1;
+
+var searchInput = document.getElementById(&quot;search_input&quot;);
+searchInput.addEventListener(&quot;keyup&quot;, function (e) {
+    var input = e.currentTarget;
+    if (input._prevValue !== input.value) {
+        input._prevValue = input.value;
+        rowFiltering.refresh(); // Force filter triggering
+    }
+});
+
+function filterFunc(rowData, rowId, context) {
+    var str = &quot;&quot;;
+    var val = context.input.value.toLowerCase();
+    for (var key in rowData) {
+        str += rowData[key] + &quot; &quot;;
+    }
+    return str.toLowerCase().indexOf(val) &gt; -1;
+};
+
+var context = {
+    input: searchInput
+};
+rowFiltering.addGridFilter(filterFunc, context);
 </code></pre>
-</code-sandbox>
+</code-sandbox><p>In the example above, we show how to create a grid for managing data. This grid lets users filter, add, edit, and remove data in the grid itself. We used three main features: row filtering, in cell editing, and row selection.</p>
+<p>Row filtering lets users type in a box to search and filter data across all columns in the grid. Row selection allows users to pick one or more rows in the grid.</p>
+<p>In cell editing is about changing the data in the grid directly. For our example, we changed the &quot;Job Name&quot; using this feature.</p>

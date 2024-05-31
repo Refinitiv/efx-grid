@@ -1,41 +1,69 @@
-<h1 id="overview">Overview</h1>
-<p>Grid API documents consist of <code>Core</code> and <code>Real-time Grid</code> libraries.
-In this documents, you can find type definitions, methods and events for each class object.</p>
+<h1 id="accessibility-in-grid">Accessibility in Grid</h1>
+<p>This page summarizes all the accessibility features Grid has. This page also includes how Grid conforms to Web Content Accessibility Guidelines (WCAG).</p>
+<h2 id="adaptable">Adaptable</h2>
+<h3 id="orientation"><a href="https://www.w3.org/WAI/WCAG22/Understanding/orientation.html">Orientation</a></h3>
 <ul>
-<li><code>efx-grid</code> is also a custom element which wraps <a href="#/apis/rt-grid/grid">Real-time Grid</a>, providing an easy way to display real-time data in a tabular format. It allows you to create list of multiple instruments with multiple real-time and fundamentals columns.<ul>
-<li>To initialize the element, use <code>config</code> property to define all the options. Available options are listed in the <a href="#/apis/rt-grid/grid#~GridOptions">typeDef section</a>.</li>
-<li>The <code>api</code> property is actually a <a href="#/apis/rt-grid/grid">Real-time Grid</a> instance. The property will not be available immediately after page loaded so subsequence <code>api</code> executions should start inside or after <code>configured</code> event.</li>
-<li>For more internal APIs, use <code>api.getCoreGrid()</code> method. The method returns <a href="#/apis/core/grid">Core</a> instance.</li>
+<li>Grid does not restrict its view and operation to a single display orientation, such as portrait or landscape.</li>
+<li>Grid column width can be dinamically adjusted to fill the available space. See <a href="#/columns/column-width">this page</a> for more information.</li>
+<li>If there is not enough space to display all of its content, <a href="#/scrollbars/horizontal-scrollbar">horizontal</a> and/or <a href="#/scrollbars/vertical-scrollbar">vertical scrollbars</a> can be displayed. </li>
 </ul>
-</li>
-<li><a href="#/apis/rt-grid/grid">Real-time Grid</a> is built on top of <code>Core</code> with JET&#39;s Quotes support, providing an easy way to display real-time data in a tabular format.</li>
-<li><a href="#/apis/core/grid">Core</a> is a core engine of grid written in Javascript. It can be accessed from Real-time Grid through <code>getCoreGrid()</code> method. </li>
-</ul>
-<h2 id="core-apis">Core APIs</h2>
+<h3 id="identify-purpose"><a href="https://www.w3.org/WAI/WCAG22/Understanding/identify-purpose.html">Identify Purpose</a></h3>
 <ul>
-<li><a href="#/apis/core/cell">Cell</a></li>
-<li><a href="#/apis/core/cellspans">CellSpans</a></li>
-<li><a href="#/apis/core/columnstats">ColumnStats</a></li>
-<li><a href="#/apis/core/datacache">DataCache</a></li>
-<li><a href="#/apis/core/datatable">DataTable</a></li>
-<li><a href="#/apis/core/dataview">DataView</a></li>
-<li><a href="#/apis/core/draganddroptitleplugin">DragAndDropTitlePlugin</a></li>
-<li><a href="#/apis/core/elementwrapper">ElementWrapper</a></li>
-<li><a href="#/apis/core/eventdispatcher">EventDispatcher</a></li>
-<li><a href="#/apis/core/grid">Grid</a></li>
-<li><a href="#/apis/core/hscrollbar">HScrollbar</a></li>
-<li><a href="#/apis/core/ilayoutgrid">ILayoutGrid</a></li>
-<li><a href="#/apis/core/layoutgrid">LayoutGrid</a></li>
-<li><a href="#/apis/core/scrollbar">Scrollbar</a></li>
-<li><a href="#/apis/core/sectionsettings">SectionSettings</a></li>
-<li><a href="#/apis/core/segment">Segment</a></li>
-<li><a href="#/apis/core/segmentcollection">SegmentCollection</a></li>
-<li><a href="#/apis/core/sortabletitleplugin">SortableTitlePlugin</a></li>
-<li><a href="#/apis/core/vscrollbar">VScrollbar</a></li>
+<li>Grid adds &quot;grid&quot; and &quot;gridcell&quot; <code>role</code> to its corresponding focusable elements.</li>
+<li><code>aria-label</code> attribute is added to the elements created by <a href="#/extensions/tr-grid-checkbox">Checkbox Extension</a>, <a href="#/extensions/tr-grid-filter-input">Filter Input Extension</a>, and <a href="#/widgets/filter-dialog">Filter Dialog</a> to provide their purpose for assistive technology.</li>
 </ul>
-<h2 id="realtime-grid-apis">Realtime Grid APIS</h2>
+<h2 id="distinguishable">Distinguishable</h2>
+<h3 id="contrast-minimum"><a href="https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html">Contrast (Minimum)</a></h3>
 <ul>
-<li><a href="#/apis/rt-grid/columndefinition">ColumnDefinition</a></li>
-<li><a href="#/apis/rt-grid/grid">Grid</a></li>
-<li><a href="#/apis/rt-grid/rowdefinition">RowDefinition</a></li>
+<li><a href="#/extensions/tr-grid-heat-map">Heatmap Extension</a> ensures that the color contrast ratio between text and background colors is at least 4.5 or greater.</li>
+<li>The calculation of color contrast ratio is based on the <a href="https://www.w3.org/TR/WCAG20/#relativeluminancedef">WCAG relative luminance definition</a>.</li>
 </ul>
+<h3 id="resize-text"><a href="https://www.w3.org/WAI/WCAG22/Understanding/resize-text.html">Resize text</a></h3>
+<ul>
+<li>Text content in Grid can be resized without assistive technology up to 200 percent without loss of content or functionality.</li>
+<li><a href="#/extensions/zoom">Zoom Extension</a> allows Grid to be zoomed in and out without affecting other region in the document.</li>
+</ul>
+<h2 id="keyboard-accessible">Keyboard Accessible</h2>
+<h3 id="no-keyboard-trap"><a href="https://www.w3.org/WAI/WCAG22/Understanding/no-keyboard-trap.html">No Keyboard Trap</a></h3>
+<ul>
+<li>Grid and its content do not &quot;trap&quot; keyboard focus within subsections of content on a Web page. See <a href="#/misc/keyboard-inputs">this page</a> for more information about keyboard navigation.</li>
+</ul>
+<h2 id="enough-time">Enough Time</h2>
+<h3 id="no-timing"><a href="https://www.w3.org/WAI/WCAG22/Understanding/no-timing.html">No Timing</a></h3>
+<ul>
+<li>Users face no time limit when using <a href="#/extensions/tr-grid-in-cell-editing">In-Cell Editing Extension</a>, <a href="#/widgets/filter-dialog">Filter Dialog</a>, <a href="#/widgets/column-selection-dialog">Column Selection Dialog</a>, and all other Grid&#39;s features.</li>
+</ul>
+<h2 id="seizures">Seizures</h2>
+<h3 id="three-flashes-or-below-threshold"><a href="https://www.w3.org/WAI/WCAG22/Understanding/three-flashes-or-below-threshold.html">Three Flashes or Below Threshold</a></h3>
+<ul>
+<li>Grid does not contain anything that flashes more than three times in any one second period, or the flash is below the general flash and red flash thresholds.</li>
+<li>Blinking or flash interval can still be adjusted.</li>
+</ul>
+<h2 id="navigable">Navigable</h2>
+<h3 id="focus-order"><a href="https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html">Focus Order</a></h3>
+<ul>
+<li>In Grid, users can navigate sequentially through focusable content. See <a href="#/misc/keyboard-inputs">this page</a> for more information about keyboard navigation.</li>
+</ul>
+<h3 id="focus-not-obscured-minimum"><a href="https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum.html">Focus Not Obscured (Minimum)</a></h3>
+<ul>
+<li>When focus leaves the <a href="#/widgets/filter-dialog">Filter Dialog</a>, the dialog is automatically hidden.</li>
+<li>The dialog can also be hidden by use of the Escape key.</li>
+</ul>
+<h2 id="input-modalities">Input Modalities</h2>
+<h3 id="concurrent-input-mechanisms"><a href="https://www.w3.org/WAI/WCAG22/Understanding/concurrent-input-mechanisms.html">Concurrent Input Mechanisms</a></h3>
+<ul>
+<li>Grid does not restrict use of input modalities available on a platform. Users are free to choose different ways of inputting content.</li>
+</ul>
+<h3 id="target-size-minimum"><a href="https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html">Target Size (Minimum)</a></h3>
+<ul>
+<li>The interactive icons created by <a href="#/extensions/tr-grid-row-filtering">Row Filtering Extension</a>, <a href="#/extensions/tr-grid-column-stack">Column Stack Extension</a>, <a href="#/extensions/tr-grid-row-grouping">Row Grouping Extension</a>, and <a href="#/extensions/row-segmenting">Row Segmenting Extension</a> are adjusted to have 20 by 20 CSS pixels target size for pointer inputs.</li>
+</ul>
+<h2 id="input-assistance">Input Assistance</h2>
+<h3 id="redundant-entry"><a href="https://www.w3.org/WAI/WCAG22/Understanding/redundant-entry.html">Redundant Entry</a></h3>
+<ul>
+<li>The filter information previously entered by or provided to the user is retained by <a href="#/widgets/filter-dialog">Filter Dialog</a>.</li>
+<li>When editing Grid&#39;s cell, the cell content is auto-populated on the input element by <a href="#/extensions/tr-grid-in-cell-editing">In-Cell Editing Extension</a>.</li>
+</ul>
+<br>
+<br>
+<br>

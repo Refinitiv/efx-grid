@@ -1,25 +1,53 @@
-<h1 id="coral-radio-button-formatter">Coral Radio Button Formatter</h1>
-<p>This formatter creates a radio button which will be  unchecked by default.</p>
-<h2 id="specific-options">Specific options</h2>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Type</th>
-<th>Attributes</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>initialIndex</td>
-<td>number</td>
-<td>optional</td>
-<td>Initial checked row index</td>
-</tr>
-</tbody></table>
+<h1 id="multi-columnthree-state-sorting">Multi-column/three-state sorting</h1>
+<p>Sorting can be done on several columns together. You need to add the <code>sorting</code> property with two sub-properties: <code>multiColumn</code> and <code>threeStateSorting</code>.</p>
+<p>The property <code>threeStatesSorting</code> allows the column to be reset to the neutral state at every third click. Turning on <code>threeStatesSorting</code> makes multi-column sorting easier to use.</p>
+<pre><code class="language-js">var config = {
+    // ... other config
+    sorting: {
+        sortableColumns: true,
+        multiColumn: true, // The value can also be a maximum number of sorted columns 
+        threeStatesSorting: true
+    }
+}
+</code></pre>
+<h2 id="sort-multiple-columns-at-the-initialization">Sort multiple columns at the initialization</h2>
+<p>It is possible to set the initial sort with <code>multiColumn</code> enabled. We can use <code>initialSort</code> to define an array of <a href="#/apis/core/sortabletitleplugin#~InitialSort">SortableTitlePlugin.InitialSort</a>.</p>
+<blockquote>
+<p>If <code>multiColumn</code> is not enabled, the <code>initialSort</code> will only take the first object of an array into consideration.</p>
+</blockquote>
+<pre><code class="language-js">var config = {
+    // any other grid&#39;s options
+    sorting: {
+        sortableColumns: true,
+        multiColumn: true,
+        initialSort: [{
+            colIndex: 0,
+            sortOrder: &quot;d&quot;
+        }, {
+            colIndex: 1,
+            sortOrder: &quot;d&quot;
+        }]
+    }
+}
+</code></pre>
+<h2 id="sort-multiple-columns-at-runtime">Sort multiple columns at runtime</h2>
+<p>To change sorting states at runtime, use <code>sortColumns</code> from the built-in SortableTitlePlugin</p>
+<pre><code class="language-js">var grid = document.getElementById(&quot;grid&quot;);
+var sort = grid.api.getCoreGrid().getPlugin(&quot;SortableTitle&quot;);
+sort.sortColumns([
+    {
+        colIndex: 0, // Column index 0 with order descending.
+        sortOrder: &quot;d&quot;
+    }, {
+        colIndex: 1, // Column index 1 with order descending
+        sortOrder: &quot;d&quot;
+    }
+]);
+</code></pre>
+<p>For all available options and APIs, please visit <a href="#/apis/core/sortabletitleplugin">SortableTitlePlugin</a></p>
 <h2 id="example">Example</h2>
-<code-sandbox hash="f43aef40"><pre><code class="language-css">efx-grid {
-    height: 320px;
+<code-sandbox hash="51d8a41c"><pre><code class="language-css">efx-grid {
+    height: 300px;
 }
 </code></pre>
 <pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
@@ -33,37 +61,22 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;number&quot;, &quot;word&quot;];
-var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 100 });
-
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;group3&quot;, &quot;boolean&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 15 });
 var configObj = {
     sorting: {
-        sortableColumns: true
+        sortableColumns: true,
+        multiColumn: 3, // Maximum of 3 sorted columns at the same time
+        threeStatesSorting: true
     },
     columns: [
-        {
-            alignment: &quot;c&quot;,
-            field: &quot;radio&quot;,
-            width: 34,
-            binding: EFRadioButtonFormatter.create({
-                initialIndex: 0,
-                events: {
-                    &quot;click&quot;: function(e) {
-                        console.log(&quot;clicked&quot;);
-                    }
-                }
-            })
-        },
-        {
-            name: &quot;Number&quot;,
-            field: fields[0],
-            alignment: &quot;c&quot;,
-        },
-        {
-            name: &quot;Description&quot;,
-            field: fields[1],
-            alignment: &quot;c&quot;,
-        }
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market&quot;, field: fields[1], width: 80},
+        {name: &quot;Group 1&quot;, field: fields[2], width: 80},
+        {name: &quot;Group 2&quot;, field: fields[3], width: 80},
+        {name: &quot;Last&quot;, field: fields[4], width: 80},
+        {name: &quot;Net. Chng&quot;, field: fields[5], width: 80},
+        {name: &quot;Industry&quot;, field: fields[6]}
     ],
     staticDataRows: records
 };
@@ -71,4 +84,4 @@ var configObj = {
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 </code></pre>
-</code-sandbox>
+</code-sandbox><p><br><br><br></p>

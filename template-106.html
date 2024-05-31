@@ -1,52 +1,25 @@
-<h1 id="efx-grid">EFX Grid</h1>
-<p>EFX Grid is a <a href="https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_custom_elements">custom element</a>, providing simple ways to display and manipulate data in table layout. All HTML native properties and events are available in EFX Grid. It can be easily created by just writing the tag and setting the configuration as shown below:</p>
-<pre><code class="language-html">&lt;body&gt;
-    &lt;efx-grid&gt;&lt;/efx-grid&gt;
-
-    &lt;script&gt;
-        var grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
-        grid.config = {
-            /* See the API Doc for all available options */
-        };
-    &lt;/script&gt;
-&lt;/body&gt;
-</code></pre>
-<blockquote>
-<p>For more available properties in EFX Grid element, see <a href="#/data/columns-and-data">Columns and Data Properties</a>.</p>
-</blockquote>
-<h2 id="grid-apis">Grid APIs</h2>
-<p><code>api</code> property from the grid element represents JavaScript-based Grid instance. The <code>api</code> property is an access point for all Grid APIs and for making change at runtime. The <code>api</code> property will be available only after the <code>config</code> is set and initialized. To use <code>api</code> immediately after grid has been initialized, you can listen to <code>configured</code> event as shown below:</p>
-<pre><code class="language-js">var grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
-grid.addEventListener(&quot;configured&quot;, function (e) {
-    var api = e.detail.api;
-    var gridElem = e.detail.element;
-    
-    var core = api.getCoreGrid();
-
-    console.log(&quot;Grid has been configured.&quot;);
-});
-
-console.log(grid.api); // api instance will not be available immediately after configuration is set.
-</code></pre>
-<blockquote>
-<p>The document for the API instance can be found in the <a href="#/apis/rt-grid/grid">Grid APIs page</a>.</p>
-</blockquote>
-<h2 id="core-grid">Core Grid</h2>
-<p>As Grid grows in complexity, Core Grid is created to maintain and manage UIs for table and data display. It contains mostly low-level APIs. Any advanced features and user interactions have been moved out to the API instance and Grid extensions. In some specific cases, you may want to access Core Grid, such as managing scrollbars. To get Core Grid instance, use <code>getCoreGrid()</code> method from the <code>api</code> property as shown below:</p>
-<pre><code class="language-js">var grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
-grid.addEventListener(&quot;configured&quot;, function (e) {
-    var api = e.detail.api;
-    var core = api.getCoreGrid();
-    var section = core.getSection(&quot;content&quot;); // Content section
-    var vScrollbar = core.getVScrollbar(); // Vertical scrollbar
-});
-</code></pre>
-<blockquote>
-<p>The document for the Core Grid can be found in the <a href="#/apis/core/grid">Core APIs page</a>.</p>
-</blockquote>
+<h1 id="ef-combo-box-formatter">EF Combo Box Formatter</h1>
+<p>This formatter creates a <a href="https://ui.refinitiv.com/elements/combo-box">ef-combo-box</a> without margin. Its options come from passed <code>options.data</code>.</p>
+<h2 id="specific-options">Specific options</h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Attributes</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>data</td>
+<td>array</td>
+<td>required</td>
+<td>List of items, see <a href="https://ui.refinitiv.com/elements/combo-box">ef-combo-box</a> for more detail.</td>
+</tr>
+</tbody></table>
 <h2 id="example">Example</h2>
-<code-sandbox hash="1e0428df"><pre><code class="language-css">efx-grid {
-    height: 300px;
+<code-sandbox hash="f491a83"><pre><code class="language-css">efx-grid {
+    height: 320px;
 }
 </code></pre>
 <pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
@@ -60,27 +33,34 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;date1&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 200 });
+var currencies = [&quot;THB&quot;, &quot;AUD&quot;, &quot;USD&quot;, &quot;YEN&quot;, &quot;TWD&quot;];
+DataGenerator.addFieldInfo(&quot;currency&quot;, { type: &quot;set&quot;, members: currencies });
+
+var fields = [&quot;number_1&quot;, &quot;boolean&quot;, &quot;currency&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 20 });
+
 var configObj = {
-    freezeColumn: 0,
     columns: [
-        {name: &quot;Company&quot;, field: fields[0], width: 300},
-        {name: &quot;Market&quot;, field: fields[1], width: 150},
-        {name: &quot;Last&quot;, field: fields[2], width: 120},
-        {
-            name: &quot;Pct. Chng&quot;, 
-            field: fields[3], 
-            width: 200, 
-            formatter: PercentBarFormatter.create({
-                textHidden: true
-            })
+        { 
+            name: &quot;Column 1&quot;,
+            field: fields[0],
+            alignment: &quot;center&quot;
         },
-        {name: &quot;IPO Date&quot;, field: fields[4], width: 180, alignment: &quot;center&quot;, formatType: &quot;dateTime&quot;},
-        {name: &quot;Industry&quot;, field: fields[5], width: 250}
+        {
+            name: &quot;Column 2&quot;,
+            field: fields[1],
+            alignment: &quot;center&quot;
+        },
+        {
+            name: &quot;Select&quot;,
+            field: fields[2],
+            alignment: &quot;center&quot;,
+            binding: EFComboBoxFormatter.create({
+                data: currencies
+            })
+        }
     ],
-    staticDataRows: records,
-    extensions: [new TextFormatting()]
+    staticDataRows: records
 };
 
 var grid = document.getElementById(&quot;grid&quot;);

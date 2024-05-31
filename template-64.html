@@ -1,49 +1,12 @@
-<h1 id="updating-data">Updating Data</h1>
-<p>The row order can be shifted by data manipulation, such as sorting and filtering. So, the <strong>row index</strong> is not good for referencing or storing/saving operations. A <strong>RowDefinition</strong> object needs to be obtained, in order to update data at a later stage. Once you can refer to the row, then we can use <code>setRowData()</code> method to update the data. </p>
-<h2 id="updating-a-row">Updating a row</h2>
-<p>Use <code>getRowDefinition(rowRef)</code> method to retrieve RowDefinition object from Grid.</p>
-<p>Use <code>setRowData(rowData)</code> method from RowDefinition object to update the data.</p>
-<blockquote>
-<p>Note: <code>insertRow</code> method also returns reference of newly created RowDefinition object</p>
-</blockquote>
-<pre><code class="language-js">var records = [
-    {&quot;field1&quot;: &quot;a&quot;, &quot;field2&quot;: 1, &quot;field3&quot;: null},
-    {&quot;field1&quot;: &quot;b&quot;, &quot;field2&quot;: 5, &quot;field3&quot;: {&quot;someKey&quot;: 10}},
-    {&quot;field1&quot;: &quot;c&quot;, &quot;field2&quot;: 7, &quot;field3&quot;: [1, 2, 3]},
-    {&quot;field1&quot;: &quot;c&quot;, &quot;field4&quot;: &quot;some value&quot;}
-];
-var rows = records.map(function toRowOption(record) {
-    return { values: record };
-});
-grid.api.insertRows(rows);
-var rowDef = grid.api.getRowDefinition(2); // Get a reference for the third row
+<link rel="stylesheet" href="./resources/styles/elf-template.css">
 
-console.log(rowDef.getData(&quot;field2&quot;));
-
-rowDef.setRowData({&quot;field2&quot;: 33, &quot;field1&quot;: &quot;aa&quot;}); // Update the third row
-
-console.log(rowDef.getData(&quot;field2&quot;));
-
-setTimeout(function(){
-    rowDef.setRowData({&quot;field2&quot;: 44});
-
-    console.log(rowDef.getData(&quot;field2&quot;));
-}, 1000);
-</code></pre>
-<h3 id="updating-a-row-example">Updating a row example</h3>
-<p>The following example use object to map between RIC (text) and RowDefinition created from <code>insertRow</code> method.</p>
-<code-sandbox hash="9da1556f"><pre><code class="language-css">efx-grid {
-    height: 230px;
-}
-html hr {
-    margin: 5px;
+<h1 id="percent-bar">Percent Bar</h1>
+<p>The Percent Bar Extension is an extension that provides formatter for rendering percent bar in column.</p>
+<code-sandbox hash="67a36098"><pre><code class="language-css">efx-grid {
+    height: 169px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;button id=&quot;realtime_btn&quot;&gt;Toggle Real-time Update&lt;/button&gt;
-&lt;button id=&quot;eur_btn&quot;&gt;Update EUR=&lt;/button&gt;
-&lt;button id=&quot;jpy_btn&quot;&gt;Update JPY=&lt;/button&gt;
-&lt;hr&gt;
-&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
@@ -54,213 +17,50 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;RIC&quot;, &quot;CF_LAST&quot;, &quot;PCTCHNG&quot;, &quot;CF_NETCHNG&quot;, &quot;CF_CLOSE&quot;];
-var ricList = [&quot;EUR=&quot;, &quot;GBP=&quot;, &quot;THB=&quot;, &quot;JPY=&quot;, &quot;AUD=&quot;];
-var rowDefMap = {}; // Object for mapping
-var realtimeInterval = 0;
-
-document.getElementById(&quot;realtime_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
-    if (realtimeInterval) {
-        clearInterval(realtimeInterval);
-        realtimeInterval = 0;
-    } else {
-        realtimeInterval = setInterval(onRealtimeUpdate, 1200); // Simulate real-time update
-        onRealtimeUpdate(); // Update data immediately after click
-    }
-});
-document.getElementById(&quot;eur_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
-    updateGridData(getRowUpdate(&quot;EUR=&quot;));
-});
-document.getElementById(&quot;jpy_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
-    updateGridData(getRowUpdate(&quot;JPY=&quot;));
-});
-
-function onRealtimeUpdate() {
-    updateGridData(getRowUpdates());
-}
-
-function updateGridData(rowUpdates) {
-    for(var ric in rowUpdates) {
-        var rowDef = rowDefMap[ric];
-        if(!rowDef) { // Check if rowDef has been created for the updated ric 
-            rowDef = rowDefMap[ric] = grid.api.insertRow({}); // Use ric as key for mapping
-        }
-        rowDef.setRowData(rowUpdates[ric]); // Update the data
-    }
-}
-
-function getFieldUpdate(dataObj) {
-    // Simulate data updates for multiple field
-    if (!dataObj) {
-        dataObj = {};
-    }
-    var fieldCount = fields.length;
-    for (var i = 1; i &lt; fieldCount; ++i) {
-        if (randInt(0, 10) &lt; 6) {
-            var field = fields[i];
-            dataObj[field] = round(randFloat(-100, 100));
-        }
-    }
-    return dataObj;
-}
-function getRowUpdate(ric, rowUpdates) {
-    // Simulate data updates for a single row
-    if (!ric) {
-        ric = ricList[randInt(0, ricList.length)];
-    }
-    if (!rowUpdates) {
-        rowUpdates = {};
-    }
-    var dataObj = getFieldUpdate(rowUpdates[ric]);
-    dataObj[fields[0]] = ric;
-
-    rowUpdates[ric] = dataObj;
-    return rowUpdates;
-}
-function getRowUpdates() {
-    // Simulate data updates for multiple rows
-    var ricCount = ricList.length;
-    var rowUpdates = {};
-    for (var i = 0; i &lt; ricCount; ++i) {
-        if (randInt(0, 10) &lt; 4) {
-            getRowUpdate(ricList[i], rowUpdates);
-        }
-    }
-    return rowUpdates;
-}
-
-function randInt(min, exclusive_max) {
-    return Math.floor(randFloat(min, exclusive_max));
-}
-function randFloat(min, exclusive_max) {
-    return Math.random() * (exclusive_max - min) + min;
-}
-function round(num) {
-    return Math.round(num * 100) / 100;
-}
-
-var configObj = {
-    sorting: {
-        sortableColumns: true
-    },
-    columns: [
-        { name: &quot;RIC&quot;, field: fields[0], width: 70 },
-        { name: &quot;Last&quot;, field: fields[1], alignment: &quot;right&quot;, blinking: true},
-        { name: &quot;Pct. Chng&quot;, field: fields[2], alignment: &quot;right&quot;, blinking: true },
-        { name: &quot;Net. Chng&quot;, field: fields[3], alignment: &quot;right&quot;, blinking: true },
-        { name: &quot;Close&quot;, field: fields[4], alignment: &quot;right&quot;, blinking: true }
-    ]
-};
-
-    var grid = document.getElementById(&quot;grid&quot;);
-    grid.config = configObj;
-</code></pre>
-</code-sandbox><h2 id="updating-multiple-rows-or-large-data-set">Updating multiple rows or large data set</h2>
-<p>Sometimes, updating a row one by one can be slow as it triggers sorting for every API calls. Some other times, we can only fetch for entire table image because real-time data service is not available. So, updating data using the method from the section above may not be very efficient. <code>updateDataSet(records, rowIdentifier)</code> API provides a way to update entire data set all at once. The second paramter, rowIdentifier, is used for mapping rows between existing data set and new data set. In addition to updating data, the method will performs the following operations:</p>
-<ul>
-<li>Remove any row that does not exist in the given data set</li>
-<li>Add new rows that do not exist before</li>
-<li>Reorder/move rows to positions according to the new data set</li>
-</ul>
-<p>If the row identifier is not specified, row index of the data will be used as the row identifier instead. The following code snippet illustrates how <code>updateDataSet</code> works:</p>
-<pre><code class="language-js">var dataSet1 = [
-    {ric: &quot;EUR&quot;, field1: 10, field2: &quot;aaa&quot;},
-    {ric: &quot;DJI&quot;, field1: 10, field2: &quot;bbb&quot;},
-    {ric: &quot;SPX&quot;, field1: 20, field2: &quot;aaa&quot;},
-];
-
-// &quot;ric&quot; field is used as row identifier as it contains a unique value for each row
-grid.api.updateDataSet(dataSet1, &quot;ric&quot;);
-
-
-var dataSet2 = [
-    {ric: &quot;SPX&quot;, field1: 30, field2: &quot;ccc&quot;, field3: true },
-    {ric: &quot;DJI&quot;, field2: &quot;ddd&quot; },
-    {ric: &quot;THB&quot;, field1: 10, field2: &quot;aaa&quot;},
-    {ric: &quot;FTSE&quot;, field1: 10, field2: &quot;aaa&quot;},
-];
-
-// 4 different things will happen after calling updateDataSet with dataSet2
-// 1. EUR row is no longer presented. It will be removed
-// 2. THB and FTSE rows get added.
-// 3. SPX and DJI rows get new updates to the given fields
-//        3.1 field1, field2, and field3 on SPX row will be updated
-//        3.2 field2 on DJI row will be updated
-// 4. All row orders will be changed according to the row order in the second data set
-grid.api.updateDataSet(dataSet2, &quot;ric&quot;);
-</code></pre>
-<h3 id="updating-large-data-set-example">Updating large data set example</h3>
-<p>The following example shows how rows are added, removed, and updated when switching between different datasets using <code>updateDataSet</code> method.</p>
-<code-sandbox hash="174ea67f"><pre><code class="language-css">efx-grid {
-    height: 400px;
-}
-html hr {
-    margin: 5px;
-}
-</code></pre>
-<pre><code class="language-html">&lt;button id=&quot;dataset_btn1&quot;&gt;Dataset 1&lt;/button&gt;
-&lt;button id=&quot;dataset_btn2&quot;&gt;Dataset 2&lt;/button&gt;
-&lt;button id=&quot;dataset_btn3&quot;&gt;Dataset 3&lt;/button&gt;
-&lt;hr&gt;
-&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;market&quot;];
-var rowCount = 1000;
-var dataset1 = DataGenerator.generateRecords(fields, {seed: 1, numRows: rowCount});
-
-document.getElementById(&quot;dataset_btn1&quot;).addEventListener(&quot;click&quot;, function(e) {
-    grid.api.updateDataSet(dataset1, &quot;id&quot;);
-});
-document.getElementById(&quot;dataset_btn2&quot;).addEventListener(&quot;click&quot;, function(e) {
-    var dataset2 = dataset1.map(newRecord);
-    grid.api.updateDataSet(dataset2, &quot;id&quot;);
-});
-document.getElementById(&quot;dataset_btn3&quot;).addEventListener(&quot;click&quot;, function(e) {
-    var dataset3 = dataset1.slice(0, 5).map(newRecord);
-    var randNum = randInt(0, 5);
-    var record = dataset3.splice(randNum, 1)[0];
-    dataset3.push(record);
-    
-    grid.api.updateDataSet(dataset3, &quot;id&quot;);
-});
-
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 20 });
 var configObj = {
     columns: [
-        { name: &quot;Id&quot;, field: fields[0], width: 70 },
-        { name: &quot;companyName&quot;, field: fields[1] },
-        { name: &quot;Last&quot;, field: fields[2], alignment: &quot;right&quot;, blinking: {level: false} },
-        { name: &quot;Net. Chng&quot;, field: fields[3], alignment: &quot;right&quot;, blinking: {level: false} },
-        { name: &quot;Market&quot;, field: fields[4] }
+        { name: &quot;Company&quot;, field: fields[0] },
+        { name: &quot;Market&quot;, field: fields[1], width: 120 },
+        { name: &quot;Last&quot;, field: fields[2], width: 100 },
+        { name: &quot;Net. Chng&quot;, field: fields[3], width: 150, percentBar: { alignment: &quot;l&quot; } },
+        { name: &quot;Industry&quot;, field: fields[4] }
+    ],
+    staticDataRows: records,
+    extensions: [
+        new PercentBar()
     ]
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
-
-function newRecord(record, idx) {
-    var newRecord = {};
-    newRecord.id = record.id;
-    newRecord.companyName = record.companyName;
-    newRecord.CF_LAST = record.CF_LAST + randInt(-2, 3);
-    newRecord.CF_NETCHNG = record.CF_NETCHNG + randInt(-2, 3);
-    newRecord.market = record.market;
-    return newRecord;
-}
-
-function randInt(min, exclusive_max) {
-    return Math.floor(randFloat(min, exclusive_max));
-}
-function randFloat(min, exclusive_max) {
-    return Math.random() * (exclusive_max - min) + min;
-}
 </code></pre>
-</code-sandbox>
+</code-sandbox><h2 id="installation-and-how-to-import-to-a-project">Installation and how to import to a project</h2>
+<p>Installation examples and details of how to import the extension to a project are available on the <a href="#/extensions/readme">Overview</a> page.</p>
+<h2 id="update-movement-color-theme">Update movement color theme</h2>
+<p>Call the <code>reloadThemeColor</code> function to update the theme color after the movement color theme has changed.</p>
+<h2 style="margin-bottom:5px" id="api-refs">API Reference</h2>
+<div id="elf-api-container"><div id="main-template" class="elf-template">    <section><header>            <h1 class="subsection-title"><span class="attribs"><span class="type-signature"></span></span>PercentBarPlugin<span class="signature">()</span><span class="type-signature"></span></h1>            </header><article>                                                                        <h3 class="subsection-title" id="type_definitions">Type Definitions</h3>                        
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~ColumnOptions">ColumnOptions</h4><div class="description">    Extension column options that can be specified on each individual grid's column option</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>percentBar</code></td>                        <td class="type">                            <span class="param-type"><a href="#/extensions/tr-grid-percent-bar#~PercentBarOptions">PercentBarPlugin~PercentBarOptions</a></span> | <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last"></td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~Options">Options</h4><div class="description">    PercentBarPlugin options that can be specified from `percentBar` property of the main grid's options</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>padding</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    8                                </td>                        <td class="description last">Extra space added to max width from autoTextSizing calculation</td>        </tr>            <tr>                            <td class="name"><code>percentageLabel</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    true                                </td>                        <td class="description last">If disabled, the value will not convert into percent format</td>        </tr>            <tr>                            <td class="name"><code>autoTextSizing</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    true                                </td>                        <td class="description last">If disabled, text space will be fixed.</td>        </tr>            <tr>                            <td class="name"><code>autoFitting</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">If enabled, text space will be auto adjusted.<br> Otherwise, text space will stay extended to the longest length</td>        </tr>            <tr>                            <td class="name"><code>zeroValueHidden</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">If this option is enabled and the percentage value is zero, percent bar and its label will be hidden</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~PercentBarOptions">PercentBarOptions</h4><div class="description">    The options can be specified by `percentBar` property in the grid's column definition</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>alignment</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    ""                                </td>                        <td class="description last">Fixate percent bar alignment. By default, percent bar alignment will be changed according to grid column alignment.</td>        </tr>            <tr>                            <td class="name"><code>field</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    THIS_COLUMN                                </td>                        <td class="description last">Data field</td>        </tr>            <tr>                            <td class="name"><code>textHidden</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">If enabled, displays percent bar only</td>        </tr>            <tr>                            <td class="name"><code>textWidth</code></td>                        <td class="type">                            <span class="param-type">number</span> | <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">If specified, percent bar text will have fixed width</td>        </tr>            <tr>                            <td class="name"><code>useMovementColor</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    true                                </td>                        <td class="description last">If disabled, percent bar will not use up and down colors</td>        </tr>            <tr>                            <td class="name"><code>barColor</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    ""                                </td>                        <td class="description last">Custom color for bar element. This will override the useMovementColor</td>        </tr>            <tr>                            <td class="name"><code>padding</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    8                                </td>                        <td class="description last">Extra space added to max width from autoTextSizing calculation</td>        </tr>            <tr>                            <td class="name"><code>percentageLabel</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    true                                </td>                        <td class="description last">If disabled, the value will not convert into percent format</td>        </tr>            <tr>                            <td class="name"><code>autoTextSizing</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    true                                </td>                        <td class="description last">If disabled, text space will be fixed</td>        </tr>            <tr>                            <td class="name"><code>autoFitting</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">If enabled, text space will be auto adjusted.<br> Otherwise, text space will stay extended to the longest length</td>        </tr>            <tr>                            <td class="name"><code>zeroValueHidden</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">If this option is enabled and the percentage value is zero, percent bar and its label will be hidden</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            <h3 class="subsection-title" id="methods">Methods</h3>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="config"><span class="type-signature"></span>config<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getColumnConfigObject"><span class="type-signature"></span>getColumnConfigObject<span class="signature">(colIndex, out_obj<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Object}</span></h4>                            <div class="description">        Get a column percent bar options from column index    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                            <div class="attributes">                                                                </div>                                            </div>                <div class="param">                            <div class="name">out_obj</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getConfigObject"><span class="type-signature"></span>getConfigObject<span class="signature">(out_obj<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Object}</span></h4>                            <div class="description">        Get a current state of grid and extension config    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">out_obj</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getName"><span class="type-signature"></span>getName<span class="signature">()</span><span class="type-signature"> → {string}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">string</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="hasMultiTableSupport"><span class="type-signature"></span>hasMultiTableSupport<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Plugin that has multi-table support means that it can have multiple hosts/tables and share its states across those hosts/tables.    </div>                        <div class="details">                <dt class="inherited-from">Inherited From:</dt>    <dd class="inherited-from">        <a href="#">GridPlugin#hasMultiTableSupport</a>    </dd>                                                    </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="initialize"><span class="type-signature"></span>initialize<span class="signature">(host, options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">host</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    core grid object                </div>                    </div>                <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="reloadThemeColors"><span class="type-signature"></span>reloadThemeColors<span class="signature">()</span><span class="type-signature"> → {Promise.&lt;Object&gt;}</span></h4>                            <div class="description">        Reload theme colors and rerender percent bars.Should call after overwriting css variables for MovementColor without changing movement-color-profile attribute.    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Promise.&lt;Object&gt;</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setColumnPercentBar"><span class="type-signature"></span>setColumnPercentBar<span class="signature">(colIndex, columnOptions)</span><span class="type-signature"></span></h4>                            <div class="description">        Any existing percent bar options will be removed and replaced with the specified options.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                                            </div>                <div class="param">                            <div class="name">columnOptions</div>                        <div class="type">                            <span class="param-type"><a href="#/extensions/tr-grid-percent-bar#~ColumnOptions">PercentBarPlugin~ColumnOptions</a></span>                        </div>                                                    <div class="description">                    If no column option is given, existing percent bars will be removed.                </div>                    </div>            </div>        <div class="details">                                                            </div>                                            <h5>Example:</h5>            <pre><code>ext.setColumnPercentBar(colIndex, { "percentBar": true });
+ext.setColumnPercentBar(colIndex, {
+  "percentBar": {
+    "alignment": "r",
+    "field": "PCT_CHNG",
+    "textHidden": true,
+    "textWidth": 80
+  }
+});
+ext.setColumnPercentBar(colIndex, null);</code></pre>    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setPercentBarAlignment"><span class="type-signature"></span>setPercentBarAlignment<span class="signature">(colIndex, alignment)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                                            </div>                <div class="param">                            <div class="name">alignment</div>                        <div class="type">                            <span class="param-type">string</span>                        </div>                                                    <div class="description">                    Possible values are l, r, c, left, right, center or empty string                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="unload"><span class="type-signature"></span>unload<span class="signature">(host)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">host</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    core grid object                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                </article></section></div></div>

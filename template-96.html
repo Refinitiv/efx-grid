@@ -1,24 +1,33 @@
-<h1 id="filter-ui">Filter UI</h1>
-<p>Rows can be filtered automatically using the <a href="#/extensions/tr-grid-filter-input">Filter Input Extension</a> and <a href="#/extensions/tr-grid-row-filtering">Row Filter Extension</a>.</p>
-<p>The <code>Filter Input Extension</code> provides built-in filter UIs, which is a form input element appearing between the title section and content section.</p>
-<p>The <code>Row Filtering Extension</code> provides filtering programmatically due to UIs changing.</p>
-<blockquote>
-<p>Note that, the <code>Filter Input Extension</code> is using the <code>Row Filter Extension</code> and both extensions will synchronize together. So, in the <code>extensions</code> field the <code>Row Filter Extension</code> and <code>Filter Input Extension</code> instance must be included.</p>
-</blockquote>
-<pre><code class="language-js">var configObj = {
-    extensions: [
-        rowFilteringExt,
-        filterInputExt
-    ]
+<h1 id="server-side-pagination">Server Side Pagination</h1>
+<p>In case you want to retrieve a chunk of data from the server and do not want to load all of the data at once, you need to do server side pagination. The <a href="https://ui.refinitiv.com/elements/pagination">pagination</a> component is enough to do this. <strong>Do not</strong> use the Pagination Extension for server side pagination. </p>
+<p>All related logics (such as data requesting, validation, and transformation) must be implemented on the application side. Once data is received, you can just assign data to Grid&#39;s <code>data</code> property. </p>
+<p>See more details about data setting at <a href="#/data/columns-and-data">Columns and Data Properties</a>.</p>
+<h2 id="example">Example</h2>
+<pre><code class="language-js">    function onServerResponse(data) {
+        hideLoadingMask();
+        grid.data = data; // Setting data from server
+    }
+    function onRowCountRecieved(total) {
+        pagination_ui.max = Math.ceil(total / PAGE_SIZE);
+    }
+    function onPageChanged(e) {
+        requestData(e.detail.value, PAGE_SIZE, onServerResponse);
+    }
+</code></pre>
+<code-sandbox hash="5db5cb84"><pre><code class="language-css">efx-grid {
+    height: 169px;
+}
+ef-pagination {
+    margin-bottom: 30px;
+}
+.blur {
+    filter: blur(2px);
 }
 </code></pre>
-<h2 id="built-in-filter-uis">Built-in filter UIs</h2>
-<p>The Filter Input Extension provides many types of input UIs. The available UIs are text input, number input, dropdown selector and date-time picker.</p>
-<code-sandbox hash="38209c27"><pre><code class="language-css">efx-grid {
-    height: 448px;
-}
-</code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+<pre><code class="language-html">&lt;div id=&quot;container_div&quot;&gt;
+    &lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+    &lt;ef-pagination id=&#39;pagination_ui&#39; value=&quot;1&quot;&gt;&lt;/ef-pagination&gt;
+&lt;/div&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
@@ -29,161 +38,103 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var filterInputExt = new FilterInput();
-var rowFilteringExt = new RowFiltering();
+var paginationUI = document.getElementById(&quot;pagination_ui&quot;);
+var SERVER_DELAY = 300;
+var loading_mask = document.createElement(&quot;ef-loader&quot;);
+var PAGE_SIZE = 5;
 
-var dateFormatter = function(e) {
-  var value = e.data;
-  var cell = e.cell;
-  var parts = value.toDateString().split(&quot; &quot;);
-  cell.setContent(parts[2] + &quot;-&quot; + parts[1] + &quot;-&quot; + parts[3]);
+function showLoadingMask() {
+    if (!loading_mask.parentElement) {
+        container_div.classList.add(&#39;blur&#39;);
+        container_div.append(loading_mask);
+    }
+
+    paginationUI.disabled = true;
+}
+function hideLoadingMask() {
+    if (loading_mask.parentElement) {
+        container_div.classList.remove(&#39;blur&#39;);
+        loading_mask.parentElement.removeChild(loading_mask);
+    }
+
+    paginationUI.disabled = false;
 }
 
+// Event handlers
+function onServerResponse(data) {
+    hideLoadingMask();
+    grid.data = data; // Setting data from server
+}
+function onRowCountRecieved(total) {
+    paginationUI.max = Math.ceil(total / PAGE_SIZE);
+}
+function onPageChanged(e) {
+    requestData(e.detail.value, PAGE_SIZE, onServerResponse);
+}
+
+// Mocking Server
+function requestTotalPage(callback) {
+    setTimeout(function () { // Simulate network delay when requesting data from server
+        callback(serverData.length);
+    }, SERVER_DELAY);
+}
+function requestData(page, itemPerPage, callback) {
+    showLoadingMask();
+    page = parseInt(page);
+    itemPerPage = parseInt(itemPerPage);
+    setTimeout(function () { // Simulate network delay when requesting data from server
+        var start = itemPerPage * (page - 1);
+        var end = start + itemPerPage;
+        callback(serverData.slice(start, end));
+    }, SERVER_DELAY);
+}
+
+// Mocking Data
+var totalCount = 100;
+DataGenerator.addFieldInfo(&quot;rowNumber&quot;, {
+    type: &quot;function&quot;,
+    generate: function(info, seed) {
+        return ++info.count;
+    },
+    count: 0,
+});
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;rowNumber&quot;];
+var serverData = DataGenerator.generateRecords(fields, { numRows: totalCount });
+
+// Initializing UIs
 var configObj = {
     columns: [
-        { name: &quot;Date&quot;, field: &quot;date&quot;, sortBy: &quot;date&quot;, filterInput: { type: &quot;date&quot; }, binding: dateFormatter, alignment: &quot;c&quot; },
-        { name: &quot;Country&quot;, field: &quot;country&quot;, sortBy: &quot;country&quot;, width: 200, alignment: &quot;c&quot; },
-        { name: &quot;Currency&quot;, field: &quot;currency&quot;, sortBy: &quot;currency&quot;, filterInput: { type: &quot;select&quot;, entries: [&quot;PLN&quot;, &quot;EUR&quot;, &quot;SEK&quot;, &quot;GBP&quot;, &quot;DKK&quot;] }, width: 200, alignment: &quot;c&quot; },
-        { name: &quot;Rate&quot;, field: &quot;rate&quot;, sortBy: &quot;rate&quot;, alignment: &quot;right&quot;, filterInput: { type: &quot;number&quot; }, width: 200, alignment: &quot;c&quot; }
-    ],
-    rowFiltering: {
-        disabledUI: true
-    },
-    extensions: [
-        rowFilteringExt,
-        filterInputExt
+        {name: &quot;ID&quot;, field: fields[5], alignment: &quot;center&quot;, width: 40},
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market&quot;, field: fields[1], width: 120},
+        {name: &quot;Last&quot;, field: fields[2], width: 100},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
+        {name: &quot;Industry&quot;, field: fields[4]}
     ]
+    // ,dataModel: {...} Initial data is optional
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 
-// To emitate fetching data from server
-setTimeout(function() {
-    var response = [
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:9.6},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Sweden&quot;,&quot;currency&quot;:&quot;SEK&quot;,&quot;rate&quot;:17.07},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:15.74},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:27.8},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Greece&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:18.78},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:3.04},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:14.24},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:21.65},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:21.64},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:11.68},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:2.7},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:18.81},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Greece&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:9.03},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Greece&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:3.73},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:20.64},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:25.86},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:27.35},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:3.14},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:11.89},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Sweden&quot;,&quot;currency&quot;:&quot;SEK&quot;,&quot;rate&quot;:19.57},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:16.85},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:23.71},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:11.78},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;Germany&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:17.36},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Belgium&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:25.53},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Sweden&quot;,&quot;currency&quot;:&quot;SEK&quot;,&quot;rate&quot;:23.09},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:13.45},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:14.32},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Greece&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:18.57},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Sweden&quot;,&quot;currency&quot;:&quot;SEK&quot;,&quot;rate&quot;:15.52},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:2.99},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Finland&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:6.78},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:2.65},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:28.53},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:17.91},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Sweden&quot;,&quot;currency&quot;:&quot;SEK&quot;,&quot;rate&quot;:23.56},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;United Kingdom&quot;,&quot;currency&quot;:&quot;GBP&quot;,&quot;rate&quot;:25.78},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:20.87},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Sweden&quot;,&quot;currency&quot;:&quot;SEK&quot;,&quot;rate&quot;:29.36},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:4.69},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:23.82},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;Sweden&quot;,&quot;currency&quot;:&quot;SEK&quot;,&quot;rate&quot;:15.22},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:7.45},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Sweden&quot;,&quot;currency&quot;:&quot;SEK&quot;,&quot;rate&quot;:28.68},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:21.97},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:2.52},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:21.5},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:14.26},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:25.83},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:22.09},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Greece&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:27.29},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:7.8},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:11.35},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Spain&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:5.35},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:23.61},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Greece&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:16.77},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:11.02},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:11.16},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:29.65},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:19.16},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:28.23},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:7.27},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:14.06},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:29.48},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Netherlands&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:13.6},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:7.3},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Greece&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:11.19},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Sweden&quot;,&quot;currency&quot;:&quot;SEK&quot;,&quot;rate&quot;:14.07},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:22.88},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:2.71},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:18.91},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:6.25},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Germany&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:3.19},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:4.72},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:18.88},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:18.47},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:13.77},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Sweden&quot;,&quot;currency&quot;:&quot;SEK&quot;,&quot;rate&quot;:27.54},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:15.71},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;Sweden&quot;,&quot;currency&quot;:&quot;SEK&quot;,&quot;rate&quot;:11.3},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Denmark&quot;,&quot;currency&quot;:&quot;DKK&quot;,&quot;rate&quot;:27.69},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:6.6},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:23.45},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:24.42},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:21.93},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Germany&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:25.53},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Italy&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:13.74},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:18.73},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Sweden&quot;,&quot;currency&quot;:&quot;SEK&quot;,&quot;rate&quot;:17.22},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;United Kingdom&quot;,&quot;currency&quot;:&quot;GBP&quot;,&quot;rate&quot;:10.61},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:18.86},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Netherlands&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:13.69},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;United Kingdom&quot;,&quot;currency&quot;:&quot;GBP&quot;,&quot;rate&quot;:24.36},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Greece&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:17.47},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:29.77},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:12.61},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:18.3},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:16.32},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Greece&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:29.28},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:7.14}
-    ];
+paginationUI.addEventListener(&quot;value-changed&quot;, onPageChanged);
 
-    response = response.map(function(data) {
-        return {
-            date: new Date(data.date),
-            country: data.country,
-            currency: data.currency,
-            rate: data.rate
-        }
-    });
-    grid.api.addStaticDataRows(response);
-}, 1500);
+// Start app by getting total number of items and data
+requestTotalPage(onRowCountRecieved);
+requestData(paginationUI.value, PAGE_SIZE, onServerResponse);
 </code></pre>
-</code-sandbox><blockquote>
-<p>Note that, without a <code>defaultLogic</code> property set, the function will perform a string search.</p>
-</blockquote>
-<h2 id="custom-filter-logic">Custom filter logic</h2>
-<p>In several use cases, we may need more than a default string search which we can achieve by creating a new function that filters data in each row, then attach the function itself to <code>defaultLogic</code>, the property of Filter Input Extension options (Find more available options at <a href="#/extensions/tr-grid-filter-input">Filter Input Extension</a>. Let&#39;s see column &quot;rate&quot; in the following example.</p>
-<code-sandbox hash="161e69a9"><pre><code class="language-css">efx-grid {
-    height: 448px;
+</code-sandbox><h1 id="client-side-pagination">Client side pagination</h1>
+<p>If you have all the data available on the client side and want to show data in pagination style, you can use the Pagination Extension and the <a href="https://ui.refinitiv.com/elements/pagination">pagination</a> element. The current page and page size can be configured using the <code>pagination</code> option. The pagination behaviors are then implemented by the extension. See <a href="#/extensions/tr-grid-pagination">Pagination Extension</a> for more details.</p>
+<h2 id="example-1">Example</h2>
+<code-sandbox hash="a12bd869"><pre><code class="language-css">efx-grid {
+    height: 169px;
+}
+ef-pagination {
+    margin-bottom: 30px;
 }
 </code></pre>
 <pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+&lt;ef-pagination id=&#39;pagination&#39;&gt;&lt;/ef-pagination&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
@@ -194,166 +145,38 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var filterInputExt = new FilterInput();
-var rowFilteringExt = new RowFiltering();
-var numericFilter = {
-    defaultLogic: function (e, rowData) {
-        if (e.inputText) {
-            var num = +(e.inputText);
-            var cellValue = rowData[e.field];
-            return cellValue &lt; num;
-        }
-        return false;
+DataGenerator.addFieldInfo(&quot;rowNumber&quot;, {
+    type: &quot;function&quot;,
+    generate: function(info, seed) {
+        return ++info.count;
     },
-    placeholder: &quot;less than&quot;,
-    type: &quot;number&quot;
-};
-
-var dateFormatter = function(e) {
-  var value = e.data;
-  var cell = e.cell;
-  var parts = value.toDateString().split(&quot; &quot;);
-  cell.setContent(parts[2] + &quot;-&quot; + parts[1] + &quot;-&quot; + parts[3]);
-}
-
+    count: 0,
+});
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;rowNumber&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 100 });
 var configObj = {
     columns: [
-        { name: &quot;Date&quot;, field: &quot;date&quot;, sortBy: &quot;date&quot;, filterInput: { type: &quot;date&quot; }, binding: dateFormatter, alignment: &quot;c&quot; },
-        { name: &quot;Country&quot;, field: &quot;country&quot;, sortBy: &quot;country&quot;, width: 200, alignment: &quot;c&quot; },
-        { name: &quot;Currency&quot;, field: &quot;currency&quot;, sortBy: &quot;currency&quot;, filterInput: { type: &quot;select&quot;, entries: [&quot;PLN&quot;, &quot;EUR&quot;, &quot;SEK&quot;, &quot;GBP&quot;, &quot;DKK&quot;] }, width: 200, alignment: &quot;c&quot; },
-        { name: &quot;Rate&quot;, field: &quot;rate&quot;, sortBy: &quot;rate&quot;, alignment: &quot;right&quot;, filterInput: numericFilter, width: 200, alignment: &quot;c&quot; }
+        {name: &quot;ID&quot;, field: fields[5], alignment: &quot;center&quot;, width: 40},
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market&quot;, field: fields[1], width: 120},
+        {name: &quot;Last&quot;, field: fields[2], width: 100},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
+        {name: &quot;Industry&quot;, field: fields[4]}
     ],
     dataModel: {
-        fields: [&quot;date&quot;, &quot;country&quot;, &quot;currency&quot;, &quot;rate&quot;],
-        format: &quot;rows&quot;,
-        data: []
+        data: records
     },
-    rowFiltering: {
-        disabledUI: true
+    pagination: {
+        element: document.getElementById(&quot;pagination&quot;),
+        page: 1,
+        pageSize: 5
     },
     extensions: [
-        rowFilteringExt,
-        filterInputExt
+        new Pagination()
     ]
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
-
-// To emitate fetching data from server
-setTimeout(function() {
-    var response = [
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:9.6},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Sweden&quot;,&quot;currency&quot;:&quot;SEK&quot;,&quot;rate&quot;:17.07},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:15.74},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:27.8},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Greece&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:18.78},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:3.04},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:14.24},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:21.65},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:21.64},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:11.68},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:2.7},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:18.81},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Greece&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:9.03},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Greece&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:3.73},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:20.64},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:25.86},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:27.35},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:3.14},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:11.89},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Sweden&quot;,&quot;currency&quot;:&quot;SEK&quot;,&quot;rate&quot;:19.57},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:16.85},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:23.71},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:11.78},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;Germany&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:17.36},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Belgium&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:25.53},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Sweden&quot;,&quot;currency&quot;:&quot;SEK&quot;,&quot;rate&quot;:23.09},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:13.45},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:14.32},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Greece&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:18.57},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Sweden&quot;,&quot;currency&quot;:&quot;SEK&quot;,&quot;rate&quot;:15.52},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:2.99},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Finland&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:6.78},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:2.65},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:28.53},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:17.91},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Sweden&quot;,&quot;currency&quot;:&quot;SEK&quot;,&quot;rate&quot;:23.56},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;United Kingdom&quot;,&quot;currency&quot;:&quot;GBP&quot;,&quot;rate&quot;:25.78},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:20.87},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Sweden&quot;,&quot;currency&quot;:&quot;SEK&quot;,&quot;rate&quot;:29.36},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:4.69},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:23.82},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;Sweden&quot;,&quot;currency&quot;:&quot;SEK&quot;,&quot;rate&quot;:15.22},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:7.45},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Sweden&quot;,&quot;currency&quot;:&quot;SEK&quot;,&quot;rate&quot;:28.68},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:21.97},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:2.52},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:21.5},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:14.26},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:25.83},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:22.09},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Greece&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:27.29},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:7.8},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:11.35},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Spain&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:5.35},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:23.61},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Greece&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:16.77},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:11.02},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:11.16},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:29.65},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:19.16},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:28.23},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:7.27},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:14.06},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:29.48},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Netherlands&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:13.6},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:7.3},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Greece&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:11.19},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Sweden&quot;,&quot;currency&quot;:&quot;SEK&quot;,&quot;rate&quot;:14.07},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:22.88},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:2.71},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:18.91},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:6.25},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Germany&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:3.19},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:4.72},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:18.88},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:18.47},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:13.77},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Sweden&quot;,&quot;currency&quot;:&quot;SEK&quot;,&quot;rate&quot;:27.54},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:15.71},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;Sweden&quot;,&quot;currency&quot;:&quot;SEK&quot;,&quot;rate&quot;:11.3},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Denmark&quot;,&quot;currency&quot;:&quot;DKK&quot;,&quot;rate&quot;:27.69},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:6.6},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:23.45},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:24.42},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:21.93},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Germany&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:25.53},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Italy&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:13.74},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:18.73},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Sweden&quot;,&quot;currency&quot;:&quot;SEK&quot;,&quot;rate&quot;:17.22},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;United Kingdom&quot;,&quot;currency&quot;:&quot;GBP&quot;,&quot;rate&quot;:10.61},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:18.86},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Netherlands&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:13.69},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;United Kingdom&quot;,&quot;currency&quot;:&quot;GBP&quot;,&quot;rate&quot;:24.36},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Greece&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:17.47},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:29.77},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:12.61},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:18.3},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:16.32},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Greece&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:29.28},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:7.14}
-    ];
-
-    response = response.map(function(data) {
-        return {
-            date: new Date(data.date),
-            country: data.country,
-            currency: data.currency,
-            rate: data.rate
-        }
-    });
-    grid.api.addStaticDataRows(response);
-}, 1500);
 </code></pre>
 </code-sandbox>

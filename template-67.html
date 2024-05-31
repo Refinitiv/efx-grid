@@ -1,17 +1,21 @@
 <link rel="stylesheet" href="./resources/styles/elf-template.css">
 
-<h1 id="row-segmenting">Row Segmenting</h1>
-<p>The Row Segmenting Extension provides a way to group row content based on row index. By specifying a row index, the row becomes a group header. Any row below the group header can then be added as a group member. This provides more flexibility in how you define a group, unlike Row Grouping Extension where groups are based on strictly defined criteria. </p>
-<code-sandbox hash="7e7f5366"><pre><code class="language-css">html hr {
+<h1 id="row-filtering">Row Filtering</h1>
+<p>The Row Filtering Extension provides filtering rows based on specific condition. The extension also supports defining column filter on multiple columns. The following example allows a user to click on the filter icon, appeared on the top of the column header, to open <a href="#/widgets/filter-dialog">Filter Dialog</a>. </p>
+<blockquote>
+<p>Note that this extension does not provide any UI to do filtering. If you want to have UIs for end users to do filtering, you need to include either <a href="#/extensions/tr-grid-filter-input">Filter Input Extension</a> or <a href="#/widgets/filter-dialog">Filter Dialog Widget</a> in addition to this extension.</p>
+</blockquote>
+<code-sandbox hash="e186c753"><pre><code class="language-css">html hr {
     margin: 5px;
 }
+html body {
+    padding: 20px;
+}
+efx-grid {
+    height: 500px;
+}
 </code></pre>
-<pre><code class="language-html">&lt;button id=&quot;set_btn1&quot;&gt;Toggle Row 3&lt;/button&gt;
-&lt;button id=&quot;set_btn2&quot;&gt;Toggle Row 6&lt;/button&gt;
-&lt;button id=&quot;set_btn3&quot;&gt;Toggle Row 9&lt;/button&gt;
-&lt;button id=&quot;unset_btn&quot;&gt;Remove All Separators&lt;/button&gt;
-&lt;hr&gt;
-&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
@@ -22,14 +26,9 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var rowSegmentingExt = new RowSegmenting();
-var rowDraggingExt = new RowDragging();
 var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 10 });
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 50 });
 var configObj = {
-    sorting: {
-        sortableColumns: true
-    },
     columns: [
         { name: &quot;Company&quot;, field: fields[0] },
         { name: &quot;Market&quot;, field: fields[1], width: 120 },
@@ -38,79 +37,36 @@ var configObj = {
         { name: &quot;Industry&quot;, field: fields[4] }
     ],
     staticDataRows: records,
+    rowFiltering:{
+        iconActivation: &quot;onHover&quot;
+    },
     extensions: [
-        rowSegmentingExt,
-        rowDraggingExt
+        new RowFiltering()
     ]
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
-grid.addEventListener(&quot;configured&quot;, function() {
-    rowSegmentingExt.setSegmentSeparator(2);
-    rowSegmentingExt.setSegmentSeparator(5);
-    rowSegmentingExt.setSegmentSeparator(8);
-    rowSegmentingExt.fillSegments();
-});
 grid.config = configObj;
-
-document.getElementById(&quot;set_btn1&quot;).addEventListener(&quot;click&quot;, function(e) {
-    rowSegmentingExt.removeAllSegmentChildren();
-    rowSegmentingExt.setSegmentSeparator(2, !rowSegmentingExt.isSegmentSeparator(2));
-    rowSegmentingExt.fillSegments();
-});
-document.getElementById(&quot;set_btn2&quot;).addEventListener(&quot;click&quot;, function(e) {
-    rowSegmentingExt.removeAllSegmentChildren();
-    rowSegmentingExt.setSegmentSeparator(5, !rowSegmentingExt.isSegmentSeparator(5));
-    rowSegmentingExt.fillSegments();
-});
-document.getElementById(&quot;set_btn3&quot;).addEventListener(&quot;click&quot;, function(e) {
-    rowSegmentingExt.removeAllSegmentChildren();
-    rowSegmentingExt.setSegmentSeparator(8, !rowSegmentingExt.isSegmentSeparator(8));
-    rowSegmentingExt.fillSegments();
-});
-document.getElementById(&quot;unset_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
-    rowSegmentingExt.unsetAllSegmentSeparators();
-});
 </code></pre>
 </code-sandbox><h2 id="installation-and-how-to-import-to-a-project">Installation and how to import to a project</h2>
 <p>Installation examples and details of how to import the extension to a project are available on the <a href="#/extensions/readme">Overview</a> page.</p>
-<h2 id="differences-between-row-segmenting-extension-and-row-grouping-extension">Differences between Row Segmenting Extension and Row Grouping Extension</h2>
-<p>Both extensions produce very similar looking results, but there are some key differences in behaviors and functionalities. </p>
-<h2 id="group-header-segment-separator">Group header (segment separator)</h2>
-<p>The group headers in Row Segmenting Extension have their own data/content, whereas those in Row Grouping Extension have no data. Group headers in Row Segmenting Extension are actually normal row with a separator mark on it. This means you can perform sorting and filtering on the group headers.</p>
-<p>The group headers in the Row Grouping Extension have no data because they are automatically generated based on the specified criteria. So they have no place to hold their data and you will need to have a separate place to hold it. Because of this extra place to manage, it&#39;s more difficult to perform sorting and filtering on these group headers.</p>
-<h2 id="dragging-group-header">Dragging group header</h2>
-<p>The group headers in Row Segmenting Extension can be moved by dragging, if we use Row Dragging Extension. Moving group header is the same as moving row content. After moving, group headers will also move their row members along with them.</p>
-<p>The group headers in Row Grouping Extension cannot be moved freely. They can only moved or ordered by sorting operation. This is because they are automatically generated and constantly added or removed according to data updates. </p>
-<blockquote>
-<p>Note: dragging behaviors for group headers have not yet finalized and are subject to change.</p>
-</blockquote>
-<h2 id="grouping-criteria">Grouping criteria</h2>
-<p>Specifying a group header in Row Segmenting Extension is a bit more difficult. Each group header has to be set manually through the extension&#39;s APIs. Use the <code>setSegmentSeparator()</code> method to specify group header. Group members need to be manually added to the new groups by <code>addSegmentChild()</code> or <code>addSegmentChildren()</code> methods. Any row added to the group will be moved below the group header position. Rows that are already a group member cannot be added to another group. </p>
-<p>Grouping in Row Grouping Extension are based on row content. So, you can add or remove a group by just changing content of a row. A row can be moved between different groups by changing content of the row as well. </p>
-<blockquote>
-<p>More APIs will be implemented to accommodate adding or removing member in the future updates.</p>
-</blockquote>
-<h2 id="segment-classification-multi-levelnested-grouping">Segment Classification (multi-level/nested grouping)</h2>
-<p>With Row Segmenting Extension, you can specify classfication on individual segment to add nested segments. The criteria can be defined by using <code>setSegmentClassification</code> method with array of fields as its parameter. </p>
-<code-sandbox hash="6df1a6e7"><pre><code class="language-css">html hr {
+<h2 id="initializing-grid-with-a-column-filter">Initializing Grid with a column filter</h2>
+<p>You can define a column filter on <code>filter</code> property on the column configuration object. The expression for the filter can be written in 4 different formats:</p>
+<ul>
+<li>Object map (e.g., <code>{NTSE: true, DJI: true}</code>, <code>{12: true, 34: true, 56: true}</code>)</li>
+<li>2 dimensional array (e.g., <code>[[&quot;LT&quot;, 0]]</code>, <code>[[&quot;GTE&quot;, 10, &quot;AND&quot;], [&quot;LTE&quot;, 20]]</code>)</li>
+<li>Text (e.g., <code>&quot;[PCTCHNG] &lt; 0&quot;</code>)</li>
+<li>Function (e.g., <code>function(rowData) { return rowData[&quot;PCTCHNG&quot;] &lt; 0}</code>)</li>
+</ul>
+<p>The first two formats are recommended for most of the use cases as they are serializable and well understood by both Row Filtering Extension and <a href="#/widgets/filter-dialog">Filter Dialog</a>.</p>
+<code-sandbox hash="b2d9e3b9"><pre><code class="language-css">html hr {
     margin: 5px;
 }
 efx-grid {
-    height: 300px;
+    height: 500px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;button id=&quot;set_btn1&quot;&gt;Classify by market&lt;/button&gt;
-&lt;button id=&quot;set_btn2&quot;&gt;Classify by industry&lt;/button&gt;
-&lt;button id=&quot;set_btn3&quot;&gt;Classify by market and industry&lt;/button&gt;
-&lt;button id=&quot;set_btn4&quot;&gt;Unclassify&lt;/button&gt;
-&lt;hr&gt;
-&lt;button id=&quot;data_btn1&quot;&gt;Set row 6 market to NASDAQ&lt;/button&gt;
-&lt;button id=&quot;data_btn2&quot;&gt;Set row 6 market to DJI&lt;/button&gt;
-&lt;button id=&quot;data_btn3&quot;&gt;Set row 6 industry to Investment Managers&lt;/button&gt;
-&lt;button id=&quot;data_btn4&quot;&gt;Set row 6 industry to Paper&lt;/button&gt;
-&lt;hr&gt;
-&lt;efx-grid&gt;&lt;/efx-grid&gt;
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
@@ -121,83 +77,90 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var segmentIdx = 1;
-set_btn1.addEventListener(&quot;click&quot;, function(e) {
-    rowSegmentingExt.setSegmentClassification(segmentIdx, [&quot;market&quot;]);
-});
-set_btn2.addEventListener(&quot;click&quot;, function(e) {
-    rowSegmentingExt.setSegmentClassification(segmentIdx, [&quot;industry&quot;]);
-});
-set_btn3.addEventListener(&quot;click&quot;, function(e) {
-    rowSegmentingExt.setSegmentClassification(segmentIdx, [&quot;market&quot;, &quot;industry&quot;]);
-});
-set_btn4.addEventListener(&quot;click&quot;, function(e) {
-    rowSegmentingExt.setSegmentClassification(segmentIdx, null);
-});
+var objMapFilter = {
+    HKEX: true,
+    NASDAQ: true
+};
+var ary2DFilter = [
+    [&quot;GT&quot;, 100, &quot;AND&quot;],
+    [&quot;LT&quot;, 400]
+];
+var textFilter = &quot;[CF_NETCHNG] &gt; 0&quot;;
+var funcFilter = function(rowData) {
+    return rowData[&quot;industry&quot;].indexOf(&quot;a&quot;) &gt;= 0;
+};
 
-data_btn1.addEventListener(&quot;click&quot;, function(e) {
-    grid.api.setStaticData(row5, &quot;market&quot;, &quot;NASDAQ&quot;);
-});
-data_btn2.addEventListener(&quot;click&quot;, function(e) {
-    grid.api.setStaticData(row5, &quot;market&quot;, &quot;DJI&quot;);
-});
-data_btn3.addEventListener(&quot;click&quot;, function(e) {
-    grid.api.setStaticData(row5, &quot;industry&quot;, &quot;Investment Managers&quot;);
-});
-data_btn4.addEventListener(&quot;click&quot;, function(e) {
-    grid.api.setStaticData(row5, &quot;industry&quot;, &quot;Paper&quot;);
-});
-
-var row5 = null;
-var rowSegmentingExt = new RowSegmenting();
-var fields = [&quot;companyName&quot;, &quot;id&quot;, &quot;market&quot;, &quot;industry&quot;, &quot;number_2&quot;, &quot;float_1&quot;];
-var columnMap = {};
-var columns = fields.map(function(f) {
-    var column = {
-        name: f,
-        field: f
-    };
-    columnMap[f] = column;
-    return column;
-});
-columnMap[&quot;companyName&quot;].width = 200;
-columnMap[&quot;id&quot;].width = 60;
-
-var records = DataGenerator.generateRecords(fields, {seed: 0, rowCount: 20});
+var rowFilterExt = new RowFiltering();
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 50 });
 var configObj = {
-    columns: columns,
+    columns: [
+        { name: &quot;Company&quot;, field: fields[0] },
+        { name: &quot;Market&quot;, field: fields[1], width: 120, filter: objMapFilter },
+        { name: &quot;Last&quot;, field: fields[2], width: 100, filter: ary2DFilter },
+        { name: &quot;Net. Chng&quot;, field: fields[3], width: 100, filter: textFilter },
+        { name: &quot;Industry&quot;, field: fields[4], filter: funcFilter }
+    ],
+    staticDataRows: records,
+    rowFiltering:{
+        iconActivation: &quot;onHover&quot;
+    },
     extensions: [
-        rowSegmentingExt
+        rowFilterExt
     ]
 };
 
-var grid = window.grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
-grid.addEventListener(&quot;configured&quot;, function(e) {
-    row5 = e.detail.api.getRowDefinition(6);
-    rowSegmentingExt.setSegmentSeparator(segmentIdx);
-    rowSegmentingExt.addSegmentChildren(segmentIdx, [2, 3, 4, 5, 6, 7]);
-    
-    rowSegmentingExt.setSegmentSeparator(10);
-    rowSegmentingExt.addSegmentChildren(10, [11, 12, 13]);
-});
+var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
-grid.data = records;
 </code></pre>
-</code-sandbox><h2 id="group-sorting">Group sorting</h2>
-<p>Row segmenting can be sorted manually through an API <code>sortSeparators</code> from <code>SortableTitlePlugin</code>. The method accept a sorting function as parameter. If no parameter is passed to the function, the segments will be sorted according to the current sorting states of the grid.</p>
-<blockquote>
-<p>Note:</p>
+</code-sandbox><h2 id="managing-column-filter-at-runtime">Managing column filter at runtime</h2>
+<p>To add or remove column filter at runtime, use <code>setColumnFilter</code> method from the extension. </p>
+<p>To retrieve current serializable expression of the column filter, use <code>getConfigObject</code> from Grid instance.</p>
+<h2 id="defining-column-filter-as-an-array-expression">Defining column filter as an array expression</h2>
+<p>The expression can take form of an Array or two dimentional Array for defining multiple conditions. However, the array has to be in specific format for extension to parse it. The array must contains two or three items. The first item is operator id. The second item is a operand value. The third item is a connector which can be either &quot;AND&quot; or &quot;OR&quot; connector. The connector is optional, if there is only one coloring condition.</p>
+<p>This array form is useful for constructing a complex filter as there can be unlimited number of conditions in a single expression. It can also be serialized as a text which is good for saving and restoring. </p>
+<p>The following operator ids are supported in the array format:</p>
 <ul>
-<li>When clearing the grid sorting state, the segments will not return to its original order. To make it return to  original position, <code>sortSeparators</code> need to be called with a custom sorting function.</li>
-<li>Sorting segment operation only swap position between segments, therefore the content rows between the segments will not be moved to stick together at top of the grid. </li>
+<li>&quot;EQ&quot; - Equal to</li>
+<li>&quot;NEQ&quot; - Not equal to</li>
+<li>&quot;NUMEQ&quot; - Number equal to</li>
+<li>&quot;NUMNEQ&quot; - Number not equal to</li>
+<li>&quot;GT&quot; - Greater than</li>
+<li>&quot;GTE&quot; - Greater than or equal to</li>
+<li>&quot;LT&quot; - Less than</li>
+<li>&quot;LTE&quot; - Less than or equal to</li>
+<li>&quot;BEGIN&quot; - Begin with</li>
+<li>&quot;NBEGIN&quot; - Not begin with</li>
+<li>&quot;END&quot; - End with</li>
+<li>&quot;NEND&quot; - Not end with</li>
+<li>&quot;CONT&quot; - Contain</li>
+<li>&quot;NCONT&quot; - Not contain</li>
+<li>&quot;EQ_BLANK&quot; - Equal to blank value</li>
+<li>&quot;EQ_NBLANK&quot; - Equal to non blank value</li>
+<li>&quot;DT&quot; - Date is</li>
+<li>&quot;DTA&quot; - Date is after</li>
+<li>&quot;DTB&quot; - Date is before</li>
 </ul>
+<h2 id="grid-level-filtering">Grid level filtering</h2>
+<p>You can add a grid level filter which is independent from columns or column filters. Use <code>addGridFilter</code> method from the extension instance to add a grid level filter. If you want to refresh the filter when some context has been changed, use <code>refresh</code> method from the extension to reapply the filter. To clear all existing filters, you can use <code>removeAllFilters</code> method.</p>
+<h3 id="filtering-with-a-search-box-example">Filtering with a search box example</h3>
+<p>It is normal to tie the filter functionality with a search box. In order to do this, you can listen a <code>keyup</code> event on the search input. Then you can    call <code>refresh</code> method in the event callback.</p>
+<p>For below example, the search input will be passed in the second parameter. Then, in the filter function you can retrieve a value from search input to perform a comparison.</p>
+<blockquote>
+<p>The <code>addGridFilter</code> can recieve any type in the second parameter. The given input will be passed to the third argument in filter function.</p>
 </blockquote>
-<code-sandbox hash="75a2f498"><pre><code class="language-css">html hr {
+<code-sandbox hash="a3ccbb0d"><pre><code class="language-css">html hr {
     margin: 5px;
 }
+efx-grid {
+    height: 280px;
+}
+#search_input {
+    margin: 5px;
+    width: 250px;
+}
 </code></pre>
-<pre><code class="language-html">&lt;button id=&quot;clear_sort&quot;&gt;Clear sorting states&lt;/button&gt;
-&lt;button id=&quot;original_sort_segment&quot;&gt;Sort segments to original order&lt;/button&gt;
+<pre><code class="language-html">&lt;input id=&quot;search_input&quot; placeholder=&quot;Search Anything...&quot; type=&quot;search&quot; /&gt;
 &lt;hr&gt;
 &lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
@@ -210,49 +173,10 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var rowSegmentingExt = new RowSegmenting();
+var rowFilterExt = new RowFiltering();
 var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 15 });
-var segmentId = &quot;SegmentId&quot;;
-records[2][&quot;segmentOrder&quot;] = 1;
-records[2][segmentId] = &quot;1&quot;;
-records[3][segmentId] = &quot;1&quot;;
-records[4][segmentId] = &quot;1&quot;;
-
-records[5][&quot;segmentOrder&quot;] = 2;
-records[5][segmentId] = &quot;2&quot;;
-records[6][segmentId] = &quot;2&quot;;
-records[7][segmentId] = &quot;2&quot;;
-
-records[10][&quot;segmentOrder&quot;] = 3;
-records[10][segmentId] = &quot;3&quot;;
-records[11][segmentId] = &quot;3&quot;;
-records[12][segmentId] = &quot;3&quot;;
-
-var originalSortFunc = function(rowA, rowB){
-    var segmentOrderA = rowA[&quot;ROW_DEF&quot;].getData(&quot;segmentOrder&quot;);
-    var segmentOrderB = rowB[&quot;ROW_DEF&quot;].getData(&quot;segmentOrder&quot;);
-    if(segmentOrderA &lt; segmentOrderB) {
-        return -1;
-    }
-    if(segmentOrderB &lt; segmentOrderA) {
-        return 1;
-    }
-    return 0;
-}
-
+var records = DataGenerator.generateRecords(fields, {  seed: 0, numRows: 50 });
 var configObj = {
-    sorting: {
-        sortableColumns: true,
-        // After regular rows are sorted
-        // Sort segments by current grid sorting states
-        columnSorted: function (e) {
-            e.sender.sortSeparators();
-        }
-    },
-    rowSegmenting: {
-        segmentIdField: segmentId
-    },
     columns: [
         { name: &quot;Company&quot;, field: fields[0] },
         { name: &quot;Market&quot;, field: fields[1], width: 120 },
@@ -262,68 +186,51 @@ var configObj = {
     ],
     staticDataRows: records,
     extensions: [
-        rowSegmentingExt
+        rowFilterExt
     ]
 };
-var grid = window.grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
+
+var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
-document.getElementById(&quot;clear_sort&quot;).addEventListener(&quot;click&quot;, function(e) {
-    var stPlugin = grid.api.getCoreGrid().getPlugin(&quot;SortableTitlePlugin&quot;);
-    stPlugin.clearSortState();
+
+var searchInput = document.getElementById(&quot;search_input&quot;);
+searchInput.addEventListener(&quot;keyup&quot;, function(e) {
+    var input = e.currentTarget;
+    if (input._prevValue !== input.value) {
+        input._prevValue = input.value;
+        rowFilterExt.refresh(); // Force filter triggering
+    }
 });
-document.getElementById(&quot;original_sort_segment&quot;).addEventListener(&quot;click&quot;, function(e) {
-    var stPlugin = grid.api.getCoreGrid().getPlugin(&quot;SortableTitlePlugin&quot;);
-    stPlugin.sortSeparators(originalSortFunc);
-});
+
+function filterFunc(rowData, rowId, context) {
+    var str = &quot;&quot;;
+    var val = context.input.value.toLowerCase();
+    for (var key in rowData) {
+        str += rowData[key] + &quot; &quot;;
+    }
+    return str.toLowerCase().indexOf(val) &gt; -1;
+};
+
+var context = {
+    input: searchInput
+};
+rowFilterExt.addGridFilter(filterFunc, context);
 </code></pre>
-</code-sandbox><h2 id="content-sorting">Content sorting</h2>
-<p>Row content is sorted within its own group. The behavior is the same for both Row Segmenting and Row Grouping Extension.</p>
-<h2 id="row-segmenting-extension-features">Row Segmenting Extension features</h2>
-<h3 id="predefined-color-on-the-color-tags">Predefined color on the color tags</h3>
-<p>The extension supports color from the predefined colors. To do this you need to assign predefined class object to the <code>predefinedColors</code> property then specify field name of the <code>cssField</code> property.</p>
-<code-sandbox hash="3cac1f63"><pre><code class="language-css">html hr {
+</code-sandbox><h3 id="basic-filtering-example">Basic filtering example</h3>
+<code-sandbox hash="ba4d6858"><pre><code class="language-css">html hr {
     margin: 5px;
 }
 efx-grid {
-    height: 300px;
-}
-.example-container {
-    display: inline;
-}
-.example-color {
-    width: 50px;
-    height: 24px;
-    margin: 4px;
-    display: inline-block;
-    vertical-align: middle;
-    line-height: 24px;
-    color: #333;
-    text-align: center;
-}
-button {
-    vertical-align: middle;
+    height: 280px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;div&gt;
-    Predefined color #1
-    &lt;div id=&quot;set1&quot; class=&quot;example-container&quot;&gt;&lt;/div&gt;
-    &lt;button id=&quot;apply_btn1&quot;&gt;Apply&lt;/button&gt;
-&lt;/div&gt;
-&lt;div&gt;
-    Predefined color #2
-    &lt;div id=&quot;set2&quot; class=&quot;example-container&quot;&gt;&lt;/div&gt;
-    &lt;button id=&quot;apply_btn2&quot;&gt;Apply&lt;/button&gt;
-&lt;/div&gt;
+<pre><code class="language-html">&lt;button id=&quot;filter_btn1&quot;&gt;Change &gt; 20%&lt;/button&gt;
+&lt;button id=&quot;filter_btn2&quot;&gt;Change 10%-20%&lt;/button&gt;
+&lt;button id=&quot;filter_btn3&quot;&gt;In NASDAQ&lt;/button&gt;
+&lt;button id=&quot;filter_btn4&quot;&gt;Services industry&lt;/button&gt;
+&lt;button id=&quot;filter_btn5&quot;&gt;Clear Filter&lt;/button&gt;
 &lt;hr&gt;
-&lt;div&gt;
-    Change color of 6th row
-    &lt;button id=&quot;set_color_btn1&quot;&gt;color #1&lt;/button&gt;
-    &lt;button id=&quot;set_color_btn2&quot;&gt;color #2&lt;/button&gt;
-    &lt;button id=&quot;set_color_btn3&quot;&gt;color #3&lt;/button&gt;
-&lt;/div&gt;
-&lt;hr&gt;
-
-&lt;efx-grid&gt;&lt;/efx-grid&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
@@ -334,172 +241,110 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var predefinedColorsSet1 = {
-    &quot;color-1&quot;: {
-        backgroundColor: &quot;#FF2848&quot;
-    },
-    &quot;color-2&quot;: {
-        backgroundColor: &quot;#FFB27B&quot;
-    },
-    &quot;color-3&quot;: {
-        backgroundColor: &quot;#EEF3B4&quot;
-    }
-};
-
-var predefinedColorsSet2 = {
-    &quot;color-1&quot;: {
-        backgroundColor: &quot;#64864A&quot;
-    },
-    &quot;color-2&quot;: {
-        backgroundColor: &quot;#F56093&quot;
-    },
-    &quot;color-3&quot;: {
-        backgroundColor: &quot;#FFCCCD&quot;
-    }
-};
-
-var color, el;
-var parent = document.getElementById(&quot;set1&quot;);
-var div = document.createElement(&quot;div&quot;);
-for (color in predefinedColorsSet1) {
-    el = div.cloneNode();
-    el.textContent = color;
-    el.classList.add(&quot;example-color&quot;);
-    el.style.backgroundColor = predefinedColorsSet1[color].backgroundColor;
-    parent.appendChild(el);
-}
-
-parent = document.getElementById(&quot;set2&quot;);
-for (color in predefinedColorsSet2) {
-    el = div.cloneNode();
-    el.textContent = color;
-    el.classList.add(&quot;example-color&quot;);
-    el.style.backgroundColor = predefinedColorsSet2[color].backgroundColor;
-    parent.appendChild(el);
-}
-
-var ext = new RowSegmenting();
-var fields = [&quot;companyName&quot;, &quot;CF_NETCHNG&quot;, &quot;CF_VOLUME&quot;];
-var columns = fields.map(function(f) {
-    return {
-        name: f,
-        field: f
-    };
-});
-
-columns.push({
-    name: &quot;color&quot;,
-    field: &quot;TAG_CSS_CLASS&quot;
-});
-
-var records = DataGenerator.generateRecords(fields, {seed: 1, rowCount: 20});
-
-records[2][&quot;TAG_CSS_CLASS&quot;] = &quot;color-1&quot;;
-records[5][&quot;TAG_CSS_CLASS&quot;] = &quot;color-2&quot;;
-records[8][&quot;TAG_CSS_CLASS&quot;] = &quot;color-3&quot;;
-
+var rowFilterExt = new RowFiltering();
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 50 });
 var configObj = {
-    rowSegmenting: {
-        cssField: &quot;TAG_CSS_CLASS&quot;,
-        predefinedColors: predefinedColorsSet1
-    },
     columns: [
-        {
-            field: fields[0],
-            name: &quot;companyName&quot;
-        },
-        {
-            field: fields[1],
-            name: &quot;Net. Chng&quot;
-        },
-        {
-            field: fields[2],
-            name: &quot;Volume&quot;
-        }
+        { name: &quot;Company&quot;, field: fields[0] },
+        { name: &quot;Market&quot;, field: fields[1], width: 120 },
+        { name: &quot;Last&quot;, field: fields[2], width: 100 },
+        { name: &quot;Net. Chng&quot;, field: fields[3], width: 100 },
+        { name: &quot;Industry&quot;, field: fields[4] }
     ],
+    staticDataRows: records,
     extensions: [
-        ext
+        rowFilterExt
     ]
 };
-var grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
-grid.addEventListener(&quot;configured&quot;, function(e) {
-    ext.setSegmentSeparator(2);
-    ext.setSegmentSeparator(5);
-    ext.setSegmentSeparator(8);
-    ext.fillSegments();
-});
+
+var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
-grid.data = records;
 
-document.getElementById(&quot;apply_btn1&quot;).addEventListener(&quot;click&quot;, function(e) {
-    ext.setPredefinedColors(predefinedColorsSet1);
+document.getElementById(&quot;filter_btn1&quot;).addEventListener(&quot;click&quot;, function() {
+    rowFilterExt.removeAllFilters();
+    rowFilterExt.addGridFilter(moreThanTwenty);
+});
+document.getElementById(&quot;filter_btn2&quot;).addEventListener(&quot;click&quot;, function() {
+    rowFilterExt.removeAllFilters();
+    rowFilterExt.addGridFilter(between10And20);
+});
+document.getElementById(&quot;filter_btn3&quot;).addEventListener(&quot;click&quot;, function() {
+    rowFilterExt.removeAllFilters();
+    rowFilterExt.addGridFilter(inNASDAQ);
+});
+document.getElementById(&quot;filter_btn4&quot;).addEventListener(&quot;click&quot;, function() {
+    rowFilterExt.removeAllFilters();
+    rowFilterExt.addGridFilter(findServices);
+});
+document.getElementById(&quot;filter_btn5&quot;).addEventListener(&quot;click&quot;, function() {
+    rowFilterExt.removeAllFilters();
 });
 
-document.getElementById(&quot;apply_btn2&quot;).addEventListener(&quot;click&quot;, function(e) {
-    ext.setPredefinedColors(predefinedColorsSet2);
-});
-
-document.getElementById(&quot;set_color_btn1&quot;).addEventListener(&quot;click&quot;, function(e) {
-    grid.api.setStaticData(5, &quot;TAG_CSS_CLASS&quot;, &quot;color-1&quot;);
-});
-
-document.getElementById(&quot;set_color_btn2&quot;).addEventListener(&quot;click&quot;, function(e) {
-    grid.api.setStaticData(5, &quot;TAG_CSS_CLASS&quot;, &quot;color-2&quot;);
-});
-
-document.getElementById(&quot;set_color_btn3&quot;).addEventListener(&quot;click&quot;, function(e) {
-    grid.api.setStaticData(5, &quot;TAG_CSS_CLASS&quot;, &quot;color-3&quot;);
-});
-</code></pre>
-</code-sandbox><h3 id="saving-and-loading-segments">Saving and loading segments</h3>
-<p>In efx-grid with Row Segmenting Extension we have spanningField, predefinedColor, segmentId can be implement save/load grid config,
-We provide the user to set those properties with <code>setStaticRowData</code> or <code>setStaticData</code>.
-When you set static data to pass grid API. It will be applied API in Row Segmenting Extension too. Such as, setPredefiniedColor can be set static value with grid.api.setStaticData(0,&quot;TAG_CSS_CLASS&quot;, &quot;color1&quot;) in runtime mode.
-And also, in the initialization grid, it will get values from rows or staticDataRows, which is static data.</p>
-<p>The example of set static data, which edits values in runtime,
-we provide the use case save/load config from the grid.
-You can get the config from the grid and use this config in another grid.</p>
-<p>You can follow in below example for implement save/load functionality.
-The first example it will be grid that can be change data with click &quot;Save config&quot;. 
-And then you can paste this config on the example 2 and click &quot;Start Grid&quot; and both grids look the same. </p>
-<h4 id="example-1-saving-segment-configuration-from-grid">Example 1: saving segment configuration from grid</h4>
-<code-sandbox hash="9257e3d2"><pre><code class="language-css">html body {
-    padding: 20px;
-    box-sizing: border-box;
+function moreThanTwenty(rowData, rowId, ctx) {
+    return rowData.CF_NETCHNG &gt; 20;
 }
-
-html hr {
+function between10And20(rowData, rowId, ctx) {
+    return rowData.CF_NETCHNG &gt;= 10 &amp;&amp; rowData.CF_NETCHNG &lt;= 20;
+}
+function inNASDAQ(rowData, rowId, ctx) {
+    return rowData.market === &quot;NASDAQ&quot;;
+}
+function findServices(rowData, rowId, ctx) {
+    let industry = rowData.industry.toLowerCase();
+    return industry.indexOf(&quot;service&quot;) &gt;= 0;
+}
+</code></pre>
+</code-sandbox><h2 id="filter-icon-activation-modes">Filter icon activation modes</h2>
+<p>Filter icon activation controls the behavior on how to render filter icon in header cells of the grid. You can specify the mode on <code>iconActivation</code> property on the extension configuration object (<code>rowFiltering</code>). If <code>iconActivation</code> is not specified, the <code>onActiveFilter</code> will be used.</p>
+<pre><code class="language-js">var gridConfig = {
+    // ... other config
+    rowFiltering: {
+        iconActivation: &quot;onHover&quot;
+    },
+    extensions: [
+        filterExt
+    ]
+};
+</code></pre>
+<p>All available icon activation modes are shown in the below table:</p>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>&quot;always&quot;</td>
+<td>Always show filter icon.</td>
+</tr>
+<tr>
+<td>&quot;onHover&quot;</td>
+<td>Show filter icon when mouse cursor is hovered over the header cell or the column has an active filter.</td>
+</tr>
+<tr>
+<td>&quot;onActiveFilter&quot;</td>
+<td>Show filter icon when the column has an active filter. This is the default mode</td>
+</tr>
+<tr>
+<td>&quot;none&quot;</td>
+<td>No filter icon is shown at all times.</td>
+</tr>
+</tbody></table>
+<code-sandbox hash="a80d1585"><pre><code class="language-css">html hr {
     margin: 5px;
 }
-
 efx-grid {
-    height: 300px;
-}
-
-#copy_success {
-    color: green;
-}
-
-input[type=&quot;number&quot;] {
-    width: 40px;
+    height: 500px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;span&gt;Row Index&lt;/span&gt;
-&lt;input value=&quot;1&quot; type=&quot;number&quot; id=&quot;row_index&quot;&gt;
+<pre><code class="language-html">&lt;button id=&quot;mode_always&quot;&gt; always &lt;/button&gt;
+&lt;button id=&quot;mode_hover&quot;&gt; onHover &lt;/button&gt;
+&lt;button id=&quot;mode_active&quot;&gt; onActiveFilter &lt;/button&gt;
+&lt;button id=&quot;mode_none&quot;&gt; none &lt;/button&gt;
 &lt;hr&gt;
-&lt;span&gt; Set segment color&lt;/span&gt;
-&lt;button id=&quot;set_segment_color_1&quot;&gt; Segment color 1 &lt;/button&gt;
-&lt;button id=&quot;set_segment_color_2&quot;&gt; Segment color 2 &lt;/button&gt;
-&lt;button id=&quot;set_segment_color_3&quot;&gt; Segment color 3 &lt;/button&gt;
-&lt;button id=&quot;unset_segment_color&quot;&gt; Unset Segment Color&lt;/button&gt;
-&lt;hr&gt;
-&lt;span&gt; Toggle Spanning &lt;/span&gt;
-&lt;button id=&quot;spanning_segment_separator&quot;&gt; Toggle &lt;/button&gt;
-&lt;hr&gt;
-&lt;span&gt; Save grid config for restore &lt;/span&gt;
-&lt;button id=&quot;save_config&quot;&gt; Save config &lt;/button&gt;
-&lt;span id=&quot;copy_success&quot;&gt; &lt;/span&gt;
-&lt;efx-grid&gt;&lt;/efx-grid&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
@@ -510,326 +355,115 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var rowSegmentingExt = window.rowSegmentingExt = new RowSegmenting();
-
-var fields = [&quot;companyName&quot;, &quot;industry&quot;, &quot;CF_NETCHNG&quot;, &quot;PCTCHNG&quot;, &quot;CF_VOLUME&quot;];
-
-var records = DataGenerator.generateRecords(fields, { seed: 1, rowCount: 12 });
-
-// Initialize grid with segment separators
-records[1].segmentId = &quot;1&quot;;
-records[2].segmentId = &quot;1&quot;;
-records[3].segmentId = &quot;1&quot;;
-
-records[4].segmentId = &quot;3&quot;;
-records[5].segmentId = &quot;3&quot;;
-records[6].segmentId = &quot;3&quot;;
-
-records[7].segmentId = &quot;2&quot;;
-records[8].segmentId = &quot;2&quot;;
-records[9].segmentId = &quot;2&quot;;
-
-// Set colors to each segment
-records[1].rowSegmentingColoringClass = &quot;color-1&quot;;
-records[4].rowSegmentingColoringClass = &quot;color-2&quot;;
-records[7].rowSegmentingColoringClass = &quot;color-3&quot;;
-
-records[4].customGroup = &quot;Custom Group 1&quot;;
-records[4].spanning = true;
-records[7].spanning = 2;
-
-
-var predefinedColorsSet1 = {
-    &quot;color-1&quot;: {
-        backgroundColor: &quot;#FF2848&quot;
-    },
-    &quot;color-2&quot;: {
-        backgroundColor: &quot;#FFB27B&quot;
-    },
-    &quot;color-3&quot;: {
-        backgroundColor: &quot;#EEF3B4&quot;
-    }
-};
-
+var rowFilterExt = new RowFiltering();
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 50 });
 var configObj = {
     columns: [
-        {
-            name: &quot;Company Name&quot;,
-            field: fields[0],
-            width: 120
-        },
-        {
-            name: &quot;Industry&quot;,
-            field: fields[1]
-        },
-        {
-            name: &quot;Net. Chng&quot;,
-            field: fields[2]
-        },
-        {
-            name: &quot;Price. Chng&quot;,
-            field: fields[3]
-        },
-        {
-            name: &quot;Volume&quot;,
-            field: fields[4]
-        }
+        { name: &quot;Company&quot;, field: fields[0] },
+        { name: &quot;Market&quot;, field: fields[1], width: 120 },
+        { name: &quot;Last&quot;, field: fields[2], width: 100 },
+        { name: &quot;Net. Chng&quot;, field: fields[3], width: 100 },
+        { name: &quot;Industry&quot;, field: fields[4] }
     ],
-    extensions: [rowSegmentingExt],
-    rowSegmenting: {
-        cssField: &quot;rowSegmentingColoringClass&quot;,
-        predefinedColors: predefinedColorsSet1,
-        rowSpanningField: &quot;spanning&quot;,
-        segmentIdField: &quot;segmentId&quot;,
-        segmentSeparatorBinding: function (e) {
-            if (e.rowData[&quot;customGroup&quot;]) {
-                e.cell.setTextContent(e.rowData[&quot;customGroup&quot;]);
-            } else {
-                e.cell.setTextContent(e.rowData[&quot;companyName&quot;]);
-            }
-        }
-    },
     staticDataRows: records,
+    rowFiltering:{
+        iconActivation: null
+    },
+    extensions: [
+        rowFilterExt
+    ]
 };
 
-var grid = window.grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
+var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
-window.grid = grid;
 
-// listening Click Events
-
-set_segment_color_1.addEventListener(&quot;click&quot;, function (e) {
-    var rowIndex = + row_index.value;
-    grid.api.setStaticData(rowIndex, &quot;rowSegmentingColoringClass&quot;, &quot;color-1&quot;);
+document.getElementById(&quot;mode_always&quot;).addEventListener(&quot;click&quot;, function(e) { 
+    configObj[&quot;rowFiltering&quot;][&quot;iconActivation&quot;] = &quot;always&quot;;
+    rowFilterExt.config(configObj);
+    rowFilterExt._updateAllColumnIcons();
 });
-
-set_segment_color_2.addEventListener(&quot;click&quot;, function (e) {
-    var rowIndex = + row_index.value;
-    grid.api.setStaticData(rowIndex, &quot;rowSegmentingColoringClass&quot;, &quot;color-2&quot;);
+document.getElementById(&quot;mode_hover&quot;).addEventListener(&quot;click&quot;, function(e) {
+    configObj[&quot;rowFiltering&quot;][&quot;iconActivation&quot;] = &quot;onHover&quot;;
+    rowFilterExt.config(configObj);
+    rowFilterExt._updateAllColumnIcons();
 });
-
-set_segment_color_3.addEventListener(&quot;click&quot;, function (e) {
-    var rowIndex = + row_index.value;
-    grid.api.setStaticData(rowIndex, &quot;rowSegmentingColoringClass&quot;, &quot;color-3&quot;);
+document.getElementById(&quot;mode_active&quot;).addEventListener(&quot;click&quot;, function(e) {
+    configObj[&quot;rowFiltering&quot;][&quot;iconActivation&quot;] = &quot;onActiveFilter&quot;;
+    rowFilterExt.config(configObj);
+    rowFilterExt._updateAllColumnIcons();
 });
-
-unset_segment_color.addEventListener(&quot;click&quot;, function (e) {
-    var rowIndex = + row_index.value;
-    grid.api.setStaticData(rowIndex, &quot;rowSegmentingColoringClass&quot;, null);
+document.getElementById(&quot;mode_none&quot;).addEventListener(&quot;click&quot;, function(e) { 
+    configObj[&quot;rowFiltering&quot;][&quot;iconActivation&quot;] = &quot;none&quot;;
+    rowFilterExt.config(configObj);
+    rowFilterExt._updateAllColumnIcons();
 });
-
-
-spanning_segment_separator.addEventListener(&quot;click&quot;, function (e) {
-    var rowIndex = + row_index.value;
-    var rowSpanning = grid.api.getRowData(rowIndex).spanning;
-
-    var rowDef = grid.api.getRowDefinition(rowIndex);
-    rowDef.setStaticData(&quot;spanning&quot;, !rowSpanning);
-
-});
-
-save_config.addEventListener(&quot;click&quot;, function(e) {
-    var config = grid.api.getConfigObject();
-    var configStr = JSON.stringify(config, null, 2);
-    copyToClipboard(configStr);
-    copy_success.textContent = &quot;Copied grid config to clipboard success&quot;;
-    setTimeout(function(e) { copy_success.textContent = &quot;&quot; }, 5000); // clear alert user
-});
-
-function copyToClipboard(val) {
-    // tmpInput for copy text
-    var tmpInput = document.getElementById(&quot;tmp_input&quot;);
-    if(!tmpInput) {
-        tmpInput = document.createElement(&quot;textarea&quot;);
-        tmpInput.id = &quot;tmp_input&quot;;
-        document.body.appendChild(tmpInput);
-    }
-    tmpInput.style.visibility = &quot;visible&quot;;
-    tmpInput.value = val;
-    tmpInput.select();
-    document.execCommand(&quot;copy&quot;);
-    tmpInput.style.visibility = &quot;hidden&quot;;
-
-}
-</code></pre>
-</code-sandbox><h4 id="example-2-restoring-segments">Example 2: restoring segments</h4>
-<code-sandbox hash="cd45daad"><pre><code class="language-css">html body {
-    padding: 20px;
-    box-sizing: border-box;
-}
-
-html hr {
-    margin: 5px;
-}
-
-efx-grid {
-    height: 300px;
-}
-
-#area_config {
-    width: 100%;
-    height: 100px;
-}
-</code></pre>
-<pre><code class="language-html">&lt;span&gt; You can load the grid config with pase in below text area and then click &quot;Start Grid&quot; &lt;/span&gt;
-&lt;hr&gt;
-&lt;button id=&quot;start_grid&quot;&gt; Start Grid &lt;/button&gt;
-&lt;hr&gt;
-&lt;textarea id=&quot;area_config&quot; placeholder=&quot;Patse grid config and click Start Grid&quot;&gt;&lt;/textarea&gt;
-&lt;hr&gt;
-&lt;efx-grid&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;industry&quot;, &quot;CF_NETCHNG&quot;, &quot;PCTCHNG&quot;, &quot;CF_VOLUME&quot;];
-
-function onSeparatorBinding(e) {
-    if (e.rowData[&quot;customGroup&quot;]) {
-        e.cell.setTextContent(e.rowData[&quot;customGroup&quot;]);
-    } else {
-        e.cell.setTextContent(e.rowData[&quot;companyName&quot;]);
-    }
-}
-
-start_grid.addEventListener(&quot;click&quot;, function (e) {
-    var grid = window.grid = window.grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
-
-    var valueConfig = JSON.parse(area_config.value);
-    var configObj = valueConfig;
-    if(configObj.rowSegmenting) {
-        configObj.rowSegmenting[&quot;segmentSeparatorBinding&quot;] = onSeparatorBinding;
-    }
-    grid.config = configObj;
-});
-</code></pre>
-</code-sandbox><h3 id="segmentid-field">SegmentId field</h3>
-<p>If you intend to apply a segment separator using the <code>segmentId</code> field during runtime, whenever the row data is updated, it is necessary to call the <code>requestSeparatorRefresh</code> function to forcefully render the user interface (UI). This step ensures that the changes are reflected in the UI, allowing for an accurate representation of the updated segment separators.</p>
-<p>Currently, you can set the segment separator for the grid in two ways. The first method is by using the grid API through the <code>setSegmentSeparator</code> function. The second method involves setting the <code>segmentId</code> field in the row data. However, we strongly advise against using both methods simultaneously. Please choose one approach that suits your needs, keeping in mind that the user interface will appear similar regardless of the method chosen.</p>
-<h3 id="empty-segment-filtering-and-separator-filtering">Empty segment filtering and separator filtering</h3>
-<p>By default, segment header cannot be filtered out. However, Row Filtering Extension has <code>emptySegmentFiltering</code> option that allows empty segment to be filtered out. With the option turned on, any segment whose all of its members are not present by filtering will also be hidden. Empty segment will still be visible, if there is no active filter. Collapsing of the segment does not count as having an active filter.</p>
-<p><code>separatorFiltering</code> option from Row Filtering Extension also allow separator rows to be filtered as if they were a normal row. Note that the separator rows can be filtered out, while their child rows may ramain visible.  </p>
-<code-sandbox hash="5555ee4"><pre><code class="language-css">html hr {
-    margin: 5px;
-}
-efx-grid {
-    height: 300px;
-}
-i:empty {
-    padding-right: 20px;
-}
-</code></pre>
-<pre><code class="language-html">&lt;label&gt;Empty segment filtering: &lt;input id=&quot;empty_segment_chk&quot; type=&quot;checkbox&quot; checked&gt;&lt;/label&gt;
-&lt;i&gt;&lt;/i&gt;
-&lt;label&gt;Separator filtering: &lt;input id=&quot;separator_chk&quot; type=&quot;checkbox&quot; checked&gt;&lt;/label&gt;
-&lt;hr&gt;
-&lt;efx-grid&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var chkBox = document.getElementById(&quot;empty_segment_chk&quot;);
-chkBox.addEventListener(&quot;change&quot;, function (e) {
-    var checked = e.currentTarget.checked;
-    rfExt.enableEmptySegmentFiltering(checked); // Changing mode at runtime
-});
-chkBox = document.getElementById(&quot;separator_chk&quot;);
-chkBox.addEventListener(&quot;change&quot;, function (e) {
-    var checked = e.currentTarget.checked;
-    rfExt.enableSeparatorFiltering(checked); // Changing mode at runtime
-});
-
-var fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;index4&quot;, &quot;percent&quot;, &quot;market&quot;];
-var columns = fields.map(function (f, idx) {
-    return {
-        name: &quot;Column &quot; + idx,
-        field: f
-    };
-});
-columns[0].width = 80;
-
-var segmentId = &quot;SegmentId&quot;;
-var records = DataGenerator.generateRecords(fields, { seed: 0, rowCount: 15 });
-records[1][segmentId] = &quot;0&quot;; // To illustrate empty segment
-
-records[3][segmentId] = &quot;1&quot;;
-records[4][segmentId] = &quot;1&quot;;
-records[5][segmentId] = &quot;1&quot;;
-records[6][segmentId] = &quot;1&quot;;
-
-records[8][segmentId] = &quot;2&quot;;
-records[9][segmentId] = &quot;2&quot;;
-records[10][segmentId] = &quot;2&quot;;
-records[11][segmentId] = &quot;2&quot;;
-
-var fiExt = new FilterInput();
-var rfExt = new RowFiltering();
-var configObj = {
-    columns: columns,
-    rowFiltering: {
-        emptySegmentFiltering: true,
-        separatorFiltering: true
-    },
-    rowSegmenting: {
-        segmentIdField: segmentId
-    },
-    staticDataRows: records,
-    extensions: [rfExt, fiExt]
-};
-
-var grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
-grid.config = configObj;
 </code></pre>
 </code-sandbox><h2 style="margin-bottom:5px" id="api-refs">API Reference</h2>
-<div id="elf-api-container"><div id="main-template" class="elf-template">    <section><header>            <h1 class="subsection-title"><span class="attribs"><span class="type-signature"></span></span>RowSegmentingPlugin<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h1>            </header><article>                                                                        <h3 class="subsection-title" id="type_definitions">Type Definitions</h3>                        
-<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~Options">Options</h4><div class="description">    The options can be specified by `rowSegmenting` property of the main grid's options</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>spanning</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    true                                </td>                        <td class="description last">If disabled, segment separator rows will not be spanned/stretched across multiple cells</td>        </tr>            <tr>                            <td class="name"><code>colorTag</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">If not specified, the color tag will be disabled when using extension without halo theme.</td>        </tr>            <tr>                            <td class="name"><code>cssField</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    "TAG_CSS_CLASS"                                </td>                        <td class="description last">Apply CSS class based on the given field</td>        </tr>            <tr>                            <td class="name"><code>predefinedColors</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Predefined color object map for color tag</td>        </tr>            <tr>                            <td class="name"><code>clicked</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Event handler when user clicks on arrows or cells</td>        </tr>            <tr>                            <td class="name"><code>headerMenuClicked</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Event handler when user clicks on menu icon. The menu icon will be displayed if spanning option is true.</td>        </tr>            <tr>                            <td class="name"><code>segmentSeparatorBinding</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Logic that will be executed on each segment separator row</td>        </tr>            <tr>                            <td class="name"><code>nonSegmentSeparatorBinding</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Logic that will be executed for all non segment separator row</td>        </tr>            <tr>                            <td class="name"><code>sortingLogic</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Logic to be used by sortSegments method</td>        </tr>            <tr>                            <td class="name"><code>rowSpanningField</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    "ROW_SPANNING"                                </td>                        <td class="description last">selected field for apply row spanning in row separator</td>        </tr>            <tr>                            <td class="name"><code>segmentIdField</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    "SEGMENT_ID"                                </td>                        <td class="description last">selected field for set segment separator row</td>        </tr>            <tr>                            <td class="name"><code>displayColumn</code></td>                        <td class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Render tags in the given column. It can be either the column index, column ID, or field.</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            
-<div class="item">                                <div class="item-type">typedef</div>                        <h4 class="name" id="~SortingLogic"><span class="type-signature"></span>SortingLogic<span class="signature">(rowDataA, rowDataB)</span><span class="type-signature"> → {number}</span></h4>                            <div class="description">        Comparer function for comparing the order of 2 segment separator rows. The function takes at least 2 parameters. <br> The function should return -1 if the first parameter should comes first, 1 for the other way, and 0 if they are equal.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowDataA</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    Row data of the segment separator row                </div>                    </div>                <div class="param">                            <div class="name">rowDataB</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    Row data of the segment separator row                </div>                    </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">number</span>    </div>                </div>                            <h3 class="subsection-title" id="methods">Methods</h3>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="_resolveDisplayColumn"><span class="type-signature"></span>_resolveDisplayColumn<span class="signature">()</span><span class="type-signature"> → {number}</span></h4>                            <div class="description">        Resolve display column from column id to column index    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">number</span>    </div><div class="sub-content-desc">    return column index of display column</div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="addSegmentChild"><span class="type-signature"></span>addSegmentChild<span class="signature">(segmentRef, rowRef)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">segmentRef</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </div>                                                    <div class="description">                    Row id or row index                </div>                    </div>                <div class="param">                            <div class="name">rowRef</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </div>                                                    <div class="description">                    Row id, row index                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="addSegmentChildren"><span class="type-signature"></span>addSegmentChildren<span class="signature">(segmentRef, rowRefs)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">segmentRef</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </div>                                                    <div class="description">                    Row id or row index                </div>                    </div>                <div class="param">                            <div class="name">rowRefs</div>                        <div class="type">                            <span class="param-type">Array.&lt;(string|number)&gt;</span>                        </div>                                                    <div class="description">                    Array of row ids or row indices.  If null is given, no child will be removed.                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="collapseSegment"><span class="type-signature"></span>collapseSegment<span class="signature">(rowRef, collapsed<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Hide all members in the segment    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowRef</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    Row id or row index of the segment separator                </div>                    </div>                <div class="param">                            <div class="name">collapsed</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    Return true if there is any change</div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="collapseSegments"><span class="type-signature"></span>collapseSegments<span class="signature">(rowIds, collapsed)</span><span class="type-signature"> → {boolean}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowIds</div>                        <div class="type">                            <span class="param-type">Array.&lt;string&gt;</span>                        </div>                                            </div>                <div class="param">                            <div class="name">collapsed</div>                        <div class="type">                            <span class="param-type">Array.&lt;string&gt;</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    Return true if there is any change</div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="config"><span class="type-signature"></span>config<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    Grid configuration object                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="expandAllSegments"><span class="type-signature"></span>expandAllSegments<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    Return true if there is any change</div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="expandSegment"><span class="type-signature"></span>expandSegment<span class="signature">(rowRef, expanded<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {boolean}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowRef</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    Row id or row index                </div>                    </div>                <div class="param">                            <div class="name">expanded</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    Return true if there is any change</div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="fillSegment"><span class="type-signature"></span>fillSegment<span class="signature">(segmentRef)</span><span class="type-signature"></span></h4>                            <div class="description">        Remove existing segment children and fill the segments with all contnet rows before the next segment separator    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">segmentRef</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </div>                                                    <div class="description">                    Row id or row index                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="fillSegments"><span class="type-signature"></span>fillSegments<span class="signature">()</span><span class="type-signature"></span></h4>                            <div class="description">        Remove all existing segment children in each segment and fill the segments with all contnet rows before the next segment separator    </div>                        <div class="details">                                                            </div>                                    </div>                    
+<div id="elf-api-container"><div id="main-template" class="elf-template">    <section><header>            <h1 class="subsection-title"><span class="attribs"><span class="type-signature"></span></span>RowFilteringPlugin<span class="signature">()</span><span class="type-signature"></span></h1>            </header><article>                                                                        <h3 class="subsection-title" id="type_definitions">Type Definitions</h3>                        
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~ColumnOptions">ColumnOptions</h4><div class="description">    Extension column options that can be specified on each individual grid's column option:</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>filter</code></td>                        <td class="type">                            <span class="param-type"><a href="#/extensions/tr-grid-row-filtering#~Expression">RowFilteringPlugin~Expression</a></span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">An expression string or Function</td>        </tr>            <tr>                            <td class="name"><code>filterState</code></td>                        <td class="type">                            <span class="param-type">*</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Context object that will be passed as the third parameter for the filter logic</td>        </tr>            <tr>                            <td class="name"><code>filterIcon</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    true                                </td>                        <td class="description last">If disabled, filter icon will not be shown. This property only works with "always" mode</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~Expression">Expression</h4><div class="description">    An expression that can be parsed into RowFilteringPlugin~FilterLogic. The expression is intended for saving and restoring filters, so it is serializable by JSON.stringify.The expression can take various forms:<br>1. String for free style text input e.g., "[col1] &gt; 10", "[field] == 20"<br>2. 2D-Array for predefined filter operators e.g., [["GT", 10, "AND"], ["EQ", "text"]]<br>3. Object map for value filters e.g., {"value": true, "10": true}<br>4. Function for RowFilteringPlugin~FilterLogic</div>    <h5>Type:</h5>    <span class="param-type">*</span><div class="details">                                                            </div></div>                            
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~FilterDialogOptions">FilterDialogOptions</h4><div class="description">    Options that specify UIs of filter dialog</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>sortUI</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    true                                </td>                        <td class="description last">show/hide sort UI</td>        </tr>            <tr>                            <td class="name"><code>filterUI</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    true                                </td>                        <td class="description last">show/hide filter UI</td>        </tr>            <tr>                            <td class="name"><code>advancedFilter</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    true                                </td>                        <td class="description last">show advaced filter tab</td>        </tr>            <tr>                            <td class="name"><code>fieldDataType</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">data type of column</td>        </tr>            <tr>                            <td class="name"><code>lang</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">dialog language</td>        </tr>            <tr>                            <td class="name"><code>rawDataAccessor</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">In case you have custom data type for the specified field, data getter is needed to retrieve raw value for filtering</td>        </tr>            <tr>                            <td class="name"><code>formattedDataAccessor</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">This function will be called on each raw data, allowing formatting data to be displayed on the filter item list</td>        </tr>            <tr>                            <td class="name"><code>sortLogic</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">This function for sorting filter item list in the dialog. The comparison will perform on raw values, and not formatted values</td>        </tr>            <tr>                            <td class="name"><code>groupCriteria</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">This function for specify group of items to show group as headers.</td>        </tr>            <tr>                            <td class="name"><code>groupSortLogic</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">This function for sorting of group header, used with `groupCriteria` to show as group.</td>        </tr>            <tr>                            <td class="name"><code>itemList</code></td>                        <td class="type">                            <span class="param-type">Array</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Item list to be shown in the dialog. If this is not specified, the list will be collected from existing data on the grid</td>        </tr>            <tr>                            <td class="name"><code>additionalItems</code></td>                        <td class="type">                            <span class="param-type">Array</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Additional items to be put on the itemList</td>        </tr>            <tr>                            <td class="name"><code>compactMode</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">force compact mode in dialog</td>        </tr>            <tr>                            <td class="name"><code>blankValues</code></td>                        <td class="type">                            <span class="param-type">boolean</span> | <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">Display a "(Blanks)" item in the filter dialog to represent an empty value. If a string is passed, it will be used as the label for the blank item</td>        </tr>            <tr>                            <td class="name"><code>dateTimeFormat</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    "dd-MM-yy"                                </td>                        <td class="description last">Specifies the string format for the date time picker in the filter dialog based on date-fns format, follow https://date-fns.org/v3.6.0/docs/format.</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~FilterEntry">FilterEntry</h4><div class="description">    item object to rendered element-item</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>type</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Available types are "header" and "divider". If null, it will be shown as a normal item.</td>        </tr>            <tr>                            <td class="name"><code>label</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                                </td>                                        <td class="default">                                    ""                                </td>                        <td class="description last">Text of each item. If the type is "header", it will be shown as a header. If the type is "divider", it will not be shown.</td>        </tr>            <tr>                            <td class="name"><code>checked</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">Set to true to check the checkbox item in the filter dialog basic item.</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~FilterExpression">FilterExpression</h4><div class="description">    Deprecated. FilterExpression contains all data used for saving and restoring filter in a column</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>field</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>expression</code></td>                        <td class="type">                            <span class="param-type"><a href="#/extensions/tr-grid-row-filtering#~Expression">RowFilteringPlugin~Expression</a></span>                        </td>                                    <td class="description last">Expression representing filter function</td>        </tr>            <tr>                            <td class="name"><code>context</code></td>                        <td class="type">                            <span class="param-type">*</span>                        </td>                                    <td class="description last">Context object contains context/states given by user</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            
+<div class="item">                                <div class="item-type">typedef</div>                        <h4 class="name" id="~FilterLogic"><span class="type-signature"></span>FilterLogic<span class="signature">(rowData, rid, ctx)</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Logic used to filter in or out on each row    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowData</div>                        <div class="type">                            <span class="param-type">Object.&lt;string, *&gt;</span>                        </div>                                                    <div class="description">                    Row data is an object with field as key and user data as value                </div>                    </div>                <div class="param">                            <div class="name">rid</div>                        <div class="type">                            <span class="param-type">string</span>                        </div>                                                    <div class="description">                    Row Id used in DataView                </div>                    </div>                <div class="param">                            <div class="name">ctx</div>                        <div class="type">                            <span class="param-type">*</span>                        </div>                                                    <div class="description">                    Context object contains context/states given by user                </div>                    </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                            
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~Options">Options</h4><div class="description">    The options can be specified by `rowFiltering` property of the main grid's options</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>emptySegmentFiltering</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">If enabled, the filter will automatically hide empty segment when all of its member are filtered out. If there is no active filter, any empty segment will not be hidden. Collapsed segment does not count as having a filter. A segment with no child is treated the same way as an empty segment.</td>        </tr>            <tr>                            <td class="name"><code>separatorFiltering</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">If enabled, segment separators will be filtered as if they were normal rows. Note that even if a separator row is filtered out, its child row may remain in the view and not be filtered out.</td>        </tr>            <tr>                            <td class="name"><code>disabledUI</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">Deprecated in favor of `iconActivation`. Set iconActivation to none instead.</td>        </tr>            <tr>                            <td class="name"><code>iconActivation</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    onActiveFilter                                </td>                        <td class="description last">Filter icon redering behavior, can be set to `always`,`onHover`,`onActiveFilter`,or `none`</td>        </tr>            <tr>                            <td class="name"><code>dialogOptions</code></td>                        <td class="type">                            <span class="param-type"><a href="#/extensions/tr-grid-row-filtering#~FilterDialogOptions">RowFilteringPlugin~FilterDialogOptions</a></span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Default configuration for Filter Dialog, applying to all columns.</td>        </tr>            <tr>                            <td class="name"><code>click</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Event handler dispatched when a user clicks the column filter icon.</td>        </tr>            <tr>                            <td class="name"><code>clicked</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Alias to `click` event handler</td>        </tr>            <tr>                            <td class="name"><code>iconCreated</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Event handler dispatched when a new column filter icon is created.</td>        </tr>            <tr>                            <td class="name"><code>filterChanged</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Event handler dispatched whenever global or column filter is changed by either adding or removing.</td>        </tr>            <tr>                            <td class="name"><code>beforeDialogOpened</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Event handler dispatched before dialog opening.</td>        </tr>            <tr>                            <td class="name"><code>dialogCommitted</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Event handler dispatched whenever the new settings from dialog are applied.</td>        </tr>            <tr>                            <td class="name"><code>refreshed</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Event handler dispatched after new filter is applied to grid's data view.</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            <h3 class="subsection-title" id="methods">Methods</h3>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="addColumnFilter"><span class="type-signature"></span>addColumnFilter<span class="signature">(colIndex, exp, ctx<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        If you want the column to always have one single filter, please use <a href="#/extensions/tr-grid-row-filtering#setColumnFilter">RowFilteringPlugin#setColumnFilter</a> instead. This method allow a single column to have multiple filters.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                            <div class="attributes">                                                                </div>                                            </div>                <div class="param">                            <div class="name">exp</div>                        <div class="type">                            <span class="param-type"><a href="#/extensions/tr-grid-row-filtering#~Expression">RowFilteringPlugin~Expression</a></span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    Expression can be string, Array, Object, or Function                </div>                    </div>                <div class="param">                            <div class="name">ctx</div>                        <div class="type">                            <span class="param-type">Object</span> | <span class="param-type">string</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    Context object that will be passed as the third parameter for the filter logic                </div>                    </div>            </div>        <div class="details">                                                            </div>            <h5>Fires:</h5>            <div class="sub-content"><a href="#/extensions/tr-grid-row-filtering#event:filterChanged">RowFilteringPlugin#event:filterChanged</a></div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    True if success</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="addDataView"><span class="type-signature"></span>addDataView<span class="signature">(dv)</span><span class="type-signature"></span></h4>                            <div class="description">        Specify a list of data views to be filtered, excluding default data views used by UI. <br>This is useful when multiple shared or nested data views are employed.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">dv</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    DataView                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="addFilter"><span class="type-signature"></span>addFilter<span class="signature">(exp, funcName<span class="signature-attributes">opt</span>, ctx<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {string}</span></h4>                            <div class="description">        Add a global filter that is not related to any column. No filter icon is created in this way    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">exp</div>                        <div class="type">                            <span class="param-type"><a href="#/extensions/tr-grid-row-filtering#~Expression">RowFilteringPlugin~Expression</a></span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    Expression or Function                </div>                    </div>                <div class="param">                            <div class="name">funcName</div>                        <div class="type">                            <span class="param-type">string</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    Optional function name for referencing the given function                </div>                    </div>                <div class="param">                            <div class="name">ctx</div>                        <div class="type">                            <span class="param-type">*</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    Context that will be passed as the third parameter for the filter logic                </div>                    </div>            </div>        <div class="details">                                                            </div>            <h5>Fires:</h5>            <div class="sub-content"><a href="#/extensions/tr-grid-row-filtering#event:filterChanged">RowFilteringPlugin#event:filterChanged</a></div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">string</span>    </div><div class="sub-content-desc">    If success, function name is returned, otherwise empty string</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="addGridFilter"><span class="type-signature"></span>addGridFilter<span class="signature">(exp, ctx<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {string}</span></h4>                            <div class="description">        Add a global filter that is not related to any column. No filter icon is created in this way    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">exp</div>                        <div class="type">                            <span class="param-type"><a href="#/extensions/tr-grid-row-filtering#~Expression">RowFilteringPlugin~Expression</a></span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    Expression or Function                </div>                    </div>                <div class="param">                            <div class="name">ctx</div>                        <div class="type">                            <span class="param-type">*</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    Context that will be passed as the third parameter for the filter logic                </div>                    </div>            </div>        <div class="details">                                                            </div>            <h5>Fires:</h5>            <div class="sub-content"><a href="#/extensions/tr-grid-row-filtering#event:filterChanged">RowFilteringPlugin#event:filterChanged</a></div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">string</span>    </div><div class="sub-content-desc">    If success, function name is returned, otherwise empty string</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="config"><span class="type-signature"></span>config<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="disable"><span class="type-signature"></span>disable<span class="signature">(opt_disabled<span class="signature-attributes">opt</span>, opt_id<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                            <div class="description">        All filter logics in DataView will be temporarily removed until re-enabling. This is useful when trying to insert an item at the specified index. After re-enabling, both logics and icons will be restored.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">opt_disabled</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>                <div class="param">                            <div class="name">opt_id</div>                        <div class="type">                            <span class="param-type">string</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    For handling nested called                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="enableEmptySegmentFiltering"><span class="type-signature"></span>enableEmptySegmentFiltering<span class="signature">(enabled<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                            <div class="description">        the filter will automatically hide empty segment when all of its member are filtered out. If there is no active filter, any empty segment will not be hidden. Collapsed segment does not count as having a filter. A segment with no child is treated the same way as an empty segment.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">enabled</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                        <div class="default">                                   [default: true]                                </div>                                </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="enableSeparatorFiltering"><span class="type-signature"></span>enableSeparatorFiltering<span class="signature">(enabled<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                            <div class="description">        the filter will automatically hide empty segment when all of its member are filtered out. If there is no active filter, any empty segment will not be hidden. Collapsed segment does not count as having a filter.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">enabled</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                        <div class="default">                                   [default: true]                                </div>                                </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getAllColumnFilters"><span class="type-signature"></span>getAllColumnFilters<span class="signature">()</span><span class="type-signature"> → {Array.&lt;function()&gt;}</span></h4>                            <div class="description">        Returns filter functions. Use getConfigObject for saving and loading instead of this function    </div>                        <div class="details">                                                            <dt class="tag-see">See:</dt>    <dd class="tag-see">        <ul>            <li>RowFilteringPlugin.getConfigObject</li>        </ul>    </dd>        </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Array.&lt;function()&gt;</span>    </div><div class="sub-content-desc">    All column filters</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getColumnFilterExpression"><span class="type-signature"></span>getColumnFilterExpression<span class="signature">(colIndex)</span><span class="type-signature"> → {<a href="#/extensions/tr-grid-row-filtering#~Expression">RowFilteringPlugin~Expression</a>}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type"><a href="#/extensions/tr-grid-row-filtering#~Expression">RowFilteringPlugin~Expression</a></span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getColumnFilterIcons"><span class="type-signature"></span>getColumnFilterIcons<span class="signature">(colIndex)</span><span class="type-signature"> → {Array.&lt;Element&gt;}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Array.&lt;Element&gt;</span>    </div><div class="sub-content-desc">    icons</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getColumnFilterState"><span class="type-signature"></span>getColumnFilterState<span class="signature">(colIndex)</span><span class="type-signature"> → {*}</span></h4>                            <div class="description">        Get the stored user context from the specified column    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">*</span>    </div><div class="sub-content-desc">    Context object that is passed as the third parameter for the filter logic</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getColumnFilterStates"><span class="type-signature"></span>getColumnFilterStates<span class="signature">()</span><span class="type-signature"> → {Array}</span></h4>                            <div class="description">        Deprecated in favor of getConfigObject(). Get the stored user context from all columns. The column with no filter will return null value    </div>                        <div class="details">                                                            <dt class="tag-see">See:</dt>    <dd class="tag-see">        <ul>            <li>RowFilteringPlugin.getConfigObject</li>        </ul>    </dd>        </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Array</span>    </div><div class="sub-content-desc">    Array of context objects</div>                </div>                    
 <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getConfigObject"><span class="type-signature"></span>getConfigObject<span class="signature">(gridOptions<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Object}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">gridOptions</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getFilterExpressions"><span class="type-signature"></span>getFilterExpressions<span class="signature">()</span><span class="type-signature"> → {Array.&lt;<a href="#/extensions/tr-grid-row-filtering#~FilterExpression">RowFilteringPlugin~FilterExpression</a>&gt;}</span></h4>                            <div class="description">        Deprecated in favor of getConfigObject(). Get existing filter expressions for saving and restoring.    </div>                        <div class="details">                                                            <dt class="tag-see">See:</dt>    <dd class="tag-see">        <ul>            <li>RowFilteringPlugin.getConfigObject</li>        </ul>    </dd>        </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Array.&lt;<a href="#/extensions/tr-grid-row-filtering#~FilterExpression">RowFilteringPlugin~FilterExpression</a>&gt;</span>    </div><div class="sub-content-desc">    Return null if there is no column filter</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getFilters"><span class="type-signature"></span>getFilters<span class="signature">()</span><span class="type-signature"> → {Array.&lt;function()&gt;}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Array.&lt;function()&gt;</span>    </div><div class="sub-content-desc">    All global filters</div>                </div>                    
 <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getName"><span class="type-signature"></span>getName<span class="signature">()</span><span class="type-signature"> → {string}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">string</span>    </div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getRowConfigObject"><span class="type-signature"></span>getRowConfigObject<span class="signature">(rowData, rowId)</span><span class="type-signature"> → {Object}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowData</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    row config object                </div>                    </div>                <div class="param">                            <div class="name">rowId</div>                        <div class="type">                            <span class="param-type">string</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div><div class="sub-content-desc">    return row config object with update special field data</div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getSegmentChildIds"><span class="type-signature"></span>getSegmentChildIds<span class="signature">(segmentRef)</span><span class="type-signature"> → {Array.&lt;string&gt;}</span></h4>                            <div class="description">        Get row ids of all children from the specified segment    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">segmentRef</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </div>                                                    <div class="description">                    Row id or row index                </div>                    </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Array.&lt;string&gt;</span>    </div><div class="sub-content-desc">    Returns array of row ids. Returns null if there is no child or no segment separator found</div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getSegmentIds"><span class="type-signature"></span>getSegmentIds<span class="signature">()</span><span class="type-signature"> → {Array.&lt;string&gt;}</span></h4>                            <div class="description">        Get row ids of all segment separator    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Array.&lt;string&gt;</span>    </div><div class="sub-content-desc">    Return null if there is no segment separator</div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getSegmentParentRowId"><span class="type-signature"></span>getSegmentParentRowId<span class="signature">(rowRef)</span><span class="type-signature"> → {string}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowRef</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </div>                                                    <div class="description">                    Row Id or row index                </div>                    </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">string</span>    </div><div class="sub-content-desc">    parent row id of this segmentation. If the parent row id for this segmentation cannot be found, return ""</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="hasColumnFilter"><span class="type-signature"></span>hasColumnFilter<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    
 <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="hasMultiTableSupport"><span class="type-signature"></span>hasMultiTableSupport<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Plugin that has multi-table support means that it can have multiple hosts/tables and share its states across those hosts/tables.    </div>                        <div class="details">                <dt class="inherited-from">Inherited From:</dt>    <dd class="inherited-from">        <a href="#">GridPlugin#hasMultiTableSupport</a>    </dd>                                                    </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="hasSegmentation"><span class="type-signature"></span>hasSegmentation<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Check if there is at least one segment separator in the data view    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="hideColumnFilterIcon"><span class="type-signature"></span>hideColumnFilterIcon<span class="signature">(colIndex, hidden<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                            <div class="attributes">                                                                </div>                                            </div>                <div class="param">                            <div class="name">hidden</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
 <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="initialize"><span class="type-signature"></span>initialize<span class="signature">(host, options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">host</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    core grid instance                </div>                    </div>                <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="isSegmentCollapsed"><span class="type-signature"></span>isSegmentCollapsed<span class="signature">(rowRef)</span><span class="type-signature"> → {boolean}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowRef</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </div>                                                    <div class="description">                    Row id or row index                </div>                    </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    Return true if only the given row is a collapsed segment separator</div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="isSegmentSeparator"><span class="type-signature"></span>isSegmentSeparator<span class="signature">(rowRef)</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Check if the specified row is a segment separator    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowRef</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </div>                                                    <div class="description">                    Row id or row index (not recommended for usage)                </div>                    </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="removeAllSegmentChildren"><span class="type-signature"></span>removeAllSegmentChildren<span class="signature">()</span><span class="type-signature"></span></h4>                                            <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="removeSegmentChild"><span class="type-signature"></span>removeSegmentChild<span class="signature">(segmentRef, rowRef)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">segmentRef</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </div>                                                    <div class="description">                    Row id or row index                </div>                    </div>                <div class="param">                            <div class="name">rowRef</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </div>                                                    <div class="description">                    Row id, row index                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="removeSegmentChildren"><span class="type-signature"></span>removeSegmentChildren<span class="signature">(segmentRef, rowRefs)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">segmentRef</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </div>                                                    <div class="description">                    Row id or row index                </div>                    </div>                <div class="param">                            <div class="name">rowRefs</div>                        <div class="type">                            <span class="param-type">Array.&lt;(string|number)&gt;</span>                        </div>                                                    <div class="description">                    Array of row ids or row indices                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="requestSeparatorRefresh"><span class="type-signature"></span>requestSeparatorRefresh<span class="signature">()</span><span class="type-signature"></span></h4>                            <div class="description">        request to set the segment separator with the segment ID field in row data    </div>                        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setPredefinedColors"><span class="type-signature"></span>setPredefinedColors<span class="signature">(predefinedColors)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">predefinedColors</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    Predefined color object map                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setSegmentChildren"><span class="type-signature"></span>setSegmentChildren<span class="signature">(segmentArr)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">segmentArr</div>                        <div class="type">                            <span class="param-type">Array.&lt;Object&gt;</span>                        </div>                                                    <div class="description">                    Segment array that contain "segmentId", "rowIds" to set segment children                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setSegmentClassification"><span class="type-signature"></span>setSegmentClassification<span class="signature">(rowRef, fields)</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Set classification for the specified segment    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowRef</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </div>                                                    <div class="description">                    Row id or row index                </div>                    </div>                <div class="param">                            <div class="name">fields</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">Array.&lt;string&gt;</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setSegmentCollapsingLogic"><span class="type-signature"></span>setSegmentCollapsingLogic<span class="signature">(func)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">func</div>                        <div class="type">                            <span class="param-type">function</span>                        </div>                                                    <div class="description">                    By default, all row members are hidden in a collapsed segment                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setSegmentSeparator"><span class="type-signature"></span>setSegmentSeparator<span class="signature">(rowRef, enabled<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Set specified row as a segment separator    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowRef</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    Row id or row index                </div>                    </div>                <div class="param">                            <div class="name">enabled</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    Return true if there is any change</div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setSegmentSeparators"><span class="type-signature"></span>setSegmentSeparators<span class="signature">(rowIds, enabled<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Set specified row ids as a segment separator    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowIds</div>                        <div class="type">                            <span class="param-type">Array.&lt;string&gt;</span>                        </div>                            <div class="attributes">                                                                </div>                                            </div>                <div class="param">                            <div class="name">enabled</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    Return true if there is any change</div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setSortingLogic"><span class="type-signature"></span>setSortingLogic<span class="signature">(sortFunction)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">sortFunction</div>                        <div class="type">                            <span class="param-type"><a href="#/extensions/row-segmenting#~SortingLogic">RowSegmentingPlugin~SortingLogic</a></span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="sortSegments"><span class="type-signature"></span>sortSegments<span class="signature">(sortFunction<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">sortFunction</div>                        <div class="type">                            <span class="param-type"><a href="#/extensions/row-segmenting#~SortingLogic">RowSegmentingPlugin~SortingLogic</a></span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="spanSegmentSeparator"><span class="type-signature"></span>spanSegmentSeparator<span class="signature">(rowRef, spanning)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowRef</div>                        <div class="type">                            <span class="param-type">number</span> | <span class="param-type">string</span>                        </div>                                                    <div class="description">                    rowIndex or rowId                </div>                    </div>                <div class="param">                            <div class="name">spanning</div>                        <div class="type">                            <span class="param-type">boolean</span> | <span class="param-type">null</span>                        </div>                                                    <div class="description">                    if set true when rowRef is row separator, then span that row                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="unload"><span class="type-signature"></span>unload<span class="signature">(host<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">host</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    core grid instance                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="unsetAllSegmentSeparators"><span class="type-signature"></span>unsetAllSegmentSeparators<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Clear all segment separator rows    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    Return true if there is any change</div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="updateHeaders"><span class="type-signature"></span>updateHeaders<span class="signature">()</span><span class="type-signature"></span></h4>                                            <div class="details">                                                            </div>                                    </div>                </article></section></div></div>
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="openDialog"><span class="type-signature"></span>openDialog<span class="signature">(colIndex, runtimeDialogOptions<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                            <div class="attributes">                                                                </div>                                            </div>                <div class="param">                            <div class="name">runtimeDialogOptions</div>                        <div class="type">                            <span class="param-type"><a href="#/extensions/tr-grid-row-filtering#~FilterDialogOptions">RowFilteringPlugin~FilterDialogOptions</a></span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="refresh"><span class="type-signature"></span>refresh<span class="signature">()</span><span class="type-signature"></span></h4>                            <div class="description">        Perform filtering with the same parameters. Do not call this method repeatedly as the operation is quite expensive.    </div>                        <div class="details">                                                            </div>            <h5>Fires:</h5>            <div class="sub-content"><a href="#/extensions/tr-grid-row-filtering#event:refreshed">RowFilteringPlugin#event:refreshed</a></div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="removeAllColumnFilters"><span class="type-signature"></span>removeAllColumnFilters<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Remove all column filters from all columns, excluding global filters    </div>                        <div class="details">                                                            </div>            <h5>Fires:</h5>            <div class="sub-content"><a href="#/extensions/tr-grid-row-filtering#event:filterChanged">RowFilteringPlugin#event:filterChanged</a></div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    Return true if there is any change</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="removeAllFilters"><span class="type-signature"></span>removeAllFilters<span class="signature">()</span><span class="type-signature"></span></h4>                            <div class="description">        Remove all column and global filters. OverridingFilters are not removed by this method    </div>                        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="removeColumnFilter"><span class="type-signature"></span>removeColumnFilter<span class="signature">(colIndex)</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Alias to <a href="#/extensions/tr-grid-row-filtering#removeColumnFilters">RowFilteringPlugin#removeColumnFilters</a> Remove all filters from the specified column    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>            <h5>Fires:</h5>            <div class="sub-content"><a href="#/extensions/tr-grid-row-filtering#event:filterChanged">RowFilteringPlugin#event:filterChanged</a></div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    True if there is any change</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="removeColumnFilters"><span class="type-signature"></span>removeColumnFilters<span class="signature">(colIndex)</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Remove all filters in from the specified column    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>            <h5>Fires:</h5>            <div class="sub-content"><a href="#/extensions/tr-grid-row-filtering#event:filterChanged">RowFilteringPlugin#event:filterChanged</a></div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    True if there is any change</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="removeDataView"><span class="type-signature"></span>removeDataView<span class="signature">(dv)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">dv</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    DataView                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="removeFilter"><span class="type-signature"></span>removeFilter<span class="signature">(funcRef)</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Remove the registered global filter. The column filter cannot be removed    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">funcRef</div>                        <div class="type">                            <span class="param-type">function</span> | <span class="param-type">string</span>                        </div>                                                    <div class="description">                    Function object or the function name can be used to remove                </div>                    </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    True if success</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setColumnFilter"><span class="type-signature"></span>setColumnFilter<span class="signature">(colIndex, exp, ctx<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        This method guarantees that the column can have at most one filter at the time. It performs <a href="#/extensions/tr-grid-row-filtering#removeColumnFilters">RowFilteringPlugin#removeColumnFilters</a> before <a href="#/extensions/tr-grid-row-filtering#addColumnFilter">RowFilteringPlugin#addColumnFilter</a>    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                            <div class="attributes">                                                                </div>                                            </div>                <div class="param">                            <div class="name">exp</div>                        <div class="type">                            <span class="param-type"><a href="#/extensions/tr-grid-row-filtering#~Expression">RowFilteringPlugin~Expression</a></span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    Expression can be string, Array, Object, or Function                </div>                    </div>                <div class="param">                            <div class="name">ctx</div>                        <div class="type">                            <span class="param-type">Object</span> | <span class="param-type">string</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    Context object that will be passed as the third parameter for the filter logic                </div>                    </div>            </div>        <div class="details">                                                            </div>            <h5>Fires:</h5>            <div class="sub-content"><a href="#/extensions/tr-grid-row-filtering#event:filterChanged">RowFilteringPlugin#event:filterChanged</a></div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    True If there is any change</div>                        <h5>Example:</h5>            <pre><code>extension.setColumnFilter(colIndex1,
+ [["GT", 0]]
+);
+extension.setColumnFilter(colIndex2,
+  "filter": "[PCTCHNG] &gt; 0"
+);
+extension.setColumnFilter(colIndex3,
+  function(rowData) {
+    return rowData["PCTCHNG"] &gt; 0;
+  }
+);</code></pre>    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setColumnFilterState"><span class="type-signature"></span>setColumnFilterState<span class="signature">(colIndex, ctx)</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Update existing filter state by replacing the old one. Note that filtering will be performed asynchronously after executing this method.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                                            </div>                <div class="param">                            <div class="name">ctx</div>                        <div class="type">                            <span class="param-type">*</span>                        </div>                                                    <div class="description">                    Context object that will be passed as the third parameter for the filter logic                </div>                    </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    Returns true if there is any change</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setFilterExpressions"><span class="type-signature"></span>setFilterExpressions<span class="signature">(filterExps)</span><span class="type-signature"></span></h4>                            <div class="description">        Deprecated. Clear all existing column filters and restore column filters from the given valid filter expressions. If the parameter is null, the result is equivalent to calling removeAllColumnFilters();    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">filterExps</div>                        <div class="type">                            <span class="param-type">Array.&lt;<a href="#/extensions/tr-grid-row-filtering#~FilterExpression">RowFilteringPlugin~FilterExpression</a>&gt;</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setOverridingFilter"><span class="type-signature"></span>setOverridingFilter<span class="signature">(func)</span><span class="type-signature"></span></h4>                            <div class="description">        Column overriding function is processed before column filters and after global filters. If it returns non-zero, the result will override all other column filter results. If it returns 1, the row will be always included. If it returns -1, the row will be always excluded. If it returns 0, the column filters will be used as normal.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">func</div>                        <div class="type">                            <span class="param-type">function</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setPreTransform"><span class="type-signature"></span>setPreTransform<span class="signature">(func)</span><span class="type-signature"></span></h4>                            <div class="description">        PreTransform is used to minimize the same data transformation on multiple filters. Output from the given method will be used on all subsequent filters. Note that it will be used for every existing row, so performance should be critical in here. This is optional setting.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">func</div>                        <div class="type">                            <span class="param-type">function</span>                        </div>                                                    <div class="description">                    This function must return object with key and value pairs                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setRowTransform"><span class="type-signature"></span>setRowTransform<span class="signature">(func)</span><span class="type-signature"></span></h4>                            <div class="description">        This is the same as preTransform, only it is executed just before column filters and after the global filters. This is optional setting.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">func</div>                        <div class="type">                            <span class="param-type">function</span>                        </div>                                                    <div class="description">                    This function must return object with key and value pairs                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="showColumnFilterIcon"><span class="type-signature"></span>showColumnFilterIcon<span class="signature">(colIndex, shown<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                            <div class="attributes">                                                                </div>                                            </div>                <div class="param">                            <div class="name">shown</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="unload"><span class="type-signature"></span>unload<span class="signature">(host)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">host</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    core grid instance                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="updateAllColumnIcons"><span class="type-signature"></span>updateAllColumnIcons<span class="signature">()</span><span class="type-signature"></span></h4>                                            <div class="details">                                                            </div>                                    </div>                        <h3 class="subsection-title" id="events">Events</h3>                    
+<div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:beforeDialogOpened">beforeDialogOpened</h4>                            <div class="description">        Fired before the opening of filter dialog. This can be used to cancel the operation or set a dialog configuration at runtime.    </div>                            <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>colIndex</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                                    <td class="description last">Column index</td>        </tr>            <tr>                            <td class="name"><code>field</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                                    <td class="description last">Field</td>        </tr>            <tr>                            <td class="name"><code>grid</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">Core grid instance</td>        </tr>        </tbody></table></div><div class="details">                                                            </div>                                            <h5>Example:</h5>            <pre><code>beforeDialogOpened: function(e) {
+  e.cancel = true; // To cancel the operation
+},
+beforeDialogOpened: function(e) {
+  e.dialogOptions = { sortLogic: func }; // To set a dialog configuration
+},</code></pre>    </div>                    
+<div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:click">click</h4>                            <div class="description">        click event is dispatched when a user clicks the column filter icon.    </div>                        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:dialogCommitted">dialogCommitted</h4>                            <div class="description">        Fired after a user clicks done button from the filter dialog or changes sort order.    </div>                            <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>colIndex</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                            <td class="attributes">                                                </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>value</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">When filter is changed, the change will be passed through this property</td>        </tr>            <tr>                            <td class="name"><code>sortOrder</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">When sort order is changed, the change will be passed through this property</td>        </tr>            <tr>                            <td class="name"><code>fieldDataType</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last"></td>        </tr>        </tbody></table></div><div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:filterChanged">filterChanged</h4>                            <div class="description">        Fired whenever global or column filter is changed by either adding or removing. The change will not immediately applied to grid's data view    </div>                            <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>filterType</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                                    <td class="description last">This can be either "global" or "column"</td>        </tr>            <tr>                            <td class="name"><code>changeType</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                                    <td class="description last">This can be either "add" or "remove"</td>        </tr>            <tr>                            <td class="name"><code>colIndex</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                                    <td class="description last">Column index</td>        </tr>            <tr>                            <td class="name"><code>field</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                                    <td class="description last">specified by the current column</td>        </tr>        </tbody></table></div><div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:iconCreated">iconCreated</h4>                            <div class="description">        iconCreated event is dispatched when a new column filter icon is created.    </div>                            <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>icon</code></td>                        <td class="type">                            <span class="param-type">Element</span>                        </td>                                    <td class="description last">Filter icon element</td>        </tr>            <tr>                            <td class="name"><code>colIndex</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                                    <td class="description last">Column index</td>        </tr>            <tr>                            <td class="name"><code>grid</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">Core grid instance</td>        </tr>        </tbody></table></div><div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:refreshed">refreshed</h4>                            <div class="description">        Fired after new filter is applied to grid's data view    </div>                        <div class="details">                                                            </div>                                    </div>            </article></section></div></div>

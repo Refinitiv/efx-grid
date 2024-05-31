@@ -1,48 +1,7 @@
-<h1 id="row-span">Row Span</h1>
-<p>Setting row span on a cell can be done through Core Grid API (e.g., <code>setCellRowSpan</code>). A cell with row span will simply be expanded on top of cells below it. Cells are not actually merged by row span, but appeared as if they are merged together.</p>
-<p>Since cells in grid are reused across multiple rows by default, <code>rowVirtualization</code> need to be turned off for row span to work properly.</p>
-<h2 id="row-virtualization-mode">Row virtualization mode</h2>
-<p>Grid does not support row span in row virtualization mode. The row virtualization mode can be set using <code>rowVirtualization: false</code> in the configs.</p>
-<h3 id="example-1-setting-row-span-after-initialization">Example 1: setting row span after initialization</h3>
-<code-sandbox hash="564a8682"><pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;id&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 10 });
-var configObj = {
-    rowVirtualization: false,
-    columns: [
-        {name: &quot;Row Index&quot;, field: fields[0], width: 60},
-        {name: &quot;Market&quot;, field: fields[1], width: 120},
-        {name: &quot;Last&quot;, field: fields[2], width: 100},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
-        {name: &quot;Industry&quot;, field: fields[4]}
-    ],
-    staticDataRows: records
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.addEventListener(&quot;configured&quot;, function(e) {
-    var core = e.detail.api.getCoreGrid();
-    var section = core.getSection(&#39;content&#39;);
-    section.setCellRowSpan(1, 0, 2);
-    section.setCellRowSpan(4, 4, 3);
-    section.setCellRowSpan(0, 4, 4);
-});
-grid.config = configObj;
-</code></pre>
-</code-sandbox><h3 id="example-2-setting-row-span-in-data-binding">Example 2: setting row span in data binding</h3>
-<code-sandbox hash="bbd0817e"><pre><code class="language-css">efx-grid {
-    height: 300px;
-    margin-bottom: 40px;
+<h1 id="row---row-height">Row - Row Height</h1>
+<p>The height of content rows can be adjusted using the <code>rowHeight</code> property. Since Grid uses a row virtualization rendering technique, all of the rows must have the same height by default.</p>
+<code-sandbox hash="cfec729c"><pre><code class="language-css">efx-grid {
+    height: 200px;
 }
 </code></pre>
 <pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
@@ -56,25 +15,16 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 20 });
-
-var onCustomBinding = function(e) {
-    if(e.rowIndex % 2 === 0) {
-        e.section.setCellRowSpan(e.colIndex, e.rowIndex, 2);
-    }
-    e.cell.setContent(e.data);
-};
-
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 6 });
 var configObj = {
-    rowVirtualization: false,
+    rowHeight: 60,
     columns: [
-        {name: &quot;Row Index&quot;, field: fields[0], width: 60},
-        {name: &quot;Company Name&quot;, field: fields[1], width: 120, binding: onCustomBinding},
-        {name: &quot;Market&quot;, field: fields[2], width: 120, binding: onCustomBinding},
-        {name: &quot;Last&quot;, field: fields[3], width: 100},
-        {name: &quot;Net. Chng&quot;, field: fields[4], width: 100},
-        {name: &quot;Industry&quot;, field: fields[5]}
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market&quot;, field: fields[1], width: 100},
+        {name: &quot;Last&quot;, field: fields[2], width: 80},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 80},
+        {name: &quot;Industry&quot;, field: fields[4]}
     ],
     staticDataRows: records
 };
@@ -82,4 +32,41 @@ var configObj = {
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 </code></pre>
-</code-sandbox><p><br><br><br></p>
+</code-sandbox><h2 id="variable-row-height">Variable row height</h2>
+<p>If you want to wrap long text content in the grid&#39;s cell, use the <a href="#/extensions/tr-grid-content-wrap">Content Wrap Extension</a>. The extension will wrap text content that exceeds the cell width, making Grid act as if it is a native table.</p>
+<p>However, text wrapping is resource-intensive, so it is turned off by default. To specify the column to be wrapped, set <code>contentWrap</code> to true in the column configuration.</p>
+<code-sandbox hash="30b570ff"><pre><code class="language-css">efx-grid {
+    height: 200px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 6 });
+var configObj = {
+    columns: [
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market&quot;, field: fields[1], width: 100},
+        {name: &quot;Last&quot;, field: fields[2], width: 80},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 80},
+        {name: &quot;Industry&quot;, field: fields[4], width: 100, contentWrap: true}
+    ],
+    staticDataRows: records,
+    extensions: [
+        new ContentWrap()
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox>

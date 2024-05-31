@@ -1,17 +1,11 @@
-<h1 id="real-time-market-data-with-refinitiv-web-toolkit-rtk">Real-time Market Data with Refinitiv Web Toolkit (RTK)</h1>
-<p>Refinitiv Web Toolkit (RTK) is a new real-time standard option that could be used other than the current JET.Quote2.</p>
-<p>You can find more information on <a href="https://api.doccloud.int.refinitiv.com/content/refinitiv-web-toolkit/1.0.0/63/books/docs/book/en/sections/overview/getting-started.html">Refinitiv Web Toolkit</a> page.</p>
-<code-sandbox hash="8c6d0b5f"><pre><code class="language-css">efx-grid {
-    height: 250px;
+<h1 id="right-side-column-pinningfreezing">Right Side Column Pinning/Freezing</h1>
+<p>When Grid contains controls or buttons on the right side you should freeze or pin these columns, as they should not be part of the scrollable content. To do this use the <code>rightPinned</code> property on the column configuration object.</p>
+<h2 id="example">Example</h2>
+<code-sandbox hash="7d63042b"><pre><code class="language-css">efx-grid {
+    height: 200px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;input id=&quot;ric_in&quot; placeholder=&quot;Enter RIC&quot; value=&quot;CHF=&quot;&gt;
-&lt;button id=&quot;insert_btn&quot;&gt;Click To Insert&lt;/button&gt;
-&lt;button id=&quot;insert_usd&quot;&gt;USD&lt;/button&gt;
-&lt;button id=&quot;insert_eur&quot;&gt;EUR&lt;/button&gt;
-&lt;button id=&quot;insert_jpy&quot;&gt;JPY&lt;/button&gt;
-&lt;br&gt;&lt;br&gt;
-&lt;efx-grid id=&#39;grid&#39;&gt;&lt;/efx-grid&gt;
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
@@ -22,105 +16,33 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var Toolkit = tr.MockRTK;
-Toolkit.init({ ID: &#39;rtk-efx-grid&#39; }, [&#39;Quotes&#39;, &#39;Data&#39;]).then(onInit);
+var buttonFormatter = function(e) {
+    var cell = e.cell;
+    var btn = cell.getContent();
+    if(!btn) {
+        btn = document.createElement(&quot;button&quot;);
+    }
+    btn.textContent = e.data;
+    cell.setContent(btn);
+};
 
-function onInit(rtk) {
-  document.getElementById(&#39;insert_btn&#39;).addEventListener(&quot;click&quot;, onClickInsertButton);
-  document.getElementById(&#39;insert_usd&#39;).addEventListener(&quot;click&quot;, insertRic.bind(null, &quot;USD=&quot;));
-  document.getElementById(&#39;insert_eur&#39;).addEventListener(&quot;click&quot;, insertRic.bind(null, &quot;EUR=&quot;));
-  document.getElementById(&#39;insert_jpy&#39;).addEventListener(&quot;click&quot;, insertRic.bind(null, &quot;JPY=&quot;));
-
-  var configObj = {
-    rowSelection: true,
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;id&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 10 });
+var configObj = {
     columns: [
-      {
-        field: &quot;X_RIC_NAME&quot;,
-        tickColor: &quot;CF_NETCHNG&quot;
-      },
-      {
-        field: &quot;CF_NAME&quot;
-      },
-      {
-        field: &quot;CF_LAST&quot;,
-        tickColor: &quot;CF_NETCHNG&quot;,
-        blinking: true
-      },
-      {
-        field: &quot;CF_NETCHNG&quot;,
-        tickColor: true,
-        blinking: true
-      },
-      {
-        field: &quot;PCTCHNG&quot;,
-        tickColor: &quot;CF_NETCHNG&quot;,
-        blinking: true
-      }
+        {name: &quot;Company&quot;, field: fields[0], width: 250},
+        {name: &quot;Market&quot;, field: fields[1], width: 100},
+        {name: &quot;Last&quot;, field: fields[2], width: 100},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
+        {name: &quot;Industry&quot;, field: fields[4], width: 300},
+        {name: &quot;Op.1&quot;, field: fields[5], width: 60, rightPinned: true, binding: buttonFormatter, alignment: &quot;center&quot;},
+        {name: &quot;Op.2&quot;, field: fields[5], width: 60, rightPinned: true, binding: buttonFormatter, alignment: &quot;center&quot;},
+        {name: &quot;Op.3&quot;, field: fields[5], width: 60, rightPinned: true, binding: buttonFormatter, alignment: &quot;center&quot;}
     ],
-    rows: [
-      { ric: &quot;EUR=&quot; },
-    ],
-    RTK: rtk // add rtk to grid config
-  };
+    staticDataRows: records
+};
 
-  grid.config = configObj;
-}
-
-    function onClickInsertButton(e) {
-        var ric = document.getElementById(&quot;ric_in&quot;).value;
-        insertRic(ric.toUpperCase());
-    }
-
-    function insertRic(ric) {
-        grid.api.insertRow(ric, 0);
-    }
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
 </code></pre>
-</code-sandbox><p>Using <code>efx-grid</code> on your application and run it on the Eikon container follow the steps below.</p>
-<blockquote>
-<p>Note: RTK dependencies need to be bundled before use.</p>
-</blockquote>
-<ol>
-<li>Install RTK and Types dependencies as shown below.</li>
-</ol>
-<pre><code class="language-bash">npm install @refinitiv/web-toolkit-loader
-npm install @types/refinitiv-web-toolkit-core
-npm install @types/refinitiv-web-toolkit-data
-npm install @types/refinitiv-web-toolkit-quotes
-</code></pre>
-<ol start="2">
-<li>create an <code>efx-grid</code> in your html template or file.</li>
-</ol>
-<pre><code class="language-html">&lt;efx-grid id=&quot;blotter&quot;&gt;&lt;/efx-grid&gt;
-</code></pre>
-<ol start="3">
-<li>Import the RTK library to your application.</li>
-</ol>
-<pre><code class="language-js">import * as Toolkit from &#39;@refinitiv/web-toolkit-loader&#39;;
-</code></pre>
-<ol start="4">
-<li>Initialize RTK with Quotes and Data plugins.</li>
-</ol>
-<pre><code class="language-js">Toolkit.init({ ID: &#39;your-app-id&#39; }, [&#39;Quotes&#39;, &#39;Data&#39;]).then(onInit);
-</code></pre>
-<ol start="5">
-<li>Then you can configure <code>efx-grid</code> using <code>config</code> property.</li>
-</ol>
-<pre><code class="language-js">function onInit(rtk) {
-  var grid = document.getElementById(&#39;blotter&#39;);
-  grid.config = {
-      &#39;columns&#39;: [
-          { &#39;field&#39;: &#39;X_RIC_NAME&#39; },
-          { &#39;field&#39;: &#39;CF_ASK&#39; },
-          { &#39;field&#39;: &#39;CF_LAST&#39; }
-      ],
-      &#39;rows&#39;: [
-          { &#39;ric&#39;: &#39;TRI.TO&#39; },
-          { &#39;ric&#39;: &#39;.SETI&#39; },
-          { &#39;ric&#39;: &#39;.SPX&#39; },
-          { &#39;ric&#39;: &#39;TRI.TO&#39; },
-          { &#39;ric&#39;: &#39;IBM&#39; }
-      ],
-      &#39;RTK&#39;: rtk // add rtk to grid config
-  };
-}
-</code></pre>
+</code-sandbox>

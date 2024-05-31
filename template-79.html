@@ -1,16 +1,61 @@
-<link rel="stylesheet" href="./resources/styles/elf-template.css">
-
-<h1 id="content-wrap">Content Wrap</h1>
-<p>The Content Wrap Extension is an extension that shows all text information in a cell, even if it is too small to show the text horizontally. The extension will automatically does a line break for content that longer than the available space in a cell.</p>
-<p>Content Wrap extension cannot work together with row virtualization mechanism. Please make sure that <code>rowVirtualization</code> property is set to <code>false</code> in the configs for the extension to work correctly. </p>
-<p>Content Wrap extension works by measuring row height once the content has been rendered, and then dynamically changing the row height. In contrast, row virtualization works by calculating number of rows to be displayed in the view, and not rendering any content outside of the view. Row virtualization requires row height to be constant in order to calculate the number of rows to be rendered, but the extension will keep changing row height after content is rendered. Hence, row virtualization cannot be enabled with the extension. So, be vary of some performance impact when using this extension.</p>
-<p>Due to the performance concern, <code>contentWrap: true</code> has to specifically be set on the column that needs content to be wrapped.  </p>
-<h2 id="normal-mode">Normal mode</h2>
-<code-sandbox hash="5fddc114"><pre><code class="language-css">efx-grid {
-    height: 169px;
-}
+<h1 id="basic-grid-creation">Basic Grid creation</h1>
+<p>To initialize Grid you can put the element tag on the HTML page, just like any other native element. The element works as if it were a div element (that is, an element with 100% width and the same height as its content). </p>
+<pre><code class="language-html">&lt;efx-grid&gt;&lt;/efx-grid&gt;
 </code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+<p>Or you can dynamically create the element at runtime by using a standard native method like <code>document.createElement(&quot;efx-grid&quot;)</code>.</p>
+<pre><code class="language-js">var grid = document.createElement(&quot;efx-grid&quot;);
+
+document.body.appendChild(grid);
+</code></pre>
+<p>The element is used for positioning and sizing the grid in the document. Anything else should be done by passing a configuration object to the grid. </p>
+<blockquote>
+<p>See all available configuration options for efx-grid <a href="#/apis/rt-grid/grid">here</a></p>
+</blockquote>
+<p>To define how the grid renders its layout and content use the <code>columns</code> property, as shown below:</p>
+<pre><code class="language-js">var configObj = {
+    columns: [
+        {name: &quot;Header Text&quot;, field: &quot;For Mapping Data&quot;},
+        {name: &quot;Column 2&quot;, field: &quot;Field 2&quot;}
+    ] // Two columns will be shown
+};
+</code></pre>
+<p>To define initial or static data for rendering use the <code>staticDataRows</code> property, as shown below:</p>
+<pre><code class="language-js">var configObj = {
+    staticDataRows: [
+        {&quot;Field 1&quot;: &quot;a&quot;, &quot;Field 2&quot;: &quot;b&quot;, &quot;Field 3&quot;: &quot;c&quot;},
+        {&quot;ABC&quot;: &quot;d&quot;, &quot;Field 2&quot;: &quot;e&quot;, &quot;XYZ&quot;: &quot;f&quot;}
+    ] // Two rows will be shown
+};
+</code></pre>
+<p>Each column definition should have a link to the data through the <code>field</code> property for rendering. Doing it this way separates the UI from the data. The data can have any number of fields, regardless of the actual number of columns being displayed in the grid. This means extra information can be stored, such as row metadata, display states, and so on. The same field can also be used to display multiple columns. </p>
+<p>The basic Grid configuration object is usually something like the following: </p>
+<pre><code class="language-js">var fields = [&quot;intCol&quot;, &quot;strCol&quot;, &quot;floatCol&quot;, &quot;dateCol&quot;];
+var records = [
+    {&quot;intCol&quot;: 1, &quot;strCol&quot;: &quot;Sample data&quot;, &quot;floatCol&quot;: 1.1, &quot;dateCol&quot;: new Date(&quot;2014-10-01&quot;)},
+    {&quot;intCol&quot;: 2, &quot;strCol&quot;: &quot;Sample data&quot;, &quot;floatCol&quot;: 2.2, &quot;dateCol&quot;: new Date(&quot;2014-10-02&quot;)},
+    {&quot;intCol&quot;: 3, &quot;strCol&quot;: &quot;Sample data&quot;, &quot;floatCol&quot;: 3.3, &quot;dateCol&quot;: new Date(&quot;2014-10-03&quot;)},
+    {&quot;intCol&quot;: 4, &quot;strCol&quot;: &quot;Sample data&quot;, &quot;floatCol&quot;: 4.4, &quot;dateCol&quot;: new Date(&quot;2014-10-04&quot;)},
+    {&quot;intCol&quot;: 5, &quot;strCol&quot;: &quot;Sample data&quot;, &quot;floatCol&quot;: 5.5, &quot;dateCol&quot;: new Date(&quot;2014-10-05&quot;)}
+];
+var configObj = {
+    rowHeight: 40, // Grid level option
+    columns: [
+        {name: &quot;Column 1&quot;, field: fields[0]},
+        {name: &quot;Column 2&quot;, field: fields[1]},
+        {name: &quot;Column 3&quot;, field: fields[2]},
+        {name: &quot;Column 4&quot;, field: fields[3]}
+    ],
+    staticDataRows: records
+};
+</code></pre>
+<blockquote>
+<p>For further change at runtime, it is recommended to use Grid&#39;s APIs through <code>api</code> property instead of changing <code>config</code> property. Changing <code>config</code> property will result in re-creation of the entire grid and could impact the performance. </p>
+</blockquote>
+<h2 id="example">Example</h2>
+<blockquote>
+<p>Note: you can see JavaScript details from the live example below by clicking the lower right button.</p>
+</blockquote>
+<code-sandbox hash="7601a37b"><pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
@@ -21,78 +66,26 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 15 });
+var fields = [&quot;intCol&quot;, &quot;strCol&quot;, &quot;floatCol&quot;, &quot;dateCol&quot;];
+var records = [
+    {&quot;intCol&quot;: 1, &quot;strCol&quot;: &quot;Sample data&quot;, &quot;floatCol&quot;: 1.1, &quot;dateCol&quot;: new Date(&quot;2014-10-01&quot;)},
+    {&quot;intCol&quot;: 2, &quot;strCol&quot;: &quot;Sample data&quot;, &quot;floatCol&quot;: 2.2, &quot;dateCol&quot;: new Date(&quot;2014-10-02&quot;)},
+    {&quot;intCol&quot;: 3, &quot;strCol&quot;: &quot;Sample data&quot;, &quot;floatCol&quot;: 3.3, &quot;dateCol&quot;: new Date(&quot;2014-10-03&quot;)},
+    {&quot;intCol&quot;: 4, &quot;strCol&quot;: &quot;Sample data&quot;, &quot;floatCol&quot;: 4.4, &quot;dateCol&quot;: new Date(&quot;2014-10-04&quot;)},
+    {&quot;intCol&quot;: 5, &quot;strCol&quot;: &quot;Sample data&quot;, &quot;floatCol&quot;: 5.5, &quot;dateCol&quot;: new Date(&quot;2014-10-05&quot;)}
+];
 var configObj = {
-    rowVirtualization: false,
+    rowHeight: 40,
     columns: [
-        { name: &quot;Company&quot;, field: fields[0] },
-        { name: &quot;Market&quot;, field: fields[1], width: 120 },
-        { name: &quot;Last&quot;, field: fields[2], width: 100 },
-        { name: &quot;Net. Chng&quot;, field: fields[3], width: 100 },
-        { name: &quot;Industry&quot;, field: fields[4], width: 120, contentWrap: true }
+        {name: &quot;Column 1&quot;, field: fields[0]},
+        {name: &quot;Column 2&quot;, field: fields[1]},
+        {name: &quot;Column 3&quot;, field: fields[2]},
+        {name: &quot;Column 4&quot;, field: fields[3]}
     ],
-    staticDataRows: records,
-    extensions: [
-        new ContentWrap()
-    ]
+    staticDataRows: records
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 </code></pre>
-</code-sandbox><h2 id="even-row-height-mode">Even row height mode</h2>
-<code-sandbox hash="c5546db2"><pre><code class="language-css">efx-grid {
-    height: 169px;
-}
-</code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 15 });
-var configObj = {
-    rowVirtualization: false,
-    columns: [
-        { name: &quot;Company&quot;, field: fields[0] },
-        { name: &quot;Market&quot;, field: fields[1], width: 120 },
-        { name: &quot;Last&quot;, field: fields[2], width: 100 },
-        { name: &quot;Net. Chng&quot;, field: fields[3], width: 100 },
-        { name: &quot;Industry&quot;, field: fields[4], width: 120, contentWrap: true }
-    ],
-    staticDataRows: records,
-    contentWrap: {
-        evenRowHeight: true
-    },
-    extensions: [
-        new ContentWrap()
-    ]
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
-</code></pre>
-</code-sandbox><h2 id="installation-and-how-to-import-to-your-project">Installation and How to import to your project</h2>
-<p>The detail and examples of installation and how to import extension to your project are available on <a href="#/extensions/readme">Overview</a> page.</p>
-<h2 style="margin-bottom:5px" id="api-refs">API Reference</h2>
-<div id="elf-api-container"><div id="main-template" class="elf-template">    <section><header>            <h1 class="subsection-title"><span class="attribs"><span class="type-signature"></span></span>ContentWrapPlugin<span class="signature">()</span><span class="type-signature"></span></h1>            </header><article>                                                                        <h3 class="subsection-title" id="type_definitions">Type Definitions</h3>                        
-<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~ColumnOptions">ColumnOptions</h4><div class="description">    Extension column options that can be specified on each individual grid's column option:</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>contentWrap</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">Content wrapping flag. If enabled, the column will be counted toward row height calculation.</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            
-<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~Options">Options</h4><div class="description">    The options can be specified by `contentWrap` property of the main grid's options</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>evenRowHeight</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">If enabled, max row height will be applied for all the rows</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            <h3 class="subsection-title" id="methods">Methods</h3>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="adjustRowHeight"><span class="type-signature"></span>adjustRowHeight<span class="signature">(sectionRef, from<span class="signature-attributes">opt</span>, to<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {boolean}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">sectionRef</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    core grid SectionReference object                </div>                    </div>                <div class="param">                            <div class="name">from</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>                <div class="param">                            <div class="name">to</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="adjustRowHeightAt"><span class="type-signature"></span>adjustRowHeightAt<span class="signature">(sectionRef, rowIndex)</span><span class="type-signature"> → {boolean}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">sectionRef</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    core grid SectionReference object                </div>                    </div>                <div class="param">                            <div class="name">rowIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    True if the row height changes</div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="config"><span class="type-signature"></span>config<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="enableContentWrapping"><span class="type-signature"></span>enableContentWrapping<span class="signature">(colIndex, bool<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                            <div class="attributes">                                                                </div>                                            </div>                <div class="param">                            <div class="name">bool</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getConfigObject"><span class="type-signature"></span>getConfigObject<span class="signature">(gridOptions<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Object}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">gridOptions</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getName"><span class="type-signature"></span>getName<span class="signature">()</span><span class="type-signature"> → {string}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">string</span>    </div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="hasMultiTableSupport"><span class="type-signature"></span>hasMultiTableSupport<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Plugin that has multi-table support means that it can have multiple hosts/tables and share its states across those hosts/tables.    </div>                        <div class="details">                <dt class="inherited-from">Inherited From:</dt>    <dd class="inherited-from">        <a href="#">GridPlugin#hasMultiTableSupport</a>    </dd>                                                    </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="initialize"><span class="type-signature"></span>initialize<span class="signature">(host, options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">host</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    core grid object                </div>                    </div>                <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="isWrappingContent"><span class="type-signature"></span>isWrappingContent<span class="signature">(colIndex)</span><span class="type-signature"> → {boolean}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="unload"><span class="type-signature"></span>unload<span class="signature">(host)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">host</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    core grid object                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                </article></section></div></div>
+</code-sandbox>

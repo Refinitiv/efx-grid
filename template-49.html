@@ -1,12 +1,19 @@
-<h1 id="column-moving">Column Moving</h1>
-<h2 id="drag-and-drop">Drag and drop</h2>
-<p>The ability of drag and drop column is enabled by default. But it can be turned off by setting <code>noColumnDragging</code> to <em>true</em>. The default value is <em>false</em>. </p>
-<h3 id="drag-and-drop-to-move-a-column-example-default">Drag and drop to move a column example (default)</h3>
-<code-sandbox hash="e43b0864"><pre><code class="language-css">efx-grid {
+<link rel="stylesheet" href="./resources/styles/elf-template.css">
+
+<h1 id="cell-selection">Cell Selection</h1>
+<p>The Cell Selection Extension lets you select cells in Grid. By default, the extension enables copying of selected cell content through <code>Ctrl/Command + C</code> key. The copied content will be stored as a text in the system clipboard. The format of the text will be Tab Separated Values (TSV) format, and so it can be pasted on to Excel&#39;s table. </p>
+<code-sandbox hash="c5ada515"><pre><code class="language-css">efx-grid {
     height: 200px;
+}
+textarea {
+    width: 100%;
+    height: 150px;
+    overflow: auto;
+    font-size: 1.5em;
 }
 </code></pre>
 <pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+&lt;textarea placeholder=&quot;Use Ctrl+C to copy the selected cells&quot;&gt;&lt;/textarea&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
@@ -18,172 +25,62 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
 var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-    var records = DataGenerator.generateRecords(fields, { numRows: 10 });
-    var configObj = {
-        columns: [
-            {name: &quot;Company&quot;, field: fields[0]},
-            {name: &quot;Market&quot;, field: fields[1], width: 100},
-            {name: &quot;Last&quot;, field: fields[2], width: 80},
-            {name: &quot;Net. Chng&quot;, field: fields[3], width: 80},
-            {name: &quot;Industry&quot;, field: fields[4]}
-        ],
-        staticDataRows: records
-    };
-
-    var grid = document.getElementById(&quot;grid&quot;);
-    grid.config = configObj;
-</code></pre>
-</code-sandbox><h3 id="disabled-drag-and-drop-example">Disabled drag and drop example</h3>
-<code-sandbox hash="dbb479c"><pre><code class="language-css">efx-grid {
-    height: 200px;
-}
-</code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-    var records = DataGenerator.generateRecords(fields, { numRows: 10 });
-    var configObj = {
-        noColumnDragging: true, // disabled column re-order
-        columns: [
-            {name: &quot;Company&quot;, field: fields[0]},
-            {name: &quot;Market&quot;, field: fields[1], width: 100},
-            {name: &quot;Last&quot;, field: fields[2], width: 80},
-            {name: &quot;Net. Chng&quot;, field: fields[3], width: 80},
-            {name: &quot;Industry&quot;, field: fields[4]}
-        ],
-        staticDataRows: records
-    };
-
-    var grid = document.getElementById(&quot;grid&quot;);
-    grid.config = configObj;
-</code></pre>
-</code-sandbox><h2 id="using-apis-to-move-a-column">Using APIs to move a column</h2>
-<p>Columns can be moved using the <code>grid.api.moveColumnById(sourceColumn, destinationPosition)</code> API, which allows you to move specified column by index or id to the position before the specified destination. If the specified destination is invalid or doesnot exist, the column will be moved to the end of Grid.</p>
-<p>To move multiple columns at once, use <code>reorderColumns</code> API. </p>
-<p>See <a href="#/apis/rt-grid/grid">available APIs</a> for more details.</p>
-<h3 id="example">Example</h3>
-<code-sandbox hash="23cc81ae"><pre><code class="language-css">efx-grid {
-    height: 200px;
-}
-html hr {
-    margin: 5px;
-}
-button {
-    margin: 2px;
-}
-</code></pre>
-<pre><code class="language-html">&lt;big&gt;Move&lt;/big&gt;
-&lt;select id=&quot;source_sel&quot;&gt;&lt;/select&gt;
-&lt;big&gt;to the position before&lt;/big&gt;
-&lt;div id=&quot;destination_div&quot;&gt;&lt;/div&gt;
-&lt;hr&gt;
-&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var colNames = [&quot;Company&quot;, &quot;Market&quot;, &quot;Last&quot;, &quot;Net. Chng&quot;, &quot;Industry&quot;];
-var columns = fields.map(function(f, idx) {
-    var colName = colNames[idx];
-    var colId = &quot;c&quot; + idx;
-    return {
-        id: colId,
-        field: f,
-        name: colName
-    };
-});
-columns[1].width = 100;
-columns[2].width = 80;
-columns[3].width = 80;
-
-columns.forEach(function(col, idx) {
-    var opt = document.createElement(&quot;option&quot;);
-    opt.value = col.id;
-    opt.textContent = col.name + &quot; column&quot;;
-    if(col.name === &quot;Industry&quot;) {
-        opt.selected = true;
-    }
-    source_sel.appendChild(opt);
-    
-    var btn = document.createElement(&quot;button&quot;);
-    btn.colId = col.id;
-    btn.textContent = col.name;
-    btn.addEventListener(&quot;click&quot;, onClickMoveBtn);
-    destination_div.appendChild(btn);
-});
-
-var lastBtn = document.createElement(&quot;button&quot;);
-lastBtn.textContent = &quot;End of Grid&quot;;
-lastBtn.addEventListener(&quot;click&quot;, onClickMoveBtn);
-destination_div.appendChild(lastBtn);
-
-function onClickMoveBtn(e) {
-    var btn = e.currentTarget;
-    var destId = btn.colId;
-    
-    var sourceOpt = source_sel.selectedOptions[0];
-    var srcId = sourceOpt.value;
-    grid.api.moveColumnById(srcId, destId);
-}
-
 var records = DataGenerator.generateRecords(fields, { numRows: 5 });
 var configObj = {
-    columns: columns,
-    staticDataRows: records
+    cellSelection: {
+        autoDeselecting: false
+    },
+    columns: [
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market&quot;, field: fields[1], width: 120},
+        {name: &quot;Last&quot;, field: fields[2], width: 100},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
+        {name: &quot;Industry&quot;, field: fields[4]}
+    ],
+    staticDataRows: records,
+    extensions: [
+        new CellSelection()
+    ]
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
-</code></pre>
-</code-sandbox><h2 id="preventing-a-column-from-moving">Preventing a column from moving</h2>
-<p>By marking a column to be a <code>stationary</code> column, any column on the left and the stationary column will be locked in the position (i.e., columns cannot be moved). A column can still be added to or removed from the stationary section. Once stationary column is removed or unmarked as <code>stationary</code>, the columns in the section will be free to be moved. See <a href="#/apis/rt-grid/columndefinition">Column Definition</a> for more details of column options.</p>
-<h3 id="example-1">Example</h3>
-<code-sandbox hash="26f3381b"><pre><code class="language-css">efx-grid {
-    height: 200px;
-}
-</code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-    var records = DataGenerator.generateRecords(fields, { numRows: 10 });
-    var configObj = {
-        columns: [
-            {name: &quot;Company (stationary)&quot;, field: fields[0], stationary: true},
-            {name: &quot;Market&quot;, field: fields[1], width: 100},
-            {name: &quot;Last&quot;, field: fields[2], width: 80},
-            {name: &quot;Net. Chng&quot;, field: fields[3], width: 80},
-            {name: &quot;Industry&quot;, field: fields[4]}
-        ],
-        staticDataRows: records,
-        extensions: [new Checkbox()]
-    };
-
-    var grid = document.getElementById(&quot;grid&quot;);
-    grid.config = configObj;
+grid.addEventListener(&quot;click&quot;, function onClick(e) {
+    grid.api.focus();
+});
 </code></pre>
-</code-sandbox><p><br><br><br></p>
+</code-sandbox><h2 id="installation-and-how-to-import-to-a-project">Installation and how to import to a project</h2>
+<p>Installation examples and details of how to import the extension to a project are available on the <a href="#/extensions/readme">Overview</a> page.</p>
+<h2 style="margin-bottom:5px" id="api-refs">API Reference</h2>
+<div id="elf-api-container"><div id="main-template" class="elf-template">    <section><header>            <h1 class="subsection-title"><span class="attribs"><span class="type-signature"></span></span>CellSelectionPlugin<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h1>            </header><article>                                                                        <h3 class="subsection-title" id="type_definitions">Type Definitions</h3>                        
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~Options">Options</h4><div class="description">    The options can be specified by `cellSelection` property of the main grid's options</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>mode</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    "cell"                                </td>                        <td class="description last">Available options are cell, row, and column</td>        </tr>            <tr>                            <td class="name"><code>multipleSelection</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    true                                </td>                        <td class="description last">If disabled, only single cell can be selected at time</td>        </tr>            <tr>                            <td class="name"><code>autoDeselecting</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    true                                </td>                        <td class="description last">If disabled, the cell selection will be kept after the focus on the grid element is lost</td>        </tr>            <tr>                            <td class="name"><code>tabToSelect</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">If enabled, the selection can be moved when user press tab key during the time grid is in focus</td>        </tr>            <tr>                            <td class="name"><code>selectionChanged</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Event handler</td>        </tr>            <tr>                            <td class="name"><code>copy</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Event handler</td>        </tr>            <tr>                            <td class="name"><code>beforeMouseDown</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Event handler</td>        </tr>            <tr>                            <td class="name"><code>selectableSections</code></td>                        <td class="type">                            <span class="param-type">Array</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    ["content"                                </td>                        <td class="description last">Use to set which section can be selected, if not specific then only content section can select</td>        </tr>            <tr>                            <td class="name"><code>copyDisabled</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">If enabled, there will be no dafault content copying by the extension</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            <h3 class="subsection-title" id="methods">Methods</h3>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="config"><span class="type-signature"></span>config<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                            <div class="description">        Involk when config object is set.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="deselectAll"><span class="type-signature"></span>deselectAll<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Deselect all selected cell.    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    true if there is any change</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="disableSelection"><span class="type-signature"></span>disableSelection<span class="signature">(opt_disable<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                            <div class="description">        Disable selection    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">opt_disable</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getAnchorInfo"><span class="type-signature"></span>getAnchorInfo<span class="signature">()</span><span class="type-signature"> → {Object}</span></h4>                            <div class="description">        Get information about current selection anchor    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div><div class="sub-content-desc">    MouseInfo</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getAutoDeselectingOnBlur"><span class="type-signature"></span>getAutoDeselectingOnBlur<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Use to get state Auto Deselecting.    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getConfigObject"><span class="type-signature"></span>getConfigObject<span class="signature">(gridOptions<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Object}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">gridOptions</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getLastSelectionBounds"><span class="type-signature"></span>getLastSelectionBounds<span class="signature">(opt_ret<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Object}</span></h4>                            <div class="description">        Add left, top, right, bottom properties to the given object    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">opt_ret</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getName"><span class="type-signature"></span>getName<span class="signature">()</span><span class="type-signature"> → {string}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">string</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getSelectedCells"><span class="type-signature"></span>getSelectedCells<span class="signature">()</span><span class="type-signature"> → {Array.&lt;Array&gt;}</span></h4>                            <div class="description">        Use to get selected cells.    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Array.&lt;Array&gt;</span>    </div><div class="sub-content-desc">    2D array of cells</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getSelectedText"><span class="type-signature"></span>getSelectedText<span class="signature">()</span><span class="type-signature"> → {string}</span></h4>                            <div class="description">        Get text from selected cells. If no selection, return empty string. <br>Text will be converted to Tab-separated values format, representing tabular structure. <br>Newlines (\n, \r), Tab (\t) and &lt;br&gt; <br>will be converted to single space. Connecting spaces will remain intact.    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">string</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getSelectionBounds"><span class="type-signature"></span>getSelectionBounds<span class="signature">(opt_ret<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Object}</span></h4>                            <div class="description">        Add left, top, right, bottom properties to the given object    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">opt_ret</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getSelectionCount"><span class="type-signature"></span>getSelectionCount<span class="signature">()</span><span class="type-signature"> → {number}</span></h4>                            <div class="description">        Return total number of selected cells    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">number</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="hasMultiTableSupport"><span class="type-signature"></span>hasMultiTableSupport<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Plugin that has multi-table support means that it can have multiple hosts/tables and share its states across those hosts/tables.    </div>                        <div class="details">                    <dt class="tag-overrides">Overrides:</dt>    <dd class="tag-overrides">        <a href="#">GridPlugin#hasMultiTableSupport</a>    </dd>                                                </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="initialize"><span class="type-signature"></span>initialize<span class="signature">()</span><span class="type-signature"></span></h4>                            <div class="description">        Called by Grid plugin's initialization    </div>                        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="selectAll"><span class="type-signature"></span>selectAll<span class="signature">()</span><span class="type-signature"></span></h4>                            <div class="description">        Select all cell.    </div>                        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="selectCells"><span class="type-signature"></span>selectCells<span class="signature">(rect)</span><span class="type-signature"></span></h4>                            <div class="description">        Use to select multiple cells, can be selected by rectangle area.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rect</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    Object with rowIndex, colIndex, width, and height properties                </div>                    </div>            </div>        <div class="details">                                                            </div>                                            <h5>Example:</h5>            <pre><code>ext.selectCells({
+  colIndex: 1, rowIndex: 1, width: 2, height: 2
+});</code></pre>    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="selectNextCell"><span class="type-signature"></span>selectNextCell<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Select next cell from the current selection anchor.    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    Return true if the next cell is selected, otherwise false</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="selectPrevCell"><span class="type-signature"></span>selectPrevCell<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Select previous cell from the current selection anchor.    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    Return true if the next cell is selected, otherwise false</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="selectSingleCell"><span class="type-signature"></span>selectSingleCell<span class="signature">(anchor)</span><span class="type-signature"></span></h4>                            <div class="description">        Use to select single cell and deselect previous selected cells.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">anchor</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                            <h5>Example:</h5>            <pre><code>extension.selectSingleCell({colIndex: 1, rowIndex: 0});</code></pre>    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setAutoDeselectingOnBlur"><span class="type-signature"></span>setAutoDeselectingOnBlur<span class="signature">(bool)</span><span class="type-signature"></span></h4>                            <div class="description">        Use to set Auto Deselecting when blur.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">bool</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setSelectableSections"><span class="type-signature"></span>setSelectableSections<span class="signature">(types<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                            <div class="description">        Use to set which section can be selected,[ header, title, content ]    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">types</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">Array.&lt;string&gt;</span> | <span class="param-type">null</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    Use null to allow all sections to be select                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="unload"><span class="type-signature"></span>unload<span class="signature">()</span><span class="type-signature"></span></h4>                            <div class="description">        Prevent memory leak, when we leave witout unlisten.    </div>                        <div class="details">                                                            </div>                                    </div>                        <h3 class="subsection-title" id="events">Events</h3>                    
+<div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:beforeMouseDown">beforeMouseDown</h4>                            <div class="description">        Happens when mouse is down.    </div>                    <h5>Type:</h5>        <span class="param-type">Object</span>                    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>cancel</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">This property can be set to true to cancel the operation</td>        </tr>        </tbody></table></div><div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:copy">copy</h4>                            <div class="description">        Happens when Copy is triggered (e.g. Ctrl + C, or selecting copy from context menu).    </div>                            <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>grid</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                            <td class="attributes">                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Core grid instance</td>        </tr>            <tr>                            <td class="name"><code>cancel</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">This property can be set to true to cancel the operation</td>        </tr>            <tr>                            <td class="name"><code>data</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">The data to be copied to system clipboard</td>        </tr>            <tr>                            <td class="name"><code>format</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    "text/plain"                                </td>                        <td class="description last">The format of the data</td>        </tr>        </tbody></table></div><div class="details">                                                            </div>                                            <h5>Example:</h5>            <pre><code>copy: function(e) {
+  e.cancel = true; // To cancel the operation
+}</code></pre>    </div>                    
+<div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:selectionChanged">selectionChanged</h4>                            <div class="description">        Happens after mouse up event.    </div>                        <div class="details">                                                            </div>                                    </div>            </article></section></div></div>

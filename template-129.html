@@ -1,18 +1,9 @@
-<h1 id="realtime-market-data-with-jetqoutes2">Realtime Market Data with JET.Qoutes2</h1>
-<p>JET is a library that creates a communication channel between applications and container for retrieving data from the LSEG platform. JET will provide all the real-time data, so there&#39;s no need to initialize and use the <code>dataModel</code> property in the configuration object.</p>
-<p>Please note that you can no longer use the row index to refer to row data anymore, as Grid will asynchronously receive the data and updates from JET or a server data provider. For reference, you must specify the row ID (string) for each row that is inserted into Grid&#39;s data table.</p>
-<p>In the examples below, the RIC name is used as the row ID. You can then keep updating the same RIC on the correct row position using the row ID.</p>
-<code-sandbox hash="dedba08d"><pre><code class="language-css">efx-grid {
-    height: 250px;
-}
-</code></pre>
-<pre><code class="language-html">&lt;input id=&quot;ric_in&quot; placeholder=&quot;Enter RIC&quot; value=&quot;CHF=&quot;&gt;
-&lt;button id=&quot;insert_btn&quot;&gt;Click To Insert&lt;/button&gt;
-&lt;button id=&quot;insert_usd&quot;&gt;USD&lt;/button&gt;
-&lt;button id=&quot;insert_eur&quot;&gt;EUR&lt;/button&gt;
-&lt;button id=&quot;insert_jpy&quot;&gt;JPY&lt;/button&gt;
-&lt;br&gt;&lt;br&gt;
-&lt;efx-grid&gt;&lt;/efx-grid&gt;
+<h1 id="left-side-column-pinningfreezing">Left Side Column Pinning/Freezing</h1>
+<p>Sometimes Grid can contain a large number of columns and when scrolled to the right, without the row header, users might lose track of what kind of data is in the row.
+To solve this, you can freeze or pin columns on the left side to act like a row indicator. To do this, set the <code>leftPinned</code> property to true on the column configuration object for the column you want to be frozen/pinned.</p>
+<p>Similarly, <code>rightPinned</code> property can be used to pin the columns on the right side.  </p>
+<h2 id="example">Example</h2>
+<code-sandbox hash="2e171b68"><pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
@@ -23,101 +14,88 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-JET = new tr.MockJET(); // Use Mock for illustrative purpose only
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 10 });
+var configObj = {
+    columns: [
+        {name: &quot; &quot;, width: 24},
+        {name: &quot;Company&quot;, field: fields[0], width: 250, leftPinned: true },
+        {name: &quot;Market&quot;, field: fields[1], width: 150},
+        {name: &quot;Last&quot;, field: fields[2], width: 150},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 150},
+        {name: &quot;Industry&quot;, field: fields[4], width: 300}
+    ],
+    staticDataRows: records
+};
 
-document.getElementById(&#39;insert_btn&#39;).addEventListener(&quot;click&quot;, onClickInsertButton);
-document.getElementById(&#39;insert_usd&#39;).addEventListener(&quot;click&quot;, insertRic.bind(null, &quot;USD=&quot;));
-document.getElementById(&#39;insert_eur&#39;).addEventListener(&quot;click&quot;, insertRic.bind(null, &quot;EUR=&quot;));
-document.getElementById(&#39;insert_jpy&#39;).addEventListener(&quot;click&quot;, insertRic.bind(null, &quot;JPY=&quot;));
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h1 id="pinning-column-at-runtime">Pinning column at runtime</h1>
+<p>Pinning column at runtime can be done through <code>pinColumn</code> method from Grid&#39;s API. The pinned column will be move to the right most of frozen area. To unpin a column, call <code>unpinColumn</code>. The unpinned column will be moved to the left most of unfrozen area.</p>
+<h2 id="example-1">Example</h2>
+<code-sandbox hash="7adb326e"><pre><code class="language-css">html hr, button {
+    margin: 5px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;fieldset id=&quot;pinning_set&quot;&gt;
+    &lt;legend&gt;Pinning&lt;/legend&gt;
+&lt;/fieldset&gt;
+&lt;fieldset id=&quot;unpinning_set&quot;&gt;
+    &lt;legend&gt;Unpinning&lt;/legend&gt;
+&lt;/fieldset&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;Column 6&quot;, &quot;Column 7&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 10 });
+
+var onClickPinning = function(e) {
+    var btn = e.currentTarget;
+    grid.api.pinColumn(btn.colIndex);
+};
+var onClickUnpinning = function(e) {
+    var btn = e.currentTarget;
+    grid.api.unpinColumn(btn.colIndex);
+};
+
+var len = fields.length; 
+for(var i = 0; i &lt; 4; ++i) {
+    var btn = document.createElement(&quot;button&quot;);
+    btn.colIndex = i;
+    btn.addEventListener(&quot;click&quot;, onClickPinning);
+    btn.textContent = &quot;Column &quot; + (i + 1);
+    pinning_set.appendChild(btn);
+    
+    btn = document.createElement(&quot;button&quot;);
+    btn.colIndex = i;
+    btn.addEventListener(&quot;click&quot;, onClickUnpinning);
+    btn.textContent = &quot;Column &quot; + (i + 1);
+    unpinning_set.appendChild(btn);
+}
 
 var configObj = {
-    rowSelection: true,
     columns: [
-        {
-            field: &quot;X_RIC_NAME&quot;,
-            tickColor: &quot;CF_NETCHNG&quot;
-        },
-        {
-            field: &quot;CF_NAME&quot;
-        },
-        {
-            field: &quot;CF_LAST&quot;,
-            tickColor: &quot;CF_NETCHNG&quot;,
-            blinking: true
-        },
-        {
-            field: &quot;CF_NETCHNG&quot;,
-            tickColor: true,
-            blinking: true
-        },
-        {
-            field: &quot;PCTCHNG&quot;,
-            tickColor: &quot;CF_NETCHNG&quot;,
-            blinking: true
-        }
+        {name: &quot;Company&quot;, field: fields[0], width: 250},
+        {name: &quot;Market&quot;, field: fields[1], width: 150},
+        {name: &quot;Last&quot;, field: fields[2], width: 150},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 150},
+        {name: &quot;Industry&quot;, field: fields[4], width: 200},
+        {field: fields[5], width: 150},
+        {field: fields[6], width: 150}
     ],
-    rows: [
-        { ric: &quot;EUR=&quot; },
-    ]
+    staticDataRows: records
 };
 
-var grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
+var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
-
-function onClickInsertButton(e) {
-    var ric = document.getElementById(&quot;ric_in&quot;).value;
-    insertRic(ric.toUpperCase());
-}
-
-function insertRic(ric) {
-    grid.api.insertRow(ric, 0);
-}
 </code></pre>
-</code-sandbox><p>To use <code>efx-grid</code> on your application and run it on the Eikon container follow the steps below.</p>
-<ol>
-<li>Install <code>jet-api</code>, <code>jet-plugin-quotes2</code> and <code>jet-plugin-settings</code> by running the following commands.</li>
-</ol>
-<pre><code class="language-bash">npm install jet-api
-npm install jet-plugin-quotes2
-npm install jet-plugin-settings
-</code></pre>
-<ol start="2">
-<li>create an <code>efx-grid</code> in your index.html</li>
-</ol>
-<pre><code class="language-html">&lt;efx-grid id=&quot;blotter&quot;&gt;&lt;/efx-grid&gt;
-</code></pre>
-<ol start="3">
-<li>Import the JET library and plugin to your application.</li>
-</ol>
-<pre><code class="language-js">import &#39;jet-api/dist/JET.min.js&#39;;
-import &#39;jet-plugin-quotes2/src/jet-plugin-quotes2.js&#39;;
-import &#39;jet-plugin-settings/src/jet-plugin-settings.js&#39;;
-</code></pre>
-<ol start="4">
-<li>Initialize JET. <code>ID</code> is your application&#39;s ID.</li>
-</ol>
-<pre><code class="language-js">JET.init({
-  ID: &#39;efx-grid-app&#39;
-});
-</code></pre>
-<ol start="5">
-<li>Then you can configure <code>efx-grid</code> using <code>config</code> property.</li>
-</ol>
-<pre><code class="language-js">var grid = document.getElementById(&#39;blotter&#39;);
-grid.config = {
-    &#39;columns&#39;: [
-        { &#39;field&#39;: &#39;X_RIC_NAME&#39; },
-        { &#39;field&#39;: &#39;CF_ASK&#39; },
-        { &#39;field&#39;: &#39;CF_LAST&#39; }
-    ],
-    &#39;rows&#39;: [
-        { &#39;ric&#39;: &#39;TRI.TO&#39; },
-        { &#39;ric&#39;: &#39;.SETI&#39; },
-        { &#39;ric&#39;: &#39;.SPX&#39; },
-        { &#39;ric&#39;: &#39;TRI.TO&#39; },
-        { &#39;ric&#39;: &#39;IBM&#39; }
-    ]
-};
-</code></pre>
-<h2 id="next-steps">Next steps</h2>
-<p>Read the <a href="https://amp.int.refinitiv.com/#/package/@elf/efx-grid">full documentation</a> about <code>efx-grid</code> features.</p>
+</code-sandbox><p><br><br><br></p>

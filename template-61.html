@@ -1,30 +1,9 @@
-<h1 id="data-conversion">Data conversion</h1>
-<p>Sometimes data adding to Grid is not sanitized, for example the value represented changed price can be -2, +4, &quot;-0.3&quot;, &quot;+5&quot; or even null. To prevent Grid from displaying unexpected data, data parser or data sanitizer need to verify data before rendering. So Grid provides <code>dataComposed</code> event and <code>autoDateConversion</code> for this kind of task.</p>
-<h2 id="datacomposed-event">dataComposed event</h2>
-<p>Once Grid receives any data, <code>dataComposed</code> event will be fired before rendering of the content. Performing any data update during the <code>dataComposed</code> event will not trigger more <code>dataChanged</code> events, and thus there won&#39;t be an infinite loop. This event is useful for modifying the received data before the actual consumption. </p>
-<p>To add event listener for <code>dataComposed</code> event, just set the listener to the <code>dataComposed</code> property of Grid&#39;s configuration like the following code snippet:</p>
-<pre><code class="language-js">    function onDataComposed(e) {
-        var grid = e.grid;
-        var rowDef = e.rowDef;
-        var values = e.changes; // Indicating latest changes in data
-        var rowData = rowDef.getRowData(); // Current data for the row
+<link rel="stylesheet" href="./resources/styles/elf-template.css">
 
-        // Parse, sanitize, or transform data here
-        var newData = rowData[&quot;Field A&quot;] + rowData[&quot;Field B&quot;];
-
-        // Save the modified data through RowDefinition&#39;s API 
-        rowDef.setData(&quot;Field A + B&quot;, newData);
-        // rowDef.setRowData({&quot;Field C&quot;: 1, &quot;Field D&quot;: 2, &quot;Field E&quot;: 3});
-    }
-
-    var config = {
-        // other grid&#39;s options
-        dataComposed: onDataComposed
-    };
-</code></pre>
-<h3 id="converting-invalid-data-example">Converting invalid data example</h3>
-<code-sandbox hash="b0d8542c"><pre><code class="language-css">efx-grid {
-    height: 168px
+<h1 id="heat-map">Heat Map</h1>
+<p>The Heat Map Extension provides heat map coloring for column fields, which will be the type set by the heatMap property.</p>
+<code-sandbox hash="af387154"><pre><code class="language-css">efx-grid {
+    height: 200px;
 }
 </code></pre>
 <pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
@@ -38,265 +17,83 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var onDataComposed = function(e) {
-    var rowDef = e.rowDef;
-    var values = e.changes;
-
-    if (!values) { // Indicating no change
-        return;
-    }
-
-    // Performing any data update during the event will NOT cause more dataChanged events
-    var txt = values[&quot;text&quot;];
-    if (!txt || txt === &quot;N/A&quot;) {
-        rowDef.setData(&quot;number&quot;, 0);
-        rowDef.setData(&quot;status&quot;, &quot;Invalid data&quot;);
-    } else {
-        rowDef.setData(&quot;number&quot;, parseFloat(txt));
-        rowDef.setData(&quot;status&quot;, &quot;OK&quot;);
-    }
-};
-
-var gridRows = [{ 
-    values: {
-        id: &quot;1&quot;,
-        text: &quot;58&quot;,
-        description: &quot;normal number&quot;
-    }
-}, {
-    values: {
-        id: &quot;2&quot;,
-        text: &quot;-0.78&quot;,
-        description: &quot;nagative number&quot;
-    }
-}, {
-    values: {
-        id: &quot;3&quot;,
-        text: &quot;&quot;,
-        description: &quot;empty string&quot;
-    }
-}, {
-    values: {
-        id: &quot;4&quot;,
-        text: null,
-        description: &quot;null value&quot;
-    }
-}, {
-    values: {
-        id: &quot;5&quot;,
-        text: &quot;N/A&quot;,
-        description: &quot;invalid text&quot;
-    }
-}];
-
+DataGenerator.addFieldInfo(&quot;volume&quot;, {
+    type: &quot;number&quot;,
+    min: &quot;1&quot;,
+    max: &quot;1001&quot;
+});
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;volume&quot;, &quot;PCTCHNG2&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 20 });
 var configObj = {
     columns: [
         {
-            name: &quot;Id&quot;,
-            field: &quot;id&quot;,
-            width: 70
+            name: &quot;Company&quot;,
+            field: fields[0]
         },
         {
-            name: &quot;Description&quot;,
-            field: &quot;description&quot;,
-            width: 150
+            name: &quot;Market&quot;,
+            field: fields[1],
+            width: 120
         },
         {
-            name: &quot;Server Text&quot;,
-            field: &quot;text&quot;,
-            width: 150
-        },
-        {
-            name: &quot;Converted number&quot;,
-            field: &quot;number&quot;,
-            width: 150
-        },
-        {
-            name: &quot;Status&quot;,
-            field: &quot;status&quot;
-        }
-    ],
-    dataComposed: onDataComposed, // Attach handler for dataComposed event
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
-
-// To emitate the dalay of reqeusting data from server
-setTimeout(function(e) {
-    grid.api.insertRows(gridRows);
-}, 2000);
-</code></pre>
-</code-sandbox><h3 id="conditional-coloringblinking-based-on-computed-values-example">Conditional coloring/blinking based on computed values example</h3>
-<code-sandbox hash="d334ded0"><pre><code class="language-css">efx-grid {
-    height: 168px
-}
-hr {
-    margin: 5px;
-}
-</code></pre>
-<pre><code class="language-html">&lt;button id=&quot;update_btn&quot;&gt;Update data&lt;/button&gt;
-&lt;hr&gt;
-&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var onDataComposed = function(e) {
-    var rowDef = e.rowDef;
-    var changes = e.changes;
-    var rowData = rowDef.getRowData();
-
-    var computedValue = rowData[&quot;current_price&quot;] - rowData[&quot;previous_close&quot;];
-    var prevComputed = rowData[&quot;computed_value&quot;] || 0; // Computed value from previous dataComposed session
-    var lastChange = computedValue - prevComputed;
-    
-    rowDef.setData(&quot;computed_value&quot;, computedValue);
-    rowDef.setData(&quot;last_change&quot;, lastChange);
-    
-    // This indicates that there is a change in data for blinking logic to pick up
-    changes[&quot;computed_value&quot;] = computedValue;
-    changes[&quot;last_change&quot;] = lastChange;
-};
-
-document.getElementById(&quot;update_btn&quot;).addEventListener(&quot;click&quot;, function(){
-    var record = DataGenerator.generateRecord([&quot;current_price&quot;]);
-    grid.api.setRowData(0, record);
-});
-
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;current_price&quot;, &quot;previous_close&quot;];
-var records = DataGenerator.generateRecords(fields, {seed: 0, numRows: 4});
-var columns = fields.map(function(f){
-    return {
-        field: f
-    };
-});
-columns.push({
-    field: &quot;computed_value&quot;,
-    colorText: &quot;last_change&quot;, // Change text color based on other field (last_change)
-    blinking: true
-});
-columns.push({
-    field: &quot;last_change&quot;,
-    colorText: true
-});
-
-var configObj = {
-    defaultColumnOptions: {
-        width: 120
-    },
-    columns: columns,
-    staticDataRows: records,
-    dataComposed: onDataComposed, // attach handler for dataComposed event
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
-</code></pre>
-</code-sandbox><h2 id="auto-date-conversion">Auto date conversion</h2>
-<p>When dealing with date-time data it may be hard to handle the various types of incoming data, which can be number, string, ISO date string, seconds or milliseconds. So it is better to enable <code>autoDateConversion</code> in the Grid&#39;s configuration and let Grid automatically convert data to JavaScript native Date object. To let Grid know that the column&#39;s data is data-time, the <code>dataType: &quot;datatime&quot;</code> should be specified in the column&#39;s options.</p>
-<code-sandbox hash="e3ed62f3"><pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var descriptions = [
-    &quot;Invalid&quot;,
-    &quot;Negative value (milliseconds)&quot;,
-    &quot;Excel date&quot;,
-    &quot;Second&quot;,
-    &quot;Millisecond&quot;,
-    &quot;Native date object (now)&quot;,
-    &quot;ISO date-time string&quot;
-];
-
-var dateSamples = [
-    &quot;abc&quot;,
-    -1,
-    1,
-    Date.UTC(2021, 11, 24, 10)/1000,
-    Date.UTC(2021, 11, 24, 10),
-    new Date(),
-    &quot;2021-11-25T10:00:00&quot;
-];
-
-var records = [];
-for (var i = 0; i &lt; descriptions.length; i++) {
-    records.push({
-        des: descriptions[i],
-        date: dateSamples[i]
-    });
-}
-
-var configObj = {
-    autoDateConversion: true,
-    defaultColumnOptions: {
-        notRealTimeField: true
-    },
-    columns: [
-        {
-            name: &quot;Description&quot;,
-            field: &quot;des&quot;
-        },
-        {
-            name: &quot;Raw data&quot;,
-            field: &quot;date_RAW&quot;
-        },
-        {
-            name: &quot;Converted data&quot;,
-            field: &quot;date&quot;,
-            dataType: &quot;datetime&quot;
-        },
-        {
-            name: &quot;Formatted data&quot;,
-            field: &quot;date&quot;,
-            formatType: {
-                formatType: &quot;DateTime&quot;,
-                dateTimeFormat: &quot;DD/MM/YYYY HH:mm&quot;,
-                useUTCTime: true
+            name: &quot;Last&quot;,
+            field: fields[2],
+            width: 100,
+            heatMap: {
+                mode: &quot;text&quot;,
+                midPoint: 500
             }
         },
         {
-            name: &quot;Realtime Data&quot;,
-            field: &quot;last_update&quot;,
-            dataType: &quot;datetime&quot;,
-            alignment: &quot;center&quot;,
-            formatType: {
-                formatType: &quot;DateTime&quot;,
-                dateTimeFormat: &quot;DD/MM/YYYY HH:mm:ss&quot;,
-                useUTCTime: true
+            name: &quot;Volume&quot;,
+            field: fields[3],
+            sortBy: fields[3],
+            width: 100,
+            heatMap: {
+                midPoint: 300
             }
+        },
+        {
+
+            name: &quot;Pct. Chng&quot;,
+            field: fields[4],
+            sortBy: fields[4],
+            width: 100,
+            heatMap: true
         }
     ],
     staticDataRows: records,
     extensions: [
-        new TextFormatting()
+        new HeatMap()
     ]
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
-grid.addEventListener(&quot;configured&quot;, function(e) {
-    var api = e.detail.api;
-    var randIndex = DataGenerator.randIndex;
-    setInterval(function() {
-        var index = randIndex(records.length);
-        api.setRowData(index, {
-            last_update: Date.now()
-        });
-    }, 400);
-});
 grid.config = configObj;
 </code></pre>
-</code-sandbox>
+</code-sandbox><h2 id="installation-and-how-to-import-to-a-project">Installation and how to import to a project</h2>
+<p>Installation examples and details of how to import the extension to a project are available on the <a href="#/extensions/readme">Overview</a> page.</p>
+<h2 style="margin-bottom:5px" id="api-refs">API Reference</h2>
+<div id="elf-api-container"><div id="main-template" class="elf-template">    <section><header>            <h1 class="subsection-title"><span class="attribs"><span class="type-signature"></span></span>HeatMapPlugin<span class="signature">()</span><span class="type-signature"></span></h1>            </header><article>                                                                        <h3 class="subsection-title" id="type_definitions">Type Definitions</h3>                        
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~ColumnOptions">ColumnOptions</h4><div class="description">    Extension column options that can be specified on each individual grid's column option:</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>field</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Field used by the heat map</td>        </tr>            <tr>                            <td class="name"><code>heatMap</code></td>                        <td class="type">                            <span class="param-type"><a href="#/extensions/tr-grid-heat-map#~HeatMap">HeatMapPlugin~HeatMap</a></span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Heat map options</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~HeatMap">HeatMap</h4><div class="description">    Available options describing `heatMap` object</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>midPoint</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    0                                </td>                        <td class="description last">Middle point between values representing up and down colors</td>        </tr>            <tr>                            <td class="name"><code>mode</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    "cell"                                </td>                        <td class="description last">In cell mode, heat map color will be applied to the entire cell</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            <h3 class="subsection-title" id="methods">Methods</h3>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="config"><span class="type-signature"></span>config<span class="signature">(options<span class="signature-attributes">opt</span>, opt_grid<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>                <div class="param">                            <div class="name">opt_grid</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    core grid object                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getColumnHeatMap"><span class="type-signature"></span>getColumnHeatMap<span class="signature">(colIndex, grid<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {CellPainter}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                            <div class="attributes">                                                                </div>                                            </div>                <div class="param">                            <div class="name">grid</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    core grid object                </div>                    </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">CellPainter</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getColumnHeatMapOptions"><span class="type-signature"></span>getColumnHeatMapOptions<span class="signature">(colIndex, options<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Object}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                            <div class="attributes">                                                                </div>                                            </div>                <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div>                        <h5>Example:</h5>            <pre><code>var obj = {
+ "heatMap": {
+   "midPoint": 0, // optional number
+   "mode": "cell", // optional string
+ }
+};</code></pre>    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getConfigObject"><span class="type-signature"></span>getConfigObject<span class="signature">(out_obj<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Object}</span></h4>                            <div class="description">        Get a current state of grid and extension config    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">out_obj</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getName"><span class="type-signature"></span>getName<span class="signature">()</span><span class="type-signature"> → {string}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">string</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="hasMultiTableSupport"><span class="type-signature"></span>hasMultiTableSupport<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Plugin that has multi-table support means that it can have multiple hosts/tables and share its states across those hosts/tables.    </div>                        <div class="details">                    <dt class="tag-overrides">Overrides:</dt>    <dd class="tag-overrides">        <a href="#">GridPlugin#hasMultiTableSupport</a>    </dd>                                                </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="initialize"><span class="type-signature"></span>initialize<span class="signature">(host, options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">host</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    core grid object                </div>                    </div>                <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setColumnHeatMap"><span class="type-signature"></span>setColumnHeatMap<span class="signature">(colIndex, columnDef, opt_grid<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                            <div class="attributes">                                                                </div>                                            </div>                <div class="param">                            <div class="name">columnDef</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                                                </div>                                            </div>                <div class="param">                            <div class="name">opt_grid</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    core grid object                </div>                    </div>            </div>        <div class="details">                                                            </div>                                            <h5>Example:</h5>            <pre><code>plugin.setColumnHeatMap(1, {
+  "field": "CF_LAST",
+  "heatMap": {
+    "midPoint": 0, // optional number
+    "mode": "cell" // optional string (cell|text)
+  }
+});</code></pre>    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="unload"><span class="type-signature"></span>unload<span class="signature">(host)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">host</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    core grid object                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                </article></section></div></div>

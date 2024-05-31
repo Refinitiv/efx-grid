@@ -1,152 +1,37 @@
-<link rel="stylesheet" href="./resources/styles/elf-template.css">
-
-<h1 id="text-formatting">Text Formatting</h1>
-<p>The Text Formatting Extension provides special formatting for presenting actual data. By default, the possible formats are number, scaled, percent, and datetime. However, the custom formatting can also be created to handle particular cases.</p>
-<code-sandbox hash="73f0f547"><pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-DataGenerator.addFieldInfo(&quot;volume&quot;, {
-    type: &quot;number&quot;,
-    min: 10,
-    max: 10e6
+<h1 id="using-core-apis">Using Core APIs</h1>
+<p>Core Grid is the internal part of Grid, containing logics for UI and layout manipulation. Grid is just a wrapper that make the JavaScript grid component (Core Grid) become a <a href="https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_custom_elements">custom element</a> in the <a href="https://developer.mozilla.org/en-US/docs/Web/Web_Components">Web Components</a> standard. </p>
+<p>Some of the APIs are already propagated and exposed to the <code>api</code> property of the element. However, most of the APIs are still only available in the core part of Grid. </p>
+<p>To unlock all the APIs you need to get a reference to the Core Grid by using the <code>getCoreGrid</code> method from <code>api</code> as shown in the below sample:</p>
+<pre><code class="language-js">var grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
+grid.addEventListener(&quot;configured&quot;, function(e) {
+    var core = e.detail.api.getCoreGrid(); // Getting Core Grid reference
+    
+    var titleSection = core.getSection(&quot;title&quot;);
+    var contentSection = core.getSection(&quot;content&quot;);
+    var colCount = core.getColumnCount();
 });
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;volume&quot;, &quot;date1&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 10 });
-var configObj = {
-    columns: [
-        {
-            name: &quot;Company&quot;,
-            field: fields[0]
-        },
-        {
-            name: &quot;Last&quot;,
-            field: fields[2],
-            width: 100,
-            alignment: &quot;right&quot;,
-            formatType: {
-                formatType: &quot;number&quot;
-            }
-        },
-        {
-            name: &quot;4 Decimal Places&quot;,
-            field: fields[2],
-            width: 100,
-            alignment: &quot;right&quot;,
-            formatType: {
-                formatType: &quot;number&quot;,
-                decimalPlaces: 4
-            }
-        },
-        {
-            name: &quot;Net. Chng&quot;,
-            field: fields[3],
-            width: 100,
-            alignment: &quot;right&quot;,
-            formatType: {
-                formatType: &quot;percent&quot;
-            }
-        },
-        {
-            name: &quot;Volume&quot;,
-            field: fields[4],
-            alignment: &quot;right&quot;,
-            formatType: {
-                formatType: &quot;scaled&quot;
-            }
-        },
-        {
-            name: &quot;IPO Date&quot;,
-            field: fields[5],
-            alignment: &quot;center&quot;,
-            formatType: {
-                formatType: &quot;dateTime&quot;
-            }
-        }
-    ],
-    staticDataRows: records,
-    extensions: [
-        new TextFormatting()
-    ]
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
 </code></pre>
-</code-sandbox><h2 id="installation-and-how-to-import-to-a-project">Installation and how to import to a project</h2>
-<p>Installation examples and details of how to import the extension to a project are available on the <a href="#/extensions/readme">Overview</a> page.</p>
-<h2 id="formatting-types">Formatting Types</h2>
-<p>There are 5 formatting types you can use to format your data. They are &quot;freetext&quot;, &quot;number&quot;, &quot;scaled&quot;, &quot;percent&quot;,and &quot;datetime&quot;.</p>
-<ul>
-<li>number</li>
-<li>scaled (scaledvalue) - number with scaling unit (e.g., 10M or 3.2B)</li>
-<li>percent - number with percent sign</li>
-<li>datetime (date, time, date-time, or time-date) - date and time text</li>
-<li>freetext (formula) - number from a calculation. Very small fraction will be removed (e.g., 3.0000000001 is converted to 3)</li>
-</ul>
-<p>To change formatting type, set <code>formatType</code> to an object containing <code>formatType</code> property in the column configuration. In case of advance formatting, please see <code>FormatOptions</code> for further properties that can be specified in <code>formatType</code>.</p>
-<h2 id="default-format-property">Default format property</h2>
-<table>
-<thead>
-<tr>
-<th>Types</th>
-<th align="center">decimalPlaces</th>
-<th align="center">precisionEnabled</th>
-<th align="center">percentSign</th>
-<th align="center">scalingUnit</th>
-<th align="center">dateTimeFormat</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>number</td>
-<td align="center">2</td>
-<td align="center">true</td>
-<td align="center">-</td>
-<td align="center">-</td>
-<td align="center">-</td>
-</tr>
-<tr>
-<td>percent</td>
-<td align="center">2</td>
-<td align="center">true</td>
-<td align="center">true</td>
-<td align="center">-</td>
-<td align="center">-</td>
-</tr>
-<tr>
-<td>scaled</td>
-<td align="center">2</td>
-<td align="center">-</td>
-<td align="center">-</td>
-<td align="center">&quot;million&quot;</td>
-<td align="center">-</td>
-</tr>
-<tr>
-<td>datetime</td>
-<td align="center">-</td>
-<td align="center">-</td>
-<td align="center">-</td>
-<td align="center">-</td>
-<td align="center">&quot;MM/DD/YYYY&quot;</td>
-</tr>
-</tbody></table>
-<h2 id="data-preparation">Data preparation</h2>
-<p>Grid provides ability for data conversion. Please see the page <a href="#/data/data-conversion">Data conversion</a> for more details.</p>
-<h2 id="formatting-custom-content">Formatting custom content</h2>
-<p>Text Formatting Extension work by overwritten any existing cell content with a formatted text. By default, any use of <a href="#/rendering/custom-formatter">custom rendering or formatters</a> will not work with Text Formatting Extension (i.e., custom content is replaced with a formatted text). There are two ways to apply formatted text on a custom content.</p>
 <blockquote>
-<p>Note: more details about custom rendering can be found <a href="#/rendering/custom-formatter">here</a></p>
+<p>Note: The <a href="https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_custom_elements">custom elements</a> are not defined immediately after the page load. <code>api</code> will only be available after the element is defined. So, use the <code>configured</code> event to ensure the existence of the <code>api</code> property.</p>
 </blockquote>
-<h3 id="formatting-custom-content-by-using-formatlogic">Formatting custom content by using <code>formatLogic</code></h3>
-<p>The first way is to use <code>formatLogic</code>. You can specify a function on how to apply formatted text to your custom content. <code>formattedText</code> and <code>cell</code> will be provided through the event argument when <code>formatLogic</code> is executed. Inside the function, you can then put formatted text in your custom content at the appropriate place, as illustrated below:</p>
-<code-sandbox hash="26322446"><pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+<p>For all available Core Grid APIs, see <a href="#/apis/readme">this page</a>.</p>
+<h2 id="getting-built-in-plugins-and-extensions">Getting built-in plugins and extensions</h2>
+<p>Due to the long history of its development, Grid contains a lot of legacy codes, including built-in plugins. A plugin is just an old name for an extension. So, to get a reference for <strong>plugins or extensions</strong>, you can use the <code>getPlugin</code> method from the Core Grid. </p>
+<blockquote>
+<p>Note: The &quot;SortableTitlePlugin&quot; is the only notable plugin worth mentioning among built-in plugins, since it manages how Grid sorts the data. </p>
+</blockquote>
+<p>The following example shows how you can listen to the <code>columnSorted</code> event fired after each sorting state change from the SortableTitlePlugin.</p>
+<h2 id="example">Example</h2>
+<code-sandbox hash="44343ab3"><pre><code class="language-css">efx-grid {
+    height: 200px;
+}
+html hr {
+    margin: 5px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;big id=&quot;msg_div&quot;&gt;Click grid top section to sort&lt;/big&gt;
+&lt;hr&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
@@ -157,137 +42,36 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var customRenderer1 = function(e) {
-    var cell = e.cell;
-    var content = cell.getContent();
-    if(!content || !content._textSpan) {
-        content = document.createElement(&quot;div&quot;);
-        content._iconElem = document.createElement(&quot;ef-icon&quot;);
-        content._textSpan = document.createElement(&quot;span&quot;);
-        
-        content._iconElem.icon = &quot;history&quot;;
-        content._iconElem.style.marginRight = &quot;4px&quot;;
-        content._iconElem.style.color = &quot;red&quot;;
-        
-        content.appendChild(content._iconElem);
-        content.appendChild(content._textSpan);
-    }
-    
-    content._textSpan.textContent = e.data;
-    
-    cell.setContent(content);
-};
-var formatLogic1 = function(e) {
-    var content = e.cell.getContent();
-    if(content &amp;&amp; content._textSpan) {
-        content._textSpan.textContent = e.formattedText;
-    }
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 6 });
+
+var onColumnSorted = function(e) {
+    msg_div.textContent = &quot;Column &quot; + e.colIndex + &quot; is sorted in &quot; + (e.sortOrder === &quot;a&quot; ? &quot;ascending&quot; : &quot;descending&quot;) + &quot; order&quot;;
 };
 
-var fields = [&quot;companyName&quot;, &quot;date1&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 10 });
 var configObj = {
+    sorting: {
+        sortableColumns: true,
+    },
     columns: [
-        {
-            name: &quot;Company&quot;,
-            field: fields[0]
-        },
-        {
-            name: &quot;Custom Content&quot;,
-            field: fields[1],
-            binding: customRenderer1,
-            formatType: {
-                formatType: &quot;dateTime&quot;,
-                formatLogic: formatLogic1
-            }
-        }
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market&quot;, field: fields[1], width: 120},
+        {name: &quot;Last&quot;, field: fields[2], width: 100},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
+        {name: &quot;Industry&quot;, field: fields[4]}
     ],
-    staticDataRows: records,
-    extensions: [
-        new TextFormatting()
-    ]
+    staticDataRows: records
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
+grid.addEventListener(&quot;configured&quot;, function(e) {
+    var core = e.detail.api.getCoreGrid();
+    
+    var plugin = core.getPlugin(&quot;SortableTitle&quot;);
+    plugin.listen(&quot;columnSorted&quot;, onColumnSorted);
+});
 grid.config = configObj;
 </code></pre>
-</code-sandbox><h3 id="formatting-custom-content-by-manual-formatting">Formatting custom content by manual formatting</h3>
-<p>The second way is to apply the format within your custom rendering/formatter by using the extension&#39;s <code>formatText</code> method. This second method requires modification to custom rendering/formatter. First, you have to disable automatic text formatting by setting <code>autoTextFormatting</code> to <code>false</code>, so that your custom content is not overwritten. Secondly, you need to keep reference to the extension instance, so that it will be available within your custom rendering. Lastly, use the extension&#39;s <code>formatText</code> to obtain formatted text. The example below shows the same result as the example above, but without using <code>formatLogic</code>: </p>
-<code-sandbox hash="6bea8dc4"><pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var tfExt = new TextFormatting(); // for quick referencing
-var customRenderer1 = function(e) {
-    var cell = e.cell;
-    var content = cell.getContent();
-    if(!content || !content._textSpan) {
-        content = document.createElement(&quot;div&quot;);
-        content._iconElem = document.createElement(&quot;ef-icon&quot;);
-        content._textSpan = document.createElement(&quot;span&quot;);
-        
-        content._iconElem.icon = &quot;history&quot;;
-        content._iconElem.style.marginRight = &quot;4px&quot;;
-        content._iconElem.style.color = &quot;red&quot;;
-        
-        content.appendChild(content._iconElem);
-        content.appendChild(content._textSpan);
-    }
-    
-    content._textSpan.textContent = tfExt.formatText(e.colIndex, e.data);
-    
-    cell.setContent(content);
-};
-
-var fields = [&quot;companyName&quot;, &quot;date1&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 10 });
-var configObj = {
-    columns: [
-        {
-            name: &quot;Company&quot;,
-            field: fields[0]
-        },
-        {
-            name: &quot;Custom Content&quot;,
-            field: fields[1],
-            binding: customRenderer1,
-            formatType: {
-                formatType: &quot;dateTime&quot;,
-                autoTextFormatting: false
-            }
-        }
-    ],
-    staticDataRows: records,
-    extensions: [
-        tfExt // Text Formatting Extension still needs to be put into the grid
-    ]
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
-</code></pre>
-</code-sandbox><h2 style="margin-bottom:5px" id="api-refs">API Reference</h2>
-<div id="elf-api-container"><div id="main-template" class="elf-template">    <section><header>            <h1 class="subsection-title"><span class="attribs"><span class="type-signature"></span></span>TextFormattingPlugin<span class="signature">()</span><span class="type-signature"></span></h1>            </header><article>                                                                        <h3 class="subsection-title" id="type_definitions">Type Definitions</h3>                        
-<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~ColumnOptions">ColumnOptions</h4><div class="description">    Available options that can be specified on the column configuration object</div>    <h5>Type:</h5>    <span class="param-type"><a href="#/extensions/tr-grid-textformatting#~FormatOptions">TextFormattingPlugin~FormatOptions</a></span><div class="details">                                                            </div></div>                            
-<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~FormatLogicArguments">FormatLogicArguments</h4><div class="description">    Event argument object for formatLogic function</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>colIndex</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>rowIndex</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>field</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>formattedText</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                                    <td class="description last">Text that is formatted by the formatter of the specified column</td>        </tr>            <tr>                            <td class="name"><code>cell</code></td>                        <td class="type">                            <span class="param-type">*</span>                        </td>                                    <td class="description last">Grid cell instance</td>        </tr>            <tr>                            <td class="name"><code>rowData</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">Row data object</td>        </tr>            <tr>                            <td class="name"><code>format</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                                    <td class="description last">Function that is used to produce formattedText</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            
-<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~FormatOptions">FormatOptions</h4><div class="description">    Available options that can be specified in the `formatType` property of each column configuration object</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>formatType</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Available options are: number, scaled, percent, and datetime</td>        </tr>            <tr>                            <td class="name"><code>field</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Field is required but can be defined in the column definition object</td>        </tr>            <tr>                            <td class="name"><code>decimalPlaces</code></td>                        <td class="type">                            <span class="param-type">number</span> | <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    2                                </td>                        <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>precisionEnabled</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    true                                </td>                        <td class="description last">If disabled, number of decimal will remain as original.</td>        </tr>            <tr>                            <td class="name"><code>plusSign</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>separator</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">Thousands separators</td>        </tr>            <tr>                            <td class="name"><code>percentSign</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">If the formatType is percent and the value of percentSign is not specified, the percentSign is set to true by default</td>        </tr>            <tr>                            <td class="name"><code>scalingUnit</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    million                                </td>                        <td class="description last">Value can be million or billion</td>        </tr>            <tr>                            <td class="name"><code>multiplyBy100</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>dateTimeFormat</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    "MM/DD/YYYY"                                </td>                        <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>useUTCTime</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    true                                </td>                        <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>autoTextFormatting</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    true                                </td>                        <td class="description last">If disabled, the extension's automatic formatting will not be triggered, including `formatLogic`</td>        </tr>            <tr>                            <td class="name"><code>formatLogic</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">If specified all default formatting will be prevented and replaced by the given function. This should be used when the column has custom rendering. The function must retrieve, format, and insert the data with the provided arguments (i.e., TextFormattingPlugin~FormatLogicArguments).</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            
-<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~GridOptions">GridOptions</h4><div class="description">    Available options that can be specified on the grid configuration object</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>autoTextFormatting</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    true                                </td>                        <td class="description last">If disabled, the extension's automatic formatting will be disabled for all columns</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            <h3 class="subsection-title" id="methods">Methods</h3>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="config"><span class="type-signature"></span>config<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="formatText"><span class="type-signature"></span>formatText<span class="signature">(colIndex, obj)</span><span class="type-signature"> → {string}</span></h4>                            <div class="description">        Format the given object by the formatter from the specified column. The object is converted to string, if no formatter is specified    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                                            </div>                <div class="param">                            <div class="name">obj</div>                        <div class="type">                            <span class="param-type">*</span>                        </div>                                                    <div class="description">                    The object can be string, number, boolean, or Date object                </div>                    </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">string</span>    </div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getColumnFormatOptions"><span class="type-signature"></span>getColumnFormatOptions<span class="signature">(colIndex, options<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Object}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                            <div class="attributes">                                                                </div>                                            </div>                <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    Object for storing returned data                </div>                    </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getConfigObject"><span class="type-signature"></span>getConfigObject<span class="signature">(gridOptions<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Object}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">gridOptions</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getFormatter"><span class="type-signature"></span>getFormatter<span class="signature">(colIndex)</span><span class="type-signature"> → {FieldFormatter}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">FieldFormatter</span>    </div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getName"><span class="type-signature"></span>getName<span class="signature">()</span><span class="type-signature"> → {string}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">string</span>    </div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="hasMultiTableSupport"><span class="type-signature"></span>hasMultiTableSupport<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Plugin that has multi-table support means that it can have multiple hosts/tables and share its states across those hosts/tables.    </div>                        <div class="details">                    <dt class="tag-overrides">Overrides:</dt>    <dd class="tag-overrides">        <a href="#">GridPlugin#hasMultiTableSupport</a>    </dd>                                                </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="initialize"><span class="type-signature"></span>initialize<span class="signature">(host, options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">host</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    core grid instance                </div>                    </div>                <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="openDialog"><span class="type-signature"></span>openDialog<span class="signature">(colIndex)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setColumnFormat"><span class="type-signature"></span>setColumnFormat<span class="signature">(colIndex, formatOptions)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                                            </div>                <div class="param">                            <div class="name">formatOptions</div>                        <div class="type">                            <span class="param-type"><a href="#/extensions/tr-grid-textformatting#~FormatOptions">TextFormattingPlugin~FormatOptions</a></span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="unload"><span class="type-signature"></span>unload<span class="signature">(host)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">host</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    core grid instance                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                        <h3 class="subsection-title" id="events">Events</h3>                    
-<div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:formatChanged">formatChanged</h4>                            <div class="description">        Fired only when a user click OK from the format dialog, that is generated from this extension    </div>                    <h5>Type:</h5>        <span class="param-type">Object</span>                    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>colIndex</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                            <td class="attributes">                                                </td>                                        <td class="default">                                </td>                        <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>formatType</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Available options are: number, scaled, percent, and datetime</td>        </tr>            <tr>                            <td class="name"><code>field</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Field defined in the column</td>        </tr>            <tr>                            <td class="name"><code>decimalPlaces</code></td>                        <td class="type">                            <span class="param-type">number</span> | <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    2                                </td>                        <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>plusSign</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>separator</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>percentSign</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>scalingUnit</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Value can be million or billion</td>        </tr>            <tr>                            <td class="name"><code>multiplyBy100</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>dateTimeFormat</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>useUTCTime</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last"></td>        </tr>        </tbody></table></div><div class="details">                                                            </div>                                    </div>            </article></section></div></div>
+</code-sandbox><blockquote>
+<p>Note: you can use the <code>listen</code> method to listen to a custom event fired from Grid and Grid&#39;s plugins, instead of the conventional <code>addEventListener</code> method.</p>
+</blockquote>

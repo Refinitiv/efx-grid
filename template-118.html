@@ -1,37 +1,34 @@
-<h1 id="using-core-apis">Using Core APIs</h1>
-<p>Core Grid is the internal part of Grid, containing logics for UI and layout manipulation. Grid is just a wrapper that make the JavaScript grid component (Core Grid) become a <a href="https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_custom_elements">custom element</a> in the <a href="https://developer.mozilla.org/en-US/docs/Web/Web_Components">Web Components</a> standard. </p>
-<p>Some of the APIs are already propagated and exposed to the <code>api</code> property of the element. However, most of the APIs are still only available in the core part of Grid. </p>
-<p>To unlock all the APIs you need to get a reference to the Core Grid by using the <code>getCoreGrid</code> method from <code>api</code> as shown in the below sample:</p>
-<pre><code class="language-js">var grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
-grid.addEventListener(&quot;configured&quot;, function(e) {
-    var core = e.detail.api.getCoreGrid(); // Getting Core Grid reference
-    
-    var titleSection = core.getSection(&quot;title&quot;);
-    var contentSection = core.getSection(&quot;content&quot;);
-    var colCount = core.getColumnCount();
-});
-</code></pre>
-<blockquote>
-<p>Note: The <a href="https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_custom_elements">custom elements</a> are not defined immediately after the page load. <code>api</code> will only be available after the element is defined. So, use the <code>configured</code> event to ensure the existence of the <code>api</code> property.</p>
-</blockquote>
-<p>For all available Core Grid APIs, see <a href="#/apis/readme">this page</a>.</p>
-<h2 id="getting-built-in-plugins-and-extensions">Getting built-in plugins and extensions</h2>
-<p>Due to the long history of its development, Grid contains a lot of legacy codes, including built-in plugins. A plugin is just an old name for an extension. So, to get a reference for <strong>plugins or extensions</strong>, you can use the <code>getPlugin</code> method from the Core Grid. </p>
-<blockquote>
-<p>Note: The &quot;SortableTitlePlugin&quot; is the only notable plugin worth mentioning among built-in plugins, since it manages how Grid sorts the data. </p>
-</blockquote>
-<p>The following example shows how you can listen to the <code>columnSorted</code> event fired after each sorting state change from the SortableTitlePlugin.</p>
+<h1 id="simple-ticker-formatter">Simple Ticker Formatter</h1>
+<p>This formatter creates a ticker column.</p>
+<h2 id="specific-options">Specific options</h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Attributes</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>negativeColor</td>
+<td>string</td>
+<td>optional</td>
+<td>Color code</td>
+</tr>
+<tr>
+<td>positiveColor</td>
+<td>string</td>
+<td>optional</td>
+<td>Color code</td>
+</tr>
+</tbody></table>
 <h2 id="example">Example</h2>
-<code-sandbox hash="44343ab3"><pre><code class="language-css">efx-grid {
-    height: 200px;
-}
-html hr {
-    margin: 5px;
+<code-sandbox hash="39ff84da"><pre><code class="language-css">efx-grid {
+    height: 320px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;big id=&quot;msg_div&quot;&gt;Click grid top section to sort&lt;/big&gt;
-&lt;hr&gt;
-&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
@@ -42,36 +39,66 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 6 });
-
-var onColumnSorted = function(e) {
-    msg_div.textContent = &quot;Column &quot; + e.colIndex + &quot; is sorted in &quot; + (e.sortOrder === &quot;a&quot; ? &quot;ascending&quot; : &quot;descending&quot;) + &quot; order&quot;;
-};
-
+var fields = [&quot;last&quot;, &quot;changes&quot;, &quot;percent&quot;, &quot;tick_1&quot;];
+var records = new Array(40);
+for(var i = 0; i &lt; 40; ++i) {
+    var changes = i * (i % 7) - i % 13;
+    var last = 5 + i % 13;
+    var percent = (changes / last) * 100;
+    var tick;
+    if (percent &gt; 0) {
+        tick = 1;
+    } else if (percent &lt; 0) {
+        tick = -1;
+    } else {
+        tick = 0;
+    }
+    var record = records[i] = {};
+    record[fields[0]] = last;
+    record[fields[1]] = changes;
+    record[fields[2]] = percent.toFixed(2);
+    record[fields[3]] = tick;
+}
 var configObj = {
     sorting: {
-        sortableColumns: true,
+        sortableColumns: true
     },
     columns: [
-        {name: &quot;Company&quot;, field: fields[0]},
-        {name: &quot;Market&quot;, field: fields[1], width: 120},
-        {name: &quot;Last&quot;, field: fields[2], width: 100},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
-        {name: &quot;Industry&quot;, field: fields[4]}
+        { 
+            name: &quot;Last&quot;,
+            field: fields[0],
+            alignment: &quot;c&quot;
+        },
+        { 
+            name: &quot;Changes&quot;,
+            field: fields[1],
+            alignment: &quot;c&quot;,
+        },
+        { 
+            name: &quot;Changes %&quot;,
+            field: fields[2],
+            alignment: &quot;c&quot;,
+        },
+        { 
+            name: &quot;Default&quot;,
+            field: fields[3],
+            alignment: &quot;c&quot;,
+            binding: SimpleTickerFormatter.create()
+        },
+        { 
+            name: &quot;Custom&quot;,
+            field: fields[3],
+            alignment: &quot;c&quot;,
+            binding: SimpleTickerFormatter.create({
+                negativeColor: &quot;#FF6333&quot;,
+                positiveColor: &quot;#607EFF&quot;,
+            })
+        }
     ],
     staticDataRows: records
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
-grid.addEventListener(&quot;configured&quot;, function(e) {
-    var core = e.detail.api.getCoreGrid();
-    
-    var plugin = core.getPlugin(&quot;SortableTitle&quot;);
-    plugin.listen(&quot;columnSorted&quot;, onColumnSorted);
-});
 grid.config = configObj;
 </code></pre>
-</code-sandbox><blockquote>
-<p>Note: you can use the <code>listen</code> method to listen to a custom event fired from Grid and Grid&#39;s plugins, instead of the conventional <code>addEventListener</code> method.</p>
-</blockquote>
+</code-sandbox>

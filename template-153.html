@@ -1,75 +1,47 @@
-<h1 id="ef-toggle-formatter">EF Toggle Formatter</h1>
-<p>This formatter creates a <a href="https://ui.refinitiv.com/elements/toggle">ef-toggle</a>. The toggle will be off by default.</p>
-<h2 id="example">Example</h2>
-<code-sandbox hash="29027e4b"><pre><code class="language-css">efx-grid {
-    height: 320px;
-}
+<h1 id="internationalization">Internationalization</h1>
+<p>Widgets support localization, including translated messages and formatting. In your app, setting your html lang attribute will trigger that language to be applied to widget elements.</p>
+<pre><code class="language-html">&lt;html lang=&quot;ja&quot;&gt;
+
+&lt;/html&gt;
 </code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+<p>Alternatively, setting the lang attribute directly on elements will have the same effect.</p>
+<blockquote>
+<p><code>lang</code> on an element supersedes the html lang, meaning multiple languages can exist on the same page.</p>
+</blockquote>
+<pre><code class="language-js">var dialog = document.createElement(&quot;column-selection-dialog&quot;);
+dialog.lang = &quot;ja&quot;;
 </code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;boolean&quot;];
-var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 20 });
-
-var configObj = {
-    sorting: {
-        sortableColumns: true
-    },
-    columns: [
-        {
-            name: &quot; &quot;,
-            field: fields[0],
-            sort: fields[0],
-            alignment: &quot;c&quot;,
-            width: 100,
-            binding: EFToggleFormatter.create({
-                events: {
-                    &quot;click&quot;: function(e) {
-                        // blotter.api.getDataView().log();
-                    }
-                }
-            })
-        },
-        {
-            name: &quot;Label&quot;,
-            field: fields[0],
-            sort: fields[0],
-            alignment: &quot;c&quot;,
-            width: 100,
-            binding: EFToggleFormatter.create({
-                events: {
-                    &quot;checked-changed&quot;: function(e) {
-
-                    }
-                },
-                styles: {
-                    width: &quot;54px&quot;
-                },
-                attributes: {
-                    label: &quot;OFF&quot;,
-                    &quot;checked-label&quot;: &quot;ON&quot;
-                }
-            })
-        },
-        {
-            name: &quot;Checked&quot;,
-            field: fields[0],
-            sort: fields[0],
-            alignment: &quot;c&quot;
-        }
-    ],
-    staticDataRows: records
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
-</code></pre>
-</code-sandbox>
+<p>Currently, the following languages are supported:</p>
+<table>
+<thead>
+<tr>
+<th><strong>Language</strong></th>
+<th><strong>lang value</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>English (default)</td>
+<td>en</td>
+</tr>
+<tr>
+<td>Japanese</td>
+<td>ja</td>
+</tr>
+<tr>
+<td>German</td>
+<td>de</td>
+</tr>
+<tr>
+<td>Simplified Chinese</td>
+<td>zh</td>
+</tr>
+<tr>
+<td>Traditional Chinese</td>
+<td>zh-Hant</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>If an unsupported language is set, English is the default fallback.</p>
+</blockquote>
+<h1 id="element-framework">Element Framework</h1>
+<p>More details about localization is avaiable on <a href="https://ui.refinitiv.com/intl/internationalization">Internationalization</a></p>
