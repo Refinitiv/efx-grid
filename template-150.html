@@ -11,24 +11,24 @@
 </ul>
 <h2 id="demo">Demo</h2>
 <p><code>Right-click</code> on each column header to see the dialog.</p>
-<code-sandbox hash="9fa4264c"><pre><code class="language-css">textarea {
-  width: 100%;
-  height: 100px;
+<code-sandbox hash="6421a6ee"><pre><code class="language-css">textarea {
+    width: 100%;
+    height: 100px;
 }
 efx-grid {
-  min-height: 500px;
+    min-height: 500px;
 }
 html hr {
-  margin: 5px;
+    margin: 5px;
 }
 </code></pre>
 <pre><code class="language-html">Language:
 &lt;select id=&quot;lang_selector&quot;&gt;
-  &lt;option value=&quot;en&quot;&gt;English&lt;/option&gt;
-  &lt;option value=&quot;ja&quot;&gt;Japanese&lt;/option&gt;
-  &lt;option value=&quot;de&quot;&gt;German&lt;/option&gt;
-  &lt;option value=&quot;zh&quot;&gt;Simplified Chinese&lt;/option&gt;
-  &lt;option value=&quot;zh-Hant&quot;&gt;Traditional Chinese&lt;/option&gt;
+    &lt;option value=&quot;en&quot;&gt;English&lt;/option&gt;
+    &lt;option value=&quot;ja&quot;&gt;Japanese&lt;/option&gt;
+    &lt;option value=&quot;de&quot;&gt;German&lt;/option&gt;
+    &lt;option value=&quot;zh&quot;&gt;Simplified Chinese&lt;/option&gt;
+    &lt;option value=&quot;zh-Hant&quot;&gt;Traditional Chinese&lt;/option&gt;
 &lt;/select&gt;
 &lt;hr&gt;
 &lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
@@ -48,37 +48,35 @@ var contextMenuExt = new ContextMenu();
 var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;CF_VOLUME&quot;, &quot;TR.IPODate&quot;];
 var records = DataGenerator.generateRecords(fields, { numRows: 10 });
 var configObj = {
-  columns: [
-    {name: &quot;Company&quot;, field: fields[0]},
-    {name: &quot;Market&quot;, field: fields[1], width: 100},
-    {name: &quot;Last&quot;, field: fields[2], width: 80, alignment: &quot;right&quot;},
-    {name: &quot;Net. Chng&quot;, field: fields[3], width: 80, alignment: &quot;right&quot;},
-    {name: &quot;Volume&quot;, field: fields[4], alignment: &quot;right&quot;},
-    {name: &quot;IPO date&quot;, field: fields[5], width: 100}
-  ],
-  dataModel: {
-    data: records
-  },
-  contextMenu: {
-    items: {
-      MENU_1: {
-        text: &#39;Format&#39;,
-        callback: function (e) {
-          var lang = document.getElementById(&quot;lang_selector&quot;).value;
-          columnFormattingExt.openDialog(e.colIndex, {
-            lang: lang
-          });
+    columns: [
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market&quot;, field: fields[1], width: 100},
+        {name: &quot;Last&quot;, field: fields[2], width: 80, alignment: &quot;right&quot;},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 80, alignment: &quot;right&quot;},
+        {name: &quot;Volume&quot;, field: fields[4], alignment: &quot;right&quot;},
+        {name: &quot;IPO date&quot;, field: fields[5], width: 100}
+    ],
+    staticDataRows: records,
+    contextMenu: {
+        items: {
+            MENU_1: {
+                text: &quot;Format&quot;,
+                callback: function (e) {
+                    var lang = document.getElementById(&quot;lang_selector&quot;).value;
+                    columnFormattingExt.openDialog(e.colIndex, {
+                        lang: lang
+                    });
+                }
+            }
+        },
+        onMenu: function (e) {
+            e.menu.addItem(&quot;MENU_1&quot;);
         }
-      }
     },
-    onMenu: function (e) {
-      e.menu.addItem(&#39;MENU_1&#39;);
-    }
-  },
-  extensions: [
-    columnFormattingExt,
-    contextMenuExt
-  ]
+    extensions: [
+        columnFormattingExt,
+        contextMenuExt
+    ]
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
@@ -90,36 +88,33 @@ grid.config = configObj;
 <h2 id="setup-guide">Setup guide</h2>
 <p>First, let&#39;s import the modules.</p>
 <pre><code class="language-js">// efx-grid
-import &#39;@refinitiv-ui/efx-grid&#39;;
-import &#39;@refinitiv-ui/efx-grid/themes/halo/light&#39;;
+import &quot;@refinitiv-ui/efx-grid&quot;;
+import &quot;@refinitiv-ui/efx-grid/themes/halo/light&quot;;
 
 // extensions
 import {
-  ConditionalColoring,
-  HeatMap,
-  TextFormatting,
-  ColumnFormatting
- } from &#39;@refinitiv-ui/efx-grid/extensions&#39;;
+    ConditionalColoring,
+    HeatMap,
+    TextFormatting,
+    ColumnFormatting
+ } from &quot;@refinitiv-ui/efx-grid/extensions&quot;;
 
 // Column Formatting Dialog module
-import &#39;@refinitiv-ui/efx-grid/column-format-dialog&#39;;
-import &#39;@refinitiv-ui/efx-grid/column-format-dialog/themes/halo/light&#39;;
+import &quot;@refinitiv-ui/efx-grid/column-format-dialog&quot;;
+import &quot;@refinitiv-ui/efx-grid/column-format-dialog/themes/halo/light&quot;;
 </code></pre>
 <p>Create a new Column Formatting Extension instance and push it to an <code>extensions</code> configuration.</p>
 <pre><code class="language-js">var cfe = new ColumnFormatting();
 
 var configObj = {
-  extensions: [
-    cfe,
-    new TextFormatting(),
-    new HeatMap(),
-    new ConditionalColoring()
-  ],
-  columns: columns, // Columns config
-  dataModel: { // Data config
-    fields: fields,
-    data: dataRows
-  },
+    extensions: [
+        cfe,
+        new TextFormatting(),
+        new HeatMap(),
+        new ConditionalColoring()
+    ],
+    columns: columns, // Columns config
+    staticDataRows: dataRows
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
@@ -130,21 +125,21 @@ grid.config = configObj;
 
 // Or open the dialog with specific configuration.
 cfe.openDialog(0, {
-  supportDisplayStyleOptions: {
-    fx: true,
-  },
-  supportValueFormatOptions: {
-    fx: true
-  }
-  supportHighlightApplyToSwitch: true,
-  data: {
-    &#39;fieldList&#39;: [{&#39;value&#39;: &#39;col1&#39;}, {&#39;value&#39;: &#39;col2&#39;}, {&#39;value&#39;: &#39;col3&#39;}, {&#39;value&#39;: &#39;col4&#39;}, {&#39;value&#39;: &#39;col5&#39;}],
-    &#39;valueFormatTab&#39;: {&#39;formatType&#39;: &#39;general&#39;},
-    &#39;colorTextTab&#39;: {&#39;colorText&#39;: {&#39;field&#39;: &#39;col2&#39;}},
-    &#39;displayStyleTab&#39;: {&#39;general&#39;: {&#39;alignment&#39;: &#39;center&#39;}, &#39;mode&#39;: &#39;general&#39;},
-    &#39;fieldDataType&#39;: &#39;general&#39;
-  },
-  fields: [&quot;intCol&quot;, &quot;strCol&quot;, &quot;boolCol&quot;, &quot;floatCol&quot;, &quot;dateCol&quot;],
+    supportDisplayStyleOptions: {
+        fx: true,
+    },
+    supportValueFormatOptions: {
+        fx: true
+    }
+    supportHighlightApplyToSwitch: true,
+    data: {
+        &quot;fieldList&quot;: [{&quot;value&quot;: &quot;col1&quot;}, {&quot;value&quot;: &quot;col2&quot;}, {&quot;value&quot;: &quot;col3&quot;}, {&quot;value&quot;: &quot;col4&quot;}, {&quot;value&quot;: &quot;col5&quot;}],
+        &quot;valueFormatTab&quot;: {&quot;formatType&quot;: &quot;general&quot;},
+        &quot;colorTextTab&quot;: {&quot;colorText&quot;: {&quot;field&quot;: &quot;col2&quot;}},
+        &quot;displayStyleTab&quot;: {&quot;general&quot;: {&quot;alignment&quot;: &quot;center&quot;}, &quot;mode&quot;: &quot;general&quot;},
+        &quot;fieldDataType&quot;: &quot;general&quot;
+    },
+    fields: [&quot;intCol&quot;, &quot;strCol&quot;, &quot;boolCol&quot;, &quot;floatCol&quot;, &quot;dateCol&quot;],
 });
 </code></pre>
 <h2 id="changing-language">Changing Language</h2>
@@ -153,42 +148,39 @@ cfe.openDialog(0, {
 <p>For most cases, you will want the dialog button to appear when the user right-clicks on the column header (known as the context menu).</p>
 <p>To do this, simply import <code>Context Menu</code> extension and its configurations.</p>
 <pre><code class="language-js">import {
-  ContextMenu,
-  ColumnFormatting,
-  TextFormatting,
-  HeatMap,
-  ConditionalColoring
-} from &#39;@refinitiv-ui/efx-grid/extensions&#39;;
+    ContextMenu,
+    ColumnFormatting,
+    TextFormatting,
+    HeatMap,
+    ConditionalColoring
+} from &quot;@refinitiv-ui/efx-grid/extensions&quot;;
 
 var cfe = new ColumnFormatting();
 
 var configObj = {
-  extensions: [
-    cfe,
-    new ContextMenu(),
-    new TextFormatting(),
-    new HeatMap(),
-    new ConditionalColoring()
-  ],
-  columns: columns, // Columns config
-  dataModel: { // Data config
-    fields: fields,
-    data: dataRows
-  },
-  contextMenu: {
-    items: {
-      MENU_1: {
-        text: &quot;Format&quot;,
-        callback: function (e) {
-          // Open the dialog when click on the &quot;Format&quot; menu
-          cfe.openDialog(e.colIndex);
+    extensions: [
+        cfe,
+        new ContextMenu(),
+        new TextFormatting(),
+        new HeatMap(),
+        new ConditionalColoring()
+    ],
+    columns: columns, // Columns config
+    staticDataRows: dataRows,
+    contextMenu: {
+        items: {
+            MENU_1: {
+                text: &quot;Format&quot;,
+                callback: function (e) {
+                    // Open the dialog when click on the &quot;Format&quot; menu
+                    cfe.openDialog(e.colIndex);
+                }
+            },
+        },
+        onMenu: function (e) {
+            e.menu.addItem(&quot;MENU_1&quot;);
         }
-      },
     },
-    onMenu: function (e) {
-      e.menu.addItem(&quot;MENU_1&quot;);
-    }
-  },
 };
 </code></pre>
 <p>And that&#39;s it!</p>

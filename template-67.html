@@ -332,7 +332,8 @@ function findServices(rowData, rowId, ctx) {
 <td>No filter icon is shown at all times.</td>
 </tr>
 </tbody></table>
-<code-sandbox hash="a80d1585"><pre><code class="language-css">html hr {
+<h3 id="changing-icon-activation-at-runtime-example">Changing icon activation at runtime example</h3>
+<code-sandbox hash="40c5cd45"><pre><code class="language-css">html hr {
     margin: 5px;
 }
 efx-grid {
@@ -381,23 +382,88 @@ grid.config = configObj;
 document.getElementById(&quot;mode_always&quot;).addEventListener(&quot;click&quot;, function(e) { 
     configObj[&quot;rowFiltering&quot;][&quot;iconActivation&quot;] = &quot;always&quot;;
     rowFilterExt.config(configObj);
-    rowFilterExt._updateAllColumnIcons();
+    rowFilterExt.updateAllColumnIcons();
 });
 document.getElementById(&quot;mode_hover&quot;).addEventListener(&quot;click&quot;, function(e) {
     configObj[&quot;rowFiltering&quot;][&quot;iconActivation&quot;] = &quot;onHover&quot;;
     rowFilterExt.config(configObj);
-    rowFilterExt._updateAllColumnIcons();
+    rowFilterExt.updateAllColumnIcons();
 });
 document.getElementById(&quot;mode_active&quot;).addEventListener(&quot;click&quot;, function(e) {
     configObj[&quot;rowFiltering&quot;][&quot;iconActivation&quot;] = &quot;onActiveFilter&quot;;
     rowFilterExt.config(configObj);
-    rowFilterExt._updateAllColumnIcons();
+    rowFilterExt.updateAllColumnIcons();
 });
 document.getElementById(&quot;mode_none&quot;).addEventListener(&quot;click&quot;, function(e) { 
     configObj[&quot;rowFiltering&quot;][&quot;iconActivation&quot;] = &quot;none&quot;;
     rowFilterExt.config(configObj);
-    rowFilterExt._updateAllColumnIcons();
+    rowFilterExt.updateAllColumnIcons();
 });
+</code></pre>
+</code-sandbox><h2 id="date-filtering">Date filtering</h2>
+<p>Row Filtering extension always performs filtering on raw values of the data. So, the data must be already in an appropriate form in order to be filtered correctly. For date data, they must be in a <code>Date</code> object form. If your data received from the server are in a text form, they should be parsed <strong>before</strong> putting on Grid. Grid does not automatically perform data conversion at runtime due to performance concern. Preparing data to be ready for consumption is better performance wise, as sorting and filtering are already computationally expensive.</p>
+<p>If your date data are text in standard date format (any text that is accepted by <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/Date">Date constructor</a>), you can use <code>autoDateConversion</code> option to let Grid automatically parse string data to <code>Date</code> object from column with <code>dataType: &quot;datetime&quot;</code>. See <a href="#/data/data-conversion">this page</a> for more information.</p>
+<p>If you need to manually transform or parse data, you can do so in <code>dataComposed</code> event. The event will be dispatched after Grid recieving data and before sorting and filtering. See more information about the event on <a href="#/widgets/filter-dialog">this page</a>.</p>
+<p>When dealing with date and time, you should consider how you want to manage time zone. Sometimes source date may have different time zone from what is being displayed on user local time zone. The date used for filtering will be in local time. So, the filter results should be the same as what users would see on their screen. If difference in time zone between source date and displayed date creates unexpected filter results, you should convert/transform the date in <code>dataComposed</code> accordingly.</p>
+<p>By default, <a href="#/widgets/filter-dialog">Filter Dialog</a> treats data as string. To indicate that the column needs to be filtered as date, you can set <code>dataType</code> to <code>datetime</code> on the column configuration object.</p>
+<h3 id="date-filtering-and-data-conversion-example">Date filtering and data conversion example</h3>
+<code-sandbox hash="3f0aa2a4"><pre><code class="language-css">html hr {
+    margin: 5px;
+}
+efx-grid {
+    height: 500px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;hr&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var rowFilterExt = new RowFiltering();
+var fields = [&quot;companyName&quot;, &quot;market&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 50 });
+// Populate string date for illustrative purpose
+var todayDate = new Date();
+records.forEach(function(record, idx) {
+    var dateObj = new Date(todayDate.getTime() - (idx * 24 * 3600 * 1000));
+    record[&quot;dateText&quot;] = dateObj.toISOString().slice(0, 10);
+});
+
+var configObj = {
+    rowFiltering:{
+        iconActivation: &quot;always&quot;
+    },
+    dataComposed: function(e) {
+        var rowDef = e.rowDef;
+        var values = e.changes; // Indicating latest changes in data
+        var dateText = values[&quot;dateText&quot;];
+        
+        if(dateText != null) {
+            rowDef.setData(&quot;dateObject&quot;, new Date(dateText));
+        }
+    },
+    columns: [
+        { name: &quot;Company&quot;, field: fields[0], width: 120 },
+        { name: &quot;Market&quot;, field: fields[1], width: 80 },
+        { name: &quot;Date string&quot;, field: &quot;dateText&quot;, width: 100 },
+        { name: &quot;Converted date&quot;, field: &quot;dateObject&quot; },
+        { name: &quot;Date with date type&quot;, field: &quot;dateObject&quot;, dataType: &quot;datetime&quot; },
+    ],
+    staticDataRows: records,
+    extensions: [
+        rowFilterExt
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
 </code></pre>
 </code-sandbox><h2 style="margin-bottom:5px" id="api-refs">API Reference</h2>
 <div id="elf-api-container"><div id="main-template" class="elf-template">    <section><header>            <h1 class="subsection-title"><span class="attribs"><span class="type-signature"></span></span>RowFilteringPlugin<span class="signature">()</span><span class="type-signature"></span></h1>            </header><article>                                                                        <h3 class="subsection-title" id="type_definitions">Type Definitions</h3>                        

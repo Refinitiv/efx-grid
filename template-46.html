@@ -2,13 +2,13 @@
 
 <h1 id="row-segmenting">Row Segmenting</h1>
 <p>The Row Segmenting Extension provides a way to group row content based on row index. By specifying a row index, the row becomes a group header. Any row below the group header can then be added as a group member. This provides more flexibility in how you define a group, unlike Row Grouping Extension where groups are based on strictly defined criteria. </p>
-<code-sandbox hash="7e7f5366"><pre><code class="language-css">html hr {
+<code-sandbox hash="10f4f9d9"><pre><code class="language-css">html hr {
     margin: 5px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;button id=&quot;set_btn1&quot;&gt;Toggle Row 3&lt;/button&gt;
-&lt;button id=&quot;set_btn2&quot;&gt;Toggle Row 6&lt;/button&gt;
-&lt;button id=&quot;set_btn3&quot;&gt;Toggle Row 9&lt;/button&gt;
+<pre><code class="language-html">&lt;button id=&quot;set_btn1&quot;&gt;Toggle first segment&lt;/button&gt;
+&lt;button id=&quot;set_btn2&quot;&gt;Toggle second segment&lt;/button&gt;
+&lt;button id=&quot;set_btn3&quot;&gt;Toggle third segment&lt;/button&gt;
 &lt;button id=&quot;unset_btn&quot;&gt;Remove All Separators&lt;/button&gt;
 &lt;hr&gt;
 &lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
@@ -25,10 +25,23 @@ await halo(); // This line is only required for demo purpose. It is not relevant
 var rowSegmentingExt = new RowSegmenting();
 var rowDraggingExt = new RowDragging();
 var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 10 });
+var segmentField = &quot;SegmentId&quot;;
+var records = DataGenerator.generateRecords(fields, { numRows: 14 });
+records[1][segmentField] = &quot;1&quot;;
+records[2][segmentField] = &quot;1&quot;;
+records[3][segmentField] = &quot;1&quot;;
+
+records[5][segmentField] = &quot;2&quot;;
+records[6][segmentField] = &quot;2&quot;;
+
+records[8][segmentField] = &quot;3&quot;;
+records[9][segmentField] = &quot;3&quot;;
+records[10][segmentField] = &quot;3&quot;;
+records[11][segmentField] = &quot;3&quot;;
+
 var configObj = {
-    sorting: {
-        sortableColumns: true
+    rowSegmenting: {
+        segmentIdField: segmentField
     },
     columns: [
         { name: &quot;Company&quot;, field: fields[0] },
@@ -45,28 +58,31 @@ var configObj = {
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
-grid.addEventListener(&quot;configured&quot;, function() {
-    rowSegmentingExt.setSegmentSeparator(2);
-    rowSegmentingExt.setSegmentSeparator(5);
-    rowSegmentingExt.setSegmentSeparator(8);
-    rowSegmentingExt.fillSegments();
-});
 grid.config = configObj;
 
 document.getElementById(&quot;set_btn1&quot;).addEventListener(&quot;click&quot;, function(e) {
-    rowSegmentingExt.removeAllSegmentChildren();
-    rowSegmentingExt.setSegmentSeparator(2, !rowSegmentingExt.isSegmentSeparator(2));
-    rowSegmentingExt.fillSegments();
+    if(rowSegmentingExt.isSegmentSeparator(1)) {
+        rowSegmentingExt.setSegmentSeparator(1, false);
+    } else {
+        rowSegmentingExt.setSegmentSeparator(1, true);
+        rowSegmentingExt.addSegmentChildren(1, [2, 3]);
+    }
 });
 document.getElementById(&quot;set_btn2&quot;).addEventListener(&quot;click&quot;, function(e) {
-    rowSegmentingExt.removeAllSegmentChildren();
-    rowSegmentingExt.setSegmentSeparator(5, !rowSegmentingExt.isSegmentSeparator(5));
-    rowSegmentingExt.fillSegments();
+    if(rowSegmentingExt.isSegmentSeparator(5)) {
+        rowSegmentingExt.setSegmentSeparator(5, false);
+    } else {
+        rowSegmentingExt.setSegmentSeparator(5, true);
+        rowSegmentingExt.addSegmentChild(5, 6);
+    }
 });
 document.getElementById(&quot;set_btn3&quot;).addEventListener(&quot;click&quot;, function(e) {
-    rowSegmentingExt.removeAllSegmentChildren();
-    rowSegmentingExt.setSegmentSeparator(8, !rowSegmentingExt.isSegmentSeparator(8));
-    rowSegmentingExt.fillSegments();
+    if(rowSegmentingExt.isSegmentSeparator(8)) {
+        rowSegmentingExt.setSegmentSeparator(8, false);
+    } else {
+        rowSegmentingExt.setSegmentSeparator(8, true);
+        rowSegmentingExt.addSegmentChildren(8, [9, 10, 11, 12]);
+    }
 });
 document.getElementById(&quot;unset_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
     rowSegmentingExt.unsetAllSegmentSeparators();
@@ -74,26 +90,29 @@ document.getElementById(&quot;unset_btn&quot;).addEventListener(&quot;click&quot
 </code></pre>
 </code-sandbox><h2 id="installation-and-how-to-import-to-a-project">Installation and how to import to a project</h2>
 <p>Installation examples and details of how to import the extension to a project are available on the <a href="#/extensions/readme">Overview</a> page.</p>
+<h2 id="initializing-segments">Initializing segments</h2>
+<p>If you intend to apply a segment separator using the <code>segmentIdField</code> during runtime, whenever the row data is updated, it is necessary to call the <code>requestSeparatorRefresh</code> function to forcefully render the user interface (UI). This step ensures that the changes are reflected in the UI, allowing for an accurate representation of the updated segment separators.</p>
+<p>Currently, there are two ways to set segment separator. The first method is using <code>setSegmentSeparator</code> and <code>addSegmentChildren</code> functions from Grid APIs. The second method involves specifying <code>segmentIdField</code> on the extension configuration object and segment id on the field in the row data. However, we strongly advise against using both methods simultaneously. Please choose one approach that suits your needs, keeping in mind that the user interface will appear similar regardless of the method chosen.</p>
 <h2 id="differences-between-row-segmenting-extension-and-row-grouping-extension">Differences between Row Segmenting Extension and Row Grouping Extension</h2>
 <p>Both extensions produce very similar looking results, but there are some key differences in behaviors and functionalities. </p>
-<h2 id="group-header-segment-separator">Group header (segment separator)</h2>
+<h3 id="group-header-segment-separator">Group header (segment separator)</h3>
 <p>The group headers in Row Segmenting Extension have their own data/content, whereas those in Row Grouping Extension have no data. Group headers in Row Segmenting Extension are actually normal row with a separator mark on it. This means you can perform sorting and filtering on the group headers.</p>
 <p>The group headers in the Row Grouping Extension have no data because they are automatically generated based on the specified criteria. So they have no place to hold their data and you will need to have a separate place to hold it. Because of this extra place to manage, it&#39;s more difficult to perform sorting and filtering on these group headers.</p>
-<h2 id="dragging-group-header">Dragging group header</h2>
+<h3 id="dragging-group-header">Dragging group header</h3>
 <p>The group headers in Row Segmenting Extension can be moved by dragging, if we use Row Dragging Extension. Moving group header is the same as moving row content. After moving, group headers will also move their row members along with them.</p>
 <p>The group headers in Row Grouping Extension cannot be moved freely. They can only moved or ordered by sorting operation. This is because they are automatically generated and constantly added or removed according to data updates. </p>
 <blockquote>
 <p>Note: dragging behaviors for group headers have not yet finalized and are subject to change.</p>
 </blockquote>
-<h2 id="grouping-criteria">Grouping criteria</h2>
+<h3 id="grouping-criteria">Grouping criteria</h3>
 <p>Specifying a group header in Row Segmenting Extension is a bit more difficult. Each group header has to be set manually through the extension&#39;s APIs. Use the <code>setSegmentSeparator()</code> method to specify group header. Group members need to be manually added to the new groups by <code>addSegmentChild()</code> or <code>addSegmentChildren()</code> methods. Any row added to the group will be moved below the group header position. Rows that are already a group member cannot be added to another group. </p>
 <p>Grouping in Row Grouping Extension are based on row content. So, you can add or remove a group by just changing content of a row. A row can be moved between different groups by changing content of the row as well. </p>
 <blockquote>
 <p>More APIs will be implemented to accommodate adding or removing member in the future updates.</p>
 </blockquote>
-<h2 id="segment-classification-multi-levelnested-grouping">Segment Classification (multi-level/nested grouping)</h2>
+<h3 id="segment-classification-multi-levelnested-grouping">Segment Classification (multi-level/nested grouping)</h3>
 <p>With Row Segmenting Extension, you can specify classfication on individual segment to add nested segments. The criteria can be defined by using <code>setSegmentClassification</code> method with array of fields as its parameter. </p>
-<code-sandbox hash="6df1a6e7"><pre><code class="language-css">html hr {
+<code-sandbox hash="50121036"><pre><code class="language-css">html hr {
     margin: 5px;
 }
 efx-grid {
@@ -163,7 +182,7 @@ var columns = fields.map(function(f) {
 columnMap[&quot;companyName&quot;].width = 200;
 columnMap[&quot;id&quot;].width = 60;
 
-var records = DataGenerator.generateRecords(fields, {seed: 0, rowCount: 20});
+var records = DataGenerator.generateRecords(fields, {seed: 0, rowCount: 16});
 var configObj = {
     columns: columns,
     extensions: [
@@ -175,7 +194,7 @@ var grid = window.grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
 grid.addEventListener(&quot;configured&quot;, function(e) {
     row5 = e.detail.api.getRowDefinition(6);
     rowSegmentingExt.setSegmentSeparator(segmentIdx);
-    rowSegmentingExt.addSegmentChildren(segmentIdx, [2, 3, 4, 5, 6, 7]);
+    rowSegmentingExt.addSegmentChildren(segmentIdx, [2, 3, 4, 5, 6, 7, 8]);
     
     rowSegmentingExt.setSegmentSeparator(10);
     rowSegmentingExt.addSegmentChildren(10, [11, 12, 13]);
@@ -183,7 +202,7 @@ grid.addEventListener(&quot;configured&quot;, function(e) {
 grid.config = configObj;
 grid.data = records;
 </code></pre>
-</code-sandbox><h2 id="group-sorting">Group sorting</h2>
+</code-sandbox><h3 id="group-sorting">Group sorting</h3>
 <p>Row segmenting can be sorted manually through an API <code>sortSeparators</code> from <code>SortableTitlePlugin</code>. The method accept a sorting function as parameter. If no parameter is passed to the function, the segments will be sorted according to the current sorting states of the grid.</p>
 <blockquote>
 <p>Note:</p>
@@ -192,7 +211,7 @@ grid.data = records;
 <li>Sorting segment operation only swap position between segments, therefore the content rows between the segments will not be moved to stick together at top of the grid. </li>
 </ul>
 </blockquote>
-<code-sandbox hash="75a2f498"><pre><code class="language-css">html hr {
+<code-sandbox hash="972210b7"><pre><code class="language-css">html hr {
     margin: 5px;
 }
 </code></pre>
@@ -213,21 +232,21 @@ await halo(); // This line is only required for demo purpose. It is not relevant
 var rowSegmentingExt = new RowSegmenting();
 var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
 var records = DataGenerator.generateRecords(fields, { numRows: 15 });
-var segmentId = &quot;SegmentId&quot;;
+var segmentField = &quot;SegmentId&quot;;
 records[2][&quot;segmentOrder&quot;] = 1;
-records[2][segmentId] = &quot;1&quot;;
-records[3][segmentId] = &quot;1&quot;;
-records[4][segmentId] = &quot;1&quot;;
+records[2][segmentField] = &quot;1&quot;;
+records[3][segmentField] = &quot;1&quot;;
+records[4][segmentField] = &quot;1&quot;;
 
 records[5][&quot;segmentOrder&quot;] = 2;
-records[5][segmentId] = &quot;2&quot;;
-records[6][segmentId] = &quot;2&quot;;
-records[7][segmentId] = &quot;2&quot;;
+records[5][segmentField] = &quot;2&quot;;
+records[6][segmentField] = &quot;2&quot;;
+records[7][segmentField] = &quot;2&quot;;
 
 records[10][&quot;segmentOrder&quot;] = 3;
-records[10][segmentId] = &quot;3&quot;;
-records[11][segmentId] = &quot;3&quot;;
-records[12][segmentId] = &quot;3&quot;;
+records[10][segmentField] = &quot;3&quot;;
+records[11][segmentField] = &quot;3&quot;;
+records[12][segmentField] = &quot;3&quot;;
 
 var originalSortFunc = function(rowA, rowB){
     var segmentOrderA = rowA[&quot;ROW_DEF&quot;].getData(&quot;segmentOrder&quot;);
@@ -251,7 +270,7 @@ var configObj = {
         }
     },
     rowSegmenting: {
-        segmentIdField: segmentId
+        segmentIdField: segmentField
     },
     columns: [
         { name: &quot;Company&quot;, field: fields[0] },
@@ -276,10 +295,9 @@ document.getElementById(&quot;original_sort_segment&quot;).addEventListener(&quo
     stPlugin.sortSeparators(originalSortFunc);
 });
 </code></pre>
-</code-sandbox><h2 id="content-sorting">Content sorting</h2>
+</code-sandbox><h3 id="content-sorting">Content sorting</h3>
 <p>Row content is sorted within its own group. The behavior is the same for both Row Segmenting and Row Grouping Extension.</p>
-<h2 id="row-segmenting-extension-features">Row Segmenting Extension features</h2>
-<h3 id="predefined-color-on-the-color-tags">Predefined color on the color tags</h3>
+<h2 id="predefined-color-on-the-color-tags">Predefined color on the color tags</h2>
 <p>The extension supports color from the predefined colors. To do this you need to assign predefined class object to the <code>predefinedColors</code> property then specify field name of the <code>cssField</code> property.</p>
 <code-sandbox hash="3cac1f63"><pre><code class="language-css">html hr {
     margin: 5px;
@@ -451,8 +469,8 @@ document.getElementById(&quot;set_color_btn3&quot;).addEventListener(&quot;click
     grid.api.setStaticData(5, &quot;TAG_CSS_CLASS&quot;, &quot;color-3&quot;);
 });
 </code></pre>
-</code-sandbox><h3 id="saving-and-loading-segments">Saving and loading segments</h3>
-<p>In efx-grid with Row Segmenting Extension we have spanningField, predefinedColor, segmentId can be implement save/load grid config,
+</code-sandbox><h2 id="saving-and-loading-segments">Saving and loading segments</h2>
+<p>Row Segmenting Extension supports save/load functionality for <code>rowSpanningField</code>, <code>predefinedColors</code>, and <code>segmentIdField</code> properties.
 We provide the user to set those properties with <code>setStaticRowData</code> or <code>setStaticData</code>.
 When you set static data to pass grid API. It will be applied API in Row Segmenting Extension too. Such as, setPredefiniedColor can be set static value with grid.api.setStaticData(0,&quot;TAG_CSS_CLASS&quot;, &quot;color1&quot;) in runtime mode.
 And also, in the initialization grid, it will get values from rows or staticDataRows, which is static data.</p>
@@ -462,7 +480,7 @@ You can get the config from the grid and use this config in another grid.</p>
 <p>You can follow in below example for implement save/load functionality.
 The first example it will be grid that can be change data with click &quot;Save config&quot;. 
 And then you can paste this config on the example 2 and click &quot;Start Grid&quot; and both grids look the same. </p>
-<h4 id="example-1-saving-segment-configuration-from-grid">Example 1: saving segment configuration from grid</h4>
+<h3 id="example-1-saving-segment-configuration-from-grid">Example 1: saving segment configuration from grid</h3>
 <code-sandbox hash="9257e3d2"><pre><code class="language-css">html body {
     padding: 20px;
     box-sizing: border-box;
@@ -652,7 +670,7 @@ function copyToClipboard(val) {
 
 }
 </code></pre>
-</code-sandbox><h4 id="example-2-restoring-segments">Example 2: restoring segments</h4>
+</code-sandbox><h3 id="example-2-restoring-segments">Example 2: restoring segments</h3>
 <code-sandbox hash="cd45daad"><pre><code class="language-css">html body {
     padding: 20px;
     box-sizing: border-box;
@@ -709,13 +727,10 @@ start_grid.addEventListener(&quot;click&quot;, function (e) {
     grid.config = configObj;
 });
 </code></pre>
-</code-sandbox><h3 id="segmentid-field">SegmentId field</h3>
-<p>If you intend to apply a segment separator using the <code>segmentId</code> field during runtime, whenever the row data is updated, it is necessary to call the <code>requestSeparatorRefresh</code> function to forcefully render the user interface (UI). This step ensures that the changes are reflected in the UI, allowing for an accurate representation of the updated segment separators.</p>
-<p>Currently, you can set the segment separator for the grid in two ways. The first method is by using the grid API through the <code>setSegmentSeparator</code> function. The second method involves setting the <code>segmentId</code> field in the row data. However, we strongly advise against using both methods simultaneously. Please choose one approach that suits your needs, keeping in mind that the user interface will appear similar regardless of the method chosen.</p>
-<h3 id="empty-segment-filtering-and-separator-filtering">Empty segment filtering and separator filtering</h3>
+</code-sandbox><h2 id="empty-segment-filtering-and-separator-filtering">Empty segment filtering and separator filtering</h2>
 <p>By default, segment header cannot be filtered out. However, Row Filtering Extension has <code>emptySegmentFiltering</code> option that allows empty segment to be filtered out. With the option turned on, any segment whose all of its members are not present by filtering will also be hidden. Empty segment will still be visible, if there is no active filter. Collapsing of the segment does not count as having an active filter.</p>
 <p><code>separatorFiltering</code> option from Row Filtering Extension also allow separator rows to be filtered as if they were a normal row. Note that the separator rows can be filtered out, while their child rows may ramain visible.  </p>
-<code-sandbox hash="5555ee4"><pre><code class="language-css">html hr {
+<code-sandbox hash="a3cae2cb"><pre><code class="language-css">html hr {
     margin: 5px;
 }
 efx-grid {
@@ -760,19 +775,19 @@ var columns = fields.map(function (f, idx) {
 });
 columns[0].width = 80;
 
-var segmentId = &quot;SegmentId&quot;;
+var segmentField = &quot;SegmentId&quot;;
 var records = DataGenerator.generateRecords(fields, { seed: 0, rowCount: 15 });
-records[1][segmentId] = &quot;0&quot;; // To illustrate empty segment
+records[1][segmentField] = &quot;0&quot;; // To illustrate empty segment
 
-records[3][segmentId] = &quot;1&quot;;
-records[4][segmentId] = &quot;1&quot;;
-records[5][segmentId] = &quot;1&quot;;
-records[6][segmentId] = &quot;1&quot;;
+records[3][segmentField] = &quot;1&quot;;
+records[4][segmentField] = &quot;1&quot;;
+records[5][segmentField] = &quot;1&quot;;
+records[6][segmentField] = &quot;1&quot;;
 
-records[8][segmentId] = &quot;2&quot;;
-records[9][segmentId] = &quot;2&quot;;
-records[10][segmentId] = &quot;2&quot;;
-records[11][segmentId] = &quot;2&quot;;
+records[8][segmentField] = &quot;2&quot;;
+records[9][segmentField] = &quot;2&quot;;
+records[10][segmentField] = &quot;2&quot;;
+records[11][segmentField] = &quot;2&quot;;
 
 var fiExt = new FilterInput();
 var rfExt = new RowFiltering();
@@ -783,7 +798,7 @@ var configObj = {
         separatorFiltering: true
     },
     rowSegmenting: {
-        segmentIdField: segmentId
+        segmentIdField: segmentField
     },
     staticDataRows: records,
     extensions: [rfExt, fiExt]

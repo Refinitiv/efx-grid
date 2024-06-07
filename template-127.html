@@ -5,14 +5,17 @@
 </blockquote>
 <p>Both the <code>showRows()</code> and <code>hideRows()</code> APIs accept either an individual value (string or integer) or an array of values.  This kind of state is independent of the programmatic filtering of content, and will correctly reclassify hidden rows on sorting/grouping.</p>
 <h2 id="example">Example</h2>
-<code-sandbox hash="fbf01974"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="9ccc4e3c"><pre><code class="language-css">html hr {
+    margin: 5px;
+}
+efx-grid {
     height: 200px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;button id=&quot;hide_btn&quot;&gt;Hide First 3 Rows&lt;/button&gt;
-&lt;button id=&quot;show_btn&quot;&gt;Show Rows&lt;/button&gt;
-&lt;button id=&quot;clear_btn&quot;&gt;Unhide All&lt;/button&gt;
-&lt;br&gt;&lt;br&gt;
+<pre><code class="language-html">&lt;button id=&quot;hide_btn&quot;&gt;Hide top 3 rows&lt;/button&gt;
+&lt;button id=&quot;show_btn&quot;&gt;Show last 2 hidden rows&lt;/button&gt;
+&lt;button id=&quot;clear_btn&quot;&gt;Unhide all&lt;/button&gt;
+&lt;hr&gt;
 &lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
@@ -24,19 +27,17 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 10 });
+var fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 20 });
 var configObj = {
     columns: [
-        {name: &quot;Company&quot;, field: fields[0]},
-        {name: &quot;Market&quot;, field: fields[1], width: 100},
-        {name: &quot;Last&quot;, field: fields[2], width: 80},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 80},
-        {name: &quot;Industry&quot;, field: fields[4]}
+        {name: &quot;Id&quot;, field: fields[0], width: 50},
+        {name: &quot;Company&quot;, field: fields[1]},
+        {name: &quot;Market&quot;, field: fields[2], width: 100},
+        {name: &quot;Last&quot;, field: fields[3], width: 80},
+        {name: &quot;Net. Chng&quot;, field: fields[4], width: 80},
     ],
-    dataModel: {
-        data: records
-    }
+    staticDataRows: records
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
@@ -52,7 +53,7 @@ document.getElementById(&quot;hide_btn&quot;).addEventListener(&quot;click&quot;
 });
 
 document.getElementById(&quot;show_btn&quot;).addEventListener(&quot;click&quot;, function() {
-        grid.api.showRows([rowId1, rowId2]);
+        grid.api.showRows([rowId2, rowId3]);
 });
 
 document.getElementById(&quot;clear_btn&quot;).addEventListener(&quot;click&quot;, function() {

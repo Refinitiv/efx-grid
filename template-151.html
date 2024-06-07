@@ -10,7 +10,7 @@
 </ul>
 <h2 id="demo">Demo</h2>
 <p>Click on <code>Open Dialog</code> button to see the dialog.</p>
-<code-sandbox hash="dcf4fab0"><pre><code class="language-css">html hr {
+<code-sandbox hash="4e06b9b2"><pre><code class="language-css">html hr {
     margin: 5px;
 }
 
@@ -20,11 +20,11 @@ efx-grid {
 </code></pre>
 <pre><code class="language-html">Language:
 &lt;select id=&quot;lang_selector&quot;&gt;
-  &lt;option value=&quot;en&quot;&gt;English&lt;/option&gt;
-  &lt;option value=&quot;ja&quot;&gt;Japanese&lt;/option&gt;
-  &lt;option value=&quot;de&quot;&gt;German&lt;/option&gt;
-  &lt;option value=&quot;zh&quot;&gt;Simplified Chinese&lt;/option&gt;
-  &lt;option value=&quot;zh-Hant&quot;&gt;Traditional Chinese&lt;/option&gt;
+    &lt;option value=&quot;en&quot;&gt;English&lt;/option&gt;
+    &lt;option value=&quot;ja&quot;&gt;Japanese&lt;/option&gt;
+    &lt;option value=&quot;de&quot;&gt;German&lt;/option&gt;
+    &lt;option value=&quot;zh&quot;&gt;Simplified Chinese&lt;/option&gt;
+    &lt;option value=&quot;zh-Hant&quot;&gt;Traditional Chinese&lt;/option&gt;
 &lt;/select&gt;
 &lt;ef-button id=&quot;open_btn&quot;&gt;Open Dialog&lt;/ef-button&gt;
 &lt;hr&gt;
@@ -43,47 +43,45 @@ var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, 
 var records = DataGenerator.generateRecords(fields, { numRows: 6 });
 
 var allColumns = [
-  {name: &quot;Company&quot;, field: fields[0], disabled: true},
-  {name: &quot;Market&quot;, field: fields[1], width: 100},
-  {name: &quot;Last&quot;, field: fields[2], width: 80, alignment: &quot;right&quot;},
-  {name: &quot;Net. Chng&quot;, field: fields[3], width: 80, alignment: &quot;right&quot;},
-  {name: &quot;Industry&quot;, field: fields[4]},
-  {name: &quot;Volumn&quot;, field: fields[5], alignment: &quot;right&quot;},
-  {name: &quot;IPO Date&quot;, field: fields[6]},
-  {name: &quot;Pct. Chng&quot;, field: fields[7], alignment: &quot;right&quot;}
+    {name: &quot;Company&quot;, field: fields[0], disabled: true},
+    {name: &quot;Market&quot;, field: fields[1], width: 100},
+    {name: &quot;Last&quot;, field: fields[2], width: 80, alignment: &quot;right&quot;},
+    {name: &quot;Net. Chng&quot;, field: fields[3], width: 80, alignment: &quot;right&quot;},
+    {name: &quot;Industry&quot;, field: fields[4]},
+    {name: &quot;Volumn&quot;, field: fields[5], alignment: &quot;right&quot;},
+    {name: &quot;IPO Date&quot;, field: fields[6]},
+    {name: &quot;Pct. Chng&quot;, field: fields[7], alignment: &quot;right&quot;}
 ];
 
 var configObj = {
-  dataModel: {
-    data: records
-  }
+    staticDataRows: records
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 
 grid.columns = [
-  allColumns[0],
-  allColumns[1],
-  allColumns[2],
-  allColumns[3],
-  allColumns[4]
+    allColumns[0],
+    allColumns[1],
+    allColumns[2],
+    allColumns[3],
+    allColumns[4]
 ];
 
 var dialog = document.createElement(&quot;column-selection-dialog&quot;);
 dialog.config = {
-  data: allColumns,
-  defaultItems: grid.columns
+    data: allColumns,
+    defaultItems: grid.columns
 };
 dialog.addEventListener(&quot;confirm&quot;, function (e) {
-    grid.columns = e.detail.value;
+        grid.columns = e.detail.value;
 });
 
 document.getElementById(&quot;open_btn&quot;).addEventListener(&quot;click&quot;, function () {
-  var lang = document.getElementById(&quot;lang_selector&quot;).value;
-  dialog.lang = lang;
-  dialog.visibleItems = grid.api.getConfigObject().columns;
-  dialog.show();
+    var lang = document.getElementById(&quot;lang_selector&quot;).value;
+    dialog.lang = lang;
+    dialog.visibleItems = grid.api.getConfigObject().columns;
+    dialog.show();
 });
 </code></pre>
 </code-sandbox><h2 id="setup-guide">Setup guide</h2>
@@ -100,16 +98,16 @@ import &#39;@refinitiv-ui/efx-grid/column-selection-dialog/themes/halo/light&#39
 </code></pre>
 <p>Then you need to subscribe to <code>confirm</code> event which will be fired when the user has confirmed their changes. It is also required to directly manipulate <code>grid.columns</code> with the <code>e.detail.value</code> like below.</p>
 <pre><code class="language-js">dialog.addEventListener(&quot;confirm&quot;, function (e) {
-  var grid = document.getElementById(&quot;grid&quot;);
-  grid.columns = e.detail.value;
+    var grid = document.getElementById(&quot;grid&quot;);
+    grid.columns = e.detail.value;
 });
 </code></pre>
 <p>By default, once users click <code>Done</code> the dialog will automatically hide. In order to prevent the dialog from closing (eg. Validate something before closing), use <code>beforeConfirm</code> event and set <code>e.cancel</code> to true.</p>
 <pre><code class="language-js">dialog.addEventListener(&quot;beforeConfirm&quot;, function (e) {
-  if (/*Some logic*/) {
-    e.cancel = true;
-    window.alert(&quot;Don&#39;t hide the dialog&quot;);
-  }
+    if (/*Some logic*/) {
+        e.cancel = true;
+        window.alert(&quot;Don&#39;t hide the dialog&quot;);
+    }
 });
 </code></pre>
 <p>Then set initial data using the <code>init(configObj)</code> method. This takes a configuration object consisting of two properties, <code>data</code> and <code>visibleItems</code>. Alternatively, the same configuration can be set through <code>config</code> property. For example, dialog.config = configObj;</p>
@@ -119,8 +117,8 @@ grid.config = {/* Grid Option */};
 grid.columns = columns; // Explicitly set columns, otherwise it will be undefined
 
 dialog.config = {
-  data: columns, // All columns
-  visibleItems: grid.columns // Currently visible columns
+    data: columns, // All columns
+    visibleItems: grid.columns // Currently visible columns
 };
 </code></pre>
 <blockquote>
@@ -132,7 +130,7 @@ dialog.config = {
 <h2 id="changing-language">Changing Language</h2>
 <p>For more information about internationalization and how is it applied in different contexts see <a href="#/widgets/language-support">Language Support</a>.</p>
 <h2 id="multi-level-with-column-selection">Multi Level with Column Selection</h2>
-<code-sandbox hash="ad712ddc"><pre><code class="language-css">html hr {
+<code-sandbox hash="5930635e"><pre><code class="language-css">html hr {
     margin: 5px;
 }
 efx-grid {
@@ -153,24 +151,22 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
 var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;CF_VOLUMN&quot;, &quot;date&quot;, &quot;PCTCHNG2&quot;];
-  var records = DataGenerator.generateRecords(fields, 20);
+    var records = DataGenerator.generateRecords(fields, 20);
 
-  var allColumns = [
-    {name: &quot;Company&quot;, field: fields[0], disabled: true},
-    {name: &quot;Market&quot;, field: fields[1], width: 100},
-    {name: &quot;Last&quot;, field: fields[2], width: 80, alignment: &quot;right&quot;},
-    {name: &quot;Net. Chng&quot;, field: fields[3], width: 80, alignment: &quot;right&quot;},
-    {name: &quot;Industry&quot;, field: fields[4]},
-    {name: &quot;Volumn&quot;, field: fields[5], alignment: &quot;right&quot;},
-    {name: &quot;IPO Date&quot;, field: fields[6]},
-    {name: &quot;Pct. Chng&quot;, field: fields[7], alignment: &quot;right&quot;}
-  ];
+    var allColumns = [
+        {name: &quot;Company&quot;, field: fields[0], disabled: true},
+        {name: &quot;Market&quot;, field: fields[1], width: 100},
+        {name: &quot;Last&quot;, field: fields[2], width: 80, alignment: &quot;right&quot;},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 80, alignment: &quot;right&quot;},
+        {name: &quot;Industry&quot;, field: fields[4]},
+        {name: &quot;Volumn&quot;, field: fields[5], alignment: &quot;right&quot;},
+        {name: &quot;IPO Date&quot;, field: fields[6]},
+        {name: &quot;Pct. Chng&quot;, field: fields[7], alignment: &quot;right&quot;}
+    ];
 
-  var configObj = {
-    dataModel: {
-        data: records
-    }
-};
+    var configObj = {
+        staticDataRows: records
+    };
 
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
@@ -243,7 +239,7 @@ dialog.config = {
 </code></pre>
 <h2 id="stationary-column">Stationary column</h2>
 <p>In case you are having pinned columns, and you do not want pinned columns to be moved or removed from the grid, you can enable the stationary flag to disable select and moving operation for that specific column.</p>
-<code-sandbox hash="3b03347e"><pre><code class="language-css">html hr {
+<code-sandbox hash="41b29f7c"><pre><code class="language-css">html hr {
     margin: 5px;
 }
 </code></pre>
@@ -261,24 +257,22 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
 var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;CF_VOLUMN&quot;, &quot;date&quot;, &quot;PCTCHNG2&quot;];
-  var records = DataGenerator.generateRecords(fields, 20);
+    var records = DataGenerator.generateRecords(fields, 20);
 
-  var allColumns = [
-    {name: &quot;Company&quot;, field: fields[0], width: 250, leftPinned: true, stationary: true},
-    {name: &quot;Market&quot;, field: fields[1], width: 250},
-    {name: &quot;Last&quot;, field: fields[2], width: 120, alignment: &quot;right&quot;},
-    {name: &quot;Net. Chng&quot;, field: fields[3], width: 100, alignment: &quot;right&quot;},
-    {name: &quot;Industry&quot;, field: fields[4], width: 200},
-    {name: &quot;Volumn&quot;, field: fields[5], width: 100, alignment: &quot;right&quot;},
-    {name: &quot;IPO Date&quot;, field: fields[6], width: 100},
-    {name: &quot;Pct. Chng&quot;, field: fields[7], width: 100, alignment: &quot;right&quot;}
-  ];
+    var allColumns = [
+        {name: &quot;Company&quot;, field: fields[0], width: 250, leftPinned: true, stationary: true},
+        {name: &quot;Market&quot;, field: fields[1], width: 250},
+        {name: &quot;Last&quot;, field: fields[2], width: 120, alignment: &quot;right&quot;},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100, alignment: &quot;right&quot;},
+        {name: &quot;Industry&quot;, field: fields[4], width: 200},
+        {name: &quot;Volumn&quot;, field: fields[5], width: 100, alignment: &quot;right&quot;},
+        {name: &quot;IPO Date&quot;, field: fields[6], width: 100},
+        {name: &quot;Pct. Chng&quot;, field: fields[7], width: 100, alignment: &quot;right&quot;}
+    ];
 
-  var configObj = {
-    dataModel: {
-        data: records
-    }
-};
+    var configObj = {
+        staticDataRows: records
+    };
 
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
@@ -382,7 +376,7 @@ dialog.config = {
 <h2 id="restoring-columns-with-retaining-sorting-and-filtering-states">Restoring columns with retaining sorting and filtering states</h2>
 <p>The Column Selection Dialog only provides column information to the user. If you wish to retain certain states, such as sorting and filtering, you will need to utilize the grid API to restore the updated data back to the grid from your side.</p>
 <p>In the example below, we will demonstrate how to retain the sorting and filtering state in the grid when confirming the column selection dialog.</p>
-<code-sandbox hash="2441796f"><pre><code class="language-css">html hr {
+<code-sandbox hash="a1b5002d"><pre><code class="language-css">html hr {
     margin: 5px;
 }
 efx-grid {
@@ -404,23 +398,21 @@ await halo(); // This line is only required for demo purpose. It is not relevant
 ---------------------------------------------------------------------------*/
 var rowFilteringExt = new RowFiltering();
 
-  var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;CF_VOLUMN&quot;, &quot;date&quot;, &quot;PCTCHNG2&quot;];
-  var records = DataGenerator.generateRecords(fields, 20);
-  var allColumns = [
-    {name: &quot;Company&quot;, field: fields[0], disabled: true},
-    {name: &quot;Market&quot;, field: fields[1], width: 100},
-    {name: &quot;Last&quot;, field: fields[2], width: 80, alignment: &quot;right&quot;},
-    {name: &quot;Net. Chng&quot;, field: fields[3], width: 80, alignment: &quot;right&quot;},
-    {name: &quot;Industry&quot;, field: fields[4]},
-    {name: &quot;Volumn&quot;, field: fields[5], alignment: &quot;right&quot;},
-    {name: &quot;IPO Date&quot;, field: fields[6]},
-    {name: &quot;Pct. Chng&quot;, field: fields[7], alignment: &quot;right&quot;}
-  ];
+    var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;CF_VOLUMN&quot;, &quot;date&quot;, &quot;PCTCHNG2&quot;];
+    var records = DataGenerator.generateRecords(fields, 20);
+    var allColumns = [
+        {name: &quot;Company&quot;, field: fields[0], disabled: true},
+        {name: &quot;Market&quot;, field: fields[1], width: 100},
+        {name: &quot;Last&quot;, field: fields[2], width: 80, alignment: &quot;right&quot;},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 80, alignment: &quot;right&quot;},
+        {name: &quot;Industry&quot;, field: fields[4]},
+        {name: &quot;Volumn&quot;, field: fields[5], alignment: &quot;right&quot;},
+        {name: &quot;IPO Date&quot;, field: fields[6]},
+        {name: &quot;Pct. Chng&quot;, field: fields[7], alignment: &quot;right&quot;}
+    ];
 
-  var configObj = {
-        dataModel: {
-            data: records
-        },
+    var configObj = {
+        staticDataRows: records,
         extensions: [rowFilteringExt],
         rowFiltering: {
             iconActivation: &quot;always&quot;

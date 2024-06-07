@@ -2,6 +2,9 @@
 
 <h1 id="context-menu">Context Menu</h1>
 <p>The Context Menu Extension provides the capability to display a customized contextual menu when a user right-clicks on the grid. The menu items to be displayed are totally customizable based on the position of the mouse, the data, and also any customized logic of your application.</p>
+<blockquote>
+<p>Please note that Context Menu extension is meant to be <strong>primarily used for testing</strong>. If you need a context menu with platform specific features and integration, you should do it through RTK/JET instance. Additionally, the context menu from the extension can only be populated <strong>within</strong> Grid&#39;s area and not from any area in the document.</p>
+</blockquote>
 <code-sandbox hash="49e56379"><pre><code class="language-css">efx-grid {
     height: 169px;
 }
@@ -169,36 +172,117 @@ cme.listen(&quot;contextmenu&quot;, function(e) {
     }
 };
 </code></pre>
-<h2 id="submenu">Submenu</h2>
-<p>A multi-level submenu can be added to an item using the <code>items</code> property. With a submenu you can also handle a menu click event at the parent level, to simplify your code.</p>
-<pre><code class="language-js">var config = {
-    //...any other grid&#39;s options...
-    contextMenu: {
-        items: {
-            SET_ROW_COLOR: {text: &#39;Set Row Color&#39;, items: [
-                {text: &#39;Red&#39;, value: &#39;#FF0000&#39;},
-                {text: &#39;Green&#39;, value: &#39;#00FF00&#39;},
-                {text: &#39;Blue&#39;, value: &#39;#0000FF&#39;},
-                {isSeparator: true},
-                {text: &#39;Clear Color&#39;, value: &#39;&#39;}
-            ], callback: function (e) {
-                //Single place of callback handling for all sub-menu item clicking
-                console.log(e.item.getValue());
-            }},
-        },
-        onMenu: function (e) {
-            if (e.context === &#39;header&#39;) {
-                //isDisabled is `true` when column index is 0
-                e.items.HIDE_COLUMN.isDisabled = (e.colIndex === 0);
-
-                e.menu.addItem(&#39;HIDE_COLUMN&#39;);
-                e.menu.addItem(&#39;SHOW_ALL_COLUMNS&#39;);
+<h2 id="multi-level-menu-nested-menus-or-submenus">Multi-level menu, nested menus, or submenus</h2>
+<p>Another array <code>items</code> property can be put on a menu item to add a submenu to the item. You can add <code>callback</code> property at the parent item to handle all the click events under the submenu, to further simplify the code.</p>
+<p>The code snippet below shows how a three level menu configuration would look like. Notice that menu name (e.g., THREE_LEVEL_MENU) is only defined at the root of <code>items</code> object tree. The rest of the <code>items</code> property is an array of menu items.</p>
+<pre><code class="language-js">var contextMenu = {
+    items: {
+        THREE_LEVEL_MENU: [
+            {text: &quot;Item 1&quot;, value: &quot;1&quot;},
+            {
+                text: &quot;Menu level 2&quot;,
+                items: [
+                    {
+                        text: &quot;Menu level 3&quot;,
+                        items: [
+                            {text: &quot;Item 5&quot;, value: &quot;5&quot;},
+                            {text: &quot;Item 6&quot;, value: &quot;6&quot;},
+                            {text: &quot;Item 7&quot;, value: &quot;7&quot;}
+                        ],
+                        callback: function (e) {
+                            console.log(&quot;3&quot;, e.item.text);
+                        }
+                    },
+                    {text: &quot;Item 2&quot;, value: &quot;2&quot;},
+                    {text: &quot;Item 3&quot;, value: &quot;3&quot;},
+                    {text: &quot;Item 4&quot;, value: &quot;4&quot;}
+                ],
+                callback: function (e) {
+                    console.log(&quot;2&quot;, e.item.getValue());
+                }
             }
+        ],
+        callback: function (e) {
+            alert(&quot;1&quot;, e.item.text);
         }
-    }
+    },
+    onMenu: function (e) {
+        e.menu.addItems(&quot;THREE_LEVEL_MENU&quot;);
+    },
 };
 </code></pre>
-<h2 style="margin-bottom:5px" id="api-refs">API Reference</h2>
+<code-sandbox hash="a2745c1e"><pre><code class="language-css">efx-grid {
+    height: 169px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;span id=&quot;text&quot;&gt;&lt;/span&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var contextMenu = {
+    items: {
+        THREE_LEVEL_MENU: [
+            {text: &quot;Item 1&quot;, value: &quot;1&quot;},
+            {
+                text: &quot;Menu level 2&quot;,
+                items: [
+                    {
+                        text: &quot;Menu level 3&quot;,
+                        items: [
+                            {text: &quot;Item 5&quot;, value: &quot;5&quot;},
+                            {text: &quot;Item 6&quot;, value: &quot;6&quot;},
+                            {text: &quot;Item 7&quot;, value: &quot;7&quot;}
+                        ],
+                        callback: function (e) {
+                            console.log(&quot;3&quot;, e.item.text);
+                        }
+                    },
+                    {text: &quot;Item 2&quot;, value: &quot;2&quot;},
+                    {text: &quot;Item 3&quot;, value: &quot;3&quot;},
+                    {text: &quot;Item 4&quot;, value: &quot;4&quot;}
+                ],
+                callback: function (e) {
+                    console.log(&quot;2&quot;, e.item.getValue());
+                }
+            }
+        ],
+        callback: function (e) {
+            alert(&quot;1&quot;, e.item.text);
+        }
+    },
+    onMenu: function (e) {
+        e.menu.addItems(&quot;THREE_LEVEL_MENU&quot;);
+    },
+};
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 5 });
+var configObj = {
+    columns: [
+        { name: &quot;Company&quot;, field: fields[0] },
+        { name: &quot;Market&quot;, field: fields[1], width: 120 },
+        { name: &quot;Last&quot;, field: fields[2], width: 100 },
+        { name: &quot;Net. Chng&quot;, field: fields[3], width: 100 },
+        { name: &quot;Industry&quot;, field: fields[4] }
+    ],
+    staticDataRows: records,
+    contextMenu: contextMenu,
+    extensions: [
+        new ContextMenu()
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 style="margin-bottom:5px" id="api-refs">API Reference</h2>
 <div id="elf-api-container"><div id="main-template" class="elf-template">    <section><header>            <h1 class="subsection-title"><span class="attribs"><span class="type-signature"></span></span>ContextMenuPlugin<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h1>            </header><article>                                                                        <h3 class="subsection-title" id="type_definitions">Type Definitions</h3>                        
 <div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~Context">Context</h4><div class="description">    All available context types for the extension</div>    <h5>Type:</h5>    <span class="param-type">"header"</span> | <span class="param-type">"content"</span> | <span class="param-type">"footer"</span> | <span class="param-type">"filterRow"</span><div class="details">                                                            </div></div>                            
 <div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~MenuItem">MenuItem</h4>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>text</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Text to diplay at the item</td>        </tr>            <tr>                            <td class="name"><code>value</code></td>                        <td class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Value attached to the item</td>        </tr>            <tr>                            <td class="name"><code>isDisabled</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">If true the item will be disabled, default is false</td>        </tr>            <tr>                            <td class="name"><code>isVisible</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">If false the item will not be displayed, default is true</td>        </tr>            <tr>                            <td class="name"><code>isSeparator</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">If true the item is rendered as an item separator</td>        </tr>            <tr>                            <td class="name"><code>items</code></td>                        <td class="type">                            <span class="param-type">Array.&lt;<a href="#/extensions/tr-grid-contextmenu#~MenuItem">ContextMenuPlugin~MenuItem</a>&gt;</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Array of sub-menu items</td>        </tr>            <tr>                            <td class="name"><code>renderer</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Callback function to do custom rendering of the item, see more information in later section</td>        </tr>            <tr>                            <td class="name"><code>callback</code></td>                        <td class="type">                            <span class="param-type"><a href="#/extensions/tr-grid-contextmenu#~MenuItemEventCallback">ContextMenuPlugin~MenuItemEventCallback</a></span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Menu item clicked handler function</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            

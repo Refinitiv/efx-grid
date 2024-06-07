@@ -1,8 +1,9 @@
-<h1 id="server-side-pagination">Server Side Pagination</h1>
+<h1 id="pagination">Pagination</h1>
+<h2 id="server-side-pagination">Server Side Pagination</h2>
 <p>In case you want to retrieve a chunk of data from the server and do not want to load all of the data at once, you need to do server side pagination. The <a href="https://ui.refinitiv.com/elements/pagination">pagination</a> component is enough to do this. <strong>Do not</strong> use the Pagination Extension for server side pagination. </p>
 <p>All related logics (such as data requesting, validation, and transformation) must be implemented on the application side. Once data is received, you can just assign data to Grid&#39;s <code>data</code> property. </p>
 <p>See more details about data setting at <a href="#/data/columns-and-data">Columns and Data Properties</a>.</p>
-<h2 id="example">Example</h2>
+<h3 id="example">Example</h3>
 <pre><code class="language-js">    function onServerResponse(data) {
         hideLoadingMask();
         grid.data = data; // Setting data from server
@@ -14,7 +15,7 @@
         requestData(e.detail.value, PAGE_SIZE, onServerResponse);
     }
 </code></pre>
-<code-sandbox hash="5db5cb84"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="d397f82a"><pre><code class="language-css">efx-grid {
     height: 169px;
 }
 ef-pagination {
@@ -111,7 +112,7 @@ var configObj = {
         {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
         {name: &quot;Industry&quot;, field: fields[4]}
     ]
-    // ,dataModel: {...} Initial data is optional
+    // ,staticDataRows: {...} Initial data is optional
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
@@ -123,10 +124,10 @@ paginationUI.addEventListener(&quot;value-changed&quot;, onPageChanged);
 requestTotalPage(onRowCountRecieved);
 requestData(paginationUI.value, PAGE_SIZE, onServerResponse);
 </code></pre>
-</code-sandbox><h1 id="client-side-pagination">Client side pagination</h1>
+</code-sandbox><h2 id="client-side-pagination">Client side pagination</h2>
 <p>If you have all the data available on the client side and want to show data in pagination style, you can use the Pagination Extension and the <a href="https://ui.refinitiv.com/elements/pagination">pagination</a> element. The current page and page size can be configured using the <code>pagination</code> option. The pagination behaviors are then implemented by the extension. See <a href="#/extensions/tr-grid-pagination">Pagination Extension</a> for more details.</p>
-<h2 id="example-1">Example</h2>
-<code-sandbox hash="a12bd869"><pre><code class="language-css">efx-grid {
+<h3 id="example-1">Example</h3>
+<code-sandbox hash="464811ab"><pre><code class="language-css">efx-grid {
     height: 169px;
 }
 ef-pagination {
@@ -163,9 +164,7 @@ var configObj = {
         {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
         {name: &quot;Industry&quot;, field: fields[4]}
     ],
-    dataModel: {
-        data: records
-    },
+    staticDataRows: records,
     pagination: {
         element: document.getElementById(&quot;pagination&quot;),
         page: 1,
