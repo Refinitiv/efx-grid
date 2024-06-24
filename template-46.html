@@ -91,9 +91,134 @@ document.getElementById(&quot;unset_btn&quot;).addEventListener(&quot;click&quot
 </code-sandbox><h2 id="installation-and-how-to-import-to-a-project">Installation and how to import to a project</h2>
 <p>Installation examples and details of how to import the extension to a project are available on the <a href="#/extensions/readme">Overview</a> page.</p>
 <h2 id="initializing-segments">Initializing segments</h2>
-<p>If you intend to apply a segment separator using the <code>segmentIdField</code> during runtime, whenever the row data is updated, it is necessary to call the <code>requestSeparatorRefresh</code> function to forcefully render the user interface (UI). This step ensures that the changes are reflected in the UI, allowing for an accurate representation of the updated segment separators.</p>
 <p>Currently, there are two ways to set segment separator. The first method is using <code>setSegmentSeparator</code> and <code>addSegmentChildren</code> functions from Grid APIs. The second method involves specifying <code>segmentIdField</code> on the extension configuration object and segment id on the field in the row data. However, we strongly advise against using both methods simultaneously. Please choose one approach that suits your needs, keeping in mind that the user interface will appear similar regardless of the method chosen.</p>
-<h2 id="differences-between-row-segmenting-extension-and-row-grouping-extension">Differences between Row Segmenting Extension and Row Grouping Extension</h2>
+<h3 id="initial-collapsing-state">Initial collapsing state</h3>
+<p>The initial segments created by the extension are expanded by default. To initially collapse all segments by default, set <code>defaultCollapsing</code> property to <code>true</code>.</p>
+<aside class="info"><p>Once a segment is collapsed, segment children/members will be hidden and row indices of any row below the segment will be shifted up. To avoid referencing incorrect row, it&#39;s better to use row id instead of row index when using grid or extension APIs.</p>
+</aside><h3 id="initializing-segments-by-using-segment-id-field-example">Initializing segments by using segment id field example</h3>
+<p>In case of initializing by <code>segmentIdField</code>, <code>collapsingField</code> option can be used to override collapsing state set by <code>defaultCollapsing</code> option.</p>
+<p>When the row data are updated, you can call <code>requestSeparatorRefresh</code> method to reset existing segments. This method removes all existing segments and create new segments and their children/members. The method is quite costly in term of performance, so the extension does call the method automatically on each data change.</p>
+<code-sandbox hash="dfaf9fb0"><pre><code class="language-css">html hr {
+    margin: 5px;
+}
+efx-grid {
+    height: 380px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var rowSegmentingExt = new RowSegmenting();
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var segmentField = &quot;SegmentId&quot;;
+var colapsingField = &quot;CollapsingField&quot;;
+var records = DataGenerator.generateRecords(fields, { numRows: 14 });
+records[1][segmentField] = &quot;1&quot;;
+records[2][segmentField] = &quot;1&quot;;
+records[3][segmentField] = &quot;1&quot;;
+
+records[5][colapsingField] = false; // override default collapsing state
+records[5][segmentField] = &quot;2&quot;;
+records[6][segmentField] = &quot;2&quot;;
+
+records[8][segmentField] = &quot;3&quot;;
+records[9][segmentField] = &quot;3&quot;;
+records[10][segmentField] = &quot;3&quot;;
+records[11][segmentField] = &quot;3&quot;;
+
+var configObj = {
+    rowSegmenting: {
+        segmentIdField: segmentField,
+        collapsingField: colapsingField,
+        defaultCollapsing: true
+    },
+    columns: [
+        { name: &quot;Company&quot;, field: fields[0] },
+        { name: &quot;Market&quot;, field: fields[1], width: 120 },
+        { name: &quot;Last&quot;, field: fields[2], width: 100 },
+        { name: &quot;Net. Chng&quot;, field: fields[3], width: 100 },
+        { name: &quot;Industry&quot;, field: fields[4] }
+    ],
+    staticDataRows: records,
+    extensions: [
+        rowSegmentingExt
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h3 id="initializing-segments-by-using-api-example">Initializing segments by using API example</h3>
+<p>The following code example shows how to initilize segment by using <code>setSegmentSeparator</code> in <code>configured</code> events. The example also uses row id instead of row index to ensure that collapsing state of the segments does not impact the setup.</p>
+<code-sandbox hash="75043d7a"><pre><code class="language-css">html hr {
+    margin: 5px;
+}
+efx-grid {
+    height: 380px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var rowSegmentingExt = new RowSegmenting();
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var segmentField = &quot;SegmentId&quot;;
+var colapsingField = &quot;CollapsingField&quot;;
+var records = DataGenerator.generateRecords(fields, { numRows: 14 });
+var onGridConfigured = function(e) { 
+    var rowDefs = e.detail.api.getAllRowDefinitions();
+    var rowIds = rowDefs.map(function(rowDef) { return rowDef.getRowId(); });
+    
+    rowSegmentingExt.setSegmentSeparator(rowIds[1], {
+        children: [rowIds[2], rowIds[3]]
+    });
+    rowSegmentingExt.setSegmentSeparator(rowIds[5], {
+        children: [rowIds[6], rowIds[3]],
+        collapsed: false // override default collapsing state
+    });
+    rowSegmentingExt.setSegmentSeparator(rowIds[8], {
+        children: [rowIds[9], rowIds[10], rowIds[11]]
+    });
+};
+
+var configObj = {
+    rowSegmenting: {
+        defaultCollapsing: true
+    },
+    columns: [
+        { name: &quot;Company&quot;, field: fields[0] },
+        { name: &quot;Market&quot;, field: fields[1], width: 120 },
+        { name: &quot;Last&quot;, field: fields[2], width: 100 },
+        { name: &quot;Net. Chng&quot;, field: fields[3], width: 100 },
+        { name: &quot;Industry&quot;, field: fields[4] }
+    ],
+    staticDataRows: records,
+    extensions: [
+        rowSegmentingExt
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+grid.addEventListener(&quot;configured&quot;, onGridConfigured);
+</code></pre>
+</code-sandbox><h2 id="differences-between-row-segmenting-extension-and-row-grouping-extension">Differences between Row Segmenting Extension and Row Grouping Extension</h2>
 <p>Both extensions produce very similar looking results, but there are some key differences in behaviors and functionalities. </p>
 <h3 id="group-header-segment-separator">Group header (segment separator)</h3>
 <p>The group headers in Row Segmenting Extension have their own data/content, whereas those in Row Grouping Extension have no data. Group headers in Row Segmenting Extension are actually normal row with a separator mark on it. This means you can perform sorting and filtering on the group headers.</p>
@@ -101,16 +226,12 @@ document.getElementById(&quot;unset_btn&quot;).addEventListener(&quot;click&quot
 <h3 id="dragging-group-header">Dragging group header</h3>
 <p>The group headers in Row Segmenting Extension can be moved by dragging, if we use Row Dragging Extension. Moving group header is the same as moving row content. After moving, group headers will also move their row members along with them.</p>
 <p>The group headers in Row Grouping Extension cannot be moved freely. They can only moved or ordered by sorting operation. This is because they are automatically generated and constantly added or removed according to data updates. </p>
-<blockquote>
-<p>Note: dragging behaviors for group headers have not yet finalized and are subject to change.</p>
-</blockquote>
-<h3 id="grouping-criteria">Grouping criteria</h3>
+<aside class="info"><p>Note that dragging behaviors for group headers have not yet finalized and are subject to change.</p>
+</aside><h3 id="grouping-criteria">Grouping criteria</h3>
 <p>Specifying a group header in Row Segmenting Extension is a bit more difficult. Each group header has to be set manually through the extension&#39;s APIs. Use the <code>setSegmentSeparator()</code> method to specify group header. Group members need to be manually added to the new groups by <code>addSegmentChild()</code> or <code>addSegmentChildren()</code> methods. Any row added to the group will be moved below the group header position. Rows that are already a group member cannot be added to another group. </p>
 <p>Grouping in Row Grouping Extension are based on row content. So, you can add or remove a group by just changing content of a row. A row can be moved between different groups by changing content of the row as well. </p>
-<blockquote>
-<p>More APIs will be implemented to accommodate adding or removing member in the future updates.</p>
-</blockquote>
-<h3 id="segment-classification-multi-levelnested-grouping">Segment Classification (multi-level/nested grouping)</h3>
+<aside class="info"><p>More APIs will be implemented to accommodate adding or removing member in the future updates.</p>
+</aside><h3 id="segment-classification-multi-levelnested-grouping">Segment Classification (multi-level/nested grouping)</h3>
 <p>With Row Segmenting Extension, you can specify classfication on individual segment to add nested segments. The criteria can be defined by using <code>setSegmentClassification</code> method with array of fields as its parameter. </p>
 <code-sandbox hash="50121036"><pre><code class="language-css">html hr {
     margin: 5px;
@@ -204,14 +325,11 @@ grid.data = records;
 </code></pre>
 </code-sandbox><h3 id="group-sorting">Group sorting</h3>
 <p>Row segmenting can be sorted manually through an API <code>sortSeparators</code> from <code>SortableTitlePlugin</code>. The method accept a sorting function as parameter. If no parameter is passed to the function, the segments will be sorted according to the current sorting states of the grid.</p>
-<blockquote>
-<p>Note:</p>
-<ul>
+<aside class="info"><ul>
 <li>When clearing the grid sorting state, the segments will not return to its original order. To make it return to  original position, <code>sortSeparators</code> need to be called with a custom sorting function.</li>
-<li>Sorting segment operation only swap position between segments, therefore the content rows between the segments will not be moved to stick together at top of the grid. </li>
+<li>Sorting segment operation only swap position between segments, therefore the content rows between the segments will not be moved to stick together at top of the grid.</li>
 </ul>
-</blockquote>
-<code-sandbox hash="972210b7"><pre><code class="language-css">html hr {
+</aside><code-sandbox hash="972210b7"><pre><code class="language-css">html hr {
     margin: 5px;
 }
 </code></pre>

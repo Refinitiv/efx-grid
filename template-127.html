@@ -1,22 +1,11 @@
-<h1 id="row---showhide">Row - Show/Hide</h1>
-<p>Content rows can be hidden and shown based on their row ID, and an additional API unhides all currently hidden rows.</p>
-<blockquote>
-<p><strong>Note:</strong> In most cases, the row ID is not equivalent to the row index. It can, however, be retrieved if you know the index (refer to the JavaScript section in the demo).</p>
-</blockquote>
-<p>Both the <code>showRows()</code> and <code>hideRows()</code> APIs accept either an individual value (string or integer) or an array of values.  This kind of state is independent of the programmatic filtering of content, and will correctly reclassify hidden rows on sorting/grouping.</p>
+<h1 id="row---reordering">Row - Reordering</h1>
+<p>To allow the user to drag and reorder selected rows, add Row Dragging Extension instance to <code>extensions</code> property. The visual content of the dragged row can be rendered using the renderer function provided in the property <code>dragBoxRenderer</code> of the <code>rowDragging</code> option object. For more details, see <a href="#/extensions/tr-grid-row-dragging">Row Dragging Extension</a>.</p>
 <h2 id="example">Example</h2>
-<code-sandbox hash="9ccc4e3c"><pre><code class="language-css">html hr {
-    margin: 5px;
-}
-efx-grid {
+<code-sandbox hash="b0fe8224"><pre><code class="language-css">efx-grid {
     height: 200px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;button id=&quot;hide_btn&quot;&gt;Hide top 3 rows&lt;/button&gt;
-&lt;button id=&quot;show_btn&quot;&gt;Show last 2 hidden rows&lt;/button&gt;
-&lt;button id=&quot;clear_btn&quot;&gt;Unhide all&lt;/button&gt;
-&lt;hr&gt;
-&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
@@ -27,38 +16,26 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 20 });
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 6 });
 var configObj = {
+    rowDragging: {
+        dragBoxRenderer: function(e) {
+            e.dragBox.textContent = e.dataRow[fields[0]];
+        }
+    },
     columns: [
-        {name: &quot;Id&quot;, field: fields[0], width: 50},
-        {name: &quot;Company&quot;, field: fields[1]},
-        {name: &quot;Market&quot;, field: fields[2], width: 100},
-        {name: &quot;Last&quot;, field: fields[3], width: 80},
-        {name: &quot;Net. Chng&quot;, field: fields[4], width: 80},
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market&quot;, field: fields[1], width: 100},
+        {name: &quot;Last&quot;, field: fields[2], width: 80},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 80},
+        {name: &quot;Industry&quot;, field: fields[4]}
     ],
-    staticDataRows: records
+    staticDataRows: records,
+    extensions: [ new RowDragging() ]
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
-var rowId1, rowId2, rowId3;
-document.getElementById(&quot;hide_btn&quot;).addEventListener(&quot;click&quot;, function() {
-        // Hide rows at index 0 and 1 (rowIds are &quot;0&quot; and &quot;1&quot; respectively since rows haven&quot;t been sorted/filtered)
-        var dataView = grid.api.getDataView();
-        rowId1 = dataView.getRowId(0);
-        rowId2 = dataView.getRowId(1)
-        rowId3 = dataView.getRowId(2)
-        grid.api.hideRows([rowId1, rowId2, rowId3]);
-});
-
-document.getElementById(&quot;show_btn&quot;).addEventListener(&quot;click&quot;, function() {
-        grid.api.showRows([rowId2, rowId3]);
-});
-
-document.getElementById(&quot;clear_btn&quot;).addEventListener(&quot;click&quot;, function() {
-        // Unhide all currently hidden rows
-        grid.api.unhideAllRows();
-});
 </code></pre>
 </code-sandbox>

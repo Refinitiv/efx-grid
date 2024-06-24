@@ -1,7 +1,7 @@
-<h1 id="right-side-column-pinningfreezing">Right Side Column Pinning/Freezing</h1>
-<p>When Grid contains controls or buttons on the right side you should freeze or pin these columns, as they should not be part of the scrollable content. To do this use the <code>rightPinned</code> property on the column configuration object.</p>
-<h2 id="example">Example</h2>
-<code-sandbox hash="7d63042b"><pre><code class="language-css">efx-grid {
+<h1 id="non-overlap-scrollbars">Non-overlap Scrollbars</h1>
+<p>Normally, Grid&#39;s scrollbars are shown on top of its content. This behavior can result in scrollbars blocking the display and interaction of the content. You can work around this issue by adding extra content to allow space for the scrollbars. To do this set <code>contentRightPadding</code> and <code>contentBottomPadding</code> properties in the configuration, as shown in the example below.</p>
+<h2 id="content-padding-example">Content padding example</h2>
+<code-sandbox hash="c56d35db"><pre><code class="language-css">efx-grid {
     height: 200px;
 }
 </code></pre>
@@ -16,28 +16,63 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var buttonFormatter = function(e) {
-    var cell = e.cell;
-    var btn = cell.getContent();
-    if(!btn) {
-        btn = document.createElement(&quot;button&quot;);
-    }
-    btn.textContent = e.data;
-    cell.setContent(btn);
-};
-
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;id&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 10 });
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 20 });
 var configObj = {
+    contentRightPadding: 14,
+    contentBottomPadding: 14,
+    autoHideScrollbar: false,
     columns: [
         {name: &quot;Company&quot;, field: fields[0], width: 250},
-        {name: &quot;Market&quot;, field: fields[1], width: 100},
-        {name: &quot;Last&quot;, field: fields[2], width: 100},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
-        {name: &quot;Industry&quot;, field: fields[4], width: 300},
-        {name: &quot;Op.1&quot;, field: fields[5], width: 60, rightPinned: true, binding: buttonFormatter, alignment: &quot;center&quot;},
-        {name: &quot;Op.2&quot;, field: fields[5], width: 60, rightPinned: true, binding: buttonFormatter, alignment: &quot;center&quot;},
-        {name: &quot;Op.3&quot;, field: fields[5], width: 60, rightPinned: true, binding: buttonFormatter, alignment: &quot;center&quot;}
+        {name: &quot;Market&quot;, field: fields[1], width: 150},
+        {name: &quot;Last&quot;, field: fields[2], width: 150},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 150},
+        {name: &quot;Industry&quot;, field: fields[4], width: 300}
+    ],
+    staticDataRows: records
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><p>This extra content may not be desirable though, as it can add to the amount of scroll distance and not actually reserve space for the scrollbars. Instead, you can change the parent of the scrollbars and reserve some space using CSS paddings. To change the parent of the scrollbars supply the parent element to the <code>scrollbarParent</code> property in the configuration object, as shown below.</p>
+<blockquote>
+<p>Note: <code>autoHideScrollbar</code> is turned off by default if <code>scrollbarParent</code> is supplied.</p>
+</blockquote>
+<h2 id="changing-the-scrollbar-parent-example">Changing the scrollbar parent example</h2>
+<code-sandbox hash="b806eb56"><pre><code class="language-css">#grid_container {
+    height: 200px; 
+    padding-right: 14px;
+    padding-bottom: 14px;
+    box-sizing: border-box;
+}
+efx-grid {
+    height: 100%;
+}
+</code></pre>
+<pre><code class="language-html">&lt;div id=&quot;grid_container&quot;&gt;
+    &lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+&lt;/div&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 20 });
+var configObj = {
+    scrollbarParent: document.getElementById(&quot;grid_container&quot;),
+    columns: [
+        {name: &quot;Company&quot;, field: fields[0], width: 250},
+        {name: &quot;Market&quot;, field: fields[1], width: 150},
+        {name: &quot;Last&quot;, field: fields[2], width: 150},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 150},
+        {name: &quot;Industry&quot;, field: fields[4], width: 300}
     ],
     staticDataRows: records
 };

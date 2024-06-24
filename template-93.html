@@ -1,14 +1,21 @@
-<h1 id="handling-50000-rows">Handling 50,000 Rows</h1>
-<p>Grid utilizes a virtual rendering technique that renders a range of visible rows and uses/shares the same cells across multiple rows. This allows you to display an extraordinarily large number of rows on the grid, as shown in the example below.</p>
-<blockquote>
-<p>Note that by default, the grid&#39;s wheel scrolling behavior will skip multiple rows based on the total number of rows, to avoid small and tiresome scrolling. Use the <code>linearWheelScrolling</code> flag to enable native wheel scrolling behavior.</p>
-</blockquote>
-<h2 id="example">Example</h2>
-<code-sandbox hash="92d0e4ba"><pre><code class="language-css">efx-grid {
-    height: 500px;
+<h1 id="custom-tooltip">Custom Tooltip</h1>
+<p>A custom tooltip allows users to customize tooltips within the grid, enabling them to render elements and incorporate them into the tooltip.</p>
+<h2 id="multiple-lines-tooltip">Multiple lines tooltip</h2>
+<p>Sometimes, the application needs to use tooltips with multiple lines to enhance user understanding. In the example below, we demonstrate how to show multiple lines for a custom tooltip below.</p>
+<code-sandbox hash="dcde1d30"><pre><code class="language-css">efx-grid {
+    height: 300px;
+    margin-bottom: 40px;
 }
 </code></pre>
 <pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+&lt;ef-tooltip id=&quot;my_tooltip&quot;&gt;&lt;/ef-tooltip&gt;
+    &lt;div style=&quot;display: none;&quot;&gt;
+            &lt;div id=&quot;container_custom_tooltip&quot;&gt;
+                &lt;div class=&quot;line1&quot;&gt;&lt;/div&gt;
+                &lt;div class=&quot;line2&quot;&gt;&lt;/div&gt;
+                &lt;div class=&quot;line3&quot;&gt;&lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
@@ -19,38 +26,163 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-DataGenerator.addFieldInfo(&quot;rowNumber&quot;, {
-    type: &quot;function&quot;,
-    generate: function(info, seed) {
-        return ++info.count;
-    },
-    count: 0,
-});
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;rowNumber&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 50000 });
+
+var fields = [&quot;companyName&quot;, &quot;industry&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;PCTCHNG&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 10 });
 var configObj = {
-    linearWheelScrolling: true,
     columns: [
-        {name: &quot;ID&quot;, field: fields[5], alignment: &quot;center&quot;, width: 80},
-        {name: &quot;Company&quot;, field: fields[0]},
-        {
-            name: &quot;Market&quot;, 
-            field: fields[1], 
-            width: 120, 
-            binding: TextFormatter.create({
-                styles: {
-                    &quot;backgroundColor&quot;: &quot;rgba(120, 120, 220, 0.3)&quot;
-                }
-            })
-        },
-        {name: &quot;Last&quot;, field: fields[2], width: 100},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
-        {name: &quot;Industry&quot;, field: fields[4]}
+        { name: &quot;Multiple Lines Tooltip&quot;, field: fields[0], },
+        { name: &quot;Normal Tooltip&quot;, field: fields[1], binding: customBinding },
+        { name: &quot;No Tooltip&quot;, field: fields[2] },
     ],
     staticDataRows: records
 };
+const CUSTOM_TOOLTIP_FIELD = fields[0];
 
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
+var tooltip = document.getElementById(&quot;my_tooltip&quot;);
+tooltip.condition = customTooltipCondition; // Set condition that tooltip should be rendered
+tooltip.renderer = customTooltipRenderer; // Set what will be rendered in tooltip
+
+function customBinding(e) {
+    var cell = e.cell;
+    var field = e.field;
+    var data = e.rowData[field];
+    cell.setTooltip(data);
+    cell.setContent(data);
+}
+
+function customTooltipCondition(target, paths) {
+    var relPos = grid.api.getRelativePosition(target);
+    var colIndex = relPos.colIndex;
+    var field = grid.api.getColumnField(colIndex);
+
+    if (relPos.hit &amp;&amp; field == CUSTOM_TOOLTIP_FIELD) {
+        return true;
+    }
+    return false;
+}
+
+function customTooltipRenderer(target) {
+    var relPos = grid.api.getRelativePosition(target);
+    if (relPos.sectionType != &quot;title&quot;) {
+        var rowIndex = relPos.rowIndex;
+        var rowDef = grid.api.getRowDefinition(rowIndex);
+        if (!rowDef) {
+            return null;
+        }
+        var rowData = rowDef.getRowData();
+        let container = document.getElementById(&quot;container_custom_tooltip&quot;);
+        container.querySelector(&quot;.line1&quot;).textContent = rowData[&quot;companyName&quot;];
+        container.querySelector(&quot;.line2&quot;).textContent = rowData[&quot;market&quot;];
+        container.querySelector(&quot;.line3&quot;).textContent = rowData[&quot;industry&quot;];
+        return container;
+    }
+    return null
+}
 </code></pre>
-</code-sandbox>
+</code-sandbox><h2 id="tooltip-with-complex-element">Tooltip with complex element</h2>
+<p>To create the tooltip exactly as you desire, simply create a special element and then add details with grid information inside. This feature allows you to customize the tooltip to suit your needs perfectly, aligning seamlessly with your current project. Follow the example below for guidance.</p>
+<code-sandbox hash="cfffc8f7"><pre><code class="language-css">efx-grid {
+    height: 300px;
+    margin-bottom: 40px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+&lt;ef-tooltip id=&quot;my_tooltip&quot;&gt;&lt;/ef-tooltip&gt;
+&lt;div style=&quot;display: none;&quot;&gt;
+    &lt;div id=&quot;container_custom_tooltip&quot;&gt;
+        &lt;div style=&quot;font-weight: bold;&quot;&gt;
+            &lt;span class=&quot;company-name&quot;&gt;&lt;/span&gt;&lt;span&gt; (&lt;/span&gt;&lt;span class=&quot;market&quot;&gt;&lt;/span&gt;&lt;span&gt;)&lt;/span&gt;
+        &lt;/div&gt;
+        &lt;hr style=&quot;margin: 0px;&quot;&gt;
+        &lt;div style=&quot;color: red;&quot; class=&quot;price-color&quot;&gt;
+            &lt;span&gt;£&lt;/span&gt;&lt;span class=&quot;cf-last&quot;&gt;&lt;/span&gt;
+            &lt;span&gt;(&lt;/span&gt;&lt;span class=&quot;pctchng&quot;&gt;
+            &lt;/span&gt;&lt;span&gt;%)&lt;/span&gt;
+            &lt;ef-pill class=&quot;row-index&quot;&gt;&lt;/ef-pill&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+
+var fields = [&quot;companyName&quot;, &quot;industry&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;PCTCHNG&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 10 });
+var configObj = {
+    rowVirtualization: false,
+    columns: [
+        { name: &quot;Tooltip with Complex Element&quot;, field: fields[0], },
+        { name: &quot;Normal Tooltip&quot;, field: fields[1], binding: customBinding },
+        { name: &quot;No Tooltip&quot;, field: fields[2] },
+    ],
+    staticDataRows: records
+};
+const COMPLEXT_TOOLTIP_FIELD = fields[0];
+
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+
+var tooltip = document.getElementById(&quot;my_tooltip&quot;);
+tooltip.condition = customTooltipCondition; // Set condition that tooltip should be rendered
+tooltip.renderer = customTooltipRenderer; // Set what will be rendered in tooltip
+
+function customBinding(e) {
+    var cell = e.cell;
+    var field = e.field;
+    var data = e.rowData[field];
+    cell.setTooltip(data);
+    cell.setContent(data);
+}
+
+function customTooltipCondition(target, paths) {
+    var relPos = grid.api.getRelativePosition(target);
+    var colIndex = relPos.colIndex;
+    var field = grid.api.getColumnField(colIndex);
+    if (relPos.hit &amp;&amp; field == COMPLEXT_TOOLTIP_FIELD) {
+        return true;
+    }
+    return false;
+}
+
+function customTooltipRenderer(target) {
+    var relPos = grid.api.getRelativePosition(target);
+    if (relPos.sectionType != &quot;title&quot;) {
+        var rowIndex = relPos.rowIndex;
+        var rowDef = grid.api.getRowDefinition(rowIndex);
+        if (!rowDef) {
+            return null;
+        }
+        var rowData = rowDef.getRowData();
+        var market = rowData[&quot;market&quot;];
+        var companyName = rowData[&quot;companyName&quot;];
+        var lastPrice = rowData[&quot;CF_LAST&quot;];
+        var priceChange = rowData[&quot;PCTCHNG&quot;];
+        // Assign only value element inside container element
+        var container = document.getElementById(&quot;container_custom_tooltip&quot;);
+        container.querySelector(&quot;.market&quot;).textContent = market;
+        container.querySelector(&quot;.company-name&quot;).textContent = companyName;
+        container.querySelector(&quot;.cf-last&quot;).textContent = lastPrice;
+        container.querySelector(&quot;.pctchng&quot;).textContent = priceChange;
+        if (priceChange &lt; 0) {
+            container.querySelector(&quot;.price-color&quot;).style.color = &quot;red&quot;;
+        } else {
+            container.querySelector(&quot;.price-color&quot;).style.color = &quot;green&quot;;
+        }
+        container.querySelector(&quot;.row-index&quot;).textContent = rowIndex;
+        return container;
+    }
+    return null;
+}
+</code></pre>
+</code-sandbox><p><br><br><br></p>

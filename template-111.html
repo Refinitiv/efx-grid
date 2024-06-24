@@ -1,5 +1,5 @@
-<h1 id="ef-select-formatter">EF Select Formatter</h1>
-<p>This formatter creates <a href="https://ui.refinitiv.com/elements/select">ef-select</a> without margin. Its options come from passed <code>options.data</code>.</p>
+<h1 id="ef-radio-button-formatter">EF Radio Button Formatter</h1>
+<p>This formatter creates a <a href="https://ui.refinitiv.com/elements/radio-button">ef-radio-button</a> which will be unchecked by default.</p>
 <h2 id="specific-options">Specific options</h2>
 <table>
 <thead>
@@ -11,14 +11,14 @@
 </tr>
 </thead>
 <tbody><tr>
-<td>data</td>
-<td>Array</td>
-<td>required</td>
-<td>List of items, see <a href="https://ui.refinitiv.com/elements/select">ef-select</a> for more detail.</td>
+<td>initialIndex</td>
+<td>number</td>
+<td>optional</td>
+<td>Initial checked row index</td>
 </tr>
 </tbody></table>
 <h2 id="example">Example</h2>
-<code-sandbox hash="3ff151f9"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="776c1d68"><pre><code class="language-css">efx-grid {
     height: 320px;
 }
 </code></pre>
@@ -33,48 +33,37 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var currencies = [&quot;THB&quot;, &quot;AUD&quot;, &quot;USD&quot;, &quot;YEN&quot;, &quot;TWD&quot;];
-DataGenerator.addFieldInfo(&quot;currency&quot;, { type: &quot;set&quot;, members: currencies});
-
-var fields = [&quot;currency&quot;];
-var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 20    });
+var fields = [&quot;number&quot;, &quot;word&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 20 });
 
 var configObj = {
+    sorting: {
+        sortableColumns: true
+    },
     columns: [
-        { 
-            name: &quot;Data&quot;,
-            field: fields[0],
-            sort: fields[0],
-            alignment: &quot;c&quot;
-        },
-        { 
-            name: &quot;Simplest&quot;,
-            field: fields[0],
-            sort: fields[0],
+        {
+            name: &quot; &quot;,
             alignment: &quot;c&quot;,
-            binding: EFSelectFormatter.create({
-                entries: currencies
-            })
-        },
-        { 
-            name: &quot;Some options&quot;,
-            field: fields[0],
-            sort: fields[0],
-            alignment: &quot;c&quot;,
-            binding: EFSelectFormatter.create({
-                data: currencies,
-                attributes: {
-
-                },
-                styles: {
-                    width: &quot;80px&quot;
-                },
+            field: &quot;radio&quot;,
+            width: 34,
+            binding: EFRadioButtonFormatter.create({
+                initialIndex: 0,
                 events: {
-                    &quot;value-changed&quot;: function(e) {
-                        // console.log(&quot;value changed: &quot; + e.detail.value);
+                    &quot;click&quot;: function(e) {
+                        console.log(&quot;clicked&quot;);
                     }
                 }
             })
+        },
+        {
+            name: &quot;Number&quot;,
+            field: fields[0],
+            alignment: &quot;c&quot;,
+        },
+        {
+            name: &quot;Description&quot;,
+            field: fields[1],
+            alignment: &quot;c&quot;,
         }
     ],
     staticDataRows: records

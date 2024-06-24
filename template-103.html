@@ -1,32 +1,23 @@
-<h1 id="predefined-formatter">Predefined Formatter</h1>
-<h2 id="setup-guide">Setup guide</h2>
-<p>Use <code>import</code> syntax to import the formatter into your app.</p>
-<pre><code class="language-js">import { EFButtonFormatter, EFSelectFormatter } from &quot;@refinitiv-ui/efx-grid/formatters&quot;;
-</code></pre>
-<h2 id="the-basics">The basics</h2>
-<p>The simplest way to get the basic formatter is by calling <code>create()</code> without options, for example <code>SimpleInputFormatter.create()</code>. Then pass it to Grid using configuration, as shown below:</p>
-<pre><code class="language-js">var config = {
-    columns: [{
-        name: &quot;Company Info&quot;,
-        field: &quot;info&quot;,
-        binding: SimpleInputFormatter.create()
-    }, {
-        name: &quot;Currency&quot;,
-        field: &quot;currency&quot;,
-        binding: EFSelectFormatter.create()
-    }, {
-        name: &quot;DatePicker&quot;,
-        field: &quot;date&quot;,
-        binding: EFDateTimePickerFormatter.create()
-    }]
+<h1 id="event-handling-and-event-listeners-in-formatter">Event handling and event listeners in formatter</h1>
+<p>If your custom formatter contains some input elements or controls, it&#39;s important to bind data back to Grid&#39;s internal data source when users input new data through the UI from your custom formatter. Remember, the same element will be used on different rows due to the row virtualization mechanic. If the data is changed by user actions, you need to update the change back to Grid&#39;s data source, or else the binding mechanism will replace what the user has changed with the data stored from the Grid&#39;s internal source. </p>
+<p>In short, data should be updated after users interact with the UI input. <code>getRelativePosition()</code> method should be used to resolve current positions relative to the grid element.</p>
+<blockquote>
+<p>APIs for data manipulation can be found <a href="#/data/update">here</a>. APIs for Grid and <code>getRelativePosition()</code> method description can be found <a href="#/apis/rt-grid/grid">here</a>.</p>
+</blockquote>
+<h2 id="the-reverted-problem">The &#39;reverted&#39; problem</h2>
+<p>When we don&#39;t set data back, row virtualization will not work properly and content will not be rendered properly. Suppose that we have a dropdown element in one of the grid columns. Any change that is done to the dropdown box will be reverted if we don&#39;t update the data.</p>
+<p>In the live example below, try the following steps to produce the problem:</p>
+<ol>
+<li>Change the selected option from the dropdown box on the first row. Remember the new selected option</li>
+<li>Scroll down to the bottom of the grid</li>
+<li>Scroll back up to the top of the grid</li>
+</ol>
+<code-sandbox hash="397c9c8d"><pre><code class="language-css">efx-grid {
+    height: 200px;
+    margin-bottom: 40px;
 }
 </code></pre>
-<p>Formatter with default options supports basic functioning and can be used for general usage. For input formatters, like <code>SimpleInputFormatter</code>, <code>EFTextFieldFormatter</code>, <code>EFComboBoxFormatter</code>, and so on, when the value has changed the new value will be saved to the <code>dataTable</code> of Grid. See basic formatters in the below example:</p>
-<code-sandbox hash="9131e2f6"><pre><code class="language-css">efx-grid {
-    height: 320px;
-}
-</code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+<pre><code class="language-html">&lt;efx-grid&gt;&lt;/efx-grid&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
@@ -37,184 +28,139 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var currencies = [&quot;THB&quot;, &quot;AUD&quot;, &quot;USD&quot;, &quot;YEN&quot;, &quot;TWD&quot;];
-DataGenerator.addFieldInfo(&quot;currency&quot;, { type: &quot;set&quot;, members: currencies});
+var fields = [&quot;id&quot;, &quot;dropdownVal&quot;, &quot;boolean&quot;, &quot;text&quot;];
+// For static data initialization
+var records = [];
+for (var i = 0; i &lt; 50; i++) {
+    var record = {};
+    record[fields[0]] = i;
+    record[fields[1]] = i % 4; 
+    record[fields[2]] = i &amp; 1 ? true : false;
+    record[fields[3]] = i + &quot; Some Texts&quot;;
+    records.push(record);
+}
 
-var fields = [&quot;number_1&quot;, &quot;currency&quot;, &quot;CF_NETCHNG&quot;];
-var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 20 });
+var dropdownFormatter = function(e) {
+    var cell = e.cell;
+    var dropdown = cell.getContent();
+    if (!dropdown || !dropdown._myDropdown) {
+        dropdown = document.createElement(&quot;select&quot;);
+        dropdown._myDropdown = true;
+        [0, 1, 2, 3].forEach(function(val) {
+            var option = document.createElement(&quot;option&quot;);
+            option.value = val;
+            option.textContent = &quot;Value &quot; + val;
+            dropdown.appendChild(option);
+        });
+    }
+    
+    dropdown.selectedIndex = e.data;
+    cell.setContent(dropdown);
+};
+
 var configObj = {
     columns: [
-        {
-            name: &quot;SimpleLink&quot;,
-            field: fields[0],
-            alignment: &quot;center&quot;,
-            binding: SimpleLinkFormatter.create()
-        },
-        {
-            name: &quot;Input&quot;,
-            field: fields[0],
-            alignment: &quot;center&quot;,
-            binding: EFNumberFieldFormatter.create()
-        },
-        {
-            name: &quot;Select&quot;,
-            field: fields[1],
-            alignment: &quot;center&quot;,
-            binding: EFSelectFormatter.create({
-                data: currencies
-            })
-        },
-        {
-            name: &quot;PercentBar&quot;,
-            field: fields[2],
-            alignment: &quot;center&quot;,
-            binding: PercentBarFormatter.create()
-        }
+        { name: &quot;Row Index&quot;, field: fields[0], width: 80 },
+        { name: &quot;Dropdown&quot;, field: fields[1], binding: dropdownFormatter },
+        { name: &quot;Dropdown Value&quot;, field: fields[1] },
+        { name: &quot;Column 3&quot;, field: fields[2], alignment: &quot;center&quot; },
+        { name: &quot;Column 4&quot;, field: fields[3] }
     ],
     staticDataRows: records
 };
 
-var grid = document.getElementById(&quot;grid&quot;);
+var grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
 grid.config = configObj;
 </code></pre>
-</code-sandbox><h2 id="advance-usage">Advance usage</h2>
-<p>Customizations are allowed through various options, as detailed in the following sections.</p>
-<h3 id="common-options">Common options</h3>
-<p>There are some options that are available for all formatters, see the below table for more details.</p>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Type</th>
-<th>Attributes</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>attributes</td>
-<td>Object</td>
-<td>optional</td>
-<td>List of attributes name and values</td>
-</tr>
-<tr>
-<td>styles</td>
-<td>Object</td>
-<td>optional</td>
-<td>List of inline styles for the element</td>
-</tr>
-<tr>
-<td>events</td>
-<td>Object</td>
-<td>optional</td>
-<td>List of event names and listeners</td>
-</tr>
-<tr>
-<td>disablingField</td>
-<td>string</td>
-<td>optional</td>
-<td>Field to be used for representing disabled attribute of the element</td>
-</tr>
-<tr>
-<td>errorField</td>
-<td>string</td>
-<td>optional</td>
-<td>Field to be used for representing error attribute of the element</td>
-</tr>
-<tr>
-<td>onElementRendered</td>
-<td>Function</td>
-<td>optional</td>
-<td>Event handler after default rendering. It is useful for additional styling</td>
-</tr>
-</tbody></table>
-<blockquote>
-<p>Note: The available value for each option is dependent on the type of element. In the case of the EF element, more information about attributes and events can be found <a href="https://ui.refinitiv.com">here</a>.</p>
-</blockquote>
-<p>Below is an example of showing a button with a label, icon, light coral background color, and listen for click and active-changed event.</p>
-<pre><code class="language-js">var config = {
-    columns: [{
-        name: &quot;Number&quot;,
-        field: &quot;number&quot;,
-        binding: EFButtonFormatter.create({
-            label: &quot;More detail&quot;,
-            attributes: {
-                &quot;icon&quot;: &quot;info&quot;
-            },
-            styles: {
-                &quot;background&quot;: &quot;lightcoral&quot;
-            },
-            events: {
-                &quot;active-changed&quot;: function(e, context) { // Custom event exposed by the element
-
-                },
-                &quot;click&quot;: function(e, context) { // Native events are also supported
-
-                }
-            },
-            onElementRendered: function(element, context) {
-
-            }
-        })
-    }]
+</code-sandbox><p>You will see that the selected option is reverted back to the original option.</p>
+<h2 id="the-fix">The fix</h2>
+<p>To avoid the problem, we have to add an event listener to our custom formatter for binding the change from users. You have added <code>dropdownChangeHandler</code> to fix the problem as shown below:</p>
+<code-sandbox hash="1ab010b7"><pre><code class="language-css">efx-grid {
+    height: 200px;
+    margin-bottom: 40px;
 }
 </code></pre>
-<h3 id="event-listeners-parameters">Event listener&#39;s parameters</h3>
-<p>Available parameters for all listeners are described below:</p>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>event</td>
-<td>Event</td>
-<td>Native event argument object</td>
-</tr>
-<tr>
-<td>context</td>
-<td>Object</td>
-<td>Context object, contains all kind of information and methods</td>
-</tr>
-</tbody></table>
+<pre><code class="language-html">&lt;efx-grid&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;id&quot;, &quot;dropdownVal&quot;, &quot;boolean&quot;, &quot;text&quot;];
+// For static data initialization
+var records = [];
+for (var i = 0; i &lt; 50; i++) {
+    var record = {};
+    record[fields[0]] = i;
+    record[fields[1]] = i % 4; 
+    record[fields[2]] = i &amp; 1 ? true : false;
+    record[fields[3]] = i + &quot; Some Texts&quot;;
+    records.push(record);
+}
+
+// Show how to render custom content with an event listener
+var dropdownFormatter = function(e) {
+    var cell = e.cell;
+    var dropdown = cell.getContent();
+    if (!dropdown || !dropdown._myDropdown) {
+        dropdown = document.createElement(&quot;select&quot;);
+        dropdown._myDropdown = true;
+        [0, 1, 2, 3].forEach(function(val) {
+            var option = document.createElement(&quot;option&quot;);
+            option.value = val;
+            option.textContent = &quot;Value &quot; + val;
+            dropdown.appendChild(option);
+        });
+        
+        dropdown.addEventListener(&quot;change&quot;, dropdownChangeHandler);
+    }
+    dropdown.selectedIndex = e.data;
+    cell.setContent(dropdown);
+};
+// Show how to set data based on interaction from custom content
+var dropdownChangeHandler = function(e) {
+    var dropdown = e.currentTarget;
+    var selectedIndex = +(dropdown.options[dropdown.selectedIndex].value);
+
+    var pos = grid.api.getRelativePosition(e);
+    var rowDef = grid.api.getRowDefinition(pos.rowIndex);
+    rowDef.setData(grid.api.getColumnField(pos.colIndex), selectedIndex);
+};
+
+var configObj = {
+    columns: [
+        { name: &quot;Row Index&quot;, field: fields[0], width: 80 },
+        { name: &quot;Dropdown&quot;, field: fields[1], binding: dropdownFormatter },
+        { name: &quot;Dropdown Value&quot;, field: fields[1] },
+        { name: &quot;Column 3&quot;, field: fields[2], alignment: &quot;center&quot; },
+        { name: &quot;Column 4&quot;, field: fields[3] }
+    ],
+    staticDataRows: records
+};
+
+var grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="writing-event-listeners">Writing event listeners</h2>
+<p>Since the same element will be used on different rows, you cannot use closure variables that are created or given from the event arguments. Row index, column index, or cell reference must be resolved at runtime inside the event listener. You can resolve the position by using Grid&#39;s <code>getRelativePosition()</code> method.</p>
+<pre><code class="language-js">    var dropdownChangeHandler = function(e) {
+        var dropdown = e.currentTarget;
+        var selectedIndex = +(dropdown.options[dropdown.selectedIndex].value);
+
+        var pos = grid.api.getRelativePosition(e);
+        var rowDef = grid.api.getRowDefinition(pos.rowIndex);
+        rowDef.setData(grid.api.getColumnField(pos.colIndex), selectedIndex);
+    };
+</code></pre>
+<ul>
+<li><code>currentTarget</code> property will always give an element attached by the event listener</li>
+<li><code>getRelativePosition()</code> method resolves the position when the dropdown value is changed</li>
+</ul>
 <blockquote>
-<p>Context object also contains information about the position of the element (the same information from <a href="#/apis/rt-grid/grid">getRelativePosition</a> method).</p>
+<p>See <a href="#/data/update">this page</a> on how to update data.</p>
 </blockquote>
-<h3 id="context-object-methods">Context object methods</h3>
-<p>Context object also provides helper methods as shown below:</p>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>getData(field)</td>
-<td>Get field value from the current row</td>
-</tr>
-<tr>
-<td>setData(field, value)</td>
-<td>Set field value to the current row</td>
-</tr>
-<tr>
-<td>isElementDisabled()</td>
-<td>Get data from the disablingField of the current row</td>
-</tr>
-<tr>
-<td>disableElement(bool)</td>
-<td>Set data to the disablingField of the current row</td>
-</tr>
-<tr>
-<td>getError()</td>
-<td>Get data from the errorField of the current row</td>
-</tr>
-<tr>
-<td>setError(value)</td>
-<td>Set data to the errorField of the current row</td>
-</tr>
-</tbody></table>
-<h3 id="specific-options">Specific Options</h3>
-<p>The specific options for each formatters are separately described on each formatter page.</p>
