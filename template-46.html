@@ -1,7 +1,7 @@
 <link rel="stylesheet" href="./resources/styles/elf-template.css">
 
 <h1 id="row-segmenting">Row Segmenting</h1>
-<p>The Row Segmenting Extension provides a way to group row content based on row index. By specifying a row index, the row becomes a group header. Any row below the group header can then be added as a group member. This provides more flexibility in how you define a group, unlike Row Grouping Extension where groups are based on strictly defined criteria. </p>
+<p>The Row Segmenting Extension provides a way to group row content based on row index. By specifying a row index, the row becomes a group header. Any row below the group header can then be added as a group member. This provides more flexibility in how you define a group, unlike Row Grouping Extension where groups are based on strictly defined criteria. Nevertheless, both Row Segmenting Extension and Row Grouping Extension can produce similar looking results. This page will show the key differences in behaviors and functionalities between the two. </p>
 <code-sandbox hash="10f4f9d9"><pre><code class="language-css">html hr {
     margin: 5px;
 }
@@ -91,12 +91,33 @@ document.getElementById(&quot;unset_btn&quot;).addEventListener(&quot;click&quot
 </code-sandbox><h2 id="installation-and-how-to-import-to-a-project">Installation and how to import to a project</h2>
 <p>Installation examples and details of how to import the extension to a project are available on the <a href="#/extensions/readme">Overview</a> page.</p>
 <h2 id="initializing-segments">Initializing segments</h2>
-<p>Currently, there are two ways to set segment separator. The first method is using <code>setSegmentSeparator</code> and <code>addSegmentChildren</code> functions from Grid APIs. The second method involves specifying <code>segmentIdField</code> on the extension configuration object and segment id on the field in the row data. However, we strongly advise against using both methods simultaneously. Please choose one approach that suits your needs, keeping in mind that the user interface will appear similar regardless of the method chosen.</p>
-<h3 id="initial-collapsing-state">Initial collapsing state</h3>
+<p>Currently, there are two ways to set segment separator. The first method is using <code>segmentIdField</code> on the extension configuration object. The second method is <code>setSegmentSeparator</code> and <code>addSegmentChildren</code> functions from Grid APIs.</p>
+<aside class="warning"><p>We strongly advise against using both <code>segmentIdField</code> and <code>setSegmentSeparator</code> approaches simultaneously. Please choose one approach that suits your needs. Keep in mind that the final results will appear the same regardless of the approach chosen.</p>
+</aside><h3 id="initial-collapsing-state">Initial collapsing state</h3>
 <p>The initial segments created by the extension are expanded by default. To initially collapse all segments by default, set <code>defaultCollapsing</code> property to <code>true</code>.</p>
-<aside class="info"><p>Once a segment is collapsed, segment children/members will be hidden and row indices of any row below the segment will be shifted up. To avoid referencing incorrect row, it&#39;s better to use row id instead of row index when using grid or extension APIs.</p>
+<aside class="warning"><p>Once a segment is collapsed, segment children/members will be hidden and row indices of any row below the segment will be shifted up. To avoid referencing incorrect row, it&#39;s better to use row id instead of row index when using grid or extension APIs.</p>
 </aside><h3 id="initializing-segments-by-using-segment-id-field-example">Initializing segments by using segment id field example</h3>
-<p>In case of initializing by <code>segmentIdField</code>, <code>collapsingField</code> option can be used to override collapsing state set by <code>defaultCollapsing</code> option.</p>
+<p>Use <code>segmentIdField</code> to specify which value of the field in the row data to be used for segmentation. The following code snippet shows possible setups for row segmenting:</p>
+<pre><code class="language-js">var records = [ // For illustration purpose
+    {}, // normal row
+    {}, // normal row
+    {&quot;segmentId&quot;: &quot;1&quot;}, // group header row / segment separator
+    {&quot;segmentId&quot;: &quot;1&quot;}, // row member for segment 1
+    {&quot;segmentId&quot;: &quot;1&quot;}, // row member for segment 1
+    {}, // normal row
+    {&quot;segmentId&quot;: &quot;2&quot;}, // group header row / segment separator
+    {&quot;segmentId&quot;: &quot;2&quot;}, // row member for segment 2
+    {}, // normal row
+];
+//...
+var gridConfig = {
+    rowSegmenting: {
+        segmentIdField: &quot;segmentId&quot;
+    },
+    staticDataRows: records
+};
+</code></pre>
+<p>The <code>collapsingField</code> option can be used to override collapsing state set by <code>defaultCollapsing</code> option, when using <code>segmentIdField</code> approach</p>
 <p>When the row data are updated, you can call <code>requestSeparatorRefresh</code> method to reset existing segments. This method removes all existing segments and create new segments and their children/members. The method is quite costly in term of performance, so the extension does call the method automatically on each data change.</p>
 <code-sandbox hash="dfaf9fb0"><pre><code class="language-css">html hr {
     margin: 5px;
@@ -157,6 +178,7 @@ var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 </code></pre>
 </code-sandbox><h3 id="initializing-segments-by-using-api-example">Initializing segments by using API example</h3>
+<p>You can use <code>setSegmentSeparator()</code> method to specify group header at runtime. Group members need to be manually added to the new groups by using <code>addSegmentChild()</code> or <code>addSegmentChildren()</code> methods. Any row added to the group will be moved below the group header position. This means row index should not be used during the setup process because rows can be moved around in the process. Rows that are already a group member should not be added to another group before removing itself from the current group.</p>
 <p>The following code example shows how to initilize segment by using <code>setSegmentSeparator</code> in <code>configured</code> events. The example also uses row id instead of row index to ensure that collapsing state of the segments does not impact the setup.</p>
 <code-sandbox hash="75043d7a"><pre><code class="language-css">html hr {
     margin: 5px;
@@ -218,21 +240,119 @@ var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 grid.addEventListener(&quot;configured&quot;, onGridConfigured);
 </code></pre>
-</code-sandbox><h2 id="differences-between-row-segmenting-extension-and-row-grouping-extension">Differences between Row Segmenting Extension and Row Grouping Extension</h2>
-<p>Both extensions produce very similar looking results, but there are some key differences in behaviors and functionalities. </p>
-<h3 id="group-header-segment-separator">Group header (segment separator)</h3>
+</code-sandbox><h2 id="group-header-segment-separator">Group header (segment separator)</h2>
 <p>The group headers in Row Segmenting Extension have their own data/content, whereas those in Row Grouping Extension have no data. Group headers in Row Segmenting Extension are actually normal row with a separator mark on it. This means you can perform sorting and filtering on the group headers.</p>
 <p>The group headers in the Row Grouping Extension have no data because they are automatically generated based on the specified criteria. So they have no place to hold their data and you will need to have a separate place to hold it. Because of this extra place to manage, it&#39;s more difficult to perform sorting and filtering on these group headers.</p>
-<h3 id="dragging-group-header">Dragging group header</h3>
+<h2 id="dragging-group-header">Dragging group header</h2>
 <p>The group headers in Row Segmenting Extension can be moved by dragging, if we use Row Dragging Extension. Moving group header is the same as moving row content. After moving, group headers will also move their row members along with them.</p>
 <p>The group headers in Row Grouping Extension cannot be moved freely. They can only moved or ordered by sorting operation. This is because they are automatically generated and constantly added or removed according to data updates. </p>
-<aside class="info"><p>Note that dragging behaviors for group headers have not yet finalized and are subject to change.</p>
-</aside><h3 id="grouping-criteria">Grouping criteria</h3>
-<p>Specifying a group header in Row Segmenting Extension is a bit more difficult. Each group header has to be set manually through the extension&#39;s APIs. Use the <code>setSegmentSeparator()</code> method to specify group header. Group members need to be manually added to the new groups by <code>addSegmentChild()</code> or <code>addSegmentChildren()</code> methods. Any row added to the group will be moved below the group header position. Rows that are already a group member cannot be added to another group. </p>
-<p>Grouping in Row Grouping Extension are based on row content. So, you can add or remove a group by just changing content of a row. A row can be moved between different groups by changing content of the row as well. </p>
-<aside class="info"><p>More APIs will be implemented to accommodate adding or removing member in the future updates.</p>
-</aside><h3 id="segment-classification-multi-levelnested-grouping">Segment Classification (multi-level/nested grouping)</h3>
-<p>With Row Segmenting Extension, you can specify classfication on individual segment to add nested segments. The criteria can be defined by using <code>setSegmentClassification</code> method with array of fields as its parameter. </p>
+<aside class="warning"><p>Note that dragging behaviors for group headers have not yet finalized and are subject to change.</p>
+</aside><h2 id="nested-segments-multi-level-segments">Nested segments (multi-level segments)</h2>
+<p>Use <code>parentIdField</code> option to specify which value of the field in the row data to be used for specifying parent of the row. <code>segmentIdField</code> still be used to specify group header/segment separator. The following code snippet shows possible setups for row segmenting:</p>
+<pre><code class="language-js">var records = [ // For illustration purpose
+    {}, // normal row
+    {}, // normal row
+    {&quot;segmentId&quot;: &quot;1&quot;}, // segment 1
+    {&quot;segmentId&quot;: &quot;2&quot;, &quot;parentId&quot;: &quot;1&quot;}, // 2nd level segment (segment 2) is defined and have segment 1 as its parent
+    {&quot;segmentId&quot;: &quot;2&quot;, &quot;parentId&quot;: &quot;2&quot;}, // row member for segment 2
+    {&quot;segmentId&quot;: &quot;3&quot;, &quot;parentId&quot;: &quot;1&quot;}, // 2nd level segment (segment 3) is defined and have segment 1 as its parent
+    {&quot;segmentId&quot;: &quot;3&quot;, &quot;parentId&quot;: &quot;3&quot;}, // row member for segment 3
+    {}, // normal row
+];
+//...
+var gridConfig = {
+    rowSegmenting: {
+        segmentIdField: &quot;segmentId&quot;,
+        parentIdField: &quot;parentId&quot;
+    },
+    staticDataRows: records
+};
+</code></pre>
+<p>For normal rows (non segment separator rows), value from <code>segmentIdField</code> field is not required. We can simplify the above code snippet as the one below:</p>
+<pre><code class="language-js">var records = [ // For illustration purpose
+    {}, // normal row
+    {}, // normal row
+    {&quot;segmentId&quot;: &quot;1&quot;                 }, // segment 1
+    {&quot;segmentId&quot;: &quot;2&quot;, &quot;parentId&quot;: &quot;1&quot;}, // segment 2
+    {                  &quot;parentId&quot;: &quot;2&quot;},
+    {&quot;segmentId&quot;: &quot;3&quot;, &quot;parentId&quot;: &quot;1&quot;}, // segment 3
+    {                  &quot;parentId&quot;: &quot;3&quot;},
+    {}, // normal row
+];
+//...
+var gridConfig = {
+    rowSegmenting: {
+        segmentIdField: &quot;segmentId&quot;,
+        parentIdField: &quot;parentId&quot;
+    },
+    staticDataRows: records
+}
+</code></pre>
+<h3 id="segment-nesting-example">Segment nesting example</h3>
+<code-sandbox hash="a8f0b3ec"><pre><code class="language-css">html hr {
+    margin: 5px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var rowSegmentingExt = new RowSegmenting();
+var rowDraggingExt = new RowDragging();
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var segmentField = &quot;SegmentId&quot;;
+var parentField = &quot;ParentId&quot;;
+
+var records = DataGenerator.generateRecords(fields, { numRows: 14 });
+records[1][segmentField] = &quot;1&quot;; // segment 1
+records[2][segmentField] = &quot;2&quot;; // segment 2
+records[3][segmentField] = &quot;2&quot;;
+records[4][segmentField] = &quot;2&quot;;
+records[5][segmentField] = &quot;3&quot;; // segment 3
+records[6][segmentField] = &quot;3&quot;;
+records[7][segmentField] = &quot;3&quot;;
+records[8][segmentField] = &quot;4&quot;; // segment 4
+records[9][segmentField] = &quot;5&quot;; // segment 5
+records[10][segmentField] = &quot;5&quot;;
+records[11][segmentField] = &quot;5&quot;;
+
+records[2][parentField] = &quot;1&quot;; // segment 2 has segment 1 as its parent
+
+records[5][parentField] = &quot;1&quot;; // segment 3 has segment 1 as its parent
+
+records[9][parentField] = &quot;4&quot;; // segment 5 has segment 4 as its parent
+
+var configObj = {
+    rowSegmenting: {
+        segmentIdField: segmentField,
+        parentIdField: parentField
+    },
+    columns: [
+        { name: &quot;Company&quot;, field: fields[0] },
+        { name: &quot;Market&quot;, field: fields[1], width: 120 },
+        { name: &quot;Last&quot;, field: fields[2], width: 100 },
+        { name: &quot;Net. Chng&quot;, field: fields[3], width: 100 },
+        { name: &quot;Industry&quot;, field: fields[4] }
+    ],
+    staticDataRows: records,
+    extensions: [
+        rowSegmentingExt,
+        rowDraggingExt
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="segment-classification">Segment Classification</h2>
+<p>With Row Segmenting Extension, you can specify classfication on individual segment to add nested segments. In other words, you can make groups based specified criteria for each individual segment, like Row Grouping Extension. The criteria can be defined by using <code>setSegmentClassification</code> method with array of fields as its parameter. </p>
 <code-sandbox hash="50121036"><pre><code class="language-css">html hr {
     margin: 5px;
 }
@@ -323,7 +443,7 @@ grid.addEventListener(&quot;configured&quot;, function(e) {
 grid.config = configObj;
 grid.data = records;
 </code></pre>
-</code-sandbox><h3 id="group-sorting">Group sorting</h3>
+</code-sandbox><h2 id="group-sorting">Group sorting</h2>
 <p>Row segmenting can be sorted manually through an API <code>sortSeparators</code> from <code>SortableTitlePlugin</code>. The method accept a sorting function as parameter. If no parameter is passed to the function, the segments will be sorted according to the current sorting states of the grid.</p>
 <aside class="info"><ul>
 <li>When clearing the grid sorting state, the segments will not return to its original order. To make it return to  original position, <code>sortSeparators</code> need to be called with a custom sorting function.</li>
@@ -413,7 +533,7 @@ document.getElementById(&quot;original_sort_segment&quot;).addEventListener(&quo
     stPlugin.sortSeparators(originalSortFunc);
 });
 </code></pre>
-</code-sandbox><h3 id="content-sorting">Content sorting</h3>
+</code-sandbox><h2 id="content-sorting">Content sorting</h2>
 <p>Row content is sorted within its own group. The behavior is the same for both Row Segmenting and Row Grouping Extension.</p>
 <h2 id="predefined-color-on-the-color-tags">Predefined color on the color tags</h2>
 <p>The extension supports color from the predefined colors. To do this you need to assign predefined class object to the <code>predefinedColors</code> property then specify field name of the <code>cssField</code> property.</p>
@@ -598,7 +718,7 @@ You can get the config from the grid and use this config in another grid.</p>
 <p>You can follow in below example for implement save/load functionality.
 The first example it will be grid that can be change data with click &quot;Save config&quot;. 
 And then you can paste this config on the example 2 and click &quot;Start Grid&quot; and both grids look the same. </p>
-<h3 id="example-1-saving-segment-configuration-from-grid">Example 1: saving segment configuration from grid</h3>
+<h3 id="saving-segments-example">Saving segments example</h3>
 <code-sandbox hash="9257e3d2"><pre><code class="language-css">html body {
     padding: 20px;
     box-sizing: border-box;
@@ -788,7 +908,7 @@ function copyToClipboard(val) {
 
 }
 </code></pre>
-</code-sandbox><h3 id="example-2-restoring-segments">Example 2: restoring segments</h3>
+</code-sandbox><h3 id="restoring-segments-example">Restoring segments example</h3>
 <code-sandbox hash="cd45daad"><pre><code class="language-css">html body {
     padding: 20px;
     box-sizing: border-box;
@@ -927,7 +1047,7 @@ grid.config = configObj;
 </code></pre>
 </code-sandbox><h2 style="margin-bottom:5px" id="api-refs">API Reference</h2>
 <div id="elf-api-container"><div id="main-template" class="elf-template">    <section><header>            <h1 class="subsection-title"><span class="attribs"><span class="type-signature"></span></span>RowSegmentingPlugin<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h1>            </header><article>                                                                        <h3 class="subsection-title" id="type_definitions">Type Definitions</h3>                        
-<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~Options">Options</h4><div class="description">    The options can be specified by `rowSegmenting` property of the main grid's options</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>spanning</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    true                                </td>                        <td class="description last">If disabled, segment separator rows will not be spanned/stretched across multiple cells</td>        </tr>            <tr>                            <td class="name"><code>colorTag</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">If not specified, the color tag will be disabled when using extension without halo theme.</td>        </tr>            <tr>                            <td class="name"><code>cssField</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    "TAG_CSS_CLASS"                                </td>                        <td class="description last">Apply CSS class based on the given field</td>        </tr>            <tr>                            <td class="name"><code>predefinedColors</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Predefined color object map for color tag</td>        </tr>            <tr>                            <td class="name"><code>clicked</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Event handler when user clicks on arrows or cells</td>        </tr>            <tr>                            <td class="name"><code>headerMenuClicked</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Event handler when user clicks on menu icon. The menu icon will be displayed if spanning option is true.</td>        </tr>            <tr>                            <td class="name"><code>segmentSeparatorBinding</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Logic that will be executed on each segment separator row</td>        </tr>            <tr>                            <td class="name"><code>nonSegmentSeparatorBinding</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Logic that will be executed for all non segment separator row</td>        </tr>            <tr>                            <td class="name"><code>sortingLogic</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Logic to be used by sortSegments method</td>        </tr>            <tr>                            <td class="name"><code>rowSpanningField</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    "ROW_SPANNING"                                </td>                        <td class="description last">Field to be used for spanning segment header rows based on the field values</td>        </tr>            <tr>                            <td class="name"><code>segmentIdField</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    ""                                </td>                        <td class="description last">Field used for initializing segments based on text id</td>        </tr>            <tr>                            <td class="name"><code>collapsingField</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    ""                                </td>                        <td class="description last">Field used for indicating that the corresponding segment row is collapsed</td>        </tr>            <tr>                            <td class="name"><code>defaultCollapsing</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">If enabled, any newly created segment will be collapsed by default</td>        </tr>            <tr>                            <td class="name"><code>displayColumn</code></td>                        <td class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Render tags in the given column. It can be either the column index, column ID, or field</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~Options">Options</h4><div class="description">    The options can be specified by `rowSegmenting` property of the main grid's options</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>spanning</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    true                                </td>                        <td class="description last">If disabled, segment separator rows will not be spanned/stretched across multiple cells</td>        </tr>            <tr>                            <td class="name"><code>colorTag</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">If not specified, the color tag will be disabled when using extension without halo theme.</td>        </tr>            <tr>                            <td class="name"><code>cssField</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    "TAG_CSS_CLASS"                                </td>                        <td class="description last">Apply CSS class based on the given field</td>        </tr>            <tr>                            <td class="name"><code>predefinedColors</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Predefined color object map for color tag</td>        </tr>            <tr>                            <td class="name"><code>clicked</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Event handler when user clicks on arrows or cells</td>        </tr>            <tr>                            <td class="name"><code>headerMenuClicked</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Event handler when user clicks on menu icon. The menu icon will be displayed if spanning option is true.</td>        </tr>            <tr>                            <td class="name"><code>segmentSeparatorBinding</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Logic that will be executed on each segment separator row</td>        </tr>            <tr>                            <td class="name"><code>nonSegmentSeparatorBinding</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Logic that will be executed for all non segment separator row</td>        </tr>            <tr>                            <td class="name"><code>sortingLogic</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Logic to be used by sortSegments method</td>        </tr>            <tr>                            <td class="name"><code>rowSpanningField</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    "ROW_SPANNING"                                </td>                        <td class="description last">Field to be used for spanning segment header rows based on the field values</td>        </tr>            <tr>                            <td class="name"><code>segmentIdField</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    ""                                </td>                        <td class="description last">Field used for initializing segments based on text id</td>        </tr>            <tr>                            <td class="name"><code>collapsingField</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    ""                                </td>                        <td class="description last">Field used for indicating that the corresponding segment row is collapsed</td>        </tr>            <tr>                            <td class="name"><code>parentIdField</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    ""                                </td>                        <td class="description last">Field used for specifying parent segment of the row</td>        </tr>            <tr>                            <td class="name"><code>defaultCollapsing</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">If enabled, any newly created segment will be collapsed by default</td>        </tr>            <tr>                            <td class="name"><code>displayColumn</code></td>                        <td class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Render tags in the given column. It can be either the column index, column ID, or field</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            
 <div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~SegmentDefinition">SegmentDefinition</h4><div class="description">    An object that can be passed to setSegmentSeparator method</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>children</code></td>                        <td class="type">                            <span class="param-type">Array.&lt;string&gt;</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Array of child row ids</td>        </tr>            <tr>                            <td class="name"><code>collapsed</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Initial expanding/colapssing state of the segment</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            
 <div class="item">                                <div class="item-type">typedef</div>                        <h4 class="name" id="~SortingLogic"><span class="type-signature"></span>SortingLogic<span class="signature">(rowDataA, rowDataB)</span><span class="type-signature"> → {number}</span></h4>                            <div class="description">        Comparer function for comparing the order of 2 segment separator rows. The function takes at least 2 parameters. <br> The function should return -1 if the first parameter should comes first, 1 for the other way, and 0 if they are equal.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowDataA</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    Row data of the segment separator row                </div>                    </div>                <div class="param">                            <div class="name">rowDataB</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    Row data of the segment separator row                </div>                    </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">number</span>    </div>                </div>                            <h3 class="subsection-title" id="methods">Methods</h3>                    
 <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="addSegmentChild"><span class="type-signature"></span>addSegmentChild<span class="signature">(segmentRef, rowRef)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">segmentRef</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </div>                                                    <div class="description">                    Row id or row index                </div>                    </div>                <div class="param">                            <div class="name">rowRef</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </div>                                                    <div class="description">                    Row id, row index                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
