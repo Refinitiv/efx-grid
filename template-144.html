@@ -1,26 +1,57 @@
-<h1 id="get-sorting-statesreset-all">Get Sorting States/Reset All</h1>
-<p>The <code>getSortedColumns()</code> method returns an array of the currently applied sorting states (with the <code>colIndex</code> and <code>sortOrder</code> properties).</p>
-<p>Additionally, the <code>clearSortState()</code> method resets the current sorting states to their default neutral state.</p>
-<p>A list of all sorting-related events can be found in the <strong>Events Handling</strong> section.</p>
-<pre><code class="language-js">var sort = grid.api.getCoreGrid().getPlugin(&quot;SortableTitle&quot;);
-var states = sort.getSortedColumns(); // Return an array of the current active sorting states
-
-sort.clearSortState(); // Reset all sorting states to neutral
+<h1 id="server-side-sorting">Server-side Sorting</h1>
+<p>In manual sorting mode, clicking on the column title will change the sorting status, but no actual sorting is done on the grid data.</p>
+<p>One use case is, if you want to do server-side sorting, you can use manual sorting mode in conjunction with the <code>columnSorted</code> event and the <a href="https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest">XMLHttpRequest</a> method.</p>
+<p>To turn manual sorting on, set <code>indicatorOnly</code> to <code>true</code>.</p>
+<pre><code class="language-js">var config = {
+    // any other grid&#39;s options
+    sorting: {
+        sortableColumns: true,
+        indicatorOnly: true
+    }
+}
 </code></pre>
+<p>You also need to listen to <code>columnSorted</code> event in order to trigger server-side sorting. The event can be listened from the shortcut in <code>sorting</code> config or through the built-in plugin.</p>
+<pre><code class="language-js">function onColumnSorted (evtArg) {
+    var sortingStates = grid.api.getSortingStates();
+    var sortingState = sortingStates[0];
+    var sortOrder = sortingState.order;
+    // At this point, you may request sorted data from the server.
+}
+
+var config = {
+    // any other grid&#39;s options
+    sorting: {
+        columnSorted: onColumnSorted
+    }
+};
+
+// Alternatively you can listen to the event directly from the built-in plugin
+grid.addEventListener(&quot;configured&quot;, function(e) {
+    var core = e.detail.api.getCoreGrid();
+    var plugin = core.getPlugin(&quot;SortableTitle&quot;);
+    // plugin.listen(&quot;columnSorted&quot;, onColumnSorted);
+});
+</code></pre>
+<p>You can see all possible values for the sort order <a href="#/apis/core/sortabletitleplugin#~SortOrder">here</a>.</p>
 <h2 id="example">Example</h2>
-<code-sandbox hash="b25f8ce1"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="26fe547a"><pre><code class="language-css">html hr {
+    margin: 5px;
+}
+efx-grid {
     height: 200px;
 }
 textarea {
     width: 100%;
     height: 50px;
-    margin: 10px 0;
+    margin-bottom: 30px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;button id=&quot;get_btn&quot;&gt;Get Current States&lt;/button&gt;
-&lt;button id=&quot;reset_btn&quot;&gt;Clear All Sorting&lt;/button&gt;
-&lt;textarea id=&quot;output_ta&quot; placeholder=&quot;Click at the grid header to sort&quot;&gt;&lt;/textarea&gt;
+<pre><code class="language-html">&lt;button id=&quot;sort_btn1&quot;&gt;Sort Column 1&lt;/button&gt;
+&lt;button id=&quot;sort_btn2&quot;&gt;Sort Column 2&lt;/button&gt;
+&lt;hr&gt;
 &lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+&lt;hr&gt;
+&lt;textarea id=&quot;output_ta&quot; placeholder=&quot;Click at the grid header to sort&quot;&gt;&lt;/textarea&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
@@ -31,12 +62,33 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
+document.getElementById(&quot;sort_btn1&quot;).addEventListener(&quot;click&quot;, function(e){
+    grid.api.sortColumn(0); // Cycle through sorting sequence
+});
+document.getElementById(&quot;sort_btn2&quot;).addEventListener(&quot;click&quot;, function(e){
+    grid.api.sortColumn(1); // Cycle through sorting sequence
+});
+
 var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
 var records = DataGenerator.generateRecords(fields, { numRows: 10 });
 var configObj = {
     sorting: {
         sortableColumns: true,
-        threeStatesSorting: true
+        indicatorOnly: true,
+        columnSorted: function(evtArg) {
+            var core = grid.api.getCoreGrid();
+            var plugin = core.getPlugin(&quot;SortableTitle&quot;);
+            var objs = plugin.getSortedColumns();
+            var obj = objs[0];
+            var field = grid.api.getColumnField(obj.colIndex);
+            var sortOrder = (obj.sortOrder === &quot;a&quot;) ? &quot;ascending&quot; : &quot;decending&quot;;
+            
+            var ta = document.getElementById(&quot;output_ta&quot;);
+            ta.value = &quot;Field &quot; + field + &quot; is sorted in &quot; + sortOrder + &quot; order\n&quot; + ta.value;
+
+            // At this point, you may request sorted data from the server.
+            requestData(evtArg);
+        }
     },
     columns: [
         {name: &quot;Company&quot;, field: fields[0]},
@@ -48,21 +100,47 @@ var configObj = {
     staticDataRows: records
 };
 
+
+function mockCallbackData(resp) {
+    if (resp.success) {
+        console.log(&quot;Loading success, Data sorted&quot;);
+        grid.data = resp.data;
+    }
+}
+
+// Mock to request data
+function requestData(obj) {
+    console.log(&quot;Loading data from server side&quot;);
+    // Mock data on server side
+    setTimeout(function () {
+        // Mock to query data from DB.
+        var resRecords = DataGenerator.generateRecords(fields, { numRows: 10 }); // NOTE: It&#39;s random data
+        var sortField = obj.sortedField;
+        var sortOrder = obj.sortOrder;
+        resRecords = resRecords.sort(sortFx.bind(null, sortOrder, sortField));
+        mockCallbackData({
+            success: true,
+            data: resRecords
+        });
+    }, 100);
+}
+
+function sortFx(sortOrder, sortField, rowA, rowB) {
+    return compareFunction(rowA, rowB, sortField, sortOrder);
+}
+
+function compareFunction(rowA, rowB, sortField, sortOrder) {
+    var valueA = rowA[sortField];
+    var valueB = rowB[sortField];
+
+    if (sortOrder === &quot;a&quot;) {
+        return valueA &lt; valueB ? -1 : valueA &gt; valueB ? 1 : 0;
+    } else {
+        return valueA &gt; valueB ? -1 : valueA &lt; valueB ? 1 : 0;
+    }
+}
+
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
-
-document.getElementById(&quot;get_btn&quot;).addEventListener(&quot;click&quot;, function() {
-    // Return an array of the current active sorting states
-    var sort = grid.api.getCoreGrid().getPlugin(&quot;SortableTitle&quot;);
-    var states = sort.getSortedColumns();
-
-    var ta = document.getElementById(&#39;output_ta&#39;);
-    ta.value = JSON.stringify(states, 2, null) + &quot;\n&quot; + ta.value;
-});
-
-document.getElementById(&quot;reset_btn&quot;).addEventListener(&quot;click&quot;, function() {
-    var sort = grid.api.getCoreGrid().getPlugin(&quot;SortableTitle&quot;);
-    sort.clearSortState();
-});
 </code></pre>
-</code-sandbox>
+</code-sandbox><p><br><br></p>

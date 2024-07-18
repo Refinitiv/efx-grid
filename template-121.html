@@ -1,9 +1,7 @@
-<h1 id="text-formatter">Text Formatter</h1>
-<p>This formatter creates a simple div element with text from the column&#39;s field by default. The div element can be modified in the handler (for example, <code>onElementRendered</code>) and passed through configuration object for multiple use cases. </p>
-<h2 id="specific-options">Specific options</h2>
-<p>The purpose of this formatter is creating a generic element for further modifications, so there are no specific options.</p>
+<h1 id="simple-toggle-formatter">Simple Toggle Formatter</h1>
+<p>This formatter creates a toggle column with a default &quot;eye&quot; icon.</p>
 <h2 id="example">Example</h2>
-<code-sandbox hash="d7ba12ad"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="1ca6eeea"><pre><code class="language-css">efx-grid {
     height: 320px;
 }
 </code></pre>
@@ -18,35 +16,28 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;number_1&quot;, &quot;word&quot;, &quot;float_1&quot;];
-var records = DataGenerator.generateRecords(fields, 40);
-
+var fields = [&quot;toggle&quot;, &quot;number_1&quot;];
+var records = new Array(40);
+for(var i = 0; i &lt; 40; ++i) {
+    var record = records[i] = {};
+    record[fields[0]] = i % 2 === 0;
+    record[fields[1]] = i;
+}
 var configObj = {
+    sorting: {
+        sortableColumns: true
+    },
     columns: [
         { 
-            name: &quot;Column 1&quot;,
+            name: &quot;&quot;,
             field: fields[0],
-            alignment: &quot;right&quot;,
-            binding: TextFormatter.create()
+            alignment: &quot;c&quot;,
+            binding: SimpleToggleFormatter.create()
         },
         { 
             name: &quot;Column 2&quot;,
             field: fields[1],
-            alignment: &quot;center&quot;,
-            binding: TextFormatter.create({
-                styles: {
-                    &quot;backgroundColor&quot;: &quot;thistle&quot;
-                }
-            })
-        },
-        { 
-            name: &quot;Big Text&quot;,
-            field: fields[2],
-            binding: TextFormatter.create({
-                styles: {
-                    &quot;fontSize&quot;: &quot;1.5em&quot;
-                }
-            })
+            alignment: &quot;c&quot;,
         }
     ],
     staticDataRows: records
@@ -55,9 +46,4 @@ var configObj = {
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 </code></pre>
-</code-sandbox><h2 id="formatting-predefined-formatter-using-text-formatting-extension">Formatting predefined formatter using Text Formatting Extension</h2>
-<p>When using Text Formatting Extension, by default, predefined formatter will be overwritten due to the need for rendering a formatted text by the extension. To format the text inside predefined formatter and avoid the overriding, you will need to instruct the extension on how and where to do the formatting. See <a href="#/extensions/tr-grid-textformatting">this page</a> for more information.</p>
-<p>In this case, you can use <code>onElementRendered</code> and Text Formatting Extension to do the formatting.</p>
-<br>
-<br>
-<br>
+</code-sandbox>

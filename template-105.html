@@ -1,24 +1,28 @@
-<h1 id="ef-button-formatter">EF Button Formatter</h1>
-<p>This formatter creates a <a href="https://ui.refinitiv.com/elements/button">ef-button</a> without a margin. By default the text inside the button will be data from the column&#39;s field.</p>
-<h2 id="specific-options">Specific options</h2>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Type</th>
-<th>Attributes</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>label</td>
-<td>string</td>
-<td>optional</td>
-<td>Text inside the button, default text is the value from the column&#39;s field</td>
-</tr>
-</tbody></table>
-<h2 id="example">Example</h2>
-<code-sandbox hash="afa3c40b"><pre><code class="language-css">efx-grid {
+<h1 id="predefined-formatter">Predefined Formatter</h1>
+<h2 id="setup-guide">Setup guide</h2>
+<p>Use <code>import</code> syntax to import the formatter into your app.</p>
+<pre><code class="language-js">import { EFButtonFormatter, EFSelectFormatter } from &quot;@refinitiv-ui/efx-grid/formatters&quot;;
+</code></pre>
+<h2 id="the-basics">The basics</h2>
+<p>The simplest way to get the basic formatter is by calling <code>create()</code> without options, for example <code>SimpleInputFormatter.create()</code>. Then pass it to Grid using configuration, as shown below:</p>
+<pre><code class="language-js">var config = {
+    columns: [{
+        name: &quot;Company Info&quot;,
+        field: &quot;info&quot;,
+        binding: SimpleInputFormatter.create()
+    }, {
+        name: &quot;Currency&quot;,
+        field: &quot;currency&quot;,
+        binding: EFSelectFormatter.create()
+    }, {
+        name: &quot;DatePicker&quot;,
+        field: &quot;date&quot;,
+        binding: EFDateTimePickerFormatter.create()
+    }]
+}
+</code></pre>
+<p>Formatter with default options supports basic functioning and can be used for general usage. For input formatters, like <code>SimpleInputFormatter</code>, <code>EFTextFieldFormatter</code>, <code>EFComboBoxFormatter</code>, and so on, when the value has changed the new value will be saved to the <code>dataTable</code> of Grid. See basic formatters in the below example:</p>
+<code-sandbox hash="9131e2f6"><pre><code class="language-css">efx-grid {
     height: 320px;
 }
 </code></pre>
@@ -33,50 +37,184 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;number_1&quot;];
-var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 20 });
+var currencies = [&quot;THB&quot;, &quot;AUD&quot;, &quot;USD&quot;, &quot;YEN&quot;, &quot;TWD&quot;];
+DataGenerator.addFieldInfo(&quot;currency&quot;, { type: &quot;set&quot;, members: currencies});
 
+var fields = [&quot;number_1&quot;, &quot;currency&quot;, &quot;CF_NETCHNG&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 20 });
 var configObj = {
     columns: [
-        { 
-            name: &quot;Data&quot;,
+        {
+            name: &quot;SimpleLink&quot;,
             field: fields[0],
-            sort: fields[0],
-            alignment: &quot;c&quot;
+            alignment: &quot;center&quot;,
+            binding: SimpleLinkFormatter.create()
         },
-        { 
-            name: &quot;Simplest&quot;,
+        {
+            name: &quot;Input&quot;,
             field: fields[0],
-            sort: fields[0],
-            alignment: &quot;c&quot;,
-            binding: EFButtonFormatter.create()
+            alignment: &quot;center&quot;,
+            binding: EFNumberFieldFormatter.create()
         },
-        { 
-            name: &quot;Some options&quot;,
-            field: fields[0],
-            sort: fields[0],
-            alignment: &quot;c&quot;,
-            binding: EFButtonFormatter.create({
-                label: &quot;&quot;,
-                attributes: {
-                    icon: &quot;cross&quot;
-                },
-                styles: {
-                    width: &quot;23px&quot;
-                },
-                events: {
-                    &quot;click&quot;: function(e) {
-                        console.log(&quot;clicked&quot;);
-                    }
-                }
+        {
+            name: &quot;Select&quot;,
+            field: fields[1],
+            alignment: &quot;center&quot;,
+            binding: EFSelectFormatter.create({
+                data: currencies
             })
+        },
+        {
+            name: &quot;PercentBar&quot;,
+            field: fields[2],
+            alignment: &quot;center&quot;,
+            binding: PercentBarFormatter.create()
         }
     ],
-    extensions: [],
     staticDataRows: records
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 </code></pre>
-</code-sandbox>
+</code-sandbox><h2 id="advance-usage">Advance usage</h2>
+<p>Customizations are allowed through various options, as detailed in the following sections.</p>
+<h3 id="common-options">Common options</h3>
+<p>There are some options that are available for all formatters, see the below table for more details.</p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Attributes</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>attributes</td>
+<td>Object</td>
+<td>optional</td>
+<td>List of attributes name and values</td>
+</tr>
+<tr>
+<td>styles</td>
+<td>Object</td>
+<td>optional</td>
+<td>List of inline styles for the element</td>
+</tr>
+<tr>
+<td>events</td>
+<td>Object</td>
+<td>optional</td>
+<td>List of event names and listeners</td>
+</tr>
+<tr>
+<td>disablingField</td>
+<td>string</td>
+<td>optional</td>
+<td>Field to be used for representing disabled attribute of the element</td>
+</tr>
+<tr>
+<td>errorField</td>
+<td>string</td>
+<td>optional</td>
+<td>Field to be used for representing error attribute of the element</td>
+</tr>
+<tr>
+<td>onElementRendered</td>
+<td>Function</td>
+<td>optional</td>
+<td>Event handler after default rendering. It is useful for additional styling</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>Note: The available value for each option is dependent on the type of element. In the case of the EF element, more information about attributes and events can be found <a href="https://ui.refinitiv.com">here</a>.</p>
+</blockquote>
+<p>Below is an example of showing a button with a label, icon, light coral background color, and listen for click and active-changed event.</p>
+<pre><code class="language-js">var config = {
+    columns: [{
+        name: &quot;Number&quot;,
+        field: &quot;number&quot;,
+        binding: EFButtonFormatter.create({
+            label: &quot;More detail&quot;,
+            attributes: {
+                &quot;icon&quot;: &quot;info&quot;
+            },
+            styles: {
+                &quot;background&quot;: &quot;lightcoral&quot;
+            },
+            events: {
+                &quot;active-changed&quot;: function(e, context) { // Custom event exposed by the element
+
+                },
+                &quot;click&quot;: function(e, context) { // Native events are also supported
+
+                }
+            },
+            onElementRendered: function(element, context) {
+
+            }
+        })
+    }]
+}
+</code></pre>
+<h3 id="event-listeners-parameters">Event listener&#39;s parameters</h3>
+<p>Available parameters for all listeners are described below:</p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>event</td>
+<td>Event</td>
+<td>Native event argument object</td>
+</tr>
+<tr>
+<td>context</td>
+<td>Object</td>
+<td>Context object, contains all kind of information and methods</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>Context object also contains information about the position of the element (the same information from <a href="#/apis/rt-grid/grid">getRelativePosition</a> method).</p>
+</blockquote>
+<h3 id="context-object-methods">Context object methods</h3>
+<p>Context object also provides helper methods as shown below:</p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>getData(field)</td>
+<td>Get field value from the current row</td>
+</tr>
+<tr>
+<td>setData(field, value)</td>
+<td>Set field value to the current row</td>
+</tr>
+<tr>
+<td>isElementDisabled()</td>
+<td>Get data from the disablingField of the current row</td>
+</tr>
+<tr>
+<td>disableElement(bool)</td>
+<td>Set data to the disablingField of the current row</td>
+</tr>
+<tr>
+<td>getError()</td>
+<td>Get data from the errorField of the current row</td>
+</tr>
+<tr>
+<td>setError(value)</td>
+<td>Set data to the errorField of the current row</td>
+</tr>
+</tbody></table>
+<h3 id="specific-options">Specific Options</h3>
+<p>The specific options for each formatters are separately described on each formatter page.</p>

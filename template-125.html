@@ -1,10 +1,32 @@
-<h1 id="row---row-height">Row - Row Height</h1>
-<p>The height of content rows can be adjusted using the <code>rowHeight</code> property. Since Grid uses a row virtualization rendering technique, all of the rows must have the same height by default.</p>
-<code-sandbox hash="cfec729c"><pre><code class="language-css">efx-grid {
-    height: 200px;
+<h1 id="row-grouping">Row Grouping</h1>
+<blockquote>
+<p><strong>Note:</strong> Built-in row grouping is deprecated in favor of the <a href="#/extensions/readme">Row Grouping Extension</a>. In terms of both functionalities and UIs, the extension provides more control and flexibility over the current APIs.</p>
+</blockquote>
+<p>Row grouping can be done by using the <a href="#/extensions/tr-grid-row-grouping">Row Grouping Extension</a>.  To do the grouping, you will need to provide grouping criteria to the <code>groupBy</code> property of the <code>rowGrouping</code> option in the grid configuration object.</p>
+<pre><code class="language-js">var configObj = {
+    ...
+    rowGrouping: {
+        groupBy: [&quot;field1&quot;, &quot;criteria&quot;],
+    },
+    ...
 }
 </code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+<h2 id="example">Example</h2>
+<code-sandbox hash="193f7a04"><pre><code class="language-css">efx-grid {
+    height: 320px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;big&gt;Group By:&lt;/big&gt;
+&lt;button id=&quot;g1_btn&quot;&gt;Market&lt;/button&gt;
+&lt;button id=&quot;g2_btn&quot;&gt;Industry&lt;/button&gt;
+&lt;button id=&quot;g23_btn&quot;&gt;Market and Industry&lt;/button&gt;
+&lt;button id=&quot;clear_btn&quot;&gt;Reset Grouping&lt;/button&gt;
+&lt;br&gt;&lt;br&gt;
+&lt;big&gt;Expand:&lt;/big&gt;
+&lt;button id=&quot;expand_btn&quot;&gt;Expand All Groups&lt;/button&gt;
+&lt;button id=&quot;collapse_btn&quot;&gt;Collapse All Groups&lt;/button&gt;
+&lt;br&gt;&lt;br&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
@@ -15,58 +37,51 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 6 });
-var configObj = {
-    rowHeight: 60,
-    columns: [
-        {name: &quot;Company&quot;, field: fields[0]},
-        {name: &quot;Market&quot;, field: fields[1], width: 100},
-        {name: &quot;Last&quot;, field: fields[2], width: 80},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 80},
-        {name: &quot;Industry&quot;, field: fields[4]}
-    ],
-    staticDataRows: records
-};
+var rowGroupingExt = new RowGrouping();
+    var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+    var records = DataGenerator.generateRecords(fields, { numRows: 100 });
+    var configObj = {
+        rowGrouping: {
+            groupBy: [&quot;market&quot;, &quot;industry&quot;],
+            headerBinding: function(e) {
+                e.cell.setContent(e.groupId + &quot; (&quot; + e.dataSource.getAllRowIds().length + &quot;)&quot;);
+            },
+            groupSortLogic: function(a, b) { // Optional
+                    return (a &lt; b ? -1 : ( a &gt; b ? 1 : 0));
+            },
+            headerSpanning: true // Optional
+        },
+        columns: [
+            {name: &quot;Company&quot;, field: fields[0]},
+            {name: &quot;Market&quot;, field: fields[1], width: 100},
+            {name: &quot;Last&quot;, field: fields[2], width: 80},
+            {name: &quot;Net. Chng&quot;, field: fields[3], width: 80},
+            {name: &quot;Industry&quot;, field: fields[4]}
+        ],
+        staticDataRows: records,
+        extensions: [rowGroupingExt]
+    };
 
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
-</code></pre>
-</code-sandbox><h2 id="variable-row-height">Variable row height</h2>
-<p>If you want to wrap long text content in the grid&#39;s cell, use the <a href="#/extensions/tr-grid-content-wrap">Content Wrap Extension</a>. The extension will wrap text content that exceeds the cell width, making Grid act as if it is a native table.</p>
-<p>However, text wrapping is resource-intensive, so it is turned off by default. To specify the column to be wrapped, set <code>contentWrap</code> to true in the column configuration.</p>
-<code-sandbox hash="30b570ff"><pre><code class="language-css">efx-grid {
-    height: 200px;
-}
-</code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+    var grid = document.getElementById(&quot;grid&quot;);
+    grid.config = configObj;
 
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 6 });
-var configObj = {
-    columns: [
-        {name: &quot;Company&quot;, field: fields[0]},
-        {name: &quot;Market&quot;, field: fields[1], width: 100},
-        {name: &quot;Last&quot;, field: fields[2], width: 80},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 80},
-        {name: &quot;Industry&quot;, field: fields[4], width: 100, contentWrap: true}
-    ],
-    staticDataRows: records,
-    extensions: [
-        new ContentWrap()
-    ]
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
+    g1_btn.addEventListener(&quot;click&quot;, function(e) {
+        rowGroupingExt.groupBy(fields[1]);
+    });
+    g2_btn.addEventListener(&quot;click&quot;, function(e) {
+        rowGroupingExt.groupBy(fields[4]);
+    });
+    g23_btn.addEventListener(&quot;click&quot;, function(e) {
+        rowGroupingExt.groupBy([fields[1], fields[4]]);
+    });
+    clear_btn.addEventListener(&quot;click&quot;, function(e) {
+        rowGroupingExt.groupBy(null);
+    });
+    expand_btn.addEventListener(&quot;click&quot;, function(e) {
+        rowGroupingExt.expandAll();
+    });
+    collapse_btn.addEventListener(&quot;click&quot;, function(e) {
+        rowGroupingExt.collapseAll();
+    });
 </code></pre>
 </code-sandbox>
