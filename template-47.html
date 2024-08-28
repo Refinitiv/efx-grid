@@ -1,209 +1,141 @@
-<h1 id="overview">Overview</h1>
-<p><strong>Grid extensions</strong> provide enhancements for the Grid element. This allows for greater extensibility without increasing the size of the main code base.</p>
-<h2 id="installation">Installation</h2>
-<pre><code class="language-bash">npm install PROJECT_NAME
-</code></pre>
-<blockquote>
-<p>PROJECT_NAME is an extension&#39;s project name (tr-grid-xxx). In this document the project name of each extension is in parentheses next to the extension-name on the top of each extension page.</p>
-</blockquote>
-<p>For example</p>
-<pre><code class="language-bash">npm install tr-grid-auto-tooltip
-</code></pre>
-<h2 id="setup-guide">Setup guide</h2>
-<h3 id="traditional-usage">Traditional usage</h3>
-<p>To use the extension as an external static library, install it from npm. Then include the library file on your HTML page. The path may vary depending on your project structure.</p>
-<pre><code class="language-html">&lt;head&gt;
-  &lt;script src=&quot;node_modules/PROJECT_NAME/dist/PROJECT_NAME.min.js&quot;&gt;&lt;/script&gt;
-&lt;/head&gt;
-</code></pre>
-<p>For example</p>
-<pre><code class="language-html">&lt;head&gt;
-  &lt;script src=&quot;node_modules/tr-grid-auto-tooltip/dist/tr-grid-auto-tooltip.min.js&quot;&gt;&lt;/script&gt;
-&lt;/head&gt;
-</code></pre>
-<h3 id="es6-module-usage">ES6 module usage</h3>
-<p>To use the extension, install it from npm and deduplicate the installed packages.</p>
-<pre><code class="language-bash">npm install PROJECT_NAME
-npm dedupe
-</code></pre>
-<p>Then, use <code>import</code> syntax to import the extension into your app. You can use one of the following formats. They are all equivalent. </p>
-<p>Using a shorthand to refer to the extension file</p>
-<pre><code class="language-js">import { MODULE_NAME } from &quot;PROJECT_NAME/es6&quot;;
+<link rel="stylesheet" href="./resources/styles/elf-template.css">
 
-// For example
-import { AutoTooltip } from &quot;tr-grid-auto-tooltip/es6&quot;; 
+<h1 id="statistics-row">Statistics Row</h1>
+<p>The Statistics Row Extension provides special rows to show various statistics for the grid&#39;s content.</p>
+<code-sandbox hash="a8011a2b"><pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
-<p>Using a short form (opting out node_modules directory) to refer to the extension file</p>
-<pre><code class="language-js">import MODULE_NAME from &quot;PROJECT_NAME/es6/MODULE_NAME.js&quot;;
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
-// For example
-import AutoTooltip from &quot;tr-grid-auto-tooltip/es6/AutoTooltip.js&quot;;
-</code></pre>
-<p>Using full file path to refer to the extension file. This format is natively supported by all modern browsers. It can be used without bundling or pre-processing. </p>
-<pre><code class="language-js">import { MODULE_NAME } from &quot;./node_modules/PROJECT_NAME/es6/MODULE_NAME.js&quot;;
-
-// For example
-import { AutoTooltip } from &quot;./node_modules/tr-grid-auto-tooltip/es6/AutoTooltip.js&quot;;
-</code></pre>
-<h2 id="basic-usage">Basic usage</h2>
-<p>The simplest way to add extensions to Grid is by passing the extension&#39;s instances through the <code>extensions</code> property in the configuration object.</p>
-<pre><code class="language-js">var grid = document.getElementById(&quot;grid&quot;);
-grid.config = {
-  // main option
-  extensions: [
-    EXTENTION_INSTANCE
-  ]
-};
-</code></pre>
-<p>There are two kinds of extension options, the main option and the column-specific option. </p>
-<p>The main option is an option declared as a first-level property. Generally, the main option&#39;s attribute name is the extension&#39;s name but starting with a lower case letter. For example, Column Resizing Extension has <code>columnResizing</code> as its main option name. </p>
-<p>The column specific option is defined in the column option under the <code>columns</code> property of Grid&#39;s configuration. </p>
-<p>Details about both kinds of options are available on each extension&#39;s page.</p>
-<p><strong>Example of an extension option:</strong></p>
-<pre><code class="language-js">import { ColumnResizing } from &quot;tr-grid-column-resizing/es6&quot;;
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = {
-    // main option
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 10 });
+var configObj = {
+    sorting: {
+        sortableColumns: true
+    },
     columns: [
-        // column-specific option
         {
-            name: &quot;Number&quot;,
-            field: &quot;number&quot;,
-            noResizing: true // column&#39;s specific option
+            name: &quot;Company&quot;,
+            field: fields[0],
+            statistics: &quot;label&quot;
+        },
+        {
+            name: &quot;Market&quot;,
+            field: fields[1],
+            width: 120
+        },
+        {
+            name: &quot;Last&quot;,
+            field: fields[2],
+            width: 200,
+            alignment: &quot;right&quot;,
+            formatType: &quot;number&quot;,
+            statistics: true
+        },
+        {
+            name: &quot;Net. Chng&quot;,
+            field: fields[3],
+            width: 200,
+            alignment: &quot;right&quot;,
+            formatType: &quot;percent&quot;,
+            colorText: true,
+            statistics: true
         }
     ],
-
-    // extension option
-    columnResizing: { 
-        preserveProportion: true,
-        preserveGridSize: true,
-        columnResized: function(e) {} 
-    },
-    
-    extensions: [
-        new ColumnResizing() // extension instance needs to be added for the options above to take effect
-    ]
-};
-</code></pre>
-<h2 id="adding-an-event-listener-to-extensions-custom-event">Adding an event listener to extension&#39;s custom event</h2>
-<p>Some extensions provide and dispatch custom events, allowing custom behaviors to be performed. For example, ColumnResizing extension will dispatch <code>columnResized</code> event after a user has adjusted column size by drag and drop actions. By listening to <code>columnResized</code> event, you can obtain the new column size and perform some custom tasks on the new value. Data or information related to the event will be provided through the event argument object and varied depending on the custom event. There are two ways to add an event listener to the extensions. </p>
-<h3 id="adding-event-listener-through-extensions-option">Adding event listener through extension&#39;s option</h3>
-<p>An event name inside extension&#39;s option will be used as a shortcut for adding an event listener to the event. For example, to add an event listener to <code>columnResized</code> event, you can specify a function on <code>columnReized</code> property, as shown below.</p>
-<pre><code class="language-js">var grid = document.getElementById(&quot;grid&quot;);
-grid.config = {
-    columnResizing: { 
-        columnResized: function(e) { // Some information is provided on the event argument object
-            console.log(e.colIndex, e.width, e.scalability);
+    staticDataRows: records,
+    statisticsRow: {
+        rows: [
+            { statistic: &quot;count&quot; },
+            { statistic: &quot;average&quot; },
+            { placement: &quot;header&quot;, statistic: &quot;sum&quot; },
+            { statistic: &quot;min&quot;, placement: &quot;footer&quot;, label: &quot;Min (Custom Label)&quot; },
+            { statistic: &quot;stddev&quot; },
+            { statistic: &quot;myCustomStat&quot; }
+        ],
+        invalidText: &quot;N/A&quot;,
+        postCalculation: function(e) {
+            var stat = e.statistics[3]; // Calculate custom statistics for the forth column    
+            var rows = e.dataRows;
+            
+            var field = stat.field;
+            var average = stat.average;
+            var sum = 0;
+            var rowCount = rows.length;
+            for(var r = 0; r &lt; rowCount; ++r) {
+                var row = rows[r];
+                var val = row[field];
+                var diff = val - average;
+                sum = diff * diff;
+            }
+            var stddev = Math.sqrt(sum / stat.count);
+            
+            stat.myCustomStat = 777.77;
+            stat.stddev = stddev;
+        },
+        postRendering: function(e) {
+            e.headerSection.setStyle(&quot;backgroundColor&quot;, &quot;rgba(200,120,0,0.25)&quot;);
         }
-    }
+    },
     extensions: [
-        new ColumnResizing()
+        new StatisticsRow(),
+        new TextFormatting(),
+        new ConditionalColoring()
     ]
 };
-</code></pre>
-<h3 id="adding-event-listener-directly-to-extension-instance">Adding event listener directly to extension instance</h3>
-<p>You can use <code>addEventListener</code> method on extension instance to add an event listener. For Grid plugins (an old variation of Grid extensions), you can use <code>listen</code> method. Using these methods is the same thing as specifying an event listener in the extension&#39;s option.</p>
-<pre><code class="language-js">import { ColumnResizing } from &quot;tr-grid-column-resizing/es6&quot;;
-
-var colResizingExt = new ColumnResizing();
-colResizingExt.addEventListener(&quot;columnResized&quot;, function(e) {
-    console.log(e.colIndex, e.width, e.scalability);
-});
 
 var grid = document.getElementById(&quot;grid&quot;);
-grid.config = {
-    extensions: [
-        colResizingExt // The same extension instance still need be added to grid
-    ]
-};
+grid.config = configObj;
 </code></pre>
-<h2 id="required-dependencies">Required dependencies</h2>
-<p>Some extensions require ELF-elements to be installed as part of their dependencies.</p>
-<p>For details on how to install and use the ELF-element see the <a href="https://elf.int.refinitiv.com/start/installation.html">ELF Installation document</a>.</p>
-<h3 id="checkbox-extension">Checkbox Extension</h3>
-<p>The Checkbox Extension supports both the native checkbox and the <a href="https://elf.int.refinitiv.com/elements/coral-checkbox.html">coral-checkbox</a>. To use with the coral-checkbox, the following dependency is also required:</p>
-<pre><code class="language-bash">npm install @elf/coral-checkbox
+</code-sandbox><h2 id="installation-and-importing-to-your-project">Installation and importing to your project</h2>
+<p>Installation details and examples, along with information on how to import the extension to your project, are available on the <a href="#/extensions/readme">Overview page</a>.</p>
+<h2 id="specifying-columns-for-statistics-calculation">Specifying columns for statistics calculation</h2>
+<p>Use the <code>statistics</code> property in the column configuration object to make the column qualify for the calculation. Set <code>statistics</code> value to <code>label</code> to show the statistic label on the column.</p>
+<pre><code class="language-js">//...
+columns: [
+    {field: &quot;Field A&quot;, statistics: &quot;label&quot;}, // Show statistics label instead of the results
+    {field: &quot;Field B&quot;, statistics: true}, // Show the results from the stats calculation
+    {field: &quot;Field C&quot;}, // No stat
+],
+//...
 </code></pre>
-<p>Then import to your project <code>index.js</code>.</p>
-<pre><code class="language-js">import &quot;@elf/coral-checkbox&quot;;
-import &quot;@elf/elf-theme-halo/dark/coral-checkbox&quot;; // Can be any theme.
+<h2 id="specifying-statistics-rows">Specifying statistics rows</h2>
+<p>Use <code>rows</code> with the <code>statistic</code> property in the extension configuration object to specify the statistics row with a statistic of your choice.</p>
+<pre><code class="language-js">//...
+statisticsRow: {
+    rows: [
+        {statistic: &quot;Average&quot;},
+        {statistic: &quot;sum&quot;, placement: &quot;header&quot;},
+        {statistic: &quot;MyCustomStat&quot;} // You will need to calculate the value in postCalculation event by yourself
+    ],
+    postCalculation: function(e) {
+        // your custom logic
+    }
+},
+//...
 </code></pre>
-<h3 id="range-bar-extension">Range Bar Extension</h3>
-<p>The Range Bar Extension provides graphical bar for last value ranking visualization based on low and high value with used <a href="https://elf.int.refinitiv.com/elements/sapphire-led-gauge.html">sapphire-led-gauge</a>. To use the sapphire-led-gauge, the following dependency is also required:</p>
-<pre><code class="language-bash">npm install @elf/sapphire-led-gauge
-</code></pre>
-<p>Then import to your project <code>index.js</code>.</p>
-<pre><code class="language-js">import &quot;@elf/sapphire-led-gauge&quot;;
-import &quot;@elf/elf-theme-halo/dark/sapphire-led-gauge&quot;; // Can be any theme.
-</code></pre>
-<h3 id="filter-input-extension">Filter Input Extension</h3>
-<p>The Filter Input Extension supports various types of input elements. These can be archived by specifying the <code>type</code> property through FilterInput option. The ELF component for each type of inputs is shown below:</p>
-<table>
-<thead>
-<tr>
-<th>Type</th>
-<th>Required ELF-Element</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>default</td>
-<td>coral-search-field</td>
-</tr>
-<tr>
-<td>number</td>
-<td>coral-number-field</td>
-</tr>
-<tr>
-<td>select</td>
-<td>coral-select</td>
-</tr>
-<tr>
-<td>dropdown</td>
-<td>coral-select</td>
-</tr>
-<tr>
-<td>date</td>
-<td>emerald-datetime-picker</td>
-</tr>
-</tbody></table>
-<blockquote>
-<p>Note: there is no need to specify a type for the default input element.</p>
-</blockquote>
-<p>Additional dependencies are required according to the <code>type</code> of input. For example, if specified <code>type</code> is <code>date</code>, the additional dependency is emerald-datetime-picker. </p>
-<h3 id="pagination-extension">Pagination Extension</h3>
-<p>The Pagination Extension does not provide any UI. You will need to install <code>@elf/emerald-pagination</code> separately for the UI. The extension will automatically wire the functionalities to the UI element once it is presented.</p>
-<p>The pagination element is <strong>completely independent</strong> from the grid element and the Pagination Extension. So, any customization and feature request regarding the element has to be sent to the <a href="https://elf.int.refinitiv.com/contribute/elf">ELF team</a>. The documentation for the element can be found on ELF&#39;s <a href="https://elf.int.refinitiv.com/elements/emerald-pagination">Emerald Pagination</a> page.</p>
-<h2 id="available-extensions">Available extensions</h2>
-<ul>
-<li><a href="#/extensions/tr-grid-auto-tooltip">Auto Tooltip</a></li>
-<li><a href="#/extensions/tr-grid-cell-selection">Cell Selection</a></li>
-<li><a href="#/extensions/tr-grid-checkbox">Checkbox</a></li>
-<li><a href="#/extensions/column-dragging">Column Dragging</a></li>
-<li><a href="#/extensions/tr-grid-column-fitter">Column Fitter</a></li>
-<li><a href="#/extensions/tr-grid-column-formatting">Column Formatting</a></li>
-<li><a href="#/extensions/tr-grid-column-grouping">Column Grouping</a></li>
-<li><a href="#/extensions/tr-grid-column-resizing">Column Resizing</a></li>
-<li><a href="#/extensions/tr-grid-column-selection">Column Selection</a></li>
-<li><a href="#/extensions/tr-grid-column-stack">Column Stack</a></li>
-<li><a href="#/extensions/tr-grid-conditional-coloring">Conditional Coloring</a></li>
-<li><a href="#/extensions/tr-grid-content-wrap">Content Wrap</a></li>
-<li><a href="#/extensions/tr-grid-contextmenu">Context Menu</a></li>
-<li><a href="#/extensions/tr-grid-filter-input">Filter Input</a></li>
-<li><a href="#/extensions/tr-grid-heat-map">Heat Map</a></li>
-<li><a href="#/extensions/tr-grid-in-cell-editing">In Cell Editing</a></li>
-<li><a href="#/extensions/tr-grid-pagination">Pagination</a></li>
-<li><a href="#/extensions/tr-grid-percent-bar">Percent Bar</a></li>
-<li><a href="#/extensions/tr-grid-range-bar">Range Bar</a></li>
-<li><a href="#/extensions/tr-grid-row-dragging">Row Dragging</a></li>
-<li><a href="#/extensions/tr-grid-row-filtering">Row Filtering</a></li>
-<li><a href="#/extensions/tr-grid-row-grouping">Row Grouping</a></li>
-<li><a href="#/extensions/row-segmenting">Row Segmenting</a></li>
-<li><a href="#/extensions/tr-grid-row-selection">Row Selection</a></li>
-<li><a href="#/extensions/tr-grid-rowcoloring">Row Coloring</a></li>
-<li><a href="#/extensions/statistics-row">Statistics Row</a></li>
-<li><a href="#/extensions/tr-grid-textformatting">Text Formatting</a></li>
-<li><a href="#/extensions/tr-grid-titlewrap">Title Wrap</a></li>
-<li><a href="#/extensions/zoom">Zoom</a></li>
-</ul>
-<p>Visit the relevant extension&#39;s sections to see the APIs, their usage and live demos.</p>
+<h2 style="margin-bottom:5px" id="api-refs">API Reference</h2>
+<div id="elf-api-container"><div id="main-template" class="elf-template">    <section><header>            <h1 class="subsection-title"><span class="attribs"><span class="type-signature"></span></span>StatisticsRowPlugin<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h1>            </header><article>                                                                        <h3 class="subsection-title" id="type_definitions">Type Definitions</h3>                        
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~ColumnOptions">ColumnOptions</h4><div class="description">    Available column options specified in grid's column configuration</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>statistics</code></td>                        <td class="type">                            <span class="param-type">boolean</span> | <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">If enabled, the column is qualified for the calculation. If "label" is specified, the column will be used to show statistic label</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~Options">Options</h4><div class="description">    Available options describing `statisticsRow` object specified in grid's option</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>rows</code></td>                        <td class="type">                            <span class="param-type">Array</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Array of StatisticsRowPlugin~RowOptions</td>        </tr>            <tr>                            <td class="name"><code>invalidText</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    ""                                </td>                        <td class="description last">Text to be shown for invalid statistic (i.e. Not a Number value)</td>        </tr>            <tr>                            <td class="name"><code>noColoring</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">If enabled, all conditional coloring (i.e. tick coloring) will not automatically be applied.</td>        </tr>            <tr>                            <td class="name"><code>noFormatting</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">If enabled, all formatting (i.e. decimal places) will not automatically be applied.</td>        </tr>            <tr>                            <td class="name"><code>useAllData</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    true                                </td>                        <td class="description last">If disabled, filtered out rows will not be included in the calculation.</td>        </tr>            <tr>                            <td class="name"><code>postCalculation</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Function handler excuted after statistics calculation and before default rendering</td>        </tr>            <tr>                            <td class="name"><code>postRendering</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Function handler excuted after default rendering</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~RowOptions">RowOptions</h4><div class="description">    Available options describing statistics row specified as item in `rows` array property.</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>placement</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    "footer"                                </td>                        <td class="description last">Available footer are "header", "title", and "footer"</td>        </tr>            <tr>                            <td class="name"><code>statistic</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    ""                                </td>                        <td class="description last">Statistic to be calculated. Predefined values are "average", "min", "max", "count", and "sum"</td>        </tr>            <tr>                            <td class="name"><code>label</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">By default, label will be statistics name.</td>        </tr>            <tr>                            <td class="name"><code>id</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    ""                                </td>                        <td class="description last">Text Id used for row referencing in extension's APIs</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~RowReference">RowReference</h4><div class="description">    Statistics Row can be referenced by one of the following ways: <br>1. Number as index counted from top to bottom and only for the statistics rows (excluding normal rows) <br>2. String as statistic (e.g., "average", "min", "max") <br>3. String as id defined in the row configuration object</div>    <h5>Type:</h5>    <span class="param-type">string</span> | <span class="param-type">number</span><div class="details">                                                            </div></div>                            
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~Stats">Stats</h4><div class="description">    Statistics Object contains calculated statistic values that will be provided in `postCalculation` and `postRendering` events</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>field</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>label</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Indicating the column is used to show label</td>        </tr>            <tr>                            <td class="name"><code>count</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Count of all valid values in the column. Invalid values such as empty, null, undefined, string values are excluded. For label column, counting method will include only truthy values except number 0, and exclude all other falsy values.</td>        </tr>            <tr>                            <td class="name"><code>sum</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Summation</td>        </tr>            <tr>                            <td class="name"><code>average</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Average</td>        </tr>            <tr>                            <td class="name"><code>min</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Minimum</td>        </tr>            <tr>                            <td class="name"><code>max</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Maximum</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            <h3 class="subsection-title" id="methods">Methods</h3>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="addStatisticsRow"><span class="type-signature"></span>addStatisticsRow<span class="signature">(options)</span><span class="type-signature"></span></h4>                            <div class="description">        Add new statistic row at the bottom of either header or footer section    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type"><a href="#/extensions/statistics-row#~RowOptions">StatisticsRowPlugin~RowOptions</a></span>                        </div>                                                    <div class="description">                    The given configuration object cannot be null nor the same existing object                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="config"><span class="type-signature"></span>config<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    Grid configuration object                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getConfigObject"><span class="type-signature"></span>getConfigObject<span class="signature">(gridOptions<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Object}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">gridOptions</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getName"><span class="type-signature"></span>getName<span class="signature">()</span><span class="type-signature"> → {string}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">string</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getStatisticsRows"><span class="type-signature"></span>getStatisticsRows<span class="signature">()</span><span class="type-signature"> → {Array.&lt;<a href="#/extensions/statistics-row#~RowOptions">StatisticsRowPlugin~RowOptions</a>&gt;}</span></h4>                            <div class="description">        Get all existng statistics rows    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Array.&lt;<a href="#/extensions/statistics-row#~RowOptions">StatisticsRowPlugin~RowOptions</a>&gt;</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="hasMultiTableSupport"><span class="type-signature"></span>hasMultiTableSupport<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Plugin that has multi-table support means that it can have multiple hosts/tables and share its states across those hosts/tables.    </div>                        <div class="details">                <dt class="inherited-from">Inherited From:</dt>    <dd class="inherited-from">        <a href="#">GridPlugin#hasMultiTableSupport</a>    </dd>                                                    </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="initialize"><span class="type-signature"></span>initialize<span class="signature">(host, options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">host</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    core grid instance                </div>                    </div>                <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="removeStatisticsRow"><span class="type-signature"></span>removeStatisticsRow<span class="signature">(rowRef)</span><span class="type-signature"></span></h4>                            <div class="description">        Remove existing statistics row    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowRef</div>                        <div class="type">                            <span class="param-type"><a href="#/extensions/statistics-row#~RowReference">StatisticsRowPlugin~RowReference</a></span>                        </div>                                                    <div class="description">                    Index, stat, or id                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setStatisticsRow"><span class="type-signature"></span>setStatisticsRow<span class="signature">(rowRef, options)</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Replace and update existing statistics row. Placement and order of the row cannot be changed. Use setStatisticsRows() to update multiple rows at once.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowRef</div>                        <div class="type">                            <span class="param-type"><a href="#/extensions/statistics-row#~RowReference">StatisticsRowPlugin~RowReference</a></span>                        </div>                                                    <div class="description">                    Index, stat, or id                </div>                    </div>                <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type"><a href="#/extensions/statistics-row#~RowOptions">StatisticsRowPlugin~RowOptions</a></span>                        </div>                                                    <div class="description">                    The given configuration object cannot be null nor the same existing object.                </div>                    </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    Returns true if there is any change, otherwise returns false</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setStatisticsRows"><span class="type-signature"></span>setStatisticsRows<span class="signature">(rows)</span><span class="type-signature"></span></h4>                            <div class="description">        Remove all existing statistics rows and create new rows based on the given inputs. Use null to remove all rows.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rows</div>                        <div class="type">                            <span class="param-type">Array.&lt;<a href="#/extensions/statistics-row#~RowOptions">StatisticsRowPlugin~RowOptions</a>&gt;</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="unload"><span class="type-signature"></span>unload<span class="signature">(host)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">host</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    core grid instance                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                        <h3 class="subsection-title" id="events">Events</h3>                    
+<div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:postCalculation">postCalculation</h4>                            <div class="description">        `postCalculation` fired after all basic statistics calculation and before default rendering. This is a place where you should calculate your custom statistics.    </div>                    <h5>Type:</h5>        <span class="param-type">Object</span>                    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>colCount</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>fields</code></td>                        <td class="type">                            <span class="param-type">Array.&lt;string&gt;</span>                        </td>                                    <td class="description last">Fields for current columns</td>        </tr>            <tr>                            <td class="name"><code>statistics</code></td>                        <td class="type">                            <span class="param-type">Array.&lt;<a href="#/extensions/statistics-row#~Stats">StatisticsRowPlugin~Stats</a>&gt;</span>                        </td>                                    <td class="description last">Array of statistic values. You should add your custom statistics to the object</td>        </tr>            <tr>                            <td class="name"><code>dataRows</code></td>                        <td class="type">                            <span class="param-type">Array.&lt;Object&gt;</span>                        </td>                                    <td class="description last">Data row used for the calculation</td>        </tr>            <tr>                            <td class="name"><code>dataView</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">Class object representing current view of grid</td>        </tr>            <tr>                            <td class="name"><code>dataTable</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">Class object contains all data</td>        </tr>        </tbody></table></div><div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:postRendering">postRendering</h4>                            <div class="description">        `postRendering` fired after all statistics calculation and default rendering. This is a place where you override default rendering    </div>                    <h5>Type:</h5>        <span class="param-type">Object</span>                    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>colCount</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>fields</code></td>                        <td class="type">                            <span class="param-type">Array.&lt;string&gt;</span>                        </td>                                    <td class="description last">Fields for current columns</td>        </tr>            <tr>                            <td class="name"><code>statistics</code></td>                        <td class="type">                            <span class="param-type">Array.&lt;<a href="#/extensions/statistics-row#~Stats">StatisticsRowPlugin~Stats</a>&gt;</span>                        </td>                                    <td class="description last">Array of statistic values</td>        </tr>            <tr>                            <td class="name"><code>headerSection</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">ILayoutGrid UI Section representing header part</td>        </tr>            <tr>                            <td class="name"><code>footerSection</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">ILayoutGrid UI Section representing footer part</td>        </tr>            <tr>                            <td class="name"><code>headerRows</code></td>                        <td class="type">                            <span class="param-type">Array.&lt;Object&gt;</span>                        </td>                                    <td class="description last">Definition objects given at the configuration time</td>        </tr>            <tr>                            <td class="name"><code>footerRows</code></td>                        <td class="type">                            <span class="param-type">Array.&lt;Object&gt;</span>                        </td>                                    <td class="description last">Definition objects given at the configuration time</td>        </tr>        </tbody></table></div><div class="details">                                                            </div>                                    </div>            </article></section></div></div>

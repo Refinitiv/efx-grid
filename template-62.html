@@ -1,19 +1,26 @@
 <link rel="stylesheet" href="./resources/styles/elf-template.css">
 
-<h1 id="context-menu">Context Menu</h1>
-<p>The Context Menu Extension provides the capability to display a customized contextual menu when a user right-clicks on the grid. The menu items to be displayed are totally customizable based on the position of the mouse, the data, and also any customized logic of your application.</p>
-<blockquote>
-<p>Please note that Context Menu extension is meant to be <strong>primarily used for testing</strong>. If you need a context menu with platform specific features and integration, you should do it through RTK/JET instance. Additionally, the context menu from the extension can only be populated <strong>within</strong> Grid&#39;s area and not from any area in the document.</p>
-</blockquote>
-<code-sandbox hash="c4863460"><pre><code class="language-css">atlas-blotter {
-    height: 169px;
+<h1 id="in-cell-editing">In-Cell Editing</h1>
+<p>The In-Cell Editing Extension provides full editing abilities for your grid, including content and title editing in cell. This means data in each cell can be edited directly.</p>
+<ul>
+<li>The editing feature is disabled for all columns by default. Set <code>editableContent</code> to <code>true</code> in a specific column to enable it.</li>
+<li>To enable editing for all columns, set <code>editableContent</code> to <code>true</code> in the extension configuration object (i.e., <code>inCellEditing</code> property).</li>
+<li>Use <code>editableTitle</code> to enable editing on the title/header section.</li>
+<li>Once editing is enabled, editor can be opened by double click on the grid and closed by clicking anywhere outside of the editor.</li>
+<li>Use <code>openRowEditor</code> API to edit all cells in a row.</li>
+</ul>
+<code-sandbox hash="2b555dfd"><pre><code class="language-css">html hr {
+    margin: 5px;
+}
+efx-grid {
+    height: 170px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;span id=&quot;text&quot;&gt;&lt;/span&gt;
-&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
+<pre><code class="language-html">&lt;big&gt;Double click on the content cell to open text editor&lt;/big&gt;
+&lt;hr&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
-<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
@@ -22,8 +29,9 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
+var inCellEditingExt = new InCellEditing();
 var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = tr.DataGenerator.generateRecords(fields, { numRows: 5 });
+var records = DataGenerator.generateRecords(fields, { numRows: 5 });
 var configObj = {
     columns: [
         { name: &quot;Company&quot;, field: fields[0] },
@@ -33,35 +41,11 @@ var configObj = {
         { name: &quot;Industry&quot;, field: fields[4] }
     ],
     staticDataRows: records,
-    contextMenu: {
-        items: {
-            HEADER: {text: &#39;Header 1&#39;, value: &#39;1&#39;, callback: function (e) {
-                document.getElementById(&quot;text&quot;).textContent = &quot;Column: &quot; + (e.colIndex + 1) + &quot;, &quot; + e.item.text + &quot; Clicked!&quot;;
-            }},
-            MENU_1: {text: &#39;Menu 1&#39;, value: &#39;1&#39;, callback: function (e) {
-                document.getElementById(&quot;text&quot;).textContent = &quot;Column: &quot; + (e.colIndex + 1) + &quot;, &quot; + e.item.text + &quot; Clicked!&quot;;
-            }},
-            MENU_2: {text: &#39;Menu 2&#39;, value: &#39;2&#39;, callback: function (e) {
-                document.getElementById(&quot;text&quot;).textContent = &quot;Column: &quot; + (e.colIndex + 1) + &quot;, &quot; + e.item.text + &quot; Clicked!&quot;;
-            }},
-            MENU_3: {text: &#39;Menu 3&#39;, value: &#39;3&#39;, callback: function (e) {
-                document.getElementById(&quot;text&quot;).textContent = &quot;Column: &quot; + (e.colIndex + 1) + &quot;, &quot; + e.item.text + &quot; Clicked!&quot;;
-            }}
-        },
-        onMenu: function (e) {
-            if (e.context === &#39;header&#39;) {
-                e.menu.addItem(&#39;HEADER&#39;);
-            }
-            if (e.context === &#39;content&#39;) {
-                e.menu.addItem(&#39;MENU_1&#39;);
-                e.menu.addItem(&#39;MENU_2&#39;);
-                e.menu.addSeparator();
-                e.menu.addItem(&#39;MENU_3&#39;);
-            }
-        }
+    inCellEditing: {
+        editableContent: true // Every column is editable
     },
     extensions: [
-        new tr.ContextMenuExtension()
+        inCellEditingExt
     ]
 };
 
@@ -70,157 +54,15 @@ grid.config = configObj;
 </code></pre>
 </code-sandbox><h2 id="installation-and-how-to-import-to-a-project">Installation and how to import to a project</h2>
 <p>Installation examples and details of how to import the extension to a project are available on the <a href="#/extensions/readme">Overview</a> page.</p>
-<h2 id="basic-menu-display">Basic menu display</h2>
-<p>To show the menu, you need to define menu items in the grid&#39;s configuration object. Each menu item is assigned to a name so it can be referenced later at the display time in the <code>onMenu()</code> event handler. <code>onMenu()</code> is an event handler triggered when a user right-clicks at an area on the grid. You can choose to display the menu only at a specific place on the grid by checking the value of <code>e.context</code>.</p>
-<pre><code class="language-js">var config = {
-        //...any other grid&#39;s options...
-    contextMenu: {
-        items: {
-            HEADER: {text: &#39;Header 1&#39;, value: &#39;1&#39;, callback: function (e) {
-                // Do something
-                console.log(e.item);
-            }},
-            MENU_1: {text: &#39;Menu 1&#39;, value: &#39;1&#39;, callback: function (e) {
-                // Do something
-                console.log(e.item);
-            }},
-            MENU_2: {text: &#39;Menu 2&#39;, value: &#39;2&#39;, callback: function (e) {
-                // Do something
-                console.log(e.item);
-            }},
-            MENU_3: {text: &#39;Menu 3&#39;, value: &#39;3&#39;, callback: function (e) {
-                // Do something
-                console.log(e.item);
-            }}
-        },
-        onMenu: function (e) {
-            if (e.context === &#39;header&#39;) {
-                e.menu.addItem(&#39;HEADER&#39;);
-            }
-            if (e.context === &#39;content&#39;) {
-                e.menu.addItem(&#39;MENU_1&#39;);
-                e.menu.addItem(&#39;MENU_2&#39;);
-                e.menu.addSeparator();
-                e.menu.addItem(&#39;MENU_3&#39;);
-            }
-        }
-    }
-};
-</code></pre>
-<h2 id="custom-menu-display">Custom menu display</h2>
-<p>To use the context menu with other UIs, this extension exposes the &#39;contextmenu&#39; event and provide related information to the event argument for integration. See the example below:</p>
-<pre><code class="language-js">var config = {
-    //...any other grid&#39;s options...
-    contextMenu: true, // Default UI is disabled
-};
-var cme = new ContextMenu();
-cme.listen(&quot;contextmenu&quot;, function(e) { 
-    console.log(e); 
-    // Create your custom pop up menu here
-});
-</code></pre>
-<p>Or you can define the context menu event handler directly (see below), which is equivalent to the codes above:</p>
-<pre><code class="language-js">var config = {
-    //...any other grid&#39;s options...
-    contextMenu: function(e) {
-        console.log(e); 
-    },
-};
-</code></pre>
-<h2 id="group-menu-display">Group menu display</h2>
-<p>Several menu items can be grouped together under a name and can be inserted only once into the menu. From the snippet below, all three menus–<code>SORT_ASCENDING</code>, <code>SORT_DESCENDING</code>, and <code>SORT_ORIGINAL</code>–are inserted together.</p>
-<pre><code class="language-js">var config = {
-    //...any other grid&#39;s options...
-    contextMenu: {
-        items: {
-            SORT_ASCENDING: {text: &#39;Sort Ascending&#39;, value: &#39;s&#39;},
-            SORT_DESCENDING: {text: &#39;Sort Descending&#39;, value: &#39;d&#39;},
-            SORT_ORIGINAL: {text: &#39;Original Order&#39;, value: &#39;n&#39;},
-            SORTING: [
-                &#39;SORT_ASCENDING&#39;,
-                &#39;SORT_DESCENDING&#39;,
-                &#39;SORT_ORIGINAL&#39;,
-            ]
-        },
-        onMenu: function (e) {
-            if (e.context === &#39;content&#39;) {
-                //Insert the whole group in 1 statement
-                e.menu.addItem(&#39;SORTING&#39;);
-            }
-        }
-    }
-};
-</code></pre>
-<h2 id="runtime-menu-disabling">Runtime menu disabling</h2>
-<p>You may find you want to disable or hide a menu item for a specific condition. You can do this by adding your condition inside the <code>onMenu()</code> event handler. The event argument of <code>onMenu()</code> contains a reference called <code>items</code> which is pointing back to the menu item definitions in the configuration object. So, you can set a property like <code>isDisabled</code> or <code>isVisible</code> to each menu item before the menu is rendered.</p>
-<p>In the example below, the menu &#39;Hide Column&#39; is disabled for the first column of the grid.</p>
-<pre><code class="language-js">var config = {
-    //...any other grid&#39;s options...
-    contextMenu: {
-        items: {
-            HIDE_COLUMN: {text: &#39;Hide Column&#39;, value: &#39;hide&#39;},
-            SHOW_ALL_COLUMNS: {text: &#39;Show All Columns&#39;, value: &#39;show&#39;}
-        },
-        onMenu: function (e) {
-            if (e.context === &#39;header&#39;) {
-                //isDisabled is `true` when column index is 0
-                e.items.HIDE_COLUMN.isDisabled = (e.colIndex === 0);
-
-                e.menu.addItem(&#39;HIDE_COLUMN&#39;);
-                e.menu.addItem(&#39;SHOW_ALL_COLUMNS&#39;);
-            }
-        }
-    }
-};
-</code></pre>
-<h2 id="multi-level-menu-nested-menus-or-submenus">Multi-level menu, nested menus, or submenus</h2>
-<p>Another array <code>items</code> property can be put on a menu item to add a submenu to the item. You can add <code>callback</code> property at the parent item to handle all the click events under the submenu, to further simplify the code.</p>
-<p>The code snippet below shows how a three level menu configuration would look like. Notice that menu name (e.g., THREE_LEVEL_MENU) is only defined at the root of <code>items</code> object tree. The rest of the <code>items</code> property is an array of menu items.</p>
-<pre><code class="language-js">var contextMenu = {
-    items: {
-        THREE_LEVEL_MENU: [
-            {text: &quot;Item 1&quot;, value: &quot;1&quot;},
-            {
-                text: &quot;Menu level 2&quot;,
-                items: [
-                    {
-                        text: &quot;Menu level 3&quot;,
-                        items: [
-                            {text: &quot;Item 5&quot;, value: &quot;5&quot;},
-                            {text: &quot;Item 6&quot;, value: &quot;6&quot;},
-                            {text: &quot;Item 7&quot;, value: &quot;7&quot;}
-                        ],
-                        callback: function (e) {
-                            console.log(&quot;3&quot;, e.item.text);
-                        }
-                    },
-                    {text: &quot;Item 2&quot;, value: &quot;2&quot;},
-                    {text: &quot;Item 3&quot;, value: &quot;3&quot;},
-                    {text: &quot;Item 4&quot;, value: &quot;4&quot;}
-                ],
-                callback: function (e) {
-                    console.log(&quot;2&quot;, e.item.getValue());
-                }
-            }
-        ],
-        callback: function (e) {
-            alert(&quot;1&quot;, e.item.text);
-        }
-    },
-    onMenu: function (e) {
-        e.menu.addItems(&quot;THREE_LEVEL_MENU&quot;);
-    },
-};
-</code></pre>
-<code-sandbox hash="e451f687"><pre><code class="language-css">atlas-blotter {
-    height: 169px;
+<h2 id="single-click-for-editing">Single click for editing</h2>
+<p>The live demo below demonstrates how to open editor with <code>single click</code> event. In this setting, you do not need to <code>double click</code> to open the editor. You can disable <code>double click</code> mode by setting <code>doubleClick</code> to <code>false</code> then handle it with your own implementation like the following example.</p>
+<code-sandbox hash="5dcfd7b2"><pre><code class="language-css">efx-grid {
+    height: 170px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;span id=&quot;text&quot;&gt;&lt;/span&gt;
-&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
-<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
@@ -229,43 +71,9 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var contextMenu = {
-    items: {
-        THREE_LEVEL_MENU: [
-            {text: &quot;Item 1&quot;, value: &quot;1&quot;},
-            {
-                text: &quot;Menu level 2&quot;,
-                items: [
-                    {
-                        text: &quot;Menu level 3&quot;,
-                        items: [
-                            {text: &quot;Item 5&quot;, value: &quot;5&quot;},
-                            {text: &quot;Item 6&quot;, value: &quot;6&quot;},
-                            {text: &quot;Item 7&quot;, value: &quot;7&quot;}
-                        ],
-                        callback: function (e) {
-                            console.log(&quot;3&quot;, e.item.text);
-                        }
-                    },
-                    {text: &quot;Item 2&quot;, value: &quot;2&quot;},
-                    {text: &quot;Item 3&quot;, value: &quot;3&quot;},
-                    {text: &quot;Item 4&quot;, value: &quot;4&quot;}
-                ],
-                callback: function (e) {
-                    console.log(&quot;2&quot;, e.item.getValue());
-                }
-            }
-        ],
-        callback: function (e) {
-            alert(&quot;1&quot;, e.item.text);
-        }
-    },
-    onMenu: function (e) {
-        e.menu.addItems(&quot;THREE_LEVEL_MENU&quot;);
-    },
-};
+var inCellEditingExt = new InCellEditing();
 var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = tr.DataGenerator.generateRecords(fields, { numRows: 5 });
+var records = DataGenerator.generateRecords(fields, { numRows: 5 });
 var configObj = {
     columns: [
         { name: &quot;Company&quot;, field: fields[0] },
@@ -275,28 +83,477 @@ var configObj = {
         { name: &quot;Industry&quot;, field: fields[4] }
     ],
     staticDataRows: records,
-    contextMenu: contextMenu,
+    inCellEditing: {
+        doubleClick: false
+    },
     extensions: [
-        new tr.ContextMenuExtension()
+        inCellEditingExt
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+
+grid.addEventListener(&quot;click&quot;, function(e) {
+    var mousePos = grid.api.getRelativePosition(e);
+    if (mousePos.sectionType == &quot;content&quot;) {
+        inCellEditingExt.openEditor(mousePos.colIndex, mousePos.rowIndex);
+    }
+});
+</code></pre>
+</code-sandbox><h2 id="populating-text-and-data-binding">Populating text and data binding</h2>
+<p>By default, In-Cell Editing extension uses cell content as text for populating text on its editor. This works well in basic simple text case. However, when you have custom content, formatted text or different data type other than text, you may want to use raw data instead of text from cell content. For instance, if cell content has a formatted text like &quot;1,000.00&quot;, you may want to populate the editor with just &quot;1000&quot; (without comma or extra formatting). To use raw data instead of cell content for populating text, you can set <code>contentSource</code> to <code>&quot;field&quot;</code>. </p>
+<p>Once the editing is completed, you may need to validate the data and convert the data back to its raw form. You can use <code>beforeCommit</code> event dispatched by the extension to validate the data.</p>
+<blockquote>
+<p>Note: more information about adding event listener can be found on <a href="#/extensions/readme">this page</a></p>
+</blockquote>
+<code-sandbox hash="639f8fde"><pre><code class="language-css">html hr {
+    margin: 5px;
+}
+efx-grid {
+    height: 170px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;big&gt;Double click on the content cell to open text editor&lt;/big&gt;
+&lt;hr&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;companyName&quot;, &quot;number&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 5, seed: 0 });
+var configObj = {
+    columns: [
+        { name: &quot;Company&quot;, field: fields[0], width: 100 },
+        { name: &quot;Number Content&quot;, field: fields[1], 
+            editableContent: true,
+            formatType: {
+                type: &quot;number&quot;,
+                decimalPlaces: 4,
+                separator: true // Thousands separator
+            }
+        }
+    ],
+    staticDataRows: records,
+    inCellEditing: {
+        contentSource: &quot;field&quot;,
+        beforeCommit: function(e) {
+            var num = +e.text; // Convert data type of the input from string to number
+            if(num === num) { // Check if string can be converted to number
+                e.text = num;
+            } else { // User entered something other than number
+                e.cancel = true; // Cancel the operation, if NaN value is committed
+            }
+        }
+    },
+    extensions: [
+        new TextFormatting(),
+        new InCellEditing()
     ]
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 </code></pre>
+</code-sandbox><h2 id="editor-types">Editor types</h2>
+<p>There are 6 editor types you can use to edit your data. They are &quot;text&quot;, &quot;number&quot;, &quot;dropdown&quot;, &quot;date&quot;, &quot;checkbox&quot;, and &quot;combobox&quot;. To change editor type, set <code>inCellEditing</code> on the column configuration to an object with <code>type</code> property. In case of dropdown or combobox, <code>entries</code> property on the object can be used to specified possible item entries.</p>
+<p>Type &quot;combobox&quot; also support <code>multiple</code> mode which can be enable by passing <code>multiple</code> to <code>attributes</code> property</p>
+<pre><code class="language-js">{ 
+    name: &quot;Column Title&quot;, 
+    field: &quot;Column Field&quot;, 
+    inCellEditing: {
+        type: &quot;combobox&quot;,
+        entries: [&quot;1&quot;, &quot;2&quot;, &quot;3&quot;, &quot;4&quot;],
+        attributes: {
+            multiple: true
+        }
+    } 
+}
+</code></pre>
+<blockquote>
+<p>Note: some basic data type conversion is automatically applied for different editor types.</p>
+</blockquote>
+<blockquote>
+<p>Note: each editor, except for simple text input, requires different ELF elements to be loaded. See the list of required dependencies on <a href="#/extensions/readme">this page</a>. </p>
+</blockquote>
+<code-sandbox hash="39a6ae8c"><pre><code class="language-css">efx-grid {
+    height: 280px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var currencies = [&quot;AUD&quot;, &quot;THB&quot;, &quot;TWD&quot;, &quot;JPY&quot;, &quot;USD&quot;];
+DataGenerator.addFieldInfo(&quot;currency&quot;, {
+    type: &quot;set&quot;,
+    members: currencies
+});
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;boolean&quot;, &quot;date&quot;, &quot;industry&quot;, &quot;currency&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 5, seed: 0 });
+
+var configObj = {
+    columns: [
+        { name: &quot;Company&quot;, field: fields[0], inCellEditing: {type: &quot;text&quot;} },
+        { name: &quot;Market&quot;, field: fields[1], width: 90,
+            inCellEditing: {
+                type: &quot;dropdown&quot;,
+                entries: [&quot;NYSE&quot;, &quot;NASDAQ&quot;, &quot;HKEX&quot;, &quot;SET&quot;]
+            }
+        },
+        { name: &quot;Last&quot;, field: fields[2], width: 80, inCellEditing: {type: &quot;number&quot;} },
+        { name: &quot;Boolean&quot;, field: fields[3], width: 70, inCellEditing: {type: &quot;checkbox&quot;} },
+        { name: &quot;Date&quot;, field: fields[4], inCellEditing: {type: &quot;date&quot;} },
+        { name: &quot;Industry&quot;, field: fields[5], 
+            inCellEditing: {
+                type: &quot;combobox&quot;,
+                entries: [&quot;Specialty Chemicals&quot;, &quot;Investment Managers&quot;, &quot;Sample&quot;]
+            } 
+        },
+        { name: &quot;Currency&quot;, field: fields[6], 
+            inCellEditing: {
+                type: &quot;combobox&quot;,
+                entries: currencies,
+                attributes: {
+                    multiple: true
+                }
+            } 
+        }
+    ],
+    staticDataRows: records,
+    inCellEditing: {
+        editableContent: true
+    },
+    extensions: [
+        new InCellEditing()
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="row-editor">Row editor</h2>
+<p>Use the function <code>openRowEditor(rowIndex)</code> to open the row editor at specific rowIndex. If another editor is open, this function will close that editor without committing changes.</p>
+<p>Use the function <code>closeRowEditor(isCommit)</code> to close an open row editor. If <code>isCommit = true</code> then all changes that have been made will be saved in the row data.</p>
+<p>Use the function <code>toggleRowEditor(rowIndex, isCommit, option_grid)</code> to open row editor at specific rowIndex. If that row already has an editor open, this function will close the row editor instead. If another rowIndex has a row editor open, this function will close that row editor and open a row editor at a specific rowIndex instead. If <code>isCommit = true</code> all changes that have been made will be saved when the row editor closes. It does not have any effect if a row editor was not already open.</p>
+<p>Using the event <code>beforeRowCommit</code> to allow a developer verify the user input before an actual commit process occurs. A developer can mutate the user input or decide to cancel the commit process if the verifying process fails.</p>
+<p>The live demo below demonstrates how to control the row editor with the <code>openRowEditor</code>, <code>closeRowEditor</code>, <code>toggleRowEditor</code> APIs and <code>beforeRowCommit</code> event.</p>
+<code-sandbox hash="fdde75ea"><pre><code class="language-css">efx-grid {
+    height: 170px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var inCellEditingExt = new InCellEditing();
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 5 });
+
+var onClickEditIcon = function(e) {
+    var isCommit = true;
+    var pos = grid.api.getRelativePosition(e);
+    inCellEditingExt.toggleRowEditor(pos.rowIndex, isCommit);
+};
+var onRenderEditIcon = function(e) {
+    var cell = e.cell;
+    var icon = cell.getContent(); // Utilize caching
+    if(!icon || !icon._editIcon) {
+        icon = document.createElement(&quot;span&quot;);
+        icon._editIcon = true;
+        icon.textContent = &quot;✎&quot;;
+        icon.style = &quot;cursor: pointer&quot;;
+        icon.addEventListener(&quot;click&quot;, onClickEditIcon);
+    }
+    cell.setContent(icon);
+};
+
+var configObj = {
+    columns: [
+        { width: 30, editableContent: false, binding: onRenderEditIcon },
+        { name: &quot;Company&quot;, field: fields[0] },
+        { name: &quot;Market&quot;, field: fields[1], width: 120 },
+        { name: &quot;Last&quot;, field: fields[2], width: 100 },
+        { name: &quot;Net. Chng&quot;, field: fields[3], width: 100, editableContent: false },
+        { name: &quot;Industry&quot;, field: fields[4], editableContent: false }
+    ],
+    staticDataRows: records,
+    inCellEditing: {
+        editableContent: true,
+        doubleClick: false,
+        beforeRowCommit: function (e) {
+            var fieldValue = e.fieldValue;
+            for (var field in fieldValue) {
+                if (!fieldValue.hasOwnProperty(field)) continue;
+                var value = fieldValue[field];
+                if (typeof value === &quot;string&quot; &amp;&amp; value.length === 0) {
+                    fieldValue[field] = &quot;commited&quot;; // you also can modify value
+                }
+            }
+            // e.cancel = true; // you can cancel the commit process but rowEditor will continue closing, anyway.
+        }
+    },
+    extensions: [
+        inCellEditingExt
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h3 id="custom-cell-editor">Custom cell editor</h3>
+<p>Apart from the default and predefined editors, a custom editor can be easily created by implementing it from the event <code>editorOpened</code>. Since the custom editor is not directly wired to the extension, you will need to commit user input through <code>commitText</code> API. </p>
+<p>The example below show how to create an editor with <code>yes</code>, <code>no</code> and <code>none</code> options. Note that the predefined &quot;dropdown&quot; editor can be used instead of the custom editor shown in this example. </p>
+<code-sandbox hash="a5372818"><pre><code class="language-css">efx-grid {
+    height: 200px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var extension = new InCellEditing();
+var onEditorOpened = function (e) {
+    var ed = e.editor;
+
+    while (ed.lastChild) {
+        ed.removeChild(ed.lastChild);
+    }
+
+    var elem;
+    if (e.colIndex === 2) {
+        elem = ed.selectButton;
+
+        if (!elem) {
+            elem = ed.selectButton = document.createElement(&quot;select&quot;);
+            elem.style.width = &quot;100%&quot;;
+            elem.style.height = &quot;100%&quot;;
+            elem.style.maxHeight = &quot;unset&quot;;
+
+            var items = [&quot;true&quot;, &quot;false&quot;, &quot;none&quot;];
+            for(var i = 0; i &lt; items.length; ++i) {
+                var opt = document.createElement(&quot;option&quot;);
+                opt.textContent = opt.value = items[i];
+                elem.appendChild(opt);
+            }
+
+            elem.addEventListener(&quot;change&quot;, function(e) {
+                var tgt = e.currentTarget;
+                var selectedItem = tgt.options[tgt.selectedIndex];
+                var selectedValue = selectedItem.value;
+                extension.commitText(selectedValue);
+            });
+        }
+
+        elem.value = e[&quot;initialText&quot;];
+    } else {
+        elem = e.inputElement;
+    }
+
+    ed.appendChild(elem);
+};
+
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;boolean&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 6 });
+var configObj = {
+    columns: [
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market (editable)&quot;, field: fields[1], width: 150, editableContent: true},
+        {name: &quot;Watch (editable)&quot;, field: fields[5], with: 150, editableContent: true},
+        {name: &quot;Last&quot;, field: fields[2], width: 150},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 80},
+        {name: &quot;Industry&quot;, field: fields[4]}
+    ],
+    staticDataRows: records,
+    inCellEditing: {
+        editableTitle: false,
+        editorOpened: onEditorOpened,
+        balloonMode: true
+    },
+    extensions: [
+        extension
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h3 id="preventing-rows-from-moving-during-editing">Preventing rows from moving during editing</h3>
+<p>By default rows are prevented from moving during editing. This is to avoid confusion of which row is being edited. For instance, if sorting or filtering is active and data have been constantly changed, rows would be moved around a lot. Once editor is opened, grid&#39;s view is frozen and rows cannot be moved until the end of editing session.  </p>
+<code-sandbox hash="6845b9be"><pre><code class="language-css">efx-grid {
+    height: 250px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var extension = new InCellEditing();
+
+var fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var colNames = [&quot;Id&quot;, &quot;Company&quot;, &quot;Market&quot;, &quot;Last&quot;, &quot;Net. Chng&quot;, &quot;Industry&quot;];
+var columns = fields.map(function(f, idx) {
+    return {
+        name: colNames[idx],
+        field: f
+    };
+});
+columns[0].width = 60;
+columns[2].width = 150;
+columns[3].width = 150;
+columns[3].blinking = true;
+columns[4].width = 80;
+
+var configObj = {
+    sorting: {
+        initialSort: {
+            sortOrder: &quot;a&quot;,
+            field: fields[3],
+        }
+    },
+    columns: columns,
+    staticDataRows: generateRecords(),
+    inCellEditing: {
+        editableTitle: false,
+        editableContent: true
+    },
+    extensions: [
+        extension
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+
+function generateRecords() {
+    var records = DataGenerator.generateRecords(fields, { numRows: 10 });
+    records.forEach(function(record, idx) {
+        record[&quot;id&quot;] = idx;
+    });
+    return records;
+}
+
+setInterval(function() {
+    grid.data = generateRecords();
+}, 2000);
+</code></pre>
 </code-sandbox><h2 style="margin-bottom:5px" id="api-refs">API Reference</h2>
-<div id="elf-api-container"><div id="main-template" class="elf-template">    <section><header>            <h1 class="subsection-title"><span class="attribs"><span class="type-signature"></span></span>ContextMenuPlugin<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h1>            </header><article>                                                                        <h3 class="subsection-title" id="type_definitions">Type Definitions</h3>                        
-<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~Context">Context</h4><div class="description">    All available context types for the extension</div>    <h5>Type:</h5>    <span class="param-type">"header"</span> | <span class="param-type">"content"</span> | <span class="param-type">"footer"</span> | <span class="param-type">"filterRow"</span><div class="details">                                                            </div></div>                            
-<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~MenuItem">MenuItem</h4>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>text</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Text to diplay at the item</td>        </tr>            <tr>                            <td class="name"><code>value</code></td>                        <td class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Value attached to the item</td>        </tr>            <tr>                            <td class="name"><code>isDisabled</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">If true the item will be disabled, default is false</td>        </tr>            <tr>                            <td class="name"><code>isVisible</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">If false the item will not be displayed, default is true</td>        </tr>            <tr>                            <td class="name"><code>isSeparator</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">If true the item is rendered as an item separator</td>        </tr>            <tr>                            <td class="name"><code>items</code></td>                        <td class="type">                            <span class="param-type">Array.&lt;<a href="#/extensions/tr-grid-contextmenu#~MenuItem">ContextMenuPlugin~MenuItem</a>&gt;</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Array of sub-menu items</td>        </tr>            <tr>                            <td class="name"><code>renderer</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Callback function to do custom rendering of the item, see more information in later section</td>        </tr>            <tr>                            <td class="name"><code>callback</code></td>                        <td class="type">                            <span class="param-type"><a href="#/extensions/tr-grid-contextmenu#~MenuItemEventCallback">ContextMenuPlugin~MenuItemEventCallback</a></span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Menu item clicked handler function</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            
-<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~MenuItemEvent">MenuItemEvent</h4>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>altKey</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                                    <td class="description last">Flag to indicate if ALT key is pressed when the mouse is clicked</td>        </tr>            <tr>                            <td class="name"><code>cell</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">Cell object at the mouse clicked position</td>        </tr>            <tr>                            <td class="name"><code>colIndex</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                                    <td class="description last">Index number of the column that the mouse clicked on</td>        </tr>            <tr>                            <td class="name"><code>columnDef</code></td>                        <td class="type">                            <span class="param-type">object</span>                        </td>                                    <td class="description last">Column Definition of the column that the mouse clicked on</td>        </tr>            <tr>                            <td class="name"><code>context</code></td>                        <td class="type">                            <span class="param-type"><a href="#/extensions/tr-grid-contextmenu#~Context">ContextMenuPlugin~Context</a></span>                        </td>                                    <td class="description last">Area of the grid that the mouse clicked on</td>        </tr>            <tr>                            <td class="name"><code>ctrlKey</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                                    <td class="description last">Flag to indicate if CTRL key is pressed when the mouse is clicked</td>        </tr>            <tr>                            <td class="name"><code>item</code></td>                        <td class="type">                            <span class="param-type"><a href="#/extensions/tr-grid-contextmenu#~MenuItem">ContextMenuPlugin~MenuItem</a></span>                        </td>                                    <td class="description last">The item the mouse is clicked on</td>        </tr>            <tr>                            <td class="name"><code>items</code></td>                        <td class="type">                            <span class="param-type">Object.&lt;string, <a href="#/extensions/tr-grid-contextmenu#~MenuItem">ContextMenuPlugin~MenuItem</a>&gt;</span>                        </td>                                    <td class="description last">Object reference to the menu items under items option</td>        </tr>            <tr>                            <td class="name"><code>menu</code></td>                        <td class="type">                            <span class="param-type"><a href="MenuEventAPI.html">MenuEventAPI</a></span>                        </td>                                    <td class="description last">API for adding menu items to be rendered</td>        </tr>            <tr>                            <td class="name"><code>rowIndex</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                                    <td class="description last">Index number of the row the mouse clicked on</td>        </tr>            <tr>                            <td class="name"><code>section</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">Wrapper(ILayoutGrid) Object of the grid's area the mouse clicked on</td>        </tr>            <tr>                            <td class="name"><code>shiftKey</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                                    <td class="description last">Flag to indicate if SHIFT key is pressed when the mouse is clicked</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            
-<div class="item">                                <div class="item-type">typedef</div>                        <h4 class="name" id="~MenuItemEventCallback"><span class="type-signature"></span>MenuItemEventCallback<span class="signature">(e)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">e</div>                        <div class="type">                            <span class="param-type"><a href="#/extensions/tr-grid-contextmenu#~MenuItemEvent">ContextMenuPlugin~MenuItemEvent</a></span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                            
-<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~OnMenuEvent">OnMenuEvent</h4>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>cell</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">Grid cell object at the mouse clicked position</td>        </tr>            <tr>                            <td class="name"><code>colIndex</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                                    <td class="description last">Index number of the column that the mouse clicked on</td>        </tr>            <tr>                            <td class="name"><code>field</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                                    <td class="description last">Field of the column that the mouse clicked on</td>        </tr>            <tr>                            <td class="name"><code>colId</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                                    <td class="description last">Column ID of the column that the mouse clicked on</td>        </tr>            <tr>                            <td class="name"><code>context</code></td>                        <td class="type">                            <span class="param-type"><a href="#/extensions/tr-grid-contextmenu#~Context">ContextMenuPlugin~Context</a></span>                        </td>                                    <td class="description last">Area of the grid that the mouse clicked on</td>        </tr>            <tr>                            <td class="name"><code>items</code></td>                        <td class="type">                            <span class="param-type">object</span>                        </td>                                    <td class="description last">Object reference to the menu items under items option</td>        </tr>            <tr>                            <td class="name"><code>menu</code></td>                        <td class="type">                            <span class="param-type"><a href="MenuEventAPI.html">MenuEventAPI</a></span>                        </td>                                    <td class="description last">API for adding menu items to be rendered</td>        </tr>            <tr>                            <td class="name"><code>rowIndex</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                                    <td class="description last">Index number of the row the mouse clicked on</td>        </tr>            <tr>                            <td class="name"><code>section</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">Wraper(ILayoutGrid) Object of the grid's area the mouse clicked on</td>        </tr>            <tr>                            <td class="name"><code>selectedColumns</code></td>                        <td class="type">                            <span class="param-type">Array.&lt;number&gt;</span>                        </td>                                    <td class="description last">Array of selected indices. Return null, if no selection</td>        </tr>            <tr>                            <td class="name"><code>selectedRows</code></td>                        <td class="type">                            <span class="param-type">Array.&lt;number&gt;</span>                        </td>                                    <td class="description last">Array of selected indices. Return null, if no selection</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            
-<div class="item">                                <div class="item-type">typedef</div>                        <h4 class="name" id="~OnMenuEventCallback"><span class="type-signature"></span>OnMenuEventCallback<span class="signature">(e)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">e</div>                        <div class="type">                            <span class="param-type"><a href="#/extensions/tr-grid-contextmenu#~OnMenuEvent">ContextMenuPlugin~OnMenuEvent</a></span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                            
-<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~Options">Options</h4><div class="description">    Available options describing `contextMenu` object specified in grid's option</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>items</code></td>                        <td class="type">                            <span class="param-type">Object.&lt;string, <a href="#/extensions/tr-grid-contextmenu#~MenuItem">ContextMenuPlugin~MenuItem</a>&gt;</span>                        </td>                            <td class="attributes">                                                </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>onMenu</code></td>                        <td class="type">                            <span class="param-type"><a href="#/extensions/tr-grid-contextmenu#~OnMenuEventCallback">ContextMenuPlugin~OnMenuEventCallback</a></span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">@ @property {Function=} contextmenu</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            <h3 class="subsection-title" id="methods">Methods</h3>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="config"><span class="type-signature"></span>config<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">ContextMenuPlugin.Options</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getConfigObject"><span class="type-signature"></span>getConfigObject<span class="signature">(gridOptions<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Object}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">gridOptions</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getMenuModel"><span class="type-signature"></span>getMenuModel<span class="signature">()</span><span class="type-signature"> → {Object}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div>                </div>                    
+<div id="elf-api-container"><div id="main-template" class="elf-template">    <section><header>            <h1 class="subsection-title"><span class="attribs"><span class="type-signature"></span></span>InCellEditingPlugin<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h1>            </header><article>                                                                        <h3 class="subsection-title" id="type_definitions">Type Definitions</h3>                        
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~Cache">Cache</h4><div class="description">    Stored all important object relate to column that need to use in this plugin.</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>editor</code></td>                        <td class="type">                            <span class="param-type">Element</span>                        </td>                                    <td class="description last">Container element of input.</td>        </tr>            <tr>                            <td class="name"><code>balloonPopup</code></td>                        <td class="type">                            <span class="param-type">Element</span>                        </td>                                    <td class="description last">balloon popup. It contains balloon element inside.</td>        </tr>            <tr>                            <td class="name"><code>inputElement</code></td>                        <td class="type">                            <span class="param-type">Element</span>                        </td>                                    <td class="description last">Input element such as text input, numeric stepper, date-time picker.</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~ColumnOptions">ColumnOptions</h4><div class="description">    Column options that can be specified on each individual grid's column option:</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>editableContent</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">Make the column editable by double click</td>        </tr>            <tr>                            <td class="name"><code>inCellEditing</code></td>                        <td class="type">                            <span class="param-type"><a href="#/extensions/tr-grid-in-cell-editing#~EditorOptions">InCellEditingPlugin~EditorOptions</a></span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Editor options give more refinements, such as "type" for specific editor type or "entries" for dropdown box</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~EditorOptions">EditorOptions</h4><div class="description">    Editor options specified through `inCellEditing` property on the column configuration object</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>type</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    "text"                                </td>                        <td class="description last">Specify type of the editor. Available types are text, number, dropdown, date, checkbox, and combobox.</td>        </tr>            <tr>                            <td class="name"><code>entries</code></td>                        <td class="type">                            <span class="param-type">Array</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Specify list of items available in the dropdown box</td>        </tr>            <tr>                            <td class="name"><code>attributes</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Specify attribute of input element</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~Options">Options</h4><div class="description">    InCellEditingPlugin options that can be specified from `inCellEditing` property of the main grid's options</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>balloonMode</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">Show editor in a balloon. This is useful when there is not much space in the cell</td>        </tr>            <tr>                            <td class="name"><code>editableTitle</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">If enabled, all column headers can be edited by double click</td>        </tr>            <tr>                            <td class="name"><code>editableContent</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">If enabled, all content cells can be edited by double click. This can be overridden individual column configuration.</td>        </tr>            <tr>                            <td class="name"><code>autoCommitText</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">If enabled, the text will be committed even if user leaving editor midway</td>        </tr>            <tr>                            <td class="name"><code>dataBinding</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    true                                </td>                        <td class="description last">If disabled, text will not be updated in the grid's data table</td>        </tr>            <tr>                            <td class="name"><code>popupElement</code></td>                        <td class="type">                            <span class="param-type">Element</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Element to be attached under the editor</td>        </tr>            <tr>                            <td class="name"><code>doubleClick</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    true                                </td>                        <td class="description last">If disabled, double click will not trigger editor</td>        </tr>            <tr>                            <td class="name"><code>tabToMove</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">If enabled, pressing tab key while editor is active will open editor on the next editable cell.</td>        </tr>            <tr>                            <td class="name"><code>contentSource</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    "textContent"                                </td>                        <td class="description last">By default, the text in the editor will be populated with textContent of the target cell. Use "field" to populated data from grid's data model. Use "empty" to shows empty editor.</td>        </tr>            <tr>                            <td class="name"><code>inlineStyling</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">force inline styles regardless of elf version.</td>        </tr>            <tr>                            <td class="name"><code>disablingScroll</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">Scrollbar will be frozen when editor opened. Deprecated in favor of uiBlocking</td>        </tr>            <tr>                            <td class="name"><code>uiBlocking</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">append transparent overlay to block ui interaction</td>        </tr>            <tr>                            <td class="name"><code>preEditorOpening</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Handler before editor is opened</td>        </tr>            <tr>                            <td class="name"><code>editorOpened</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Handler after editor is opened</td>        </tr>            <tr>                            <td class="name"><code>beforeCommit</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Handler before data binding, allowing data type conversion</td>        </tr>            <tr>                            <td class="name"><code>editorClosed</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Handler after editor is closed</td>        </tr>            <tr>                            <td class="name"><code>keyUp</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Handler for each keyup of the input text box</td>        </tr>            <tr>                            <td class="name"><code>beforeRowCommit</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Handler before committing from all editors in the row</td>        </tr>            <tr>                            <td class="name"><code>rowEditorClosed</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Handler after closing of all editors</td>        </tr>            <tr>                            <td class="name"><code>autoSuggest</code></td>                        <td class="type">                            <span class="param-type">Element</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Element of ef-autosuggest or efx-autosuggest for handled with input cell</td>        </tr>            <tr>                            <td class="name"><code>closingOnScroll</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    true                                </td>                        <td class="description last">If disabled, the editor will not be automatically closed when scrolling grid.</td>        </tr>            <tr>                            <td class="name"><code>autoHiding</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    true                                </td>                        <td class="description last">If disabled, the editor will not be automatically closed when losing its focus.</td>        </tr>            <tr>                            <td class="name"><code>readonly</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">If disabled, the editor will not be able to open, this property overwrite `editableContent` and `editableTitle`</td>        </tr>            <tr>                            <td class="name"><code>starterText</code></td>                        <td class="type">                            <span class="param-type">string</span> | <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">if enable it, it will be show placeholder when no ric in grid, given string to overwrite wording</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            <h3 class="subsection-title" id="methods">Methods</h3>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="_getRowIndex"><span class="type-signature"></span>_getRowIndex<span class="signature">(rowId)</span><span class="type-signature"> → {number}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowId</div>                        <div class="type">                            <span class="param-type">string</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">number</span>    </div><div class="sub-content-desc">    row index will return -1 if not found</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="_requestUpdateStarterText"><span class="type-signature"></span>_requestUpdateStarterText<span class="signature">()</span><span class="type-signature"></span></h4>                            <div class="description">        Request to show starter text    </div>                        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="appendText"><span class="type-signature"></span>appendText<span class="signature">(word)</span><span class="type-signature"></span></h4>                            <div class="description">        Use to append text in text editor. WARNING: Only works with the text type editor    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">word</div>                        <div class="type">                            <span class="param-type">string</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="beforeProcessOption"><span class="type-signature"></span>beforeProcessOption<span class="signature">(optionName, optionVal)</span><span class="type-signature"> → {*}</span></h4>                            <div class="description">        Remove redundant built-in composite-grid feature    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">optionName</div>                        <div class="type">                            <span class="param-type">string</span>                        </div>                                            </div>                <div class="param">                            <div class="name">optionVal</div>                        <div class="type">                            <span class="param-type">*</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">*</span>    </div><div class="sub-content-desc">    The transformed value of the option</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="clearText"><span class="type-signature"></span>clearText<span class="signature">()</span><span class="type-signature"></span></h4>                            <div class="description">        Use to clear text in text editor.    </div>                        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="closeCellEditor"><span class="type-signature"></span>closeCellEditor<span class="signature">(opt_forceCommit<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">opt_forceCommit</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>            <h5>Fires:</h5>            <div class="sub-content">InCellEditingPlugin#event:cancelled</div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="closeRowEditor"><span class="type-signature"></span>closeRowEditor<span class="signature">(isCommit<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                            <div class="description">        Using to close row editor.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">isCommit</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                        <div class="default">                                   [default: true]                                </div>                                        <div class="description">                    Default is true, to save change that user made to datasource                </div>                    </div>            </div>        <div class="details">                                                            </div>            <h5>Fires:</h5>            <div class="sub-content"><a href="#/extensions/tr-grid-in-cell-editing#event:beforeRowCommit">InCellEditingPlugin#event:beforeRowCommit</a></div>            <div class="sub-content"><a href="#/extensions/tr-grid-in-cell-editing#event:rowEditorClosed">InCellEditingPlugin#event:rowEditorClosed</a></div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="commitText"><span class="type-signature"></span>commitText<span class="signature">(word<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                            <div class="description">        Commit text will set text and commit to cell.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">word</div>                        <div class="type">                            <span class="param-type">string</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="config"><span class="type-signature"></span>config<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="disableCellEditing"><span class="type-signature"></span>disableCellEditing<span class="signature">(cell, opt_disabled<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                            <div class="description">        Disable editing on a per cell basis    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">cell</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    Grid cell object                </div>                    </div>                <div class="param">                            <div class="name">opt_disabled</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="disableDataBinding"><span class="type-signature"></span>disableDataBinding<span class="signature">(opt_disabled<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">opt_disabled</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="disableDblClick"><span class="type-signature"></span>disableDblClick<span class="signature">(opt_disabled<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">opt_disabled</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="disableReadonly"><span class="type-signature"></span>disableReadonly<span class="signature">(disabled<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">disabled</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="disableTitleEditing"><span class="type-signature"></span>disableTitleEditing<span class="signature">(opt_disabled<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                            <div class="description">        Disable editing on all title sections    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">opt_disabled</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="enableAutoCommitText"><span class="type-signature"></span>enableAutoCommitText<span class="signature">(opt_enable<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">opt_enable</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="enableBalloonMode"><span class="type-signature"></span>enableBalloonMode<span class="signature">(opt_enabled<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">opt_enabled</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="enableReadonly"><span class="type-signature"></span>enableReadonly<span class="signature">(enabled<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">enabled</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="enableTitleEditing"><span class="type-signature"></span>enableTitleEditing<span class="signature">(opt_enabled<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">opt_enabled</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getActiveColIndex"><span class="type-signature"></span>getActiveColIndex<span class="signature">()</span><span class="type-signature"> → {number}</span></h4>                            <div class="description">        get active column index that editor had opended. Function can work only in cell editing mode.    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">number</span>    </div><div class="sub-content-desc">    column index will return -1 if not found</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getActiveRowIndex"><span class="type-signature"></span>getActiveRowIndex<span class="signature">()</span><span class="type-signature"> → {number}</span></h4>                            <div class="description">        get active row index that editor had opended. Function Can work in both cell/row editing modes.    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">number</span>    </div><div class="sub-content-desc">    row index will return -1 if not found</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getAutoSuggest"><span class="type-signature"></span>getAutoSuggest<span class="signature">()</span><span class="type-signature"> → {Element}</span></h4>                            <div class="description">        Get ef-autosuggest or efx-autosuggest    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Element</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getBalloonPopup"><span class="type-signature"></span>getBalloonPopup<span class="signature">()</span><span class="type-signature"> → {Popup|null}</span></h4>                            <div class="description">        Get Balloon Popup Element to access any API provided.    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Popup</span> | <span class="param-type">null</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getConfigObject"><span class="type-signature"></span>getConfigObject<span class="signature">(out_obj<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Object}</span></h4>                            <div class="description">        Get a current state of grid and extension config    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">out_obj</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getInitialText"><span class="type-signature"></span>getInitialText<span class="signature">()</span><span class="type-signature"> → {string}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">string</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getInputElementPosition"><span class="type-signature"></span>getInputElementPosition<span class="signature">()</span><span class="type-signature"> → {Object}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div>                </div>                    
 <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getName"><span class="type-signature"></span>getName<span class="signature">()</span><span class="type-signature"> → {string}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">string</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getText"><span class="type-signature"></span>getText<span class="signature">()</span><span class="type-signature"> → {string}</span></h4>                            <div class="description">        Get current text from the editor    </div>                        <div class="details">                                                            <dt class="tag-see">See:</dt>    <dd class="tag-see">        <ul>            <li><a href="#/extensions/tr-grid-in-cell-editing#getValue">InCellEditingPlugin#getValue</a></li>        </ul>    </dd>        </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">string</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getTextBox"><span class="type-signature"></span>getTextBox<span class="signature">(columnIndex<span class="signature-attributes">opt</span>, grid<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Element}</span></h4>                            <div class="description">        Get input element of opened editor where text is stored.for row editing mode, specific column index and grid instance is need.for cell editing mode. function not require param since only one editor can be opened at a time.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">columnIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    column index of editor, used in row editing mode                </div>                    </div>                <div class="param">                            <div class="name">grid</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    grid instance, used in row editing mode                </div>                    </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Element</span>    </div><div class="sub-content-desc">    editor element or null</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getValue"><span class="type-signature"></span>getValue<span class="signature">()</span><span class="type-signature"> → {*}</span></h4>                            <div class="description">        Convert current text from the editor to value corresponding to the type of the editor    </div>                        <div class="details">                                                            <dt class="tag-see">See:</dt>    <dd class="tag-see">        <ul>            <li><a href="#/extensions/tr-grid-in-cell-editing#getText">InCellEditingPlugin#getText</a></li>        </ul>    </dd>        </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">*</span>    </div><div class="sub-content-desc">    Returned type is based on the type of the editor</div>                </div>                    
 <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="hasMultiTableSupport"><span class="type-signature"></span>hasMultiTableSupport<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Plugin that has multi-table support means that it can have multiple hosts/tables and share its states across those hosts/tables.    </div>                        <div class="details">                <dt class="inherited-from">Inherited From:</dt>    <dd class="inherited-from">        <a href="#">GridPlugin#hasMultiTableSupport</a>    </dd>                                                    </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="initialize"><span class="type-signature"></span>initialize<span class="signature">(host, options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">host</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    core grid object                </div>                    </div>                <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="unload"><span class="type-signature"></span>unload<span class="signature">(host)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">host</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    core grid object                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                </article></section></div></div>
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="initialize"><span class="type-signature"></span>initialize<span class="signature">(host, options)</span><span class="type-signature"></span></h4>                            <div class="description">        Called by grid system when initial plugins.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">host</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    core grid object                </div>                    </div>                <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="isColumnEditable"><span class="type-signature"></span>isColumnEditable<span class="signature">(colIndex)</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Check if the column can be edited by double click    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="isEditing"><span class="type-signature"></span>isEditing<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Checking Editing is in process.    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="openEditor"><span class="type-signature"></span>openEditor<span class="signature">(colIndex, rowIndex, sectionRef<span class="signature-attributes">opt</span>, grid<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                            <div class="attributes">                                                                </div>                                            </div>                <div class="param">                            <div class="name">rowIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                            <div class="attributes">                                                                </div>                                            </div>                <div class="param">                            <div class="name">sectionRef</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    grid SectionReference object                </div>                    </div>                <div class="param">                            <div class="name">grid</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    core grid object                </div>                    </div>            </div>        <div class="details">                                                            </div>            <h5>Fires:</h5>            <div class="sub-content"><a href="#/extensions/tr-grid-in-cell-editing#event:editorOpened">InCellEditingPlugin#event:editorOpened</a></div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="openRowEditor"><span class="type-signature"></span>openRowEditor<span class="signature">(rowIndex, grid<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                            <div class="description">        Using to open row editor.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                            <div class="attributes">                                                                </div>                                            </div>                <div class="param">                            <div class="name">grid</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    core grid object                </div>                    </div>            </div>        <div class="details">                                                            </div>            <h5>Fires:</h5>            <div class="sub-content"><a href="#/extensions/tr-grid-in-cell-editing#event:rowEditorOpened">InCellEditingPlugin#event:rowEditorOpened</a></div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="requestShowEditorPopup"><span class="type-signature"></span>requestShowEditorPopup<span class="signature">()</span><span class="type-signature"></span></h4>                            <div class="description">        Set a timer to call onUpdateEditorPopup only once to avoid performance issue    </div>                        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setDisablingScroll"><span class="type-signature"></span>setDisablingScroll<span class="signature">(disabled<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {boolean}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">disabled</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    previous disablingScroll status</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setPopupElement"><span class="type-signature"></span>setPopupElement<span class="signature">(elm)</span><span class="type-signature"></span></h4>                            <div class="description">        Set other elements to using like popup when editing cell.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">elm</div>                        <div class="type">                            <span class="param-type">Element</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setText"><span class="type-signature"></span>setText<span class="signature">(content)</span><span class="type-signature"></span></h4>                            <div class="description">        Set content to the editor but do not commit anything to internal storage.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">content</div>                        <div class="type">                            <span class="param-type">*</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="showStarterText"><span class="type-signature"></span>showStarterText<span class="signature">(shown<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                            <div class="description">        Show starter text when the grid has no ric    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">shown</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="toggleRowEditor"><span class="type-signature"></span>toggleRowEditor<span class="signature">(rowIndex, isCommit<span class="signature-attributes">opt</span>, grid<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                            <div class="description">        open row editor if no any row editor opened, and close row editor if it already opened    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                            <div class="attributes">                                                                </div>                                        <div class="default">                                </div>                                </div>                <div class="param">                            <div class="name">isCommit</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                        <div class="default">                                   [default: true]                                </div>                                        <div class="description">                    Default is true, save change that user made to datasource                </div>                    </div>                <div class="param">                            <div class="name">grid</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                        <div class="default">                                </div>                                        <div class="description">                    grid instance                </div>                    </div>            </div>        <div class="details">                                                            </div>            <h5>Fires:</h5>            <div class="sub-content"><a href="#/extensions/tr-grid-in-cell-editing#event:beforeRowCommit">InCellEditingPlugin#event:beforeRowCommit</a></div>            <div class="sub-content"><a href="#/extensions/tr-grid-in-cell-editing#event:rowEditorClosed">InCellEditingPlugin#event:rowEditorClosed</a></div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="unload"><span class="type-signature"></span>unload<span class="signature">()</span><span class="type-signature"></span></h4>                                            <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="updateStarterText"><span class="type-signature"></span>updateStarterText<span class="signature">(shown<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                            <div class="description">        Updates the starter text to either show or hide it.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">shown</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    Forces the display of the starter text if "true", if "false" it hides the starter text. If not given as a parameter, it automates updating the display of the starter text                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                        <h3 class="subsection-title" id="events">Events</h3>                    
+<div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:beforeCommit">beforeCommit</h4>                            <div class="description">        Fired before the actual text commit (i.e. after user press enter). This is used for validating or modifying user input, and canceling the operation    </div>                    <h5>Type:</h5>        <span class="param-type">Object</span>                    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>text</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Text that user has entered</td>        </tr>            <tr>                            <td class="name"><code>cancel</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Set to true to cancel the commit operation.</td>        </tr>            <tr>                            <td class="name"><code>groupHeader</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">This value is set to true if the editing row is a group header.</td>        </tr>            <tr>                            <td class="name"><code>segmentSeparator</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">This value is set to true if the editing row is a segment separator.</td>        </tr>            <tr>                            <td class="name"><code>suggestionDetail</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                            <td class="attributes">                                                </td>                                    <td class="description last">Suggestion detail for auto suggest "item-select" event</td>        </tr>        </tbody></table></div><div class="details">                                                            </div>                                            <h5>Example:</h5>            <pre><code>let cep = new InCellEditingPlugin();
+cep.listen("beforeCommit", function(e) {
+  let num = +e.text; // Cast input type to number
+  if(num === num) { // Check if string can be converted to number
+    e.text = num; // Modify user input and continue commit operation (i.e. set data back to grid model)
+  } else { // User entered something other than number
+    e.cancel = true; // Cancel the commiting process
+  }
+});</code></pre>    </div>                    
+<div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:beforeRowCommit">beforeRowCommit</h4>                            <div class="description">        Fired before the actual text in row editor commit (i.e. after call api closeRowEditor(isCommit: true)). This is used for validating or modifying user input, and canceling the operation    </div>                    <h5>Type:</h5>        <span class="param-type">Object</span>                    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>grid</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                            <td class="attributes">                                                </td>                                    <td class="description last">core grid instance</td>        </tr>            <tr>                            <td class="name"><code>rowIndex</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                            <td class="attributes">                                                </td>                                    <td class="description last">row index that editor placed.</td>        </tr>            <tr>                            <td class="name"><code>rowId</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                            <td class="attributes">                                                </td>                                    <td class="description last">row id, It's better to use row id as a reference to collect data.</td>        </tr>            <tr>                            <td class="name"><code>fieldValues</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                            <td class="attributes">                                                </td>                                    <td class="description last">Object that contains text in each field</td>        </tr>            <tr>                            <td class="name"><code>fieldValue</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                            <td class="attributes">                                                </td>                                    <td class="description last">Alias to fieldValues</td>        </tr>            <tr>                            <td class="name"><code>cancel</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Set to true to cancel the commit operation.</td>        </tr>        </tbody></table></div><div class="details">                                                            </div>                                            <h5>Example:</h5>            <pre><code>let cep = new InCellEditingPlugin();
+cep.listen("beforeRowCommit", function(e) {
+        let fieldValues = e.fieldValues;
+        for(let field in fieldValues) {
+            if(!fieldValues.hasOwnProperty(field)) continue;
+            let value = fieldValues[field];
+            if(checkValid(value)) { // check value is valid
+                fieldValues[field] = value + "foo bar"; // modify text
+            } else {
+                e.cancel = true; // if not valid maybe cancel commit
+                break;
+            }
+        }
+});</code></pre>    </div>                    
+<div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:editorClosed">editorClosed</h4>                            <div class="description">        Fired after the text editor has been closed and all operations are done. This is useful to clean up left over resource and get result text entered.    </div>                    <h5>Type:</h5>        <span class="param-type">Object</span>                    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>text</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Text that user has entered</td>        </tr>            <tr>                            <td class="name"><code>groupHeader</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">This value is set to true if the editing row is a group header.</td>        </tr>            <tr>                            <td class="name"><code>segmentSeparator</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">This value is set to true if the editing row is a segment separator.</td>        </tr>            <tr>                            <td class="name"><code>suggestionDetail</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                            <td class="attributes">                                                </td>                                    <td class="description last">Suggestion detail for auto suggest "item-select" event</td>        </tr>            <tr>                            <td class="name"><code>cancelled</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                                </td>                                    <td class="description last">Readonly flag. Indicates whether the commit operation has been cancelled</td>        </tr>            <tr>                            <td class="name"><code>committed</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                                </td>                                    <td class="description last">Readonly flag. The opposite of `cancelled` flag</td>        </tr>        </tbody></table></div><div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:editorOpened">editorOpened</h4>                            <div class="description">        Fired after the opening of text editor. Any visual customization can be done at this stage, including the text shown in the editor.    </div>                    <h5>Type:</h5>        <span class="param-type">Object</span>                    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>dataSource</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">DataView</td>        </tr>            <tr>                            <td class="name"><code>rowIndex</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>field</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>inputElement</code></td>                        <td class="type">                            <span class="param-type">Element</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>autoSuggest</code></td>                        <td class="type">                            <span class="param-type">Element</span>                        </td>                                    <td class="description last">ef-autosuggest or efx-autosuggest</td>        </tr>        </tbody></table></div><div class="details">                                                            </div>                                            <h5>Example:</h5>            <pre><code>let cep = new InCellEditingPlugin();
+cep.listen("editorOpened", function(e) {
+  let data = e.dataSource.getDataAt(e.rowIndex, e.field);
+  e.inputElement.value = data + " aaa";
+});</code></pre>    </div>                    
+<div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:keyUp">keyUp</h4>                            <div class="description">        Fired after user key some letter to editior. This is useful to listen every text chnage.    </div>                        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:preEditorOpening">preEditorOpening</h4>                            <div class="description">        Fired before the opening of text editor. This allows user to disable the editor on case by case basis    </div>                    <h5>Type:</h5>        <span class="param-type">Object</span>                    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>cancel</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Set to true to cancel the openning operation.</td>        </tr>        </tbody></table></div><div class="details">                                                            </div>                                            <h5>Example:</h5>            <pre><code>let cep = new InCellEditingPlugin();
+cep.listen("preEditorOpening", function(e) {
+  e["cancel"] = true; // Cancel the editing process
+});</code></pre>    </div>                    
+<div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:rowEditorClosed">rowEditorClosed</h4>                            <div class="description">        Fired after the text editor has been closed and all operations are done. This is useful to clean up left over resource and get result text entered.    </div>                    <h5>Type:</h5>        <span class="param-type">Object</span>                    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>rowIndex</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>rowId</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>grid</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">Core grid instance</td>        </tr>            <tr>                            <td class="name"><code>fields</code></td>                        <td class="type">                            <span class="param-type">Array.&lt;string&gt;</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>cells</code></td>                        <td class="type">                            <span class="param-type">Array</span>                        </td>                                    <td class="description last">Array of Cell instances</td>        </tr>            <tr>                            <td class="name"><code>inputs</code></td>                        <td class="type">                            <span class="param-type">Array.&lt;Element&gt;</span>                        </td>                                    <td class="description last">Array of input elements</td>        </tr>            <tr>                            <td class="name"><code>fieldValues</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">Object that contains text in each field</td>        </tr>            <tr>                            <td class="name"><code>fieldValue</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">Alias to fieldValues</td>        </tr>            <tr>                            <td class="name"><code>committed</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                                    <td class="description last">Indicates whether the commit operation has been done or not.</td>        </tr>        </tbody></table></div><div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:rowEditorOpened">rowEditorOpened</h4>                            <div class="description">        Fired after the opening of text editor in row editing mode    </div>                    <h5>Type:</h5>        <span class="param-type">Object</span>                    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>rowIndex</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>rowId</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>grid</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">Core grid instance</td>        </tr>            <tr>                            <td class="name"><code>fields</code></td>                        <td class="type">                            <span class="param-type">Array.&lt;string&gt;</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>cells</code></td>                        <td class="type">                            <span class="param-type">Array</span>                        </td>                                    <td class="description last">Array of Cell instances</td>        </tr>            <tr>                            <td class="name"><code>inputs</code></td>                        <td class="type">                            <span class="param-type">Array.&lt;Element&gt;</span>                        </td>                                    <td class="description last">Array of input elements</td>        </tr>            <tr>                            <td class="name"><code>initialValues</code></td>                        <td class="type">                            <span class="param-type">Array</span>                        </td>                                    <td class="description last">Array of data retrieved from Grid corresponding to the cells/inputs</td>        </tr>            <tr>                            <td class="name"><code>fieldValues</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">Object that contains text in each field</td>        </tr>        </tbody></table></div><div class="details">                                                            </div>                                    </div>            </article></section></div></div>

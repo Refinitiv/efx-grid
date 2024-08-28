@@ -1,22 +1,60 @@
-<h1 id="coral-checkbox-formatter">Coral Checkbox Formatter</h1>
-<p>This formatter creates a checkbox which will be unchecked by default.</p>
-<h3 id="using-elfs-checkbox">Using ELF&#39;s checkbox</h3>
-<p>This extension is only for using <a href="https://elf.int.refinitiv.com/elements/coral-checkbox.html">coral-checkbox</a> and the following dependency is required:</p>
-<pre><code class="language-bash">npm install @elf/coral-checkbox
-</code></pre>
-<p>Then import this required dependencies to your project <code>index.js</code> file.</p>
-<pre><code class="language-jsx">import &quot;@elf/coral-checkbox&quot;;
-import &quot;@elf/elf-theme-halo/dark/coral-checkbox&quot;; // Can be any theme.
-</code></pre>
+<h1 id="percent-bar-formatter">Percent Bar Formatter</h1>
+<p>This formatter creates a percent bar.</p>
+<h2 id="specific-options">Specific options</h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Attributes</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>alignment</td>
+<td>string</td>
+<td>optional</td>
+<td>&quot;left&quot;</td>
+<td>Possible values are l, r, c, left, right, and center</td>
+</tr>
+<tr>
+<td>movementColor</td>
+<td>boolean</td>
+<td>optional</td>
+<td>true</td>
+<td>If disabled, percent bar will not use up and down colors</td>
+</tr>
+<tr>
+<td>barColor</td>
+<td>string</td>
+<td>optional</td>
+<td>&quot;&quot;</td>
+<td>Custom color for bar element</td>
+</tr>
+<tr>
+<td>textHidden</td>
+<td>boolean</td>
+<td>optional</td>
+<td>false</td>
+<td>If enabled, text label will not be shown</td>
+</tr>
+<tr>
+<td>textWidth</td>
+<td>number or string</td>
+<td>optional</td>
+<td>56</td>
+<td>Number of pixel or percentage width</td>
+</tr>
+</tbody></table>
 <h2 id="example">Example</h2>
-<code-sandbox hash="e7a6ecf3"><pre><code class="language-css">atlas-blotter {
+<code-sandbox hash="38cc0f6d"><pre><code class="language-css">efx-grid {
     height: 320px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
-<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
@@ -25,199 +63,42 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;industry&quot;];
-var records = tr.DataGenerator.generateRecords(fields, { seed: 1, numRows: 25 });
+var fields = [&quot;myPercent&quot;, &quot;word&quot;];
+var num = -100;
+DataGenerator.addFieldInfo(&quot;myPercent&quot;, function(e) {
+    return num += 5;
+});
 
-records[1][&quot;myCheckBoxState&quot;] = true; // Initialize checkbox state
-records[2][&quot;myCheckBoxState&quot;] = true;
-records[3][&quot;myCheckBoxState&quot;] = true;
-
+var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 40 });
 var configObj = {
-    columns: [
-        {
-            alignment: &quot;c&quot;,
-            name: &quot;&quot;,
-            field: &quot;myCheckBoxState&quot;,
-            width: 34,
-            binding: tr.CoralCheckboxFormatter.create({
-                events: {
-                    &quot;click&quot;: function(e) {
-                        console.log(&quot;clicked&quot;);
-                    }
-                }
-            })
-        },
-        {
-            name: &quot;Grid Checkbox State&quot;,
-            field: &quot;myCheckBoxState&quot;,
-            alignment: &quot;c&quot;,
-            width: 150
-        },
-        {
-            name: &quot;Industry&quot;,
-            field: fields[0],
-        }
-    ],
-    staticDataRows: records
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
-</code></pre>
-</code-sandbox><h3 id="checkbox-with-a-label">Checkbox with a label</h3>
-<code-sandbox hash="daaf6919"><pre><code class="language-css">atlas-blotter {
-    height: 320px;
-}
-</code></pre>
-<pre><code class="language-html">&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
-</code></pre>
-<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;industry&quot;];
-var records = tr.DataGenerator.generateRecords(fields, { seed: 1, numRows: 25 });
-
-var configObj = {
-    columns: [
-        {
-            name: &quot;Checkboxes&quot;,
-            field: &quot;myCheckBoxState&quot;,
-            width: 150,
-            binding: tr.CoralCheckboxFormatter.create({
-                events: {
-                    &quot;click&quot;: function(e) {
-                        console.log(&quot;clicked&quot;);
-                    }
-                },
-                labelField: fields[0]
-            })
-        },
-        {
-            name: &quot;Grid Checkbox State&quot;,
-            field: &quot;myCheckBoxState&quot;,
-            alignment: &quot;c&quot;,
-            width: 150
-        },
-        {
-            name: &quot;Industry&quot;,
-            field: fields[1]
-        }
-    ],
-    staticDataRows: records
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
-</code></pre>
-</code-sandbox><h3 id="checkbox-and-pagination">Checkbox and pagination</h3>
-<code-sandbox hash="64a03b1a"><pre><code class="language-css">hr {
-    margin: 5px;
-}
-</code></pre>
-<pre><code class="language-html">&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
-&lt;hr&gt;
-&lt;emerald-pagination id=&quot;pagination_elem&quot;&gt;&lt;/emerald-pagination&gt;
-</code></pre>
-<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;industry&quot;];
-var records = tr.DataGenerator.generateRecords(fields, { seed: 1, numRows: 40 });
-
-var configObj = {
-    columns: [
-        {
-            name: &quot;&quot;,
-            field: &quot;myCheckBoxState&quot;,
-            width: 34,
-            binding: tr.CoralCheckboxFormatter.create()
-        },
-        {
-            name: &quot;Company&quot;,
-            field: fields[0]
-        },
-        {
-            name: &quot;Market&quot;,
-            field: fields[1]
-        },
-        {
-            name: &quot;Industry&quot;,
-            field: fields[2]
-        }
-    ],
-    staticDataRows: records,
-    pagination: {
-        element: document.getElementById(&quot;pagination_elem&quot;),
-        page: 1,
-        pageSize: 8
+    sorting: {
+        sortableColumns: true
     },
-    extensions: [new tr.PaginationExtension()]
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
-</code></pre>
-</code-sandbox><h3 id="multiple-checkbox-columns">Multiple checkbox columns</h3>
-<code-sandbox hash="4bc94f88"><pre><code class="language-css">atlas-blotter {
-    height: 320px;
-}
-</code></pre>
-<pre><code class="language-html">&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
-</code></pre>
-<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;];
-var records = tr.DataGenerator.generateRecords(fields, { seed: 1, numRows: 40 });
-
-var configObj = {
     columns: [
         {
-            name: &quot;Company&quot;,
-            field: fields[0]
+            name: &quot;Percent bar (Default)&quot;,
+            field: fields[0],
+            alignment: &quot;c&quot;, 
+            binding: PercentBarFormatter.create()
         },
         {
-            name: &quot;Market&quot;,
-            field: fields[1]
+            name: &quot;Center alignment + No Movement Color&quot;,
+            field: fields[0],
+            alignment: &quot;c&quot;,
+            binding: PercentBarFormatter.create({
+                alignment: &quot;c&quot;,
+                movementColor: false
+            })
         },
         {
-            name: &quot;C1&quot;,
-            field: &quot;checkState1&quot;,
-            width: 50,
-            binding: tr.CoralCheckboxFormatter.create()
-        },
-        {
-            name: &quot;C2&quot;,
-            field: &quot;checkState2&quot;,
-            width: 50,
-            binding: tr.CoralCheckboxFormatter.create()
-        },
-        {
-            name: &quot;C3&quot;,
-            field: &quot;checkState3&quot;,
-            width: 50,
-            binding: tr.CoralCheckboxFormatter.create()
+            name: &quot;No Label + Custom Color&quot;,
+            field: fields[0],
+            alignment: &quot;c&quot;,
+            binding: PercentBarFormatter.create({
+                alignment: &quot;r&quot;,
+                textHidden: true,
+                barColor: &quot;purple&quot;
+            })
         }
     ],
     staticDataRows: records

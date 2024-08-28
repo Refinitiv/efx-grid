@@ -1,20 +1,63 @@
-<h1 id="getreset-state">Get/Reset State</h1>
-<p>The <a href="#/extensions/tr-grid-row-filtering">Row Filtering Extension</a> provides APIs such as:</p>
-<ul>
-<li><code>getColumnFilterStates()</code> - API returns an array of the current filter states of each column&#39;s filter UI.</li>
-<li><code>removeAllColumnFilters()</code>  - API removes all the currently applied filters.</li>
-</ul>
-<p>For more details see the <a href="#/extensions/tr-grid-row-filtering">Row Filtering Extension API documentation</a>.</p>
-<code-sandbox hash="acf8629f"><pre><code class="language-css">atlas-blotter {
-    height: 448px;
-}
+<h1 id="basic-grid-creation">Basic Grid creation</h1>
+<p>To initialize Grid you can put the element tag on the HTML page, just like any other native element. The element works as if it were a div element (that is, an element with 100% width and the same height as its content). </p>
+<pre><code class="language-html">&lt;efx-grid&gt;&lt;/efx-grid&gt;
 </code></pre>
-<pre><code class="language-html">&lt;button id=&quot;get_states_btn&quot;&gt;Get Filter States&lt;/button&gt;
-&lt;button id=&quot;reset_all_btn&quot;&gt;Clear All Filters&lt;/button&gt;
-&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
+<p>Or you can dynamically create the element at runtime by using a standard native method like <code>document.createElement(&quot;efx-grid&quot;)</code>.</p>
+<pre><code class="language-js">var grid = document.createElement(&quot;efx-grid&quot;);
+
+document.body.appendChild(grid);
 </code></pre>
-<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+<p>The element is used for positioning and sizing the grid in the document. Anything else should be done by passing a configuration object to the grid. </p>
+<blockquote>
+<p>See all available configuration options for efx-grid <a href="#/apis/rt-grid/grid">here</a></p>
+</blockquote>
+<p>To define how the grid renders its layout and content use the <code>columns</code> property, as shown below:</p>
+<pre><code class="language-js">var configObj = {
+    columns: [
+        {name: &quot;Header Text&quot;, field: &quot;For Mapping Data&quot;},
+        {name: &quot;Column 2&quot;, field: &quot;Field 2&quot;}
+    ] // Two columns will be shown
+};
+</code></pre>
+<p>To define initial or static data for rendering use the <code>staticDataRows</code> property, as shown below:</p>
+<pre><code class="language-js">var configObj = {
+    staticDataRows: [
+        {&quot;Field 1&quot;: &quot;a&quot;, &quot;Field 2&quot;: &quot;b&quot;, &quot;Field 3&quot;: &quot;c&quot;},
+        {&quot;ABC&quot;: &quot;d&quot;, &quot;Field 2&quot;: &quot;e&quot;, &quot;XYZ&quot;: &quot;f&quot;}
+    ] // Two rows will be shown
+};
+</code></pre>
+<p>Each column definition should have a link to the data through the <code>field</code> property for rendering. Doing it this way separates the UI from the data. The data can have any number of fields, regardless of the actual number of columns being displayed in the grid. This means extra information can be stored, such as row metadata, display states, and so on. The same field can also be used to display multiple columns. </p>
+<p>The basic Grid configuration object is usually something like the following: </p>
+<pre><code class="language-js">var fields = [&quot;intCol&quot;, &quot;strCol&quot;, &quot;floatCol&quot;, &quot;dateCol&quot;];
+var records = [
+    {&quot;intCol&quot;: 1, &quot;strCol&quot;: &quot;Sample data&quot;, &quot;floatCol&quot;: 1.1, &quot;dateCol&quot;: new Date(&quot;2014-10-01&quot;)},
+    {&quot;intCol&quot;: 2, &quot;strCol&quot;: &quot;Sample data&quot;, &quot;floatCol&quot;: 2.2, &quot;dateCol&quot;: new Date(&quot;2014-10-02&quot;)},
+    {&quot;intCol&quot;: 3, &quot;strCol&quot;: &quot;Sample data&quot;, &quot;floatCol&quot;: 3.3, &quot;dateCol&quot;: new Date(&quot;2014-10-03&quot;)},
+    {&quot;intCol&quot;: 4, &quot;strCol&quot;: &quot;Sample data&quot;, &quot;floatCol&quot;: 4.4, &quot;dateCol&quot;: new Date(&quot;2014-10-04&quot;)},
+    {&quot;intCol&quot;: 5, &quot;strCol&quot;: &quot;Sample data&quot;, &quot;floatCol&quot;: 5.5, &quot;dateCol&quot;: new Date(&quot;2014-10-05&quot;)}
+];
+var configObj = {
+    rowHeight: 40, // Grid level option
+    columns: [
+        {name: &quot;Column 1&quot;, field: fields[0]},
+        {name: &quot;Column 2&quot;, field: fields[1]},
+        {name: &quot;Column 3&quot;, field: fields[2]},
+        {name: &quot;Column 4&quot;, field: fields[3]}
+    ],
+    staticDataRows: records
+};
+</code></pre>
+<blockquote>
+<p>For further change at runtime, it is recommended to use Grid&#39;s APIs through <code>api</code> property instead of changing <code>config</code> property. Changing <code>config</code> property will result in re-creation of the entire grid and could impact the performance. </p>
+</blockquote>
+<h2 id="example">Example</h2>
+<blockquote>
+<p>Note: you can see JavaScript details from the live example below by clicking the lower right button.</p>
+</blockquote>
+<code-sandbox hash="7601a37b"><pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
@@ -23,159 +66,26 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var filterInputExt = new tr.FilterInputExtension();
-var rowFilteringExt = new tr.RowFilteringExtension();
-
-var dateFormatter = function(e) {
-  var value = e.data;
-  var cell = e.cell;
-  var parts = value.toDateString().split(&quot; &quot;);
-  cell.setContent(parts[2] + &quot;-&quot; + parts[1] + &quot;-&quot; + parts[3]);
-}
-
+var fields = [&quot;intCol&quot;, &quot;strCol&quot;, &quot;floatCol&quot;, &quot;dateCol&quot;];
+var records = [
+    {&quot;intCol&quot;: 1, &quot;strCol&quot;: &quot;Sample data&quot;, &quot;floatCol&quot;: 1.1, &quot;dateCol&quot;: new Date(&quot;2014-10-01&quot;)},
+    {&quot;intCol&quot;: 2, &quot;strCol&quot;: &quot;Sample data&quot;, &quot;floatCol&quot;: 2.2, &quot;dateCol&quot;: new Date(&quot;2014-10-02&quot;)},
+    {&quot;intCol&quot;: 3, &quot;strCol&quot;: &quot;Sample data&quot;, &quot;floatCol&quot;: 3.3, &quot;dateCol&quot;: new Date(&quot;2014-10-03&quot;)},
+    {&quot;intCol&quot;: 4, &quot;strCol&quot;: &quot;Sample data&quot;, &quot;floatCol&quot;: 4.4, &quot;dateCol&quot;: new Date(&quot;2014-10-04&quot;)},
+    {&quot;intCol&quot;: 5, &quot;strCol&quot;: &quot;Sample data&quot;, &quot;floatCol&quot;: 5.5, &quot;dateCol&quot;: new Date(&quot;2014-10-05&quot;)}
+];
 var configObj = {
+    rowHeight: 40,
     columns: [
-        { name: &quot;Date&quot;, field: &quot;date&quot;, sortBy: &quot;date&quot;, filterInput: { type: &quot;date&quot; }, binding: dateFormatter, alignment: &quot;c&quot; },
-        { name: &quot;Country&quot;, field: &quot;country&quot;, sortBy: &quot;country&quot;, width: 200, alignment: &quot;c&quot; },
-        { name: &quot;Currency&quot;, field: &quot;currency&quot;, sortBy: &quot;currency&quot;, filterInput: { type: &quot;select&quot;, entries: [&quot;PLN&quot;, &quot;EUR&quot;, &quot;SEK&quot;, &quot;GBP&quot;, &quot;DKK&quot;] }, width: 200, alignment: &quot;c&quot; },
-        { name: &quot;Rate&quot;, field: &quot;rate&quot;, sortBy: &quot;rate&quot;, alignment: &quot;right&quot;, filterInput: { type: &quot;number&quot; }, width: 200, alignment: &quot;c&quot; }
+        {name: &quot;Column 1&quot;, field: fields[0]},
+        {name: &quot;Column 2&quot;, field: fields[1]},
+        {name: &quot;Column 3&quot;, field: fields[2]},
+        {name: &quot;Column 4&quot;, field: fields[3]}
     ],
-    rowFiltering: {
-        disabledUI: true
-    },
-    extensions: [
-        rowFilteringExt,
-        filterInputExt
-    ]
+    staticDataRows: records
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
-
-document.getElementById(&#39;get_states_btn&#39;).addEventListener(&#39;click&#39;, function () {
-    var states = rowFilteringExt.getColumnFilterStates();
-    alert(JSON.stringify(states));
-});
-
-document.getElementById(&#39;reset_all_btn&#39;).addEventListener(&#39;click&#39;, function () {
-    // Remove all filters and update the UI where applicable (via reset() method)
-    rowFilteringExt.removeAllColumnFilters();
-});
-
-// To emitate fetching data from server
-setTimeout(function() {
-    var response = [
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:9.6},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Sweden&quot;,&quot;currency&quot;:&quot;SEK&quot;,&quot;rate&quot;:17.07},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:15.74},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:27.8},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Greece&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:18.78},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:3.04},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:14.24},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:21.65},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:21.64},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:11.68},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:2.7},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:18.81},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Greece&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:9.03},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Greece&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:3.73},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:20.64},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:25.86},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:27.35},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:3.14},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:11.89},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Sweden&quot;,&quot;currency&quot;:&quot;SEK&quot;,&quot;rate&quot;:19.57},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:16.85},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:23.71},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:11.78},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;Germany&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:17.36},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Belgium&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:25.53},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Sweden&quot;,&quot;currency&quot;:&quot;SEK&quot;,&quot;rate&quot;:23.09},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:13.45},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:14.32},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Greece&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:18.57},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Sweden&quot;,&quot;currency&quot;:&quot;SEK&quot;,&quot;rate&quot;:15.52},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:2.99},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Finland&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:6.78},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:2.65},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:28.53},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:17.91},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Sweden&quot;,&quot;currency&quot;:&quot;SEK&quot;,&quot;rate&quot;:23.56},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;United Kingdom&quot;,&quot;currency&quot;:&quot;GBP&quot;,&quot;rate&quot;:25.78},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:20.87},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Sweden&quot;,&quot;currency&quot;:&quot;SEK&quot;,&quot;rate&quot;:29.36},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:4.69},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:23.82},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;Sweden&quot;,&quot;currency&quot;:&quot;SEK&quot;,&quot;rate&quot;:15.22},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:7.45},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Sweden&quot;,&quot;currency&quot;:&quot;SEK&quot;,&quot;rate&quot;:28.68},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:21.97},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:2.52},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:21.5},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:14.26},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:25.83},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:22.09},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Greece&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:27.29},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:7.8},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:11.35},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Spain&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:5.35},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:23.61},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Greece&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:16.77},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:11.02},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:11.16},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:29.65},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:19.16},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:28.23},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:7.27},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:14.06},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:29.48},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Netherlands&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:13.6},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:7.3},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Greece&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:11.19},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Sweden&quot;,&quot;currency&quot;:&quot;SEK&quot;,&quot;rate&quot;:14.07},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:22.88},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:2.71},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:18.91},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:6.25},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Germany&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:3.19},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:4.72},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:18.88},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:18.47},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:13.77},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Sweden&quot;,&quot;currency&quot;:&quot;SEK&quot;,&quot;rate&quot;:27.54},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:15.71},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;Sweden&quot;,&quot;currency&quot;:&quot;SEK&quot;,&quot;rate&quot;:11.3},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Denmark&quot;,&quot;currency&quot;:&quot;DKK&quot;,&quot;rate&quot;:27.69},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:6.6},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:23.45},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;France&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:24.42},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:21.93},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Germany&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:25.53},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Italy&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:13.74},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:18.73},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Sweden&quot;,&quot;currency&quot;:&quot;SEK&quot;,&quot;rate&quot;:17.22},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;United Kingdom&quot;,&quot;currency&quot;:&quot;GBP&quot;,&quot;rate&quot;:10.61},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:18.86},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Netherlands&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:13.69},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;United Kingdom&quot;,&quot;currency&quot;:&quot;GBP&quot;,&quot;rate&quot;:24.36},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Greece&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:17.47},
-        {&quot;date&quot;:&quot;01/20/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:29.77},
-        {&quot;date&quot;:&quot;01/23/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:12.61},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:18.3},
-        {&quot;date&quot;:&quot;01/22/2020&quot;,&quot;country&quot;:&quot;Poland&quot;,&quot;currency&quot;:&quot;PLN&quot;,&quot;rate&quot;:16.32},
-        {&quot;date&quot;:&quot;01/24/2020&quot;,&quot;country&quot;:&quot;Greece&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:29.28},
-        {&quot;date&quot;:&quot;01/21/2020&quot;,&quot;country&quot;:&quot;Portugal&quot;,&quot;currency&quot;:&quot;EUR&quot;,&quot;rate&quot;:7.14}
-    ];
-
-    response = response.map(function(data) {
-        return {
-            date: new Date(data.date),
-            country: data.country,
-            currency: data.currency,
-            rate: data.rate
-        }
-    });
-    grid.api.addStaticDataRows(response);
-}, 1500);
 </code></pre>
 </code-sandbox>

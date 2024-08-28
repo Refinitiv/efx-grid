@@ -1,23 +1,12 @@
-<h1 id="loading-mask">Loading Mask</h1>
-<p>Loading mask is not part of Grid. To follow the standard theme, the UI and functionalities are provided by <a href="https://elf.int.refinitiv.com/elements/amber-loader.html">loader</a> component. So, you need to put an overlay on top of the grid and not inside of it. For more advanced UI and behaviors, the implementation has to be done on the application side.</p>
-<h2 id="basic-example">Basic Example</h2>
-<code-sandbox hash="ed90495f"><pre><code class="language-css">#container_div {
-    position: relative; /*amber-loader has position absolute*/
-    height: 250px;
-}
-atlas-blotter {
-    height: 100%;
-}
+<h1 id="row-span">Row Span</h1>
+<p>Setting row span on a cell can be done through Core Grid API (e.g., <code>setCellRowSpan</code>). A cell with row span will simply be expanded on top of cells below it. Cells are not actually merged by row span, but appeared as if they are merged together.</p>
+<p>Since cells in grid are reused across multiple rows by default, <code>rowVirtualization</code> need to be turned off for row span to work properly.</p>
+<h2 id="row-virtualization-mode">Row virtualization mode</h2>
+<p>Grid does not support row span in row virtualization mode. The row virtualization mode can be set using <code>rowVirtualization: false</code> in the configs.</p>
+<h3 id="example-1-setting-row-span-after-initialization">Example 1: setting row span after initialization</h3>
+<code-sandbox hash="564a8682"><pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
-<pre><code class="language-html">&lt;button id=&quot;show_btn&quot;&gt;Show Masking&lt;/button&gt;
-&lt;button id=&quot;hide_btn&quot;&gt;Hide Masking&lt;/button&gt;
-&lt;br&gt;&lt;br&gt;
-&lt;div id=&quot;container_div&quot;&gt;
-    &lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
-&lt;/div&gt;
-</code></pre>
-<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
@@ -26,21 +15,12 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var loadingMaskEl = document.createElement(&quot;amber-loader&quot;); // Element can be created at runtime 
-
-tr.DataGenerator.addFieldInfo(&quot;rowNumber&quot;, {
-    type: &quot;function&quot;,
-    generate: function(info, seed) {
-        return ++info.count;
-    },
-    count: 0,
-});
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;rowNumber&quot;];
-var records = tr.DataGenerator.generateRecords(fields, { numRows: 10 });
+var fields = [&quot;id&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 10 });
 var configObj = {
+    rowVirtualization: false,
     columns: [
-        {name: &quot;ID&quot;, field: fields[5], alignment: &quot;center&quot;, width: 80},
-        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Row Index&quot;, field: fields[0], width: 60},
         {name: &quot;Market&quot;, field: fields[1], width: 120},
         {name: &quot;Last&quot;, field: fields[2], width: 100},
         {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
@@ -50,37 +30,24 @@ var configObj = {
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
+grid.addEventListener(&quot;configured&quot;, function(e) {
+    var core = e.detail.api.getCoreGrid();
+    var section = core.getSection(&#39;content&#39;);
+    section.setCellRowSpan(1, 0, 2);
+    section.setCellRowSpan(4, 4, 3);
+    section.setCellRowSpan(0, 4, 4);
+});
 grid.config = configObj;
-
-document.getElementById(&quot;show_btn&quot;).addEventListener(&quot;click&quot;, function() {
-    document.getElementById(&quot;container_div&quot;).appendChild(loadingMaskEl);
-});
-
-document.getElementById(&quot;hide_btn&quot;).addEventListener(&quot;click&quot;, function() {
-    loadingMaskEl.remove();
-});
 </code></pre>
-</code-sandbox><h2 id="infinite-scrolling-with-data-fetching-example">Infinite Scrolling with Data Fetching Example</h2>
-<code-sandbox hash="545d66c5"><pre><code class="language-css">atlas-blotter {
-    height: 250px;
-}
-.blur {
-    filter: blur(2px);
-}
-#container_div {
-    position: relative; /*amber-loader has position absolute*/
+</code-sandbox><h3 id="example-2-setting-row-span-in-data-binding">Example 2: setting row span in data binding</h3>
+<code-sandbox hash="bbd0817e"><pre><code class="language-css">efx-grid {
+    height: 300px;
+    margin-bottom: 40px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;button id=&quot;fetch_btn&quot;&gt;Fetch Data&lt;/button&gt;
-&lt;button id=&quot;clear_btn&quot;&gt;Clear Data&lt;/button&gt;
-&lt;big&gt;Total rows: &lt;span id=&quot;total_row&quot;&gt;0&lt;/span&gt;&lt;/big&gt;
-&lt;br&gt;
-&lt;div id=&quot;container_div&quot;&gt;
-    &lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
-&lt;/div&gt;
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
-<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
@@ -89,78 +56,30 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var loading_mask = null; // Cache the element for re-using multiple times
-tr.DataGenerator.addFieldInfo(&quot;rowNumber&quot;, {
-    type: &quot;function&quot;,
-    generate: function(info, seed) {
-        return ++info.count;
-    },
-    count: 0,
-});
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;rowNumber&quot;];
+var fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 20 });
 
-function fetchData() { // Simulate Data Fetching
-    if (!loading_mask) { // If we are not loading anything
-        toggleLoadingMask();
-        setTimeout(onDataReceived, 1500); // Simulate delay for communication with a server
+var onCustomBinding = function(e) {
+    if(e.rowIndex % 2 === 0) {
+        e.section.setCellRowSpan(e.colIndex, e.rowIndex, 2);
     }
+    e.cell.setContent(e.data);
 };
-
-function clearData() {
-    grid.api.removeAllRows();
-    document.getElementById(&quot;total_row&quot;).textContent = 0;
-};
-
-function onDataReceived() {
-    toggleLoadingMask(); // Remove loading mask
-    
-    var records = tr.DataGenerator.generateRecords(fields, { numRows: 20 });
-    grid.api.addStaticDataRows(records);
-    
-    document.getElementById(&quot;total_row&quot;).textContent = grid.api.getRowCount(); // Update UI
-}
-
-function onScrollEnd(e) {
-    var vScrollbar = grid.api.getCoreGrid().getVScrollbar();
-    if (vScrollbar.isEndOfVerticalScroll()) {
-        fetchData();
-    }
-}
-
-function toggleLoadingMask() {
-    if (loading_mask) {
-        grid.classList.remove(&quot;blur&quot;);
-        
-        loading_mask.remove();
-        loading_mask = null;
-    } else {
-        grid.classList.add(&quot;blur&quot;);
-        
-        loading_mask = document.createElement(&quot;amber-loader&quot;);
-        document.getElementById(&quot;container_div&quot;).appendChild(loading_mask);
-    }
-}
 
 var configObj = {
+    rowVirtualization: false,
     columns: [
-        {name: &quot;ID&quot;, field: fields[5], alignment: &quot;center&quot;, width: 80},
-        {name: &quot;Company&quot;, field: fields[0]},
-        {name: &quot;Market&quot;, field: fields[1], width: 120},
-        {name: &quot;Last&quot;, field: fields[2], width: 100},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
-        {name: &quot;Industry&quot;, field: fields[4]}
-    ]
+        {name: &quot;Row Index&quot;, field: fields[0], width: 60},
+        {name: &quot;Company Name&quot;, field: fields[1], width: 120, binding: onCustomBinding},
+        {name: &quot;Market&quot;, field: fields[2], width: 120, binding: onCustomBinding},
+        {name: &quot;Last&quot;, field: fields[3], width: 100},
+        {name: &quot;Net. Chng&quot;, field: fields[4], width: 100},
+        {name: &quot;Industry&quot;, field: fields[5]}
+    ],
+    staticDataRows: records
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
-grid.addEventListener(&quot;configured&quot;, function(e) {
-    fetchData();
-    var vScrollbar = e.detail.api.getCoreGrid().getVScrollbar();
-    vScrollbar.listen(&quot;scroll&quot;, onScrollEnd);
-});
 grid.config = configObj;
-
-document.getElementById(&quot;fetch_btn&quot;).addEventListener(&quot;click&quot;, fetchData);
-document.getElementById(&quot;clear_btn&quot;).addEventListener(&quot;click&quot;, clearData);
 </code></pre>
 </code-sandbox><p><br><br><br></p>

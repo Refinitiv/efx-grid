@@ -1,60 +1,39 @@
-<h1 id="server-side-sorting">Server-side Sorting</h1>
-<p>In manual sorting mode, clicking on the column title will change the sorting status, but no actual sorting is done on the grid data.</p>
-<p>One use case is, if you want to do server-side sorting, you can use manual sorting mode in conjunction with the <code>columnSorted</code> event and the <a href="https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest">XMLHttpRequest</a> method.</p>
-<p>To turn manual sorting on, set <code>indicatorOnly</code> to <code>true</code>.</p>
-<pre><code class="language-js">var config = {
-    // any other grid&#39;s options
-    sorting: {
-        sortableColumns: true,
-        indicatorOnly: true
-    }
-}
-</code></pre>
-<p>You also need to listen to <code>columnSorted</code> event in order to trigger server-side sorting. The event can be listened from the shortcut in <code>sorting</code> config or through the built-in plugin.</p>
-<pre><code class="language-js">function onColumnSorted (evtArg) {
-    var sortingStates = grid.api.getSortingStates();
-    var sortingState = sortingStates[0];
-    var sortOrder = sortingState.order;
-    // At this point, you may request sorted data from the server.
-}
+<link rel="stylesheet" href="./resources/styles/elf-template.css">
 
-var config = {
-    // any other grid&#39;s options
-    sorting: {
-        columnSorted: onColumnSorted
-    }
-};
-
-// Alternatively you can listen to the event directly from the built-in plugin
-grid.addEventListener(&quot;configured&quot;, function(e) {
-    var core = e.detail.api.getCoreGrid();
-    var plugin = core.getPlugin(&quot;SortableTitle&quot;);
-    // plugin.listen(&quot;columnSorted&quot;, onColumnSorted);
-});
-</code></pre>
-<p>You can see all possible values for the sort order <a href="#/apis/composite-grid/tr-grid-sortabletitleplugin#~SortOrder">here</a>.</p>
-<h2 id="example">Example</h2>
-<code-sandbox hash="1299479a"><pre><code class="language-css">html hr {
+<h1 id="column-format-dialog">Column Format Dialog</h1>
+<p>The Column Format Dialog is a user-friendly interface for column display customization. It can format a column&#39;s value display from <code>General</code> to <code>Number</code>, <code>Scaled</code>, <code>Percent</code> or <code>Datetime</code>, and so on.</p>
+<h2 id="features">Features</h2>
+<ul>
+<li>Value formatting: number, scaled, date and time, and FX formats</li>
+<li>Heatmap</li>
+<li>Conditional coloring</li>
+<li>Colored texts and background</li>
+</ul>
+<h2 id="demo">Demo</h2>
+<p><code>Right-click</code> on each column header to see the dialog.</p>
+<code-sandbox hash="6421a6ee"><pre><code class="language-css">textarea {
+    width: 100%;
+    height: 100px;
+}
+efx-grid {
+    min-height: 500px;
+}
+html hr {
     margin: 5px;
 }
-atlas-blotter {
-    height: 200px;
-}
-textarea {
-    width: 100%;
-    height: 50px;
-    margin-bottom: 30px;
-}
 </code></pre>
-<pre><code class="language-html">&lt;button id=&quot;sort_btn1&quot;&gt;Sort Column 1&lt;/button&gt;
-&lt;button id=&quot;sort_btn2&quot;&gt;Sort Column 2&lt;/button&gt;
+<pre><code class="language-html">Language:
+&lt;select id=&quot;lang_selector&quot;&gt;
+    &lt;option value=&quot;en&quot;&gt;English&lt;/option&gt;
+    &lt;option value=&quot;ja&quot;&gt;Japanese&lt;/option&gt;
+    &lt;option value=&quot;de&quot;&gt;German&lt;/option&gt;
+    &lt;option value=&quot;zh&quot;&gt;Simplified Chinese&lt;/option&gt;
+    &lt;option value=&quot;zh-Hant&quot;&gt;Traditional Chinese&lt;/option&gt;
+&lt;/select&gt;
 &lt;hr&gt;
-&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
-&lt;hr&gt;
-&lt;textarea id=&quot;output_ta&quot; placeholder=&quot;Click at the grid header to sort&quot;&gt;&lt;/textarea&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
-<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
@@ -63,85 +42,154 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-document.getElementById(&quot;sort_btn1&quot;).addEventListener(&quot;click&quot;, function(e){
-    grid.api.sortColumn(0); // Cycle through sorting sequence
-});
-document.getElementById(&quot;sort_btn2&quot;).addEventListener(&quot;click&quot;, function(e){
-    grid.api.sortColumn(1); // Cycle through sorting sequence
-});
+var columnFormattingExt = new ColumnFormatting();
+var contextMenuExt = new ContextMenu();
 
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = tr.DataGenerator.generateRecords(fields, { numRows: 10 });
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;CF_VOLUME&quot;, &quot;TR.IPODate&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 10 });
 var configObj = {
-    sorting: {
-        sortableColumns: true,
-        indicatorOnly: true,
-        columnSorted: function(evtArg) {
-            var core = grid.api.getCoreGrid();
-            var plugin = core.getPlugin(&quot;SortableTitle&quot;);
-            var objs = plugin.getSortedColumns();
-            var obj = objs[0];
-            var field = grid.api.getColumnField(obj.colIndex);
-            var sortOrder = (obj.sortOrder === &quot;a&quot;) ? &quot;ascending&quot; : &quot;decending&quot;;
-            
-            var ta = document.getElementById(&quot;output_ta&quot;);
-            ta.value = &quot;Field &quot; + field + &quot; is sorted in &quot; + sortOrder + &quot; order\n&quot; + ta.value;
-
-            // At this point, you may request sorted data from the server.
-            requestData(evtArg);
-        }
-    },
     columns: [
         {name: &quot;Company&quot;, field: fields[0]},
-        {name: &quot;Market&quot;, field: fields[1], width: 120},
-        {name: &quot;Last&quot;, field: fields[2], width: 100},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
-        {name: &quot;Industry&quot;, field: fields[4]}
+        {name: &quot;Market&quot;, field: fields[1], width: 100},
+        {name: &quot;Last&quot;, field: fields[2], width: 80, alignment: &quot;right&quot;},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 80, alignment: &quot;right&quot;},
+        {name: &quot;Volume&quot;, field: fields[4], alignment: &quot;right&quot;},
+        {name: &quot;IPO date&quot;, field: fields[5], width: 100}
     ],
-    staticDataRows: records
+    staticDataRows: records,
+    contextMenu: {
+        items: {
+            MENU_1: {
+                text: &quot;Format&quot;,
+                callback: function (e) {
+                    var lang = document.getElementById(&quot;lang_selector&quot;).value;
+                    columnFormattingExt.openDialog(e.colIndex, {
+                        lang: lang
+                    });
+                }
+            }
+        },
+        onMenu: function (e) {
+            e.menu.addItem(&quot;MENU_1&quot;);
+        }
+    },
+    extensions: [
+        columnFormattingExt,
+        contextMenuExt
+    ]
 };
-
-
-function mockCallbackData(resp) {
-    if (resp.success) {
-        console.log(&quot;Loading success, Data sorted&quot;);
-        grid.data = resp.data;
-    }
-}
-
-// Mock to request data
-function requestData(obj) {
-    console.log(&quot;Loading data from server side&quot;);
-    // Mock data on server side
-    setTimeout(function () {
-        // Mock to query data from DB.
-        var resRecords = tr.DataGenerator.generateRecords(fields, { numRows: 10 }); // NOTE: It&#39;s random data
-        var sortField = obj.sortedField;
-        var sortOrder = obj.sortOrder;
-        resRecords = resRecords.sort(sortFx.bind(null, sortOrder, sortField));
-        mockCallbackData({
-            success: true,
-            data: resRecords
-        });
-    }, 100);
-}
-
-function sortFx(sortOrder, sortField, rowA, rowB) {
-    return compareFunction(rowA, rowB, sortField, sortOrder);
-}
-
-function compareFunction(rowA, rowB, sortField, sortOrder) {
-    var valueA = rowA[sortField];
-    var valueB = rowB[sortField];
-
-    if (sortOrder === &quot;a&quot;) {
-        return valueA &lt; valueB ? -1 : valueA &gt; valueB ? 1 : 0;
-    } else {
-        return valueA &gt; valueB ? -1 : valueA &lt; valueB ? 1 : 0;
-    }
-}
 
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 </code></pre>
-</code-sandbox><p><br><br></p>
+</code-sandbox><blockquote>
+<p>For more information about the extension see the <a href="#/extensions/tr-grid-column-formatting">Column Formatting Extension</a> page.</p>
+</blockquote>
+<h2 id="setup-guide">Setup guide</h2>
+<p>First, let&#39;s import the modules.</p>
+<pre><code class="language-js">// efx-grid
+import &quot;@refinitiv-ui/efx-grid&quot;;
+import &quot;@refinitiv-ui/efx-grid/themes/halo/light&quot;;
+
+// extensions
+import {
+    ConditionalColoring,
+    HeatMap,
+    TextFormatting,
+    ColumnFormatting
+ } from &quot;@refinitiv-ui/efx-grid/extensions&quot;;
+
+// Column Formatting Dialog module
+import &quot;@refinitiv-ui/efx-grid/column-format-dialog&quot;;
+import &quot;@refinitiv-ui/efx-grid/column-format-dialog/themes/halo/light&quot;;
+</code></pre>
+<p>Create a new Column Formatting Extension instance and push it to an <code>extensions</code> configuration.</p>
+<pre><code class="language-js">var cfe = new ColumnFormatting();
+
+var configObj = {
+    extensions: [
+        cfe,
+        new TextFormatting(),
+        new HeatMap(),
+        new ConditionalColoring()
+    ],
+    columns: columns, // Columns config
+    staticDataRows: dataRows
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+<p>To open the dialog, you need to call <code>openDialog()</code> method on the extension object.</p>
+<pre><code class="language-js">cfe.openDialog(0); // Change &quot;0&quot; to any column index.
+
+// Or open the dialog with specific configuration.
+cfe.openDialog(0, {
+    supportDisplayStyleOptions: {
+        fx: true,
+    },
+    supportValueFormatOptions: {
+        fx: true
+    }
+    supportHighlightApplyToSwitch: true,
+    data: {
+        &quot;fieldList&quot;: [{&quot;value&quot;: &quot;col1&quot;}, {&quot;value&quot;: &quot;col2&quot;}, {&quot;value&quot;: &quot;col3&quot;}, {&quot;value&quot;: &quot;col4&quot;}, {&quot;value&quot;: &quot;col5&quot;}],
+        &quot;valueFormatTab&quot;: {&quot;formatType&quot;: &quot;general&quot;},
+        &quot;colorTextTab&quot;: {&quot;colorText&quot;: {&quot;field&quot;: &quot;col2&quot;}},
+        &quot;displayStyleTab&quot;: {&quot;general&quot;: {&quot;alignment&quot;: &quot;center&quot;}, &quot;mode&quot;: &quot;general&quot;},
+        &quot;fieldDataType&quot;: &quot;general&quot;
+    },
+    fields: [&quot;intCol&quot;, &quot;strCol&quot;, &quot;boolCol&quot;, &quot;floatCol&quot;, &quot;dateCol&quot;],
+});
+</code></pre>
+<h2 id="changing-language">Changing Language</h2>
+<p>For more information about internationalization and how is it applied in different contexts see <a href="#/widgets/language-support">Language Support</a>.</p>
+<h2 id="using-with-context-menu-extension">Using with <a href="#/extensions/tr-grid-contextmenu">Context Menu Extension</a></h2>
+<p>For most cases, you will want the dialog button to appear when the user right-clicks on the column header (known as the context menu).</p>
+<p>To do this, simply import <code>Context Menu</code> extension and its configurations.</p>
+<pre><code class="language-js">import {
+    ContextMenu,
+    ColumnFormatting,
+    TextFormatting,
+    HeatMap,
+    ConditionalColoring
+} from &quot;@refinitiv-ui/efx-grid/extensions&quot;;
+
+var cfe = new ColumnFormatting();
+
+var configObj = {
+    extensions: [
+        cfe,
+        new ContextMenu(),
+        new TextFormatting(),
+        new HeatMap(),
+        new ConditionalColoring()
+    ],
+    columns: columns, // Columns config
+    staticDataRows: dataRows,
+    contextMenu: {
+        items: {
+            MENU_1: {
+                text: &quot;Format&quot;,
+                callback: function (e) {
+                    // Open the dialog when click on the &quot;Format&quot; menu
+                    cfe.openDialog(e.colIndex);
+                }
+            },
+        },
+        onMenu: function (e) {
+            e.menu.addItem(&quot;MENU_1&quot;);
+        }
+    },
+};
+</code></pre>
+<p>And that&#39;s it!</p>
+<h2 style="margin-bottom:5px" id="api-refs">API Reference</h2>
+<div id="elf-api-container"><div id="main-template" class="elf-template">    <section><header>            <h1 class="subsection-title"><span class="attribs"><span class="type-signature"></span></span>ColumnFormatDialog<span class="signature">()</span><span class="type-signature"></span></h1>            </header><article>                                                <h3 class="subsection-title" id="type_definitions">Type Definitions</h3>                        
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~Config">Config</h4>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>data</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                            <td class="attributes">                                                </td>                                    <td class="description last">Context object indicating current states of the column</td>        </tr>            <tr>                            <td class="name"><code>supportHighlightApplyToSwitch</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">support HighlightApplyToSwitch</td>        </tr>            <tr>                            <td class="name"><code>supportValueFormatOptions</code></td>                        <td class="type">                            <span class="param-type"><a href="#/widgets/column-format-dialog#~SupportValueFormatOptions">ColumnFormatDialog~SupportValueFormatOptions</a></span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Support FxFormat</td>        </tr>            <tr>                            <td class="name"><code>supportDisplayStyleOptions</code></td>                        <td class="type">                            <span class="param-type"><a href="#/widgets/column-format-dialog#~SupportDisplayStyleOptions">ColumnFormatDialog~SupportDisplayStyleOptions</a></span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Support items in "Display Style" dropdown</td>        </tr>            <tr>                            <td class="name"><code>fields</code></td>                        <td class="type">                            <span class="param-type">Array.&lt;string&gt;</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">List of available fields to be shown in the dialog</td>        </tr>            <tr>                            <td class="name"><code>confirm</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Confirm event callback</td>        </tr>            <tr>                            <td class="name"><code>cancel</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Cancel event callback</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~SupportDisplayStyleOptions">SupportDisplayStyleOptions</h4>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>bar</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                                    <td class="description last">support "bar"</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~SupportValueFormatOptions">SupportValueFormatOptions</h4>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>fx</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                                    <td class="description last">support "fx"</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            <h3 class="subsection-title" id="methods">Methods</h3>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="hide"><span class="type-signature"></span>hide<span class="signature">()</span><span class="type-signature"></span></h4>                            <div class="description">        Hide the dialog    </div>                        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="init"><span class="type-signature"></span>init<span class="signature">(userConfig<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">userConfig</div>                        <div class="type">                            <span class="param-type"><a href="#/widgets/column-format-dialog#~Config">ColumnFormatDialog~Config</a></span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    Configuration object used to initialize dialog and populate data                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="show"><span class="type-signature"></span>show<span class="signature">()</span><span class="type-signature"></span></h4>                            <div class="description">        Show the dialog    </div>                        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="updateDataWithAutosuggest"><span class="type-signature"></span>updateDataWithAutosuggest<span class="signature">(selectedItem, autoSuggest)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">selectedItem</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    autosuggest selection                </div>                    </div>                <div class="param">                            <div class="name">autoSuggest</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    source autosuggest element                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                </article></section></div></div>

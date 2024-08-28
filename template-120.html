@@ -1,5 +1,5 @@
-<h1 id="coral-select-formatter">Coral Select Formatter</h1>
-<p>This formatter creates <code>coral-select</code> without margin. Its options come from passed <code>options.data</code>.</p>
+<h1 id="simple-ticker-formatter">Simple Ticker Formatter</h1>
+<p>This formatter creates a ticker column.</p>
 <h2 id="specific-options">Specific options</h2>
 <table>
 <thead>
@@ -11,21 +11,26 @@
 </tr>
 </thead>
 <tbody><tr>
-<td>data</td>
-<td>Array</td>
-<td>required</td>
-<td>List of items, similar format to <a href="https://elf.int.refinitiv.com/elements/coral-list.html">coral-list</a></td>
+<td>negativeColor</td>
+<td>string</td>
+<td>optional</td>
+<td>Color code</td>
+</tr>
+<tr>
+<td>positiveColor</td>
+<td>string</td>
+<td>optional</td>
+<td>Color code</td>
 </tr>
 </tbody></table>
 <h2 id="example">Example</h2>
-<code-sandbox hash="42299c9f"><pre><code class="language-css">atlas-blotter {
+<code-sandbox hash="39ff84da"><pre><code class="language-css">efx-grid {
     height: 320px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
-<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
@@ -34,40 +39,59 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var currencies = [&quot;THB&quot;, &quot;AUD&quot;, &quot;USD&quot;, &quot;YEN&quot;, &quot;TWD&quot;];
-tr.DataGenerator.addFieldInfo(&quot;currency&quot;, { type: &quot;set&quot;, members: currencies});
-
-var fields = [&quot;number_1&quot;, &quot;boolean&quot;, &quot;currency&quot;];
-var records = tr.DataGenerator.generateRecords(fields, {
-    numRows: 40,
-    seed: 1
-});
-
-var selectorData = currencies.map(function(data) {
-    return {
-        label: data,
-        value: data
-    };
-});
-
+var fields = [&quot;last&quot;, &quot;changes&quot;, &quot;percent&quot;, &quot;tick_1&quot;];
+var records = new Array(40);
+for(var i = 0; i &lt; 40; ++i) {
+    var changes = i * (i % 7) - i % 13;
+    var last = 5 + i % 13;
+    var percent = (changes / last) * 100;
+    var tick;
+    if (percent &gt; 0) {
+        tick = 1;
+    } else if (percent &lt; 0) {
+        tick = -1;
+    } else {
+        tick = 0;
+    }
+    var record = records[i] = {};
+    record[fields[0]] = last;
+    record[fields[1]] = changes;
+    record[fields[2]] = percent.toFixed(2);
+    record[fields[3]] = tick;
+}
 var configObj = {
+    sorting: {
+        sortableColumns: true
+    },
     columns: [
         { 
-            name: &quot;Column 1&quot;,
+            name: &quot;Last&quot;,
             field: fields[0],
-            alignment: &quot;center&quot;
+            alignment: &quot;c&quot;
         },
-        {
-            name: &quot;Column 2&quot;,
+        { 
+            name: &quot;Changes&quot;,
             field: fields[1],
-            alignment: &quot;center&quot;
+            alignment: &quot;c&quot;,
         },
-        {
-            name: &quot;Select&quot;,
+        { 
+            name: &quot;Changes %&quot;,
             field: fields[2],
-            alignment: &quot;center&quot;,
-            binding: tr.CoralSelectFormatter.create({
-                data: selectorData
+            alignment: &quot;c&quot;,
+        },
+        { 
+            name: &quot;Default&quot;,
+            field: fields[3],
+            alignment: &quot;c&quot;,
+            binding: SimpleTickerFormatter.create()
+        },
+        { 
+            name: &quot;Custom&quot;,
+            field: fields[3],
+            alignment: &quot;c&quot;,
+            binding: SimpleTickerFormatter.create({
+                negativeColor: &quot;#FF6333&quot;,
+                positiveColor: &quot;#607EFF&quot;,
             })
         }
     ],

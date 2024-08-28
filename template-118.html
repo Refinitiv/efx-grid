@@ -1,40 +1,13 @@
-<h1 id="coral-icon-formatter">Coral Icon Formatter</h1>
-<p>This formatter creates a coral-icon from the column&#39;s field by default.</p>
-<blockquote>
-<p>A full list of available icons can be found <a href="https://elf.int.refinitiv.com/styles/icons.html">here</a>. </p>
-</blockquote>
-<h2 id="specific-options">Specific options</h2>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Type</th>
-<th>Attributes</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>icon</td>
-<td>string or object</td>
-<td>optional</td>
-<td>Icon shown in the cell</td>
-</tr>
-<tr>
-<td>size</td>
-<td>string or number</td>
-<td>optional</td>
-<td>Size of an icon in pixels</td>
-</tr>
-</tbody></table>
+<h1 id="simple-input-formatter">Simple Input Formatter</h1>
+<p>This formatter creates an input without a margin and 100% width. By default the input&#39;s value will be the column&#39;s field.</p>
 <h2 id="example">Example</h2>
-<code-sandbox hash="632c8332"><pre><code class="language-css">atlas-blotter {
+<code-sandbox hash="459ebc10"><pre><code class="language-css">efx-grid {
     height: 320px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
-<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
@@ -43,49 +16,27 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var icons = [&quot;up&quot;, &quot;down&quot;, &quot;phone&quot;, &quot;calendar&quot;, &quot;flame&quot;];
-var fields = [&quot;icon_1&quot;, &quot;icon_2&quot;, &quot;icon_3&quot;];
-var records = new Array(40);
-for(var i = 0; i &lt; 40; ++i) {
-    var record = records[i] = {};
-    record[fields[0]] = i;
-    record[fields[1]] = i % 5;
-    record[fields[2]] = icons[(i + 3) % 5];
-}
+var fields = [&quot;number_1&quot;, &quot;float_1&quot;];
+var records = DataGenerator.generateRecords(fields, 40);
+
 var configObj = {
-    sorting: {
-        sortableColumns: true
-    },
     columns: [
-        {
-            name: &quot;Static Icon&quot;,
-            alignment: &quot;c&quot;,
+        { 
+            name: &quot;Column 1&quot;,
             field: fields[0],
-            binding: tr.CoralIconFormatter.create({
-                icon: &quot;up&quot;,
-            })
+            alignment: &quot;center&quot;
         },
-        {
-            name: &quot;Dynamic Icon With Mapper&quot;,
+        { 
+            name: &quot;Column 2&quot;,
             field: fields[1],
-            alignment: &quot;c&quot;,
-            binding: tr.CoralIconFormatter.create({
-                icon: {
-                    0: icons[0],
-                    1: icons[1],
-                    2: icons[2],
-                    3: icons[3],
-                    4: icons[4]
-                },
-                size: 20
-            })
+            alignment: &quot;center&quot;
         },
-        {
-            name: &quot;Dynamic Icon&quot;,
-            field: fields[2],
-            alignment: &quot;c&quot;,
-            binding: tr.CoralIconFormatter.create()
-        },
+        { 
+            name: &quot;Input&quot;,
+            field: fields[0],
+            alignment: &quot;center&quot;,
+            binding: SimpleInputFormatter.create()
+        }
     ],
     staticDataRows: records
 };
@@ -93,47 +44,4 @@ var configObj = {
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 </code></pre>
-</code-sandbox><h3 id="static-icon">Static icon</h3>
-<pre><code class="language-js">var configObj = {
-    columns: [
-        {
-            name: &quot;Icon&quot;,
-            field: &quot;someField&quot;,
-            binding: CoralIconFormatter.create({
-                icon: &quot;up&quot;,
-                size: 18
-            })
-        }
-    ]
-}
-</code></pre>
-<h3 id="mapping-icon-from-field-field-as-icon-name">Mapping icon from field (field as icon name)</h3>
-<pre><code class="language-js">var configObj = {
-    columns: [
-        {
-            name: &quot;Icon&quot;,
-            field: &quot;someField&quot;,
-            binding: CoralIconFormatter.create()
-        }
-    ]
-}
-</code></pre>
-<h3 id="mapping-an-icon-from-an-object-field-as-key-or-index">Mapping an icon from an object (field as key or index)</h3>
-<pre><code class="language-js">var configObj = {
-    columns: [
-        {
-            name: &quot;Icon&quot;,
-            field: &quot;someField&quot;,
-            binding: CoralIconFormatter.create({
-                icon: {
-                    0: &quot;up&quot;,
-                    1: &quot;down&quot;,
-                    2: &quot;phone&quot;,
-                    3: &quot;calendar&quot;,
-                    4: &quot;flame&quot;,
-                },
-            })
-        }
-    ]
-}
-</code></pre>
+</code-sandbox>

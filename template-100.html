@@ -1,37 +1,19 @@
-<h1 id="pagination">Pagination</h1>
-<h2 id="server-side-pagination">Server Side Pagination</h2>
-<p>In case you want to retrieve a chunk of data from the server and do not want to load all of the data at once, you need to do server side pagination. The <a href="https://elf.int.refinitiv.com/elements/emerald-pagination.html">pagination</a> component is enough to do this. <strong>Do not</strong> use the Pagination Extension for server side pagination. </p>
-<p>All related logics (such as data requesting, validation, and transformation) must be implemented on the application side. Once data is received, you can just assign data to Grid&#39;s <code>data</code> property. </p>
-<p>See more details about data setting at <a href="#/data/columns-and-data">Columns and Data Properties</a>.</p>
+<h1 id="text-selection">Text Selection</h1>
+<p>Text selection has 2 scopes. It&#39;s grid scope and column scope. The default value of text selection is disabled, but you can enable it. If you enable it, users can select text in scope.</p>
+<ul>
+<li>The grid scope can enable by set textSelect property to <code>true</code> in configuration of <a href="#/apis/rt-grid/grid">Grid</a></li>
+<li>The column scope can enable by set textSelect property to <code>true</code> in configuration of <a href="#/apis/rt-grid/columndefinition">Columns</a></li>
+</ul>
+<h2 id="limitation-with-safari">Limitation with safari</h2>
+<ul>
+<li>When you use Text selection with <a href="#/extensions/tr-grid-row-dragging">Row Dragging</a>, Safari is unable to select text.</li>
+<li>Safari is unable to listening pointer events such as clicks, hovers, and so on. When you use <a href="#/rendering/custom-formatter">Custom Formatter</a> in a cell, it looks like this example.</li>
+</ul>
 <h3 id="example">Example</h3>
-<pre><code class="language-js">    function onServerResponse(data) {
-        hideLoadingMask();
-        grid.data = data; // Setting data from server
-    }
-    function onRowCountRecieved(total) {
-        pagination_ui.max = Math.ceil(total / PAGE_SIZE);
-    }
-    function onPageChanged(e) {
-        requestData(e.detail.value, PAGE_SIZE, onServerResponse);
-    }
+<p>If you use Safari, try clicking the button in column <code>Market</code> from the sample below. You won&#39;t be able to receive the click event.</p>
+<code-sandbox hash="647069a8"><pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
-<code-sandbox hash="65a46625"><pre><code class="language-css">atlas-blotter {
-    height: 169px;
-}
-emerald-pagination {
-    margin-bottom: 30px;
-}
-.blur {
-    filter: blur(2px);
-}
-</code></pre>
-<pre><code class="language-html">&lt;div id=&quot;container_div&quot;&gt;
-    &lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
-    &lt;emerald-pagination id=&#39;pagination_ui&#39; value=&quot;1&quot;&gt;&lt;/emerald-pagination&gt;
-&lt;/div&gt;
-</code></pre>
-<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
@@ -40,106 +22,56 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var paginationUI = document.getElementById(&quot;pagination_ui&quot;);
-var SERVER_DELAY = 300;
-var loading_mask = document.createElement(&quot;amber-loader&quot;);
-var PAGE_SIZE = 5;
-
-function showLoadingMask() {
-    if (!loading_mask.parentElement) {
-        container_div.classList.add(&#39;blur&#39;);
-        container_div.append(loading_mask);
+var fields = [&quot;companyName&quot;, &quot;market&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 10 });
+var buttonDisplay = {
+binding: function (e) {
+    var cellData = e.cell;
+    var buttonContent = document.createElement(&quot;button&quot;);
+    var spanContent = document.createElement(&quot;span&quot;);
+    buttonContent.addEventListener(&quot;click&quot; , () =&gt; {
+        alert(e.data);
+    });
+    spanContent.textContent = `${e.data}`;
+    buttonContent.appendChild(spanContent);
+    cellData.setContent(buttonContent);
     }
+};
 
-    paginationUI.disabled = true;
-}
-function hideLoadingMask() {
-    if (loading_mask.parentElement) {
-        container_div.classList.remove(&#39;blur&#39;);
-        loading_mask.parentElement.removeChild(loading_mask);
-    }
-
-    paginationUI.disabled = false;
-}
-
-// Event handlers
-function onServerResponse(data) {
-    hideLoadingMask();
-    grid.data = data; // Setting data from server
-}
-function onRowCountRecieved(total) {
-    paginationUI.max = Math.ceil(total / PAGE_SIZE);
-}
-function onPageChanged(e) {
-    requestData(e.detail.value, PAGE_SIZE, onServerResponse);
-}
-
-// Mocking Server
-function requestTotalPage(callback) {
-    setTimeout(function () { // Simulate network delay when requesting data from server
-        callback(serverData.length);
-    }, SERVER_DELAY);
-}
-function requestData(page, itemPerPage, callback) {
-    showLoadingMask();
-    page = parseInt(page);
-    itemPerPage = parseInt(itemPerPage);
-    setTimeout(function () { // Simulate network delay when requesting data from server
-        var start = itemPerPage * (page - 1);
-        var end = start + itemPerPage;
-        callback(serverData.slice(start, end));
-    }, SERVER_DELAY);
-}
-
-// Mocking Data
-var totalCount = 100;
-tr.DataGenerator.addFieldInfo(&quot;rowNumber&quot;, {
-    type: &quot;function&quot;,
-    generate: function(info, seed) {
-        return ++info.count;
-    },
-    count: 0,
-});
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;rowNumber&quot;];
-var serverData = tr.DataGenerator.generateRecords(fields, { numRows: totalCount });
-
-// Initializing UIs
 var configObj = {
+    rowVirtualRendering: false,
+    textSelect : true,
     columns: [
-        {name: &quot;ID&quot;, field: fields[5], alignment: &quot;center&quot;, width: 40},
         {name: &quot;Company&quot;, field: fields[0]},
-        {name: &quot;Market&quot;, field: fields[1], width: 120},
-        {name: &quot;Last&quot;, field: fields[2], width: 100},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
-        {name: &quot;Industry&quot;, field: fields[4]}
-    ]
-    // ,staticDataRows: {...} Initial data is optional
+        {name: &quot;Market&quot;, field: fields[1], formatter: buttonDisplay , width: 120}
+    ],
+    staticDataRows: records
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
-
-paginationUI.addEventListener(&quot;value-changed&quot;, onPageChanged);
-
-// Start app by getting total number of items and data
-requestTotalPage(onRowCountRecieved);
-requestData(paginationUI.value, PAGE_SIZE, onServerResponse);
 </code></pre>
-</code-sandbox><h2 id="client-side-pagination">Client side pagination</h2>
-<p>If you have all the data available on the client side and want to show data in pagination style, you can use the Pagination Extension and the <a href="https://elf.int.refinitiv.com/elements/emerald-pagination.html">pagination</a> element. The current page and page size can be configured using the <code>pagination</code> option. The pagination behaviors are then implemented by the extension. See <a href="#/extensions/tr-grid-pagination">Pagination Extension</a> for more details.</p>
+</code-sandbox><h2 id="limitation-with-row-virtualization">Limitation with row virtualization</h2>
+<p>Text selection with row virtualization cannot select all data in the grid.
+In the example below, the grid has text selection enabled and uses row virtualization.
+When you try to select and copy text from the grid and paste it into a text area, you will see that not all data from the grid is obtained.
+This is because row virtualization render only the rows that is visible in the grid&#39;s viewport. 
+For example, if you have 50 rows of data, but the grid can only show the first 10 rows at a time, then when you try to select the text, it will only select the first 14 rows (10 rows + buffer rows). 
+If you want to know about row virtualization in more detail, you can refer to the <code>Understanding row virtualization</code> section in the <a href="#/rendering/custom-formatter">Custom Formatter</a> page.</p>
 <h3 id="example-1">Example</h3>
-<code-sandbox hash="4d48030f"><pre><code class="language-css">atlas-blotter {
-    height: 169px;
+<code-sandbox hash="8eaf24c0"><pre><code class="language-css">efx-grid {
+    height: 300px;
 }
-emerald-pagination {
-    margin-bottom: 30px;
+textarea {
+    height: 200px;
+    width: 100%;
 }
 </code></pre>
-<pre><code class="language-html">&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
-&lt;emerald-pagination id=&#39;pagination&#39;&gt;&lt;/emerald-pagination&gt;
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+&lt;hr&gt;
+&lt;textarea placeholder=&quot;Paste text here&quot;&gt;&lt;/textarea&gt;
 </code></pre>
-<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
@@ -148,36 +80,159 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-tr.DataGenerator.addFieldInfo(&quot;rowNumber&quot;, {
-    type: &quot;function&quot;,
-    generate: function(info, seed) {
-        return ++info.count;
-    },
-    count: 0,
-});
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;rowNumber&quot;];
-var records = tr.DataGenerator.generateRecords(fields, { numRows: 100 });
-var configObj = {
+var fields = [
+    &quot;id&quot;,
+    &quot;companyName&quot;,
+    &quot;market&quot;,
+    &quot;CF_LAST&quot;,
+    &quot;CF_NETCHNG&quot;,
+    &quot;industry&quot;
+];
+var records = DataGenerator.generateRecords(fields, { numRows: 50, seed: 0 });
+var config = {
+    textSelect: true,
     columns: [
-        {name: &quot;ID&quot;, field: fields[5], alignment: &quot;center&quot;, width: 40},
-        {name: &quot;Company&quot;, field: fields[0]},
-        {name: &quot;Market&quot;, field: fields[1], width: 120},
-        {name: &quot;Last&quot;, field: fields[2], width: 100},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
-        {name: &quot;Industry&quot;, field: fields[4]}
+        {
+            field: fields[0],
+            name: &quot;ID&quot;
+        },
+        {
+            field: fields[1],
+            name: &quot;Company Name&quot;
+        },
+        {
+            field: fields[2],
+            name: &quot;Market&quot;
+        },
+        {
+            field: fields[3],
+            name: &quot;Last&quot;
+        },
+        {
+            field: fields[4],
+            name: &quot;Net. Chng&quot;
+        },
+        {
+            field: fields[5],
+            name: &quot;Industry&quot;
+        },
+    ],
+    staticDataRows: records
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = config;
+window.grid = grid;
+</code></pre>
+</code-sandbox><h2 id="copying-all-content-in-the-grid-without-text-selection">Copying all content in the grid without text selection</h2>
+<p>If you want to copy all the data in the grid, you can do it by focusing on the grid element and modifying the clipboard without text selection.
+To do this, you can listen for the <code>click</code> event on the grid element and call <code>focus</code> method on the grid API to focus on the grid.
+Then, you can listen for the <code>copy</code> event on the grid element and modify the clipboard as shown in the example below.</p>
+<h3 id="example-2">Example</h3>
+<code-sandbox hash="9730f9b3"><pre><code class="language-css">html body {
+    padding: 5px;
+    box-sizing: border-box;
+}
+html hr {
+    margin: 5px;
+}
+efx-grid {
+    height: 200px;
+}
+efx-grid:focus-within {
+    outline-width: 1px;
+    outline-style: solid;
+    outline-color: blue;
+}
+textarea {
+    width: 100%;
+    height: 200px;
+}
+mark {
+    opacity: 0;
+    padding: 4px;
+    transition: opacity 0.5s ease-out;
+}
+</code></pre>
+<pre><code class="language-html">&lt;big&gt;Try clicking grid and copying (&lt;b&gt;Ctrl/Command + C&lt;/b&gt;) grid&#39;s content.&lt;/big&gt;
+&lt;br&gt;
+&lt;big&gt;Then, paste the content on the text box below.&lt;/big&gt;
+&lt;hr&gt;
+&lt;mark id=&quot;key_indi&quot;&gt;&lt;/mark&gt;
+&lt;hr&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+&lt;hr&gt;
+&lt;textarea placeholder=&quot;Paste clipboard content here&quot;&gt;&lt;/textarea&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+
+var fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 20 });
+
+function onClick(e) {
+    grid.api.focus();
+}
+function onCopy(e) {
+    var columnNames = grid.api.getColumnNames();
+    var rows = grid.api.getMultipleRowData(); // Get all row data from existing view
+    
+    // Build text in TSV format 
+    var text = columnNames.join(&quot;\t&quot;) + &quot;\n&quot; +
+        rows.map(recordToTSV).join(&quot;\n&quot;);
+    
+    e.clipboardData.setData(&quot;text/plain&quot;, text);
+    e.preventDefault();
+    
+    showKeyIndicator(&quot;Data is copied to clipboard&quot;);
+}
+function recordToTSV(record) {
+    return ([
+        record[fields[0]],
+        record[fields[1]],
+        record[fields[2]],
+        record[fields[3]],
+        record[fields[4]]
+    ]).join(&quot;\t&quot;); // TSV (Tab Separated Values)
+}
+function showKeyIndicator(text) {
+    if(text) {
+        key_indi.textContent = text;
+    }
+    key_indi.style.opacity = &quot;1&quot;;
+    setTimeout(onHideKeyIndicator, 1000);
+}
+function onHideKeyIndicator() {
+    key_indi.style.opacity = &quot;&quot;;
+}
+
+var configObj = {
+    sorting: {
+        sortableColumns: true
+    },
+    columns: [
+        { name: &quot;Id&quot;, field: fields[0], width: 40 },
+        { name: &quot;Company&quot;, field: fields[1] },
+        { name: &quot;Market&quot;, field: fields[2], width: 100 },
+        { name: &quot;Last&quot;, field: fields[3], width: 80 },
+        { name: &quot;Net. Chng&quot;, field: fields[4], width: 80 },
+        { name: &quot;Industry&quot;, field: fields[5] }
     ],
     staticDataRows: records,
-    pagination: {
-        element: document.getElementById(&quot;pagination&quot;),
-        page: 1,
-        pageSize: 5
-    },
-    extensions: [
-        new tr.PaginationExtension()
-    ]
+    extensions: []
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
+
+grid.addEventListener(&quot;click&quot;, onClick);
+grid.addEventListener(&quot;copy&quot;, onCopy);
 </code></pre>
-</code-sandbox>
+</code-sandbox><p><br><br></p>

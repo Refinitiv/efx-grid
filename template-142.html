@@ -1,15 +1,31 @@
-<h1 id="scroll-speed">Scroll Speed</h1>
-<p>Generally, Grid will contain a large number of rows. Grid elements could block page scrolling due to slow native wheel scrolling speed and long scroll distance. So, by default, Grid&#39;s wheel scroll speed will increase exponentially once the content height exceeds a certain threshold. This behavior may not be wanted, so to return to the native wheel default behavior enable <code>linearWheelScrolling</code>.</p>
-<p>You can also force scrolling to move for the whole row by using the <code>stepScroll</code> property.</p>
-<h2 id="example">Example</h2>
-<code-sandbox hash="a541c3a5"><pre><code class="language-css">atlas-blotter {
-    height: 400px;
+<h1 id="default-sort">Default Sort</h1>
+<p>You can sort data in the grid automatically after initialization by specifying the <code>initialSort</code> option, which receives the following two options: <code>colIndex</code> and <code>sortOrder</code>.</p>
+<p>The possible values of <code>sortOrder</code> are:</p>
+<ul>
+<li><em>a</em> for Ascending</li>
+<li><em>d</em> for Descending</li>
+<li><em>n</em> for Neutral</li>
+</ul>
+<p>You can see all possible values for the sort order <a href="#/apis/core/sortabletitleplugin#~SortOrder">here</a>.</p>
+<pre><code class="language-js">var config = {
+    // any other grid&#39;s options
+    sorting: {
+        sortableColumns: true,
+        initialSort: {
+            colIndex: 0,
+            sortOrder: &quot;d&quot;
+        }
+    }
 }
 </code></pre>
-<pre><code class="language-html">&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
+<h2 id="example">Example</h2>
+<code-sandbox hash="6f4d02b1"><pre><code class="language-css">efx-grid {
+    height: 200px;
+}
 </code></pre>
-<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
@@ -18,17 +34,21 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;id&quot;];
-var records = tr.DataGenerator.generateRecords(fields, { numRows: 1000 });
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 10 });
 var configObj = {
-    linearWheelScrolling: true,
-    stepScroll: true,
+    sorting: {
+        sortableColumns: true,
+        initialSort: {
+            colIndex: 0, // Column index
+            sortOrder: &quot;d&quot;
+        }
+    },
     columns: [
-        {name: &quot;ID&quot;, field: fields[5], width: 40},
         {name: &quot;Company&quot;, field: fields[0]},
-        {name: &quot;Market&quot;, field: fields[1], width: 100},
-        {name: &quot;Last&quot;, field: fields[2], width: 80},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 80},
+        {name: &quot;Market&quot;, field: fields[1], width: 120},
+        {name: &quot;Last&quot;, field: fields[2], width: 100},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
         {name: &quot;Industry&quot;, field: fields[4]}
     ],
     staticDataRows: records

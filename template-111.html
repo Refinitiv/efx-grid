@@ -1,17 +1,13 @@
-<h1 id="formatter-default">Formatter (default)</h1>
-<p>Formatter is what Grid uses to render content. Grid&#39;s default formatter will render any data in plain text (i.e., the data given to grid can be any data type). When data is updated, Grid will bind the data from its own internal data source (such as, DataTable and DataVeiw) to render the data on the UI elements using the formatter. </p>
-<p>Default rendering is already optimized for row virtualization. This means that grid uses the same text element to render different data for different rows. It should be fast enough to handle rendering a million of rows.</p>
-<p>To update the data, see <a href="#/data/update">Updating Data page</a>.</p>
-<p>To retrieve the data, see <a href="#/data/read">Reading Data page</a>.</p>
+<h1 id="ef-number-field-formatter">EF Number Field Formatter</h1>
+<p>This formatter creates a <a href="https://ui.refinitiv.com/elements/number-field">ef-number-field</a> without a margin and 100% width. By default the input&#39;s value will be the column&#39;s field.</p>
 <h2 id="example">Example</h2>
-<code-sandbox hash="a81caf88"><pre><code class="language-css">atlas-blotter {
-    height: 200px;
+<code-sandbox hash="a5b3b135"><pre><code class="language-css">efx-grid {
+    height: 320px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
-<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
@@ -20,27 +16,39 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = tr.DataGenerator.generateRecords(fields, { seed: 0, numRows: 500 });
+var fields = [&quot;number_1&quot;];
+var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 20 });
+
 var configObj = {
     columns: [
-        {name: &quot;Company&quot;, field: fields[0]},
-        {name: &quot;Market&quot;, field: fields[1]},
-        {name: &quot;Last&quot;, field: fields[2]},
-        {name: &quot;Net. Chng&quot;, field: fields[3]},
-        {name: &quot;Industry&quot;, field: fields[4]}
+        { 
+            name: &quot;Number&quot;,
+            field: fields[0],
+            sort: fields[0],
+            alignment: &quot;c&quot;
+        },
+        { 
+            name: &quot;Simplest&quot;,
+            field: fields[0],
+            sort: fields[0],
+            binding: EFNumberFieldFormatter.create()
+        },
+        {
+            name: &quot;Some options (Step)&quot;,
+            field: fields[0],
+            sort: fields[0],
+            binding: EFNumberFieldFormatter.create({
+                attributes: {
+                    step: 100
+                }
+            })
+        }
     ],
+    extensions: [],
     staticDataRows: records
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 </code></pre>
-</code-sandbox><h2 id="internal-default-formatter-implementation">Internal default formatter implementation</h2>
-<p>Internally, Grid implements the formatter as the following code: </p>
-<pre><code class="language-js">function onDataBiding(e){
-    e.cell.setContent(e.data);
-}
-</code></pre>
-<h1 id="custom-formatter">Custom formatter</h1>
-<p>If we want anything other than simple text, we need to define a custom formatter. You can find more details about this in the <a href="#/rendering/custom-formatter">Custom Formatter page</a>.</p>
+</code-sandbox>

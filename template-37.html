@@ -1,25 +1,21 @@
-<h1 id="custom-headertitle">Custom header/title</h1>
-<p>In addition to formatting the cells in content rows, you can also create a custom formatter for the column title. However, there are differences between Emerald Grid and Atlas Blotter. Please see the different setups below.</p>
-<h2 id="atlas-blotter">Atlas-blotter</h2>
-<pre><code class="language-js">var grid = document.getElementsByTagName(&quot;atlas-blotter&quot;)[0];
-
-var customFormatter = function(e){
-    e.cell.setContent(&quot;Custom &quot; + e.columnDef.getName());
+<h1 id="hideremove-column">Hide/remove Column</h1>
+<p>You can choose to hide a column in the column definition by toggling the property <code>visible</code> between <em>true</em> and <em>false</em>. Columns can be hidden/removed dynamically at runtime. You can remove multiple columns in one method call to boost performance.</p>
+<p>Use the <code>hideColumn()</code> method to set the visibility of the specified column (that is, hide or show the column).</p>
+<p>Use the <code>removeColumn()</code>, <code>removeColumns()</code> or <code>removeAllColumns()</code> methods to remove the specified column(s).</p>
+<h2 id="example">Example</h2>
+<code-sandbox hash="35b80128"><pre><code class="language-css">efx-grid {
+    height: 200px;
 }
-
-var configObj = {
-    // Other grid&#39;s config
-    columns: [
-        {name: &quot;Column 1&quot;, field: &quot;intCol&quot;, headerBinding: customFormatter},
-    ]
-}
-grid.config = configObj;
 </code></pre>
-<h3 id="additional-element-example">Additional element example</h3>
-<code-sandbox hash="ce1e0fb1"><pre><code class="language-html">&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
+<pre><code class="language-html">&lt;button id=&quot;hideColumnButton&quot;&gt;Hide Column 0&lt;/button&gt;
+&lt;button id=&quot;showColumnButton&quot;&gt;Show Column 0&lt;/button&gt;
+&lt;button id=&quot;showColumn5Button&quot;&gt;Show Column 5&lt;/button&gt;
+&lt;button id=&quot;removeColumnButton&quot;&gt;Remove Column 0&lt;/button&gt;
+&lt;button id=&quot;removeAllColumns&quot;&gt;Remove All Columns&lt;/button&gt;
+&lt;br&gt;&lt;br&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
-<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
@@ -28,132 +24,41 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;PCTCHNG&quot;];
-var columns = fields.map(function (f) {
-    return {
-        field: f
-    };
-});
-
-columns[0].headerBinding = function headerWithLink(e) {
-    var cell = e.cell;
-    var content = cell.getContent();
-    if(!content || !content._myHeaderWithLink) {
-        content = document.createElement(&quot;div&quot;);
-        content._myHeaderWithLink = true;
-
-        var span = content._span = document.createElement(&quot;span&quot;);
-        span.style.marginRight = &quot;5px&quot;;
-        var link = content._link = document.createElement(&quot;coral-icon&quot;);
-        link.icon = &quot;link&quot;;
-        link.addEventListener(&quot;click&quot;, function(arg) {
-            arg.stopPropagation();
-            alert(&quot;Icon clicked&quot;);
-        });
-        content.appendChild(span);
-        content.appendChild(link);
-    }
-
-    content._span.textContent = e.columnDef.getName();
-    cell.setContent(content);
-};
-
-columns[2].headerBinding = function headerWithCheckbox(e) {
-    var cell = e.cell;
-    var content = cell.getContent();
-    if(!content || !content._myHeaderWithCheckbox) {
-        content = document.createElement(&quot;div&quot;);
-        content._myHeaderWithCheckbox = true;
-
-        var span = content._span = document.createElement(&quot;span&quot;);
-        span.style.marginRight = &quot;5px&quot;;
-        // You will need to import the checkbox theme files for this to be shown
-        var chkbox = content._chkbox = document.createElement(&quot;coral-checkbox&quot;);
-        chkbox.addEventListener(&quot;checked-changed&quot;, function(arg) {
-            alert(&quot;Checkbox changed&quot;);
-        });
-        chkbox.addEventListener(&quot;click&quot;, function(arg) {
-            arg.stopPropagation();
-        });
-        content.appendChild(span);
-        content.appendChild(chkbox);
-    }
-
-    content._span.textContent = e.columnDef.getName();
-    cell.setContent(content);
-};
-
-var ROW_COUNT = 10;
-var records = tr.DataGenerator.generateRecords(fields, {
-    seed: 0,
-    numRows: ROW_COUNT
-});
-
-var configObj = {
-    columns: columns,
-    staticDataRows: records
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
-</code></pre>
-</code-sandbox><h3 id="floating-element-example">Floating element example</h3>
-<code-sandbox hash="61bcaee9"><pre><code class="language-html">&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
-</code></pre>
-<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-function headerBinding(color, e) {
-    var tag = document.createElement(&#39;div&#39;);
-    tag.style.width = &quot;0px&quot;;
-    tag.style.height = &quot;0px&quot;;
-    tag.style.borderStyle = &quot;solid&quot;;
-    tag.style.borderWidth = &quot;0 15px 15px 0&quot;;
-    tag.style.position = &quot;absolute&quot;;
-    tag.style.top = &quot;0px&quot;;
-    tag.style.right = &quot;0px&quot;;
-    tag.style.borderColor = &quot;transparent &quot; + color + &quot; transparent transparent&quot;;
-    e.cell.setContent(e.columnDef.getName());
-    e.cell.addContent(tag);
-}
-
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = tr.DataGenerator.generateRecords(fields, { numRows: 6 });
+var fields = [&quot;id&quot; ];
+var records = DataGenerator.generateRecords(fields, { numRows: 6 });
 var configObj = {
     columns: [
-        {name: &quot;Company&quot;, field: fields[0], headerBinding: headerBinding.bind(null, &quot;#ff9933&quot;)},
-        {name: &quot;Market&quot;, field: fields[1], width: 100, headerBinding: headerBinding.bind(null, &quot;#f5475b&quot;)},
-        {name: &quot;Last&quot;, field: fields[2], width: 80, headerBinding: headerBinding.bind(null, &quot;#39c46e&quot;)},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 80, headerBinding: headerBinding.bind(null, &quot;#46a0f0&quot;)},
-        {name: &quot;Industry&quot;, field: fields[4], headerBinding: headerBinding.bind(null, &quot;#2fb4c8&quot;)}
+        {name: &quot;Column 0&quot;, field: fields[0]},
+        {name: &quot;Column 1&quot;, field: fields[0]},
+        {name: &quot;Column 2&quot;, field: fields[0]},
+        {name: &quot;Column 3&quot;, field: fields[0]},
+        {name: &quot;Column 4&quot;, field: fields[0]},
+        {name: &quot;Column 5&quot;, field: fields[0], visible: false}
     ],
     staticDataRows: records
 };
 
-var grid = document.getElementById(&quot;grid&quot;);
+var grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
 grid.config = configObj;
-</code></pre>
-</code-sandbox><h2 id="emerald-grid">Emerald-grid</h2>
-<pre><code class="language-js">var grid = document.getElementsByTagName(&quot;emerald-grid&quot;)[0];
 
-var customFormatter = {
-    renderTitle: function(columnIndex, cell, columnDef){
-        cell.setContent(&quot;Custom &quot; + columnDef.title);
-    };
-}
+document.getElementById(&quot;hideColumnButton&quot;).addEventListener(&quot;click&quot;, function() {
+    grid.api.hideColumn(0);
+});
 
-var configObj = {
-    // Other grid&#39;s config
-    columns: [
-        {title: &quot;Column 1&quot;, field: &quot;intCol&quot;, formatter: customFormatter},
-    ]
-}
-grid.config = configObj;
+document.getElementById(&quot;showColumnButton&quot;).addEventListener(&quot;click&quot;, function() {
+    grid.api.hideColumn(0, false);
+});
+
+document.getElementById(&quot;showColumn5Button&quot;).addEventListener(&quot;click&quot;, function() {
+    grid.api.hideColumn(5, false);
+});
+
+document.getElementById(&quot;removeColumnButton&quot;).addEventListener(&quot;click&quot;, function() {
+    grid.api.removeColumn(0);
+});
+
+document.getElementById(&quot;removeAllColumns&quot;).addEventListener(&quot;click&quot;, function() {
+    grid.api.removeAllColumns();
+});
 </code></pre>
+</code-sandbox>

@@ -1,31 +1,51 @@
-<h1 id="creating-or-adding-data">Creating or adding data</h1>
-<h2 id="adding-static-data-rows-to-atlas-blotter">Adding static data rows to Atlas Blotter</h2>
-<p>To add static data at the initilization, you can specify your data to <code>staticDataRows</code> property on the configuration object, as shown below:</p>
-<pre><code class="language-js">var configObj = {
-    staticDataRows: [
-        {&quot;Field 1&quot;: &quot;a&quot;, &quot;Field 2&quot;: &quot;b&quot;, &quot;Field 3&quot;: &quot;c&quot;},
-        {&quot;ABC&quot;: &quot;d&quot;,     &quot;Field 2&quot;: &quot;e&quot;, &quot;XYZ&quot;: &quot;f&quot;}
-    ] // Two rows will be shown
-};
+<h1 id="reading-or-getting-data-from-grid">Reading or getting data from Grid</h1>
+<p>As Grid may need to display and store tons of rows, Grid does not provide two-way data binding or a way to directly reference the stored data. All data manipulations, such as sorting, grouping, or filtering, must be done through APIs. To access data stored inside Grid, we need to use Grid&#39;s <a href="#/apis/readme">APIs</a>.</p>
+<h2 id="apis">APIs</h2>
+<p>Use <code>getRowData(rowIndex)</code> to get data from a specific row.</p>
+<pre><code class="language-js">var record = grid.api.getRowData(2);
 </code></pre>
-<p>To add static data rows at runtime, you can use <code>addStaticDataRows()</code></p>
-<h3 id="adding-static-data-example">Adding static data example</h3>
-<code-sandbox hash="584f85db"><pre><code class="language-css">html hr {
+<p>Use <code>getMultipleRowData()</code> to retrieve all visible rows. Note that the returned row data is from the transformed data view, meaning hidden, collapsed, or filtered out rows are not returned. </p>
+<pre><code class="language-js">var records = grid.api.getMultipleRowData();
+</code></pre>
+<p>Use <code>getMultipleRowData(rowIndices)</code> to get multiple row data from specific row indices at once.</p>
+<pre><code class="language-js">var records = grid.api.getMultipleRowData([0, 2, 4]);
+</code></pre>
+<p>Use <code>logDV()</code> or <code>logDT()</code> to quickly log data in <strong>table format</strong> to developer console.</p>
+<pre><code class="language-js">console.log(&quot;=== Data View ===&quot;);
+grid.api.logDV(); // Rows after sorting and filtering
+
+console.log(&quot;=== Data Table ===&quot;);
+grid.api.logDT(); // Rows in original order
+</code></pre>
+<h2 id="getting-all-data-in-its-original-form">Getting all data in its original form</h2>
+<p>The APIs in previous section return row data from the transformed data view. This means some row data may not be returned, if they are hidden, collapsed, or filtered out. To actually retrieve all row data from an untransformed data view, use <code>getAllRowDefinitions()</code> with <code>getRowData</code> as shown in the following code snippet.</p>
+<pre><code class="language-js">function toRowData(rowDef) {
+    return rowDef.getRowData();
+}
+var rowDefs = grid.api.getAllRowDefinitions();
+var records = rowDefs.map(toRowData);
+</code></pre>
+<h2 id="example">Example</h2>
+<code-sandbox hash="a615dfbc"><pre><code class="language-css">textarea {
+    height: 200px;
+    width: 100%;
+    overflow: auto;
+    margin-bottom: 20px;
+}
+html hr {
     margin: 5px;
 }
-atlas-blotter {
-    height: 300px;
-    margin-bottom: 30px;
-}
 </code></pre>
-<pre><code class="language-html">&lt;button id=&quot;add_btn&quot;&gt;Add a row at the bottom&lt;/button&gt;
-&lt;button id=&quot;add_top_btn&quot;&gt;Add a row at the top&lt;/button&gt;
-&lt;button id=&quot;multi_add_btn&quot;&gt;Add 5 rows at once&lt;/button&gt;
+<pre><code class="language-html">&lt;button id=&quot;top_row_btn&quot;&gt;Get data from top row&lt;/button&gt;
+&lt;button id=&quot;col_btn&quot;&gt;Get company names&lt;/button&gt;
+&lt;button id=&quot;all_btn1&quot;&gt;Get all data from transformed view&lt;/button&gt;
+&lt;button id=&quot;all_btn2&quot;&gt;Get all data&lt;/button&gt;
 &lt;hr&gt;
-&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+&lt;hr&gt;
+&lt;textarea id=&quot;msg_ta&quot;&gt;&lt;/textarea&gt;
 </code></pre>
-<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
@@ -35,7 +55,7 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
 var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = tr.DataGenerator.generateRecords(fields, {seed: 0, numRows: 2});
+var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 5 });
 var configObj = {
     columns: [
         {name: &quot;Company&quot;, field: fields[0]},
@@ -50,128 +70,37 @@ var configObj = {
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 
-document.getElementById(&quot;add_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
-    var row = { // row can be initialized with static data
-        values: tr.DataGenerator.generateRecord(fields) // values property is used to represent static data
-    };
-    grid.api.insertRow(row);
+document.getElementById(&quot;top_row_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
+    var record = grid.api.getRowData(0);
+    logMessage(record);
 });
-document.getElementById(&quot;add_top_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
-    var row = { // row can be initialized with static data
-        values: tr.DataGenerator.generateRecord(fields) // values property is used to represent static data
-    };
-    grid.api.insertRow(row, 0);
+document.getElementById(&quot;col_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
+    var records = grid.api.getMultipleRowData();
+    var columnData = records.map(toCompanyName);
+    logMessage(columnData);
 });
-document.getElementById(&quot;multi_add_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
-    var records = tr.DataGenerator.generateRecords(fields, 5);
-    grid.api.addStaticDataRows(records);
+document.getElementById(&quot;all_btn1&quot;).addEventListener(&quot;click&quot;, function(e) {
+    var records = grid.api.getMultipleRowData();
+    logMessage(records);
 });
-</code></pre>
-</code-sandbox><h2 id="adding-real-time-rows-to-atlas-blotter">Adding real-time rows to Atlas Blotter</h2>
-<p>In Atlas Blotter, each row will connect to a real-time data source. So, it contains more information than just data content, unlike rows in Emerald Grid. Thus, we have to provide a proper configuration object to initialize Atlas Blotter&#39;s row.</p>
-<p>Use <code>insertRow()</code> or <code>insertRows()</code> from the blotter <code>api</code> property to add a new row.</p>
-<pre><code class="language-js">grid.api.insertRow({
-    ric: &quot;JPY=&quot;
-}); // Insert a new row at the bottom
+document.getElementById(&quot;all_btn2&quot;).addEventListener(&quot;click&quot;, function(e) {
+    var rowDefs = grid.api.getAllRowDefinitions();
+    var records = rowDefs.map(toRowData);
+    logMessage(records);
+});
 
-grid.api.insertRow({
-    ric: &quot;EUR=&quot;,
-    values: {&quot;Field 1&quot;: 333, &quot;Field 2&quot;: &quot;abc&quot;} // Initial static value
-}, 0); // Insert a new row at the top (first row)
-
-grid.api.insertRows([ // Insert multiple rows at once
-    {},
-    {ric: &quot;aaa&quot;},
-    // ...
-]);
-</code></pre>
-<p>All available row options can be found <a href="#/apis/rt-grid/rowdefinition">here</a></p>
-<p>All available APIs for Atlas Blotter can be found <a href="#/apis/rt-grid/grid">here</a></p>
-<h2 id="adding-data-to-emerald-grid">Adding data to Emerald Grid</h2>
-<p>Grid can be created with data by providing <code>dataModel</code> in the grid configuration object as described on <a href="#/general-concept/initializing-data">the Initializing Data page</a>. However, <code>dataModel</code> is entirely optional. You can add additional data to Grid at runtime by using <a href="#/apis/readme">APIs</a> from Grid&#39;s DataTable or DataView. Adding data after initialization can be useful when you have some data from real-time sources or servers. Also, it allows you to define a row ID for referencing the row later. </p>
-<blockquote>
-<p>Note: <strong>row index</strong> is not good for referencing as the row index will be shifted by various operations such as sorting, filtering, adding, and so on. It&#39;s recommended that you define the row ID (text) for each row, so that you can reference them later in a situation where you have some real-time data. </p>
-</blockquote>
-<p>Use <code>getDataTable()</code> or <code>getDataView()</code> to retrieve Grid&#39;s internal data storage. </p>
-<p>Use <code>addRows()</code> method to add multiple rows at once. The rows parameter is defined as an array of field/value paired objects as shown below:  </p>
-<pre><code class="language-js">var dt = grid.api.getDataTable();
-dt.addRows([
-    {&quot;field1&quot;: &quot;a&quot;, &quot;field2&quot;: 1, &quot;field3&quot;: null},
-    {&quot;field1&quot;: &quot;b&quot;, &quot;field2&quot;: 5, &quot;field3&quot;: {&quot;someKey&quot;: 10}},
-    {&quot;field1&quot;: &quot;c&quot;, &quot;field2&quot;: 7, &quot;field3&quot;: [1, 2, 3]},
-    {&quot;field1&quot;: &quot;c&quot;, &quot;field4&quot;: &quot;some value&quot;} // Rows don&#39;t need to be in uniform structure
-]); // 4 rows are added
-</code></pre>
-<p>Use <code>addRow()</code> to add a single row to the bottom.</p>
-<pre><code class="language-js">var dt = grid.api.getDataTable();
-dt.addRow({&quot;field1&quot;: &quot;a&quot;, &quot;field2&quot;: 1, &quot;field3&quot;: null});
-</code></pre>
-<p>Use <code>insertRow()</code> if you want to add a row to a specific position. Note that you have to use <strong>DataView</strong> instead of DataTable this time, since the order of the row matters. DataView represents the final view of the grid after all manipulations are performed. The row index in DataView is the same row index shown in the grid UI, whereas the row index in DataTable is not. </p>
-<pre><code class="language-js">var dv = grid.api.getDataView();
-dv.insertRow(2, {&quot;field1&quot;: &quot;a&quot;, &quot;field2&quot;: 1}); // Add a new row as the third row to the top (row index #2)
-</code></pre>
-<p>For more details, see <a href="#/apis/readme">API Docs</a></p>
-<blockquote>
-<p>Note: <code>dataModel</code> is completely optional for initilization</p>
-</blockquote>
-<h3 id="emerald-grid-example">Emerald Grid example</h3>
-<code-sandbox hash="4a8d5d57"><pre><code class="language-css">html hr {
-    margin: 5px;
+function logMessage(data) {
+    console.log(data);
+    document.getElementById(&quot;msg_ta&quot;).value = JSON.stringify(data, exceptRowDef, 2);
 }
-emerald-grid {
-    height: 300px;
-    margin-bottom: 30px;
+function exceptRowDef(key, value) {
+    return (key !== &quot;ROW_DEF&quot;) ? value : undefined;
+}
+function toCompanyName(rowData) {
+    return rowData[&quot;companyName&quot;];
+}
+function toRowData(rowDef) {
+    return rowDef.getRowData();
 }
 </code></pre>
-<pre><code class="language-html">&lt;button id=&quot;add_btn&quot;&gt;Add a row at the bottom&lt;/button&gt;
-&lt;button id=&quot;add_top_btn&quot;&gt;Add a row at the top&lt;/button&gt;
-&lt;button id=&quot;multi_add_btn&quot;&gt;Add 5 rows at once&lt;/button&gt;
-&lt;hr&gt;
-&lt;emerald-grid id=&quot;grid&quot;&gt;&lt;/emerald-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var configObj = {
-    columns: [
-        {title: &quot;Company&quot;, field: fields[0]},
-        {title: &quot;Market&quot;, field: fields[1], width: 100},
-        {title: &quot;Last&quot;, field: fields[2], width: 80},
-        {title: &quot;Net. Chng&quot;, field: fields[3], width: 80},
-        {title: &quot;Industry&quot;, field: fields[4]}
-    ],
-    dataModel: {
-        data: tr.DataGenerator.generateRecords(fields, {seed: 0, numRows: 2})
-    }
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
-
-document.getElementById(&quot;add_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
-    var dt = grid.api.getDataTable();
-    var record = tr.DataGenerator.generateRecord(fields);
-    dt.addRow(record);
-});
-
-document.getElementById(&quot;add_top_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
-    var dv = grid.api.getDataView();
-    var record = tr.DataGenerator.generateRecord(fields);
-    dv.insertRow(0, record); 
-});
-
-document.getElementById(&quot;multi_add_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
-    var dt = grid.api.getDataTable();
-    var records = tr.DataGenerator.generateRecords(fields, 5);
-    dt.addRows(records); 
-});
-</code></pre>
-</code-sandbox><p><br><br><br></p>
+</code-sandbox>

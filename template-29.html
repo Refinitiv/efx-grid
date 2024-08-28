@@ -1,2 +1,189 @@
-<h1 id="column-freezing">Column Freezing</h1>
-<p>This page has moved to the <a href="#/scrollbars/left-side-column-pinning">Scrollbars</a> section.</p>
+<h1 id="column-moving">Column Moving</h1>
+<h2 id="drag-and-drop">Drag and drop</h2>
+<p>The ability of drag and drop column is enabled by default. But it can be turned off by setting <code>noColumnDragging</code> to <em>true</em>. The default value is <em>false</em>. </p>
+<h3 id="drag-and-drop-to-move-a-column-example-default">Drag and drop to move a column example (default)</h3>
+<code-sandbox hash="e43b0864"><pre><code class="language-css">efx-grid {
+    height: 200px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+    var records = DataGenerator.generateRecords(fields, { numRows: 10 });
+    var configObj = {
+        columns: [
+            {name: &quot;Company&quot;, field: fields[0]},
+            {name: &quot;Market&quot;, field: fields[1], width: 100},
+            {name: &quot;Last&quot;, field: fields[2], width: 80},
+            {name: &quot;Net. Chng&quot;, field: fields[3], width: 80},
+            {name: &quot;Industry&quot;, field: fields[4]}
+        ],
+        staticDataRows: records
+    };
+
+    var grid = document.getElementById(&quot;grid&quot;);
+    grid.config = configObj;
+</code></pre>
+</code-sandbox><h3 id="disabled-drag-and-drop-example">Disabled drag and drop example</h3>
+<code-sandbox hash="dbb479c"><pre><code class="language-css">efx-grid {
+    height: 200px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+    var records = DataGenerator.generateRecords(fields, { numRows: 10 });
+    var configObj = {
+        noColumnDragging: true, // disabled column re-order
+        columns: [
+            {name: &quot;Company&quot;, field: fields[0]},
+            {name: &quot;Market&quot;, field: fields[1], width: 100},
+            {name: &quot;Last&quot;, field: fields[2], width: 80},
+            {name: &quot;Net. Chng&quot;, field: fields[3], width: 80},
+            {name: &quot;Industry&quot;, field: fields[4]}
+        ],
+        staticDataRows: records
+    };
+
+    var grid = document.getElementById(&quot;grid&quot;);
+    grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="using-apis-to-move-a-column">Using APIs to move a column</h2>
+<p>Columns can be moved using the <code>grid.api.moveColumnById(sourceColumn, destinationPosition)</code> API, which allows you to move specified column by index or id to the position before the specified destination. If the specified destination is invalid or doesnot exist, the column will be moved to the end of Grid.</p>
+<p>To move multiple columns at once, use <code>reorderColumns</code> API. </p>
+<p>See <a href="#/apis/rt-grid/grid">available APIs</a> for more details.</p>
+<h3 id="example">Example</h3>
+<code-sandbox hash="23cc81ae"><pre><code class="language-css">efx-grid {
+    height: 200px;
+}
+html hr {
+    margin: 5px;
+}
+button {
+    margin: 2px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;big&gt;Move&lt;/big&gt;
+&lt;select id=&quot;source_sel&quot;&gt;&lt;/select&gt;
+&lt;big&gt;to the position before&lt;/big&gt;
+&lt;div id=&quot;destination_div&quot;&gt;&lt;/div&gt;
+&lt;hr&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var colNames = [&quot;Company&quot;, &quot;Market&quot;, &quot;Last&quot;, &quot;Net. Chng&quot;, &quot;Industry&quot;];
+var columns = fields.map(function(f, idx) {
+    var colName = colNames[idx];
+    var colId = &quot;c&quot; + idx;
+    return {
+        id: colId,
+        field: f,
+        name: colName
+    };
+});
+columns[1].width = 100;
+columns[2].width = 80;
+columns[3].width = 80;
+
+columns.forEach(function(col, idx) {
+    var opt = document.createElement(&quot;option&quot;);
+    opt.value = col.id;
+    opt.textContent = col.name + &quot; column&quot;;
+    if(col.name === &quot;Industry&quot;) {
+        opt.selected = true;
+    }
+    source_sel.appendChild(opt);
+    
+    var btn = document.createElement(&quot;button&quot;);
+    btn.colId = col.id;
+    btn.textContent = col.name;
+    btn.addEventListener(&quot;click&quot;, onClickMoveBtn);
+    destination_div.appendChild(btn);
+});
+
+var lastBtn = document.createElement(&quot;button&quot;);
+lastBtn.textContent = &quot;End of Grid&quot;;
+lastBtn.addEventListener(&quot;click&quot;, onClickMoveBtn);
+destination_div.appendChild(lastBtn);
+
+function onClickMoveBtn(e) {
+    var btn = e.currentTarget;
+    var destId = btn.colId;
+    
+    var sourceOpt = source_sel.selectedOptions[0];
+    var srcId = sourceOpt.value;
+    grid.api.moveColumnById(srcId, destId);
+}
+
+var records = DataGenerator.generateRecords(fields, { numRows: 5 });
+var configObj = {
+    columns: columns,
+    staticDataRows: records
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="preventing-a-column-from-moving">Preventing a column from moving</h2>
+<p>By marking a column to be a <code>stationary</code> column, any column on the left and the stationary column will be locked in the position (i.e., columns cannot be moved). A column can still be added to or removed from the stationary section. Once stationary column is removed or unmarked as <code>stationary</code>, the columns in the section will be free to be moved. See <a href="#/apis/rt-grid/columndefinition">Column Definition</a> for more details of column options.</p>
+<h3 id="example-1">Example</h3>
+<code-sandbox hash="26f3381b"><pre><code class="language-css">efx-grid {
+    height: 200px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+    var records = DataGenerator.generateRecords(fields, { numRows: 10 });
+    var configObj = {
+        columns: [
+            {name: &quot;Company (stationary)&quot;, field: fields[0], stationary: true},
+            {name: &quot;Market&quot;, field: fields[1], width: 100},
+            {name: &quot;Last&quot;, field: fields[2], width: 80},
+            {name: &quot;Net. Chng&quot;, field: fields[3], width: 80},
+            {name: &quot;Industry&quot;, field: fields[4]}
+        ],
+        staticDataRows: records,
+        extensions: [new Checkbox()]
+    };
+
+    var grid = document.getElementById(&quot;grid&quot;);
+    grid.config = configObj;
+</code></pre>
+</code-sandbox><p><br><br><br></p>

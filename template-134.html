@@ -1,13 +1,14 @@
-<h1 id="row---row-height">Row - Row Height</h1>
-<p>The height of content rows can be adjusted using the <code>rowHeight</code> property. Since Grid uses a row virtualization rendering technique, all of the rows must have the same height by default.</p>
-<code-sandbox hash="abcb09b4"><pre><code class="language-css">atlas-blotter {
-    height: 200px;
+<h1 id="scroll-speed">Scroll Speed</h1>
+<p>Generally, Grid will contain a large number of rows. Grid elements could block page scrolling due to slow native wheel scrolling speed and long scroll distance. So, by default, Grid&#39;s wheel scroll speed will increase exponentially once the content height exceeds a certain threshold. This behavior may not be wanted, so to return to the native wheel default behavior enable <code>linearWheelScrolling</code>.</p>
+<p>You can also force scrolling to move for the whole row by using the <code>stepScroll</code> property.</p>
+<h2 id="example">Example</h2>
+<code-sandbox hash="521b2b8d"><pre><code class="language-css">efx-grid {
+    height: 400px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
+<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
-<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
@@ -16,11 +17,13 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = tr.DataGenerator.generateRecords(fields, { numRows: 6 });
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;id&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 1000 });
 var configObj = {
-    rowHeight: 60,
+    linearWheelScrolling: true,
+    stepScroll: true,
     columns: [
+        {name: &quot;ID&quot;, field: fields[5], width: 40},
         {name: &quot;Company&quot;, field: fields[0]},
         {name: &quot;Market&quot;, field: fields[1], width: 100},
         {name: &quot;Last&quot;, field: fields[2], width: 80},
@@ -28,44 +31,6 @@ var configObj = {
         {name: &quot;Industry&quot;, field: fields[4]}
     ],
     staticDataRows: records
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
-</code></pre>
-</code-sandbox><h2 id="variable-row-height">Variable row height</h2>
-<p>If you want to wrap long text content in the grid&#39;s cell, use the <a href="#/extensions/tr-grid-content-wrap">Content Wrap Extension</a>. The extension will wrap text content that exceeds the cell width, making Grid act as if it is a native table.</p>
-<p>However, text wrapping is resource-intensive, so it is turned off by default. To specify the column to be wrapped, set <code>contentWrap</code> to true in the column configuration.</p>
-<code-sandbox hash="fc3c9266"><pre><code class="language-css">atlas-blotter {
-    height: 200px;
-}
-</code></pre>
-<pre><code class="language-html">&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
-</code></pre>
-<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = tr.DataGenerator.generateRecords(fields, { numRows: 6 });
-var configObj = {
-    columns: [
-        {name: &quot;Company&quot;, field: fields[0]},
-        {name: &quot;Market&quot;, field: fields[1], width: 100},
-        {name: &quot;Last&quot;, field: fields[2], width: 80},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 80},
-        {name: &quot;Industry&quot;, field: fields[4], width: 100, contentWrap: true}
-    ],
-    staticDataRows: records,
-    extensions: [
-        new tr.ContentWrapExtension()
-    ]
 };
 
 var grid = document.getElementById(&quot;grid&quot;);

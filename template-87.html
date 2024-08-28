@@ -1,135 +1,39 @@
 <h1 id="grid">Grid</h1>
-<p>Grid has been created to handle a large number of rows. It achieves high performance by utilizing a <strong>row virtualization</strong> technique, and all of the display logics and layouts are calculated programmatically. So, it lacks the flexibility of managing the layout when compared to the <a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/table">native table</a>. With additional developments and enhancements, Grid has branched into several types. The degree of abstractions and purposes vary for each type as described below.</p>
-<p>For more technical details, see <a href="https://confluence.refinitiv.com/display/GRID/Grid+Variations">Grid variations</a>.</p>
-<h2 id="atlas-blotter">Atlas Blotter</h2>
-<p>Atlas Blotter is a <a href="https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_custom_elements">custom element</a>, using <a href="https://lit.dev/docs/">Lit library</a> as its base implementation. It provides a quick way to show data in a grid layout with some basic functionalities. It also makes requesting and updating real-time data easier to do.</p>
-<h3 id="installation">Installation</h3>
-<p>Install the element by the following command.</p>
-<pre><code class="language-sh">npm install @elf/atlas-blotter
+<p>Grid has been created to handle a large number of rows. It achieves high performance by utilizing a <strong>row virtualization</strong> technique, and all of the display logics and layouts are calculated programmatically. So, it lacks the flexibility of managing the layout when compared to the <a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/table">native table</a>. Grid can be viewed to have 3 layers of controls. The outer layer is EFX Grid, which provides high level configuration through HTML properties and attributes. The middle layer is API instance, which provides most runtime interactions through JavaScript methods. The inner layer is Core Grid, which provides internal interaction with UI elements.</p>
+<h2 id="installation">Installation</h2>
+<p>EFX Grid element and extensions are published under single package.</p>
+<pre><code class="language-sh">npm install @refinitiv-ui/efx-grid
 </code></pre>
 <p>The element is required theme to instantiate itself in the app. LSEG&#39;s design system is called Halo theme and you can install it from npm command.</p>
-<pre><code class="language-sh">npm install @elf/elf-theme-halo
+<pre><code class="language-sh">npm install @refinitiv-ui/halo-theme
 </code></pre>
-<blockquote>
-<p>Applications in LSEG Workspace should use ELF Halo themes to be fully compliant with branding guidelines. ELF requires a component&#39;s theme to initialize the component successfully in applications. See <a href="https://elf.int.refinitiv.com/">Element Framework</a> for more details.</p>
-</blockquote>
-<h3 id="setup-guide">Setup guide</h3>
-<p>Use <code>import</code> syntax to import the Atlas Blotter, depended element and their themes into your app.</p>
-<pre><code class="language-js">// import depended element and its theme
-import &#39;@elf/coral-icon&#39;;
-import &#39;@elf/elf-theme-halo/dark/imports/native-elements&#39;; // import native styles for typography, css variables, etc.
-import &#39;@elf/elf-theme-halo/dark/coral-icon&#39;;
+<h2 id="setup-guide">Setup guide</h2>
+<p>Use <code>import</code> syntax to import the Grid and theme into your app.</p>
+<pre><code class="language-javascript">// Import element and its Halo dark theme
+import &quot;@refinitiv-ui/efx-grid&quot;;
+import &quot;@refinitiv-ui/efx-grid/themes/halo/dark&quot;;
 
-// import element and its theme
-import &#39;@elf/atlas-blotter&#39;;
-import &#39;@elf/atlas-blotter/themes/halo/dark/atlas-blotter&#39;;
+// Import native styles for typography, css variables, etc.
+import &quot;@refinitiv-ui/halo-theme/dark/imports/native-elements&quot;;
 </code></pre>
-<h3 id="usage">Usage</h3>
-<p>Atlas Blotter can be easily created by just writing the tag and setting the configuration as shown below:</p>
-<pre><code class="language-html">&lt;body&gt;
-    &lt;atlas-blotter&gt;&lt;/atlas-blotter&gt;
-    
-    &lt;script&gt;
-        var grid = document.getElementsByTagName(&quot;atlas-blotter&quot;)[0];
-        grid.config = {
-            /* See Real-time Grid section in the API Doc for available options */
-        };
-    &lt;/script&gt;
-&lt;/body&gt;
+<p>Now, you can use Grid in your HTML page.</p>
+<pre><code class="language-html">&lt;efx-grid&gt;&lt;/efx-grid&gt;
 </code></pre>
-<h2 id="emerald-grid">Emerald Grid</h2>
-<p>Emerald Grid is a <a href="https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_custom_elements">custom element</a>, using <a href="https://lit.dev/docs/">Lit library</a> as its base implementation. It is considered older version of Atlas Blotter as it lacks support for real-time data update.</p>
-<h3 id="installation-1">Installation</h3>
-<p>Install the element by the following command.</p>
-<pre><code class="language-sh">npm install @elf/emerald-grid
-</code></pre>
-<p>The element is required theme to instantiate itself in the app. LSEG&#39;s design system is called Halo theme and you can install it from npm command.</p>
-<pre><code class="language-sh">npm install @elf/elf-theme-halo
-</code></pre>
-<h3 id="setup-guide-1">Setup guide</h3>
-<p>Use <code>import</code> syntax to import the Emerald Grid, depended element and their themes into your app.</p>
-<pre><code class="language-js">// import depended element and its theme
-import &#39;@elf/coral-icon&#39;;
-import &#39;@elf/elf-theme-halo/dark/imports/native-elements&#39;; // import native styles for typography, css variables, etc.
-import &#39;@elf/elf-theme-halo/dark/coral-icon&#39;;
-
-// import element and its theme
-import &#39;@elf/emerald-grid&#39;;
-import &#39;@elf/elf-theme-halo/dark/emerald-grid&#39;;
-</code></pre>
-<h3 id="usage-1">Usage</h3>
-<p>Create Emerald Grid by using <code>emerald-grid</code> tag and assign configuration to created element.</p>
-<pre><code class="language-html">&lt;body&gt;
-    &lt;emerald-grid&gt;&lt;/emerald-grid&gt;
-    
-    &lt;script&gt;
-        var grid = document.getElementsByTagName(&quot;emerald-grid&quot;)[0];
-        grid.config = {
-            /* See Composite Grid section in the API Doc for available options */
-        };
-    &lt;/script&gt;
-&lt;/body&gt;
-</code></pre>
-<h2 id="core-grid">Core Grid</h2>
-<p>Core Grid is a pure JavaScript-based component. Mostly it is responsible for managing UIs and data display logics. In general, you should not instantiate the Core Grid directly. Please use either <strong>Atlas Blotter</strong> or <strong>Emerald Grid</strong> instead.</p>
-<h2 id="composite-grid-and-real-time-grid">Composite Grid and Real-Time Grid</h2>
-<p>The Composite Grid and Real-Time Grid are JavaScript wrappers that built on top of the Core Grid. The Core Grid is very flexible but only has a low-level API, which might be too complicated (due to its flexibility). The wrappers are created for developers looking to integrate the Grid quickly and easily into their application. With the Core Grid at its foundation, the wrappers inherits all of the great performance of the Core Grid.</p>
-<h2 id="accessing-grid-apis">Accessing Grid APIs</h2>
-<p>Use the <code>api</code> property from the grid element to access Composite Grid or Real-time Grid APIs. The <code>api</code> property will be available only after the <code>config</code> is set (i.e., <code>configured</code> event is fired).</p>
-<blockquote>
-<p>Note: After or during <code>configured</code> event, the <code>api</code> property can then be used, as shown below:</p>
-</blockquote>
-<pre><code class="language-js">var grid = document.getElementsByTagName(&quot;atlas-blotter&quot;)[0];
-grid.addEventListener(&quot;configured&quot;, function (e) {
-    var api = e.detail.api;
-    var gridElem = e.detail.element;
-    
-    var core = api.getCoreGrid();
-    var dv = api.getDataView();
-
-    console.log(&quot;Grid has been configured.&quot;);
-});
-</code></pre>
-<p>The API document for Emerald Grid can be found in the <a href="#/apis/composite-grid/tr-compositegrid">Composite Grid section</a>.</p>
-<p>The API document for Atlas Blotter can be found in the <a href="#/apis/rt-grid/grid">Real-Time Grid section</a>.</p>
-<h2 id="example">Example</h2>
-<code-sandbox hash="c5aec7ec"><pre><code class="language-css">atlas-blotter {
-    height: 300px;
-}
-</code></pre>
-<pre><code class="language-html">&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
-</code></pre>
-<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = tr.DataGenerator.generateRecords(fields, { numRows: 200 });
-var configObj = {
+<p>By default, Grid without any configuration will be shown as empty element, since it doesn&#39;t have any column or row. You will need to set configuration object to define how Grid shows its content. The code snippet below shows how you would set a configuration object in JavaScript file:</p>
+<pre><code class="language-js">var grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
+grid.config = {
     columns: [
-        {name: &quot;Company&quot;, field: fields[0], width: 300, leftPinned: true},
-        {name: &quot;Market&quot;, field: fields[1], width: 150},
-        {name: &quot;Last&quot;, field: fields[2], width: 120},
-        {
-            name: &quot;Pct. Chng&quot;, 
-            field: fields[3], 
-            width: 200, 
-            binding: tr.PercentBarFormatter.create({
-                textHidden: true
-            })
-        },
-        {name: &quot;Industry&quot;, field: fields[4], width: 250}
+        {name: &quot;Company Name&quot;, field: &quot;companyName&quot;},
+        {name: &quot;Last Price&quot;, field: &quot;lastPrice&quot;}
     ],
-    staticDataRows: records
+    staticDataRows: [
+        {companyName: &quot;Company A&quot;, lastPrice: 10},
+        {companyName: &quot;Company B&quot;, lastPrice: 20}
+    ]
 };
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
 </code></pre>
-</code-sandbox><div style="position:absolute; top:25px; right:0; font-size:0.7em; color:var(--code-hl-comment-color)">Published @@DATE@@</div>
+<h2 id="license-for-the-grid">License for the Grid</h2>
+<p>Please see the license <a href="#/license">here</a>.</p>
+<h2 id="license-for-the-halo-theme">License for the Halo Theme</h2>
+<p>The font “Proxima Nova Fin” shall only be used within LSEG products or services. The copyright owner must approve any use of such font outside of LSEG products or services, which may be subject to a fee. Please see the license <a href="https://www.fontspring.com/lic/fontspring/webfont#license_text">here</a>.</p>
+<div style="position:absolute; top:25px; right:0; font-size:0.7em; color:var(--code-hl-comment-color)">Published @@DATE@@</div>
