@@ -1,13 +1,31 @@
-<h1 id="simple-image-formatter">Simple Image Formatter</h1>
-<p>This formatter creates an image from the column&#39;s field by default.</p>
+<h1 id="coral-combo-box-formatter">Coral Combo Box Formatter</h1>
+<p>This formatter creates a <code>coral-combo-box</code> without margin. Its options come from passed <code>options.data</code>.</p>
+<h2 id="specific-options">Specific options</h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Attributes</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>data</td>
+<td>array</td>
+<td>required</td>
+<td>List of items, similar format to <a href="https://elf.int.refinitiv.com/elements/coral-list.html">coral-list</a></td>
+</tr>
+</tbody></table>
 <h2 id="example">Example</h2>
-<code-sandbox hash="ea42f39e"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="4c3e8f8e"><pre><code class="language-css">atlas-blotter {
     height: 320px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+<pre><code class="language-html">&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
 </code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
@@ -16,29 +34,41 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;image&quot;, &quot;s_image&quot;];
-var records = new Array(40);
-for(var i = 0; i &lt; 40; ++i) {
-    var record = records[i] = {};
-    record[fields[0]] = &quot;https://dummyimage.com/40x40&amp;text=&quot; + i;
-    record[fields[1]] = &quot;https://dummyimage.com/15x15&amp;text=&quot; + i;
-}
+var currencies = [&quot;THB&quot;, &quot;AUD&quot;, &quot;USD&quot;, &quot;YEN&quot;, &quot;TWD&quot;];
+tr.DataGenerator.addFieldInfo(&quot;currency&quot;, { type: &quot;set&quot;, members: currencies});
+
+var fields = [&quot;number_1&quot;, &quot;boolean&quot;, &quot;currency&quot;];
+var records = tr.DataGenerator.generateRecords(fields, {
+    numRows: 40,
+    seed: 1
+});
+
+var selectorData = currencies.map(function(data) {
+    return {
+        label: data,
+        value: data
+    };
+});
+
 var configObj = {
-    sorting: {
-        sortableColumns: true
-    },
     columns: [
-        {
-            name: &quot;Image&quot;,
+        { 
+            name: &quot;Column 1&quot;,
             field: fields[0],
-            alignment: &quot;c&quot;,
-            binding: SimpleImageFormatter.create()
+            alignment: &quot;center&quot;
         },
         {
-            name: &quot;Small Image&quot;,
+            name: &quot;Column 2&quot;,
             field: fields[1],
-            alignment: &quot;c&quot;,
-            binding: SimpleImageFormatter.create()
+            alignment: &quot;center&quot;
+        },
+        {
+            name: &quot;Select&quot;,
+            field: fields[2],
+            alignment: &quot;center&quot;,
+            binding: tr.CoralComboBoxFormatter.create({
+                data: selectorData
+            })
         }
     ],
     staticDataRows: records

@@ -1,12 +1,16 @@
-<h1 id="row---row-height">Row - Row Height</h1>
-<p>The height of content rows can be adjusted using the <code>rowHeight</code> property. Since Grid uses a row virtualization rendering technique, all of the rows must have the same height by default.</p>
-<code-sandbox hash="cfec729c"><pre><code class="language-css">efx-grid {
-    height: 200px;
+<h1 id="simple-input-formatter">Simple Input Formatter</h1>
+<p>This formatter creates an input without a margin and 100% width. By default the input&#39;s value will be the column&#39;s field.</p>
+<h2 id="specific-options">Specific options</h2>
+<p>There are no specific options for this formatter.</p>
+<h2 id="example">Example</h2>
+<code-sandbox hash="eeda66b1"><pre><code class="language-css">atlas-blotter {
+    height: 320px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+<pre><code class="language-html">&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
 </code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
@@ -15,16 +19,27 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 6 });
+var fields = [&quot;number_1&quot;, &quot;float_1&quot;];
+var records = tr.DataGenerator.generateRecords(fields, 40);
+
 var configObj = {
-    rowHeight: 60,
     columns: [
-        {name: &quot;Company&quot;, field: fields[0]},
-        {name: &quot;Market&quot;, field: fields[1], width: 100},
-        {name: &quot;Last&quot;, field: fields[2], width: 80},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 80},
-        {name: &quot;Industry&quot;, field: fields[4]}
+        { 
+            name: &quot;Column 1&quot;,
+            field: fields[0],
+            alignment: &quot;center&quot;
+        },
+        { 
+            name: &quot;Column 3&quot;,
+            field: fields[1],
+            alignment: &quot;center&quot;
+        },
+        { 
+            name: &quot;Input&quot;,
+            field: fields[0],
+            alignment: &quot;center&quot;,
+            binding: tr.SimpleInputFormatter.create()
+        }
     ],
     staticDataRows: records
 };
@@ -32,41 +47,6 @@ var configObj = {
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 </code></pre>
-</code-sandbox><h2 id="variable-row-height">Variable row height</h2>
-<p>If you want to wrap long text content in the grid&#39;s cell, use the <a href="#/extensions/tr-grid-content-wrap">Content Wrap Extension</a>. The extension will wrap text content that exceeds the cell width, making Grid act as if it is a native table.</p>
-<p>However, text wrapping is resource-intensive, so it is turned off by default. To specify the column to be wrapped, set <code>contentWrap</code> to true in the column configuration.</p>
-<code-sandbox hash="30b570ff"><pre><code class="language-css">efx-grid {
-    height: 200px;
-}
-</code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 6 });
-var configObj = {
-    columns: [
-        {name: &quot;Company&quot;, field: fields[0]},
-        {name: &quot;Market&quot;, field: fields[1], width: 100},
-        {name: &quot;Last&quot;, field: fields[2], width: 80},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 80},
-        {name: &quot;Industry&quot;, field: fields[4], width: 100, contentWrap: true}
-    ],
-    staticDataRows: records,
-    extensions: [
-        new ContentWrap()
-    ]
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
-</code></pre>
-</code-sandbox>
+</code-sandbox><blockquote>
+<p>Note that <code>coral-input</code> is now deprecated in ELF v4 (see <a href="https://elf.int.refinitiv.com/upgrade/form-elements">this document</a> for more information). It&#39;s preferably to use <code>SimpleInputFormatter</code> instead of <code>CoralInputFormatter</code>.</p>
+</blockquote>

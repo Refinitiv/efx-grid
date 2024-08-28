@@ -1,0 +1,340 @@
+<h1 id="wrapper-for-react">Wrapper for React</h1>
+<blockquote>
+<p>This example uses <code>create-react-app</code></p>
+<p>react: 17.0.2
+react-dom: 17.0.2
+react-scripts: 3.4.1
+typescript: 3.9.10</p>
+<p>After completing all tutorial steps, the final app will look like this <a href="https://gitlab.dx1.lseg.com/204090/grid/react-elf-v4-sample">react-elf-v4-sample</a>.</p>
+</blockquote>
+<p><code>@grid/react-grid</code> is the official wrapper of Emerald Grid and Atlas Blotter. It provides a high-performance data grid to handle a large data set and essential features such as grouping, sorting and custom rendering.</p>
+<h2 id="installation">Installation</h2>
+<blockquote>
+<p>Note that currently, <code>@grid/react-grid</code> for grid wrapper support react version 17 because of peer dependencies reasons,
+so after we use npx or npm react-app we have to downgrade the version of react to version 17,
+which you can install follow in installation guild.</p>
+<p>But if you can install react version 17 without npx or npm react-app you can skip <code>Downgrade react to version 17</code> section.</p>
+</blockquote>
+<h3 id="npx">npx</h3>
+<pre><code class="language-sh">npx create-react-app my-app --template typescript
+</code></pre>
+<p><small><a href="https://medium.com/@maybekatz/introducing-npx-an-npm-package-runner-55f7d4bd282b">npx</a> is a tool that comes with npm 5.2+ and higher, see <a href="https://gist.github.com/gaearon/4064d3c23a77c74a3614c498a8bb1c5f">instructions for older npm versions</a></small></p>
+<p>It will create a directory called <code>my-app</code> inside the current folder. Inside that directory, it will generate the initial project structure and install the required dependencies.</p>
+<pre><code class="language-sh">cd my-app
+</code></pre>
+<p>The wrapper needs <code>emerald-grid</code> or <code>atlas-blotter</code> library to work. We suggest using npm to install the package.</p>
+<blockquote>
+<p>The wrapper works well with <code>emerald-grid</code>/<code>atlas-blotter</code> both v3 and v4.</p>
+</blockquote>
+<pre><code class="language-sh">npm install @elf/emerald-grid @grid/react-grid @elf/elf-theme-halo @elf/coral-icon
+</code></pre>
+<p>Or</p>
+<pre><code class="language-sh">npm install @elf/atlas-blotter @grid/react-grid @elf/elf-theme-halo @elf/coral-icon
+</code></pre>
+<h3 id="downgrade-react-to-version-17">Downgrade react to version 17</h3>
+<p>In <code>package.json</code> change react to version 17
+Make the following changes to <code>./package.json</code>.</p>
+<pre><code class="language-diff">...
+  &quot;dependencies&quot;: {
+....
+-    &quot;react&quot;: &quot;^18.0.0&quot;,
+-    &quot;react-dom&quot;: &quot;^18.0.0&quot;,
++    &quot;react&quot;: &quot;^17.0.0&quot;,
++    &quot;react-dom&quot;: &quot;^17.0.0&quot;,
+....
+  },
+...
+</code></pre>
+<p>Then, Make the following changes to <code>./src/index.tsx</code></p>
+<pre><code class="language-diff">import React from &#39;react&#39;;
+-import ReactDOM from &#39;react-dom/client&#39;;
++import ReactDOM from &#39;react-dom&#39;;
+import &#39;./index.css&#39;;
+import App from &#39;./App&#39;;
+import reportWebVitals from &#39;./reportWebVitals&#39;;
+
+const root = document.getElementById(&#39;root&#39;);
+
+-const root = ReactDOM.createRoot(
+-  document.getElementById(&#39;root&#39;) as HTMLElement
+-);
+root.render(
++ReactDOM.render(
++  &lt;React.StrictMode&gt;
++    &lt;App /&gt;
+-  &lt;/React.StrictMode&gt;
++  &lt;/React.StrictMode&gt;,
++  root
+);
+
+// If you want to start measuring performance in your app, pass a function
+// to log results (for example: reportWebVitals(console.log))
+// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
+reportWebVitals();
+</code></pre>
+<h2 id="basic-usage">Basic usage</h2>
+<h3 id="atlas-blotter">Atlas Blotter</h3>
+<p>Import the <code>atlas-blotter</code> and depended element to your projec.
+Then use AtlasBlotter from <code>@grid/react-grid</code> for React component in your app.</p>
+<p>In this case make change in <code>./src/App.tsx</code></p>
+<pre><code class="language-js">// import depended element and its theme
+import &#39;@elf/coral-icon&#39;;
+import &#39;@elf/elf-theme-halo/dark/imports/native-elements&#39;; // import native styles for typography, css variables, etc.
+import &#39;@elf/elf-theme-halo/dark/coral-icon&#39;;
+
+// import element and its theme
+import &#39;@elf/atlas-blotter&#39;;
+import &#39;@elf/atlas-blotter/themes/halo/dark/atlas-blotter&#39;;
+
+import &#39;./App.css&#39;;
+import React from &#39;react&#39;
+import { AtlasBlotter } from &#39;@grid/react-grid&#39;
+
+const data = [{
+      companyName: &#39;Thompson, Bruen and Friesen&#39;,
+      market: &#39;NASDAQ&#39;,
+      words1: &#39;code, by&#39;,
+    },
+    {
+      companyName: &#39;Wehner, Howe and Brown&#39;,
+      market: &#39;NYSE&#39;,
+      words1: &#39;High Joffrey big&#39;,
+    },
+    {
+      companyName: &#39;Emard-Schuster&#39;,
+      market: &#39;HKEX&#39;,
+      words1: &#39;Tim Do and same was that&#39;,
+    }
+  ]; // Static data rows
+const columns = [{
+      name: &#39;companyName&#39;,
+      field: &#39;companyName&#39;,
+      width: 120,
+    },
+    { name: &#39;market&#39;, field: &#39;market&#39; },
+    {
+      name: &#39;words1&#39;,
+      field: &#39;words1&#39;,
+      autoTooltip: false,
+    }
+  ]; // Column definitions
+
+const App = () =&gt; {
+  return (
+    &lt;AtlasBlotter
+      data={data}
+      columns={columns}
+      config={{
+        // Grid configurations
+        columnReorder: true
+      }}
+    /&gt;
+  )
+}
+</code></pre>
+<h3 id="emerald-grid">Emerald Grid</h3>
+<p>Import the <code>emerald-grid</code> and depended element to your projec.
+Then use AtlasBlotter from <code>@grid/react-grid</code> for React component in your app.</p>
+<p>In this case make change in <code>./src/App.tsx</code></p>
+<pre><code class="language-js">// import depended element and its theme
+import &#39;@elf/coral-icon&#39;;
+import &#39;@elf/elf-theme-halo/dark/imports/native-elements&#39;; // import native styles for typography, css variables, etc.
+import &#39;@elf/elf-theme-halo/dark/coral-icon&#39;;
+
+// import element and its theme
+import &#39;@elf/emerald-grid&#39;;
+import &#39;@elf/emerald-grid/themes/halo/dark/emerald-grid&#39;;
+
+import &#39;./App.css&#39;;
+import React from &#39;react&#39;
+import { EmeraldGrid } from &#39;@grid/react-grid&#39;
+
+const data = [{
+      companyName: &#39;Thompson, Bruen and Friesen&#39;,
+      market: &#39;NASDAQ&#39;,
+      words1: &#39;code, by&#39;,
+    },
+    {
+      companyName: &#39;Wehner, Howe and Brown&#39;,
+      market: &#39;NYSE&#39;,
+      words1: &#39;High Joffrey big&#39;,
+    },
+    {
+      companyName: &#39;Emard-Schuster&#39;,
+      market: &#39;HKEX&#39;,
+      words1: &#39;Tim Do and same was that&#39;,
+    }
+  ]; // Static data rows
+const columns = [{
+      name: &#39;companyName&#39;,
+      field: &#39;companyName&#39;,
+      width: 120,
+    },
+    { name: &#39;market&#39;, field: &#39;market&#39; },
+    {
+      name: &#39;words1&#39;,
+      field: &#39;words1&#39;,
+      autoTooltip: false,
+    }
+  ]; // Column definitions
+
+const App = () =&gt; {
+  return (
+    &lt;EmeraldGrid
+      data={data}
+      columns={columns}
+      config={{
+        // Grid configurations
+        columnReorder: true
+      }}
+    /&gt;
+  )
+}
+</code></pre>
+<h2 id="life-cycle">Life cycle</h2>
+<p><code>whenDefined</code> callback is helpful when you want to use Grid&#39;s API. Like <code>componentDidMount</code> in React, the whenDefined callback is called when Grid is mounted.</p>
+<p>You can access Grid&#39;s <code>element</code> and <code>api</code> by using its event argument passed through the callback function.</p>
+<pre><code class="language-js">// ... another import ...
+const App = () =&gt; {
+
+  const onWhenDefined = (e) =&gt; {
+    const elem = e.element;
+    const api = e.api;
+    api.listen(&#39;columnSorted&#39;, onSortChange);
+  };
+
+  return (
+    &lt;EmeraldGrid
+      whenDefined={onWhenDefined}
+    /&gt;
+  )
+}
+</code></pre>
+<h2 id="referencing">Referencing</h2>
+<p>Grid has its own lifecycle, any change to its state should be done using the <code>api</code>.</p>
+<blockquote>
+<p>Note: Two-way binding is not recommended.</p>
+</blockquote>
+<pre><code class="language-js">// ... another import ...
+const App = () =&gt; {
+  const grid = React.useRef(null);
+  
+  const someAction = () =&gt; {
+    const api = grid.current.api;
+    // Do something with grid via api
+  }
+
+  return (
+    &lt;EmeraldGrid
+      ref={grid}
+    /&gt;
+  )
+}
+</code></pre>
+<h2 id="configuration-object">Configuration object</h2>
+<p>It&#39;s best to create a configuration object only once throughout the component life cycle, because of each creation of config object will trigger Grid instance to create a new Grid element, hence slowing the performance.</p>
+<p><strong>This behavior can be achieved by using <code>React.useMemo</code> or holding a config object somewhere outside the <code>render()</code>.</strong></p>
+<p>This will guarantee that config object will not be created again (However, this is still depends on various use case).</p>
+<p><code>EmeraldGrid</code> and <code>AtlasBlotter</code> components both receive the same properties. See all available options for <a href="#/apis/composite-grid/tr-compositegrid">emerald-grid</a> and <a href="#/usage-guide/apis/rt_grid/grid">atlas-blotter</a>.</p>
+<blockquote>
+<p>Note: Any change to the config directly is not recommended. Please use Grid&#39;s API instead.</p>
+</blockquote>
+<pre><code class="language-js">// ... another import ...
+const App = () =&gt; {
+  // useMemo on config can greatly increase performance
+  const config = React.useMemo(() =&gt; {
+    return {
+      sorting: {
+        sortableColumns: true,
+        columnReorder: true
+      },
+    }
+  }, []);
+  return (
+    &lt;EmeraldGrid
+      // Other properties
+      config={config}
+    /&gt;
+  )
+}
+</code></pre>
+<h2 id="typescript">TypeScript</h2>
+<p>The <code>@grid/react-grid</code> wrapper plays well with TypeScript. Both types of definition from <a href="#/apis/composite-grid/tr-compositegrid">Composite Grid</a> and <a href="#/apis/rt-grid/grid">Realtime Grid</a> can be integrated out of the box.</p>
+<p>Install types for Grid through npm command.</p>
+<pre><code class="language-sh">npm install @grid/types
+</code></pre>
+<h3 id="atlas-blotter-1">Atlas Blotter</h3>
+<pre><code class="language-js">// ... another import ...
+import { RealtimeGrid, ColumnDefinition } from &#39;@grid/types&#39;;
+
+const data: any[] = []; // Static data rows
+
+const columns: ColumnDefinition.Options[] = []; // Column definitions
+
+const App = () =&gt; {
+  const grid = React.useRef&lt;AtlasBlotter&gt;(null);
+
+  const someAction = () =&gt; {
+    const api: RealtimeGrid = grid.current.api as RealtimeGrid;
+    // Do something with grid via api
+  }
+
+  const config: RealtimeGrid.GridOptions = React.useMemo(() =&gt; {
+    return {
+      rows: [],
+      columnReorder: true,
+      extensions: []
+    }
+  }, []);
+
+  return (
+    &lt;AtlasBlotter
+      ref={grid}
+      config={config}
+      columns={columns}
+      data={data}
+    /&gt;
+  )
+}
+</code></pre>
+<h3 id="emerald-grid-1">Emerald Grid</h3>
+<pre><code class="language-js">// ... another import ...
+import { CompositeGrid } from &#39;@grid/types&#39;;
+
+const data: any[] = []; // Static data rows
+
+const columns: CompositeGrid.Column[] = []; // Column definitions
+
+const App = () =&gt; {
+  const grid = React.useRef&lt;EmeraldGrid&gt;(null);
+
+  const someAction = () =&gt; {
+    const api: CompositeGrid = grid.current.api as CompositeGrid;
+    // Do something with grid via api
+  }
+
+  const config: CompositeGrid.Options = React.useMemo(() =&gt; {
+    return {
+      columnReorder: true,
+      extensions: []
+    }
+  }, []);
+
+  return (
+    &lt;EmeraldGrid
+      ref={grid}
+      config={config}
+      data={data}
+      columns={columns}
+    /&gt;
+  )
+}
+</code></pre>
+<h3 id="extensions-and-formatters">Extensions and formatters</h3>
+<p><a href="#/extensions/readme">Extensions</a> and <a href="#/rendering/predefined-formatter">formatters</a> are exported with TypeScript out of the box.</p>
+<p>The following is an example of how to use  <code>getExtension</code> in TypeScript.</p>
+<pre><code class="language-js">const someAction = () =&gt; {
+  const rowSelection: RowSelection = grid.current?.getExtension(&#39;RowSelection&#39;);
+  rowSelection.getSelectedRows();
+}
+</code></pre>

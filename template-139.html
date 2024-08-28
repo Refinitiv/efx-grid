@@ -1,24 +1,12 @@
-<h1 id="job-manager">Job Manager</h1>
-<code-sandbox hash="12bc7387"><pre><code class="language-css">body {
-    padding: 24px;
-}
-
-efx-grid {
-    height: 300px;
-}
-
-hr {
-    margin: 8px;
-}
-#search_input {
-    width: 100%;
-}
+<h1 id="left-side-column-pinningfreezing">Left Side Column Pinning/Freezing</h1>
+<p>Sometimes Grid can contain a large number of columns and when scrolled to the right, without the row header, users might lose track of what kind of data is in the row.
+To solve this, you can freeze or pin columns on the left side to act like a row indicator. To do this, set the <code>leftPinned</code> property to true on the column configuration object for the column you want to be frozen/pinned.</p>
+<p>Similarly, <code>rightPinned</code> property can be used to pin the columns on the right side.  </p>
+<h2 id="example">Example</h2>
+<code-sandbox hash="836ea0de"><pre><code class="language-html">&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
 </code></pre>
-<pre><code class="language-html">&lt;input id=&quot;search_input&quot; placeholder=&quot;Search Anything...&quot; type=&quot;search&quot;&gt;
-&lt;hr&gt;
-&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
@@ -27,145 +15,89 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-DataGenerator.addFieldInfo(&quot;status&quot;, {
-    type: &quot;set&quot;,
-    members: [&quot;Success&quot;, &quot;Fail&quot;, &quot;Partial Success&quot;]
-});
-
-DataGenerator.addFieldInfo(&quot;jobName&quot;, {
-    type: &quot;set&quot;,
-    members: [
-        &quot;Docs_Conv_021123_2&quot;,
-        &quot;UPLD_Documents_031123_3&quot;,
-        &quot;ConvUpld_Files_041123_1&quot;,
-        &quot;Upload_Batch_051123_4&quot;,
-        &quot;Files_Upld_061123_5&quot;,
-        &quot;Upld_Conversion_071123&quot;,
-        &quot;Documents_Upload_081123_1&quot;,
-        &quot;Conv_Uploads_091123_2&quot;,
-        &quot;Upload_Files_101123_3&quot;,
-        &quot;Upld_Doc_111123_4&quot;,
-        &quot;Conversion_Upload_121123_5&quot;,
-        &quot;Uploads_Docs_131123_1&quot;,
-        &quot;Docs_Conversion_141123_2&quot;,
-        &quot;Upld_Batch_151123_3&quot;,
-        &quot;Conversion_Batch_161123_4&quot;,
-        &quot;Batch_Upload_171123_5&quot;,
-        &quot;Upld_Documents_181123_1&quot;,
-        &quot;Upload_Conv_191123_2&quot;,
-        &quot;Conversion_Docs_201123_3&quot;,
-        &quot;Upld_Files_211123_4&quot;
-    ]
-});
-
-var rowSelection = new RowSelection();
-var inCellEditing = new InCellEditing();
-var rowFiltering = new RowFiltering();
-// Extensions
-var fields = [&quot;jobName&quot;, &quot;status&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 50, seed: 0 });
-var config1 = {
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = tr.DataGenerator.generateRecords(fields, { numRows: 10 });
+var configObj = {
     columns: [
-        {
-            title: &quot;Job Name&quot;,
-            field: fields[0],
-            editableContent: true
-        },
-        {
-            title: &quot;Status&quot;,
-            field: fields[1],
-            width: 100
-        },
-        {
-            name: &quot;Action&quot;, field: fields[1],
-            width: 150,
-            titleAlignment: &quot;center&quot;,
-            binding: onActionBinding
-        }
+        {name: &quot; &quot;, width: 24},
+        {name: &quot;Company&quot;, field: fields[0], width: 250, leftPinned: true },
+        {name: &quot;Market&quot;, field: fields[1], width: 150},
+        {name: &quot;Last&quot;, field: fields[2], width: 150},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 150},
+        {name: &quot;Industry&quot;, field: fields[4], width: 300}
     ],
-    staticDataRows: records,
-    rowFiltering: {
-        iconActivation: &quot;onHover&quot;
-    },
-    extensions: [rowSelection, inCellEditing, rowFiltering]
+    staticDataRows: records
 };
 
-function onActionBinding(e) {
-    var data = e.data;
-    var cell = e.cell;
-    var content = cell.getContent();
-    if (!content) {
-        content = document.createElement(&quot;div&quot;);
-
-        var editIcon = document.createElement(&quot;ef-icon&quot;);
-        editIcon.icon = &quot;edit&quot;;
-        editIcon.style.cursor = &quot;pointer&quot;;
-        editIcon.style.verticalAlign = &quot;middle&quot;;
-        editIcon.addEventListener(&quot;click&quot;, onEditClicked);
-
-        var deleteIcon = document.createElement(&quot;ef-icon&quot;);
-        deleteIcon.icon = &quot;trash&quot;;
-        deleteIcon.style.cursor = &quot;pointer&quot;;
-        deleteIcon.style.verticalAlign = &quot;middle&quot;;
-        deleteIcon.addEventListener(&quot;click&quot;, onRemoveClicked);
-
-        var runButton = document.createElement(&quot;ef-button&quot;);
-        runButton.textContent = &quot;Run&quot;;
-        runButton.style.verticalAlign = &quot;middle&quot;;
-        runButton.addEventListener(&quot;click&quot;, onRunClicked);
-
-        content.appendChild(editIcon);
-        content.appendChild(deleteIcon);
-        content.appendChild(runButton);
-    }
-    cell.setContent(content);
-}
-
-function onRunClicked(e) {
-    var button = e.currentTarget;
-    var pos = grid.api.getRelativePosition(e);
-    var rowIndex = pos.rowIndex;
-    alert(&quot;Click :&quot; + rowIndex);
-}
-function onRemoveClicked(e) {
-    var button = e.currentTarget;
-    var pos = grid.api.getRelativePosition(e);
-    var rowIndex = pos.rowIndex;
-    grid.api.removeRow(rowIndex);
-}
-function onEditClicked(e) {
-    var button = e.currentTarget;
-    var pos = grid.api.getRelativePosition(e);
-    var rowIndex = + pos.rowIndex;
-    inCellEditing.openEditor(0, rowIndex);
-}
-
-var grid = window.grid = document.getElementById(&quot;grid&quot;);
-grid.config = config1;
-
-var searchInput = document.getElementById(&quot;search_input&quot;);
-searchInput.addEventListener(&quot;keyup&quot;, function (e) {
-    var input = e.currentTarget;
-    if (input._prevValue !== input.value) {
-        input._prevValue = input.value;
-        rowFiltering.refresh(); // Force filter triggering
-    }
-});
-
-function filterFunc(rowData, rowId, context) {
-    var str = &quot;&quot;;
-    var val = context.input.value.toLowerCase();
-    for (var key in rowData) {
-        str += rowData[key] + &quot; &quot;;
-    }
-    return str.toLowerCase().indexOf(val) &gt; -1;
-};
-
-var context = {
-    input: searchInput
-};
-rowFiltering.addGridFilter(filterFunc, context);
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
 </code></pre>
-</code-sandbox><p>In the example above, we show how to create a grid for managing data. This grid lets users filter, add, edit, and remove data in the grid itself. We used three main features: row filtering, in cell editing, and row selection.</p>
-<p>Row filtering lets users type in a box to search and filter data across all columns in the grid. Row selection allows users to pick one or more rows in the grid.</p>
-<p>In cell editing is about changing the data in the grid directly. For our example, we changed the &quot;Job Name&quot; using this feature.</p>
+</code-sandbox><h1 id="pinning-column-at-runtime">Pinning column at runtime</h1>
+<p>Pinning column at runtime can be done through <code>pinColumn</code> method from Grid&#39;s API. The pinned column will be move to the right most of frozen area. To unpin a column, call <code>unpinColumn</code>. The unpinned column will be moved to the left most of unfrozen area.</p>
+<h2 id="example-1">Example</h2>
+<code-sandbox hash="ba7f97b8"><pre><code class="language-css">html hr, button {
+    margin: 5px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;fieldset id=&quot;pinning_set&quot;&gt;
+    &lt;legend&gt;Pinning&lt;/legend&gt;
+&lt;/fieldset&gt;
+&lt;fieldset id=&quot;unpinning_set&quot;&gt;
+    &lt;legend&gt;Unpinning&lt;/legend&gt;
+&lt;/fieldset&gt;
+&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
+</code></pre>
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;Column 6&quot;, &quot;Column 7&quot;];
+var records = tr.DataGenerator.generateRecords(fields, { numRows: 10 });
+
+var onClickPinning = function(e) {
+    var btn = e.currentTarget;
+    grid.api.pinColumn(btn.colIndex);
+};
+var onClickUnpinning = function(e) {
+    var btn = e.currentTarget;
+    grid.api.unpinColumn(btn.colIndex);
+};
+
+var len = fields.length; 
+for(var i = 0; i &lt; 4; ++i) {
+    var btn = document.createElement(&quot;button&quot;);
+    btn.colIndex = i;
+    btn.addEventListener(&quot;click&quot;, onClickPinning);
+    btn.textContent = &quot;Column &quot; + (i + 1);
+    pinning_set.appendChild(btn);
+    
+    btn = document.createElement(&quot;button&quot;);
+    btn.colIndex = i;
+    btn.addEventListener(&quot;click&quot;, onClickUnpinning);
+    btn.textContent = &quot;Column &quot; + (i + 1);
+    unpinning_set.appendChild(btn);
+}
+
+var configObj = {
+    columns: [
+        {name: &quot;Company&quot;, field: fields[0], width: 250},
+        {name: &quot;Market&quot;, field: fields[1], width: 150},
+        {name: &quot;Last&quot;, field: fields[2], width: 150},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 150},
+        {name: &quot;Industry&quot;, field: fields[4], width: 200},
+        {field: fields[5], width: 150},
+        {field: fields[6], width: 150}
+    ],
+    staticDataRows: records
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><p><br><br><br></p>

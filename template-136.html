@@ -1,131 +1,14 @@
-<h1 id="vertical-scrollbar">Vertical Scrollbar</h1>
-<p>By default, Grid behaves like a native div element that has CSS &quot;display: block;&quot;. This means Grid&#39;s height will be expanded as the number of its rows is increasing. In other words, it has a dynamic height equal to its content height. So Grid will never show a vertical scrollbar by default, as the content height does not exceed its container (grid element) height.</p>
-<p>If you want to enable the vertical scrollbar, two conditions must be met:</p>
-<ol>
-<li>Grid must have some specific height (for example, 200px, 50%, or 100%).</li>
-<li>Grid content height must exceed the height specified in #1. </li>
-</ol>
-<blockquote>
-<p>Note: once Grid&#39;s vertical scrollbar is shown, Grid&#39;s row virtualization will also be activated. Not all elements will be created or rendered. The same cells will be shared across multiple rows.</p>
-<p>Also, if the containers or Grid styles have been changed by JavaScript, you need to notify Grid about the change in order to update the layout. Use <code>getCoreGrid().updateLayout()</code> to force updating the layout.</p>
-</blockquote>
-<h2 id="fixed-height-grid-example">Fixed height grid example</h2>
-<p>The below example shows how Grid&#39;s height affects vertical scrollbar&#39;s visibility:</p>
-<code-sandbox hash="3b1b4589"><pre><code class="language-html">&lt;button id=&quot;reset_btn&quot;&gt;Reset height to default&lt;/button&gt;
-&lt;button id=&quot;set_200_btn&quot;&gt;Set height to 200px&lt;/button&gt;
-&lt;button id=&quot;set_600_btn&quot;&gt;Set height to 600px&lt;/button&gt;
-&lt;br&gt;&lt;br&gt;
-&lt;efx-grid id=&quot;grid&quot; style=&quot;height: 200px&quot;&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 15 });
-var configObj = {
-    columns: [
-        {name: &quot;Company&quot;, field: fields[0]},
-        {name: &quot;Market&quot;, field: fields[1], width: 100},
-        {name: &quot;Last&quot;, field: fields[2], width: 80},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 80},
-        {name: &quot;Industry&quot;, field: fields[4]}
-    ],
-    staticDataRows: records
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
-
-document.getElementById(&quot;reset_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
-    grid.style.height = &quot;&quot;;
-    grid.api.getCoreGrid().updateLayout(); // Notify grid that some CSS have been changed
-});
-document.getElementById(&quot;set_200_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
-    grid.style.height = &quot;200px&quot;;
-    grid.api.getCoreGrid().updateLayout(); // Notify grid that some CSS have been changed
-});
-document.getElementById(&quot;set_600_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
-    grid.style.height = &quot;600px&quot;;
-    grid.api.getCoreGrid().updateLayout(); // Notify grid that some CSS have been changed
-});
-</code></pre>
-</code-sandbox><h2 id="making-grid-fill-available-space-example">Making Grid fill available space example</h2>
-<p><code>flex</code> can be used to define Grid&#39;s height. By doing it this way, Grid&#39;s height will be changed when the window or its container size is changed. </p>
-<aside class="info"><p>Once Grid&#39;s height is defined, it will no longer have the same size as its content. This means it will not be shrunken when its rows are removed.</p>
-</aside><code-sandbox hash="447788f6"><pre><code class="language-css">body {
-    height: 500px; /* For illustrative purpose */
-    padding: 4px;
-    box-sizing: border-box;
-}
-.flex-container {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-}
-html hr {
-    margin: 5px;
-}
-efx-grid {
-    flex: 1;
-    min-height: 0;
-    max-height: none;
-    outline: 1px solid blue; /* For illustrative purpose */
-}
-</code></pre>
-<pre><code class="language-html">&lt;div class=&quot;flex-container&quot; style=&quot;height: 100%&quot;&gt;
-    &lt;div&gt;
-        &lt;button id=&quot;remove_btn&quot;&gt;Remove top 5 rows&lt;/button&gt;
-    &lt;/div&gt;
-    &lt;hr&gt;
-    &lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-&lt;/div&gt;
-</code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-remove_btn.addEventListener(&quot;click&quot;, function(e) {
-    grid.api.removeRows([0, 1, 2, 3, 4]);
-});
-
-var fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 22 });
-var configObj = {
-    columns: [
-        { name: &quot;Id&quot;, field: fields[0], width: 40, alignment: &quot;center&quot; },
-        { name: &quot;Company&quot;, field: fields[1] },
-        { name: &quot;Market&quot;, field: fields[2], width: 120 },
-        { name: &quot;Last&quot;, field: fields[3], width: 100 },
-        { name: &quot;Net. Chng&quot;, field: fields[4], width: 100 },
-        { name: &quot;Industry&quot;, field: fields[5] }
-    ],
-    staticDataRows: records
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
-</code></pre>
-</code-sandbox><h2 id="non-overlap-vertical-scrollbar-example">Non-overlap vertical scrollbar example</h2>
-<p>The Grid vertical scrollbar, by default, is shown on top of the grid. This is to avoid jittering the content when the layout is changed. However, in some cases, the vertical scrollbar may hinder or prevent interaction with the content, especially for the rightmost column. Use the <code>contentRightPadding</code> flag to reserve some space on the right to prevent this from happening.</p>
-<p><code>autoHideScrollbar</code> could also be used to stop automatic scrollbar hiding.</p>
-<code-sandbox hash="aede16d2"><pre><code class="language-css">efx-grid {
+<h1 id="row---reordering">Row - Reordering</h1>
+<p>To allow the user to drag and reorder selected rows, add Row Dragging Extension instance to <code>extensions</code> property. The visual content of the dragged row can be rendered using the renderer function provided in the property <code>dragBoxRenderer</code> of the <code>rowDragging</code> option object. For more details, see <a href="#/extensions/tr-grid-row-dragging">Row Dragging Extension</a>.</p>
+<h2 id="example">Example</h2>
+<code-sandbox hash="150304dd"><pre><code class="language-css">atlas-blotter {
     height: 200px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+<pre><code class="language-html">&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
 </code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
@@ -135,10 +18,13 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
 var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 15 });
+var records = tr.DataGenerator.generateRecords(fields, { numRows: 6 });
 var configObj = {
-    autoHideScrollbar: false,
-    contentRightPadding: 14,
+    rowDragging: {
+        dragBoxRenderer: function(e) {
+            e.dragBox.textContent = e.dataRow[fields[0]];
+        }
+    },
     columns: [
         {name: &quot;Company&quot;, field: fields[0]},
         {name: &quot;Market&quot;, field: fields[1], width: 100},
@@ -146,12 +32,11 @@ var configObj = {
         {name: &quot;Net. Chng&quot;, field: fields[3], width: 80},
         {name: &quot;Industry&quot;, field: fields[4]}
     ],
-    staticDataRows: records
+    staticDataRows: records,
+    extensions: [ new tr.RowDraggingExtension() ]
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 </code></pre>
-</code-sandbox><br>
-<br>
-<br>
+</code-sandbox>

@@ -1,30 +1,172 @@
-<h1 id="support">Support</h1>
-<p>If you need help, simply go to the <a href="https://lseg.stackenterprise.co/posts/tagged/1102">Stack Overflow</a>, post your questions or difficulties, and provide your live example.</p>
-<h2 id="creating-a-live-example">Creating a live example</h2>
-<p>Grid&#39;s dependencies are available for Code Sandbox(Devbox), making it simple to create your own live demonstration. The live example imitated issues are very significant because it helps us in our investigation and save us time. To create a live example page you can follow the below instructions:</p>
-<ul>
-<li>Sign up for a <a href="https://codesandbox.io/">Code Sandbox</a> (Devbox) account or log in if you already have one.</li>
-<li>Open one of the following template.<ul>
-<li><a href="https://codesandbox.io/p/devbox/84k36f?file=%2Findex.html%3A17%2C34">EFX Grid template</a></li>
-<li><a href="https://codesandbox.io/p/devbox/react-efx-grid-template-gnjlpl?file=%2Fsrc%2FApp.tsx%3A23%2C1">[React] EFX Grid template</a></li>
-<li><a href="https://codesandbox.io/p/devbox/angular-efx-grid-template-4xtmdd?file=%2Fsrc%2Fstyles.css%3A8%2C1">[Angular] EFX Grid template</a></li>
-</ul>
-</li>
-<li>Fork the template by clicking the &quot;Fork&quot; button at the top right of the screen.</li>
-<li>Modify the code in your live example as desired and save it by pressing <code>Ctrl/Cmd + S</code>.</li>
-<li>Share the link by following below steps:<ul>
-<li>Click &quot;Share&quot; button at the top right of the screen.</li>
-<li>Select &quot;Unlisted&quot; option from the dropdown box on &quot;Visbility&quot; section.</li>
-<li>Click &quot;Move Devbox&quot; button to change the draft to permanent one and get the link.</li>
-<li>Uncheck &quot;Include editor layout&quot; to shorthen the link.</li>
-<li>Click &quot;Copy&quot; button to copy the link. The link will be available in your system&#39;s clipboard.</li>
-</ul>
-</li>
-</ul>
-<aside class="warning"><p>Copying the link from the browser&#39;s address bar does not work, as people will not have the permission to see your live example.</p>
-</aside><aside class="info"><p>Note: To change the theme while editing a live example, navigate to the settings page, pick the JS tab, and change the theme name in the URL under &quot;Add External Scripts/Pens&quot; section.</p>
-</aside><h2 id="existing-live-examples">Existing live examples</h2>
-<p>All existing Grid live examples can be found <a href="https://gitlab.dx1.lseg.com/groups/204090/grid/-/wikis/home">here</a>. You may fork or use some of the examples to illustrate your issue, if those examples have suitable setup for your use cases.</p>
-<br>
-<br>
-<br>
+<h1 id="job-manager">Job Manager</h1>
+<code-sandbox hash="9d67b80e"><pre><code class="language-css">body {
+    padding: 24px;
+}
+
+atlas-blotter {
+    height: 300px;
+}
+
+hr {
+    margin: 8px;
+}
+#search_input {
+    width: 100%;
+}
+</code></pre>
+<pre><code class="language-html">&lt;input id=&quot;search_input&quot; placeholder=&quot;Search Anything...&quot; type=&quot;search&quot;&gt;
+&lt;hr&gt;
+&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
+</code></pre>
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+tr.DataGenerator.addFieldInfo(&quot;status&quot;, {
+    type: &quot;set&quot;,
+    members: [&quot;Success&quot;, &quot;Fail&quot;, &quot;Partial Success&quot;]
+});
+
+tr.DataGenerator.addFieldInfo(&quot;jobName&quot;, {
+    type: &quot;set&quot;,
+    members: [
+        &quot;Docs_Conv_021123_2&quot;,
+        &quot;UPLD_Documents_031123_3&quot;,
+        &quot;ConvUpld_Files_041123_1&quot;,
+        &quot;Upload_Batch_051123_4&quot;,
+        &quot;Files_Upld_061123_5&quot;,
+        &quot;Upld_Conversion_071123&quot;,
+        &quot;Documents_Upload_081123_1&quot;,
+        &quot;Conv_Uploads_091123_2&quot;,
+        &quot;Upload_Files_101123_3&quot;,
+        &quot;Upld_Doc_111123_4&quot;,
+        &quot;Conversion_Upload_121123_5&quot;,
+        &quot;Uploads_Docs_131123_1&quot;,
+        &quot;Docs_Conversion_141123_2&quot;,
+        &quot;Upld_Batch_151123_3&quot;,
+        &quot;Conversion_Batch_161123_4&quot;,
+        &quot;Batch_Upload_171123_5&quot;,
+        &quot;Upld_Documents_181123_1&quot;,
+        &quot;Upload_Conv_191123_2&quot;,
+        &quot;Conversion_Docs_201123_3&quot;,
+        &quot;Upld_Files_211123_4&quot;
+    ]
+});
+
+var rowSelection = new tr.RowSelectionExtension();
+var inCellEditing = new tr.InCellEditingExtension();
+var rowFiltering = new tr.RowFilteringExtension();
+// Extensions
+var fields = [&quot;jobName&quot;, &quot;status&quot;];
+var records = tr.DataGenerator.generateRecords(fields, { numRows: 50, seed: 0 });
+var config1 = {
+    columns: [
+        {
+            title: &quot;Job Name&quot;,
+            field: fields[0],
+            editableContent: true
+        },
+        {
+            title: &quot;Status&quot;,
+            field: fields[1],
+            width: 100
+        },
+        {
+            name: &quot;Action&quot;, field: fields[1],
+            width: 150,
+            titleAlignment: &quot;center&quot;,
+            binding: onActionBinding
+        }
+    ],
+    staticDataRows: records,
+    rowFiltering: {
+        iconActivation: &quot;onHover&quot;
+    },
+    extensions: [rowSelection, inCellEditing, rowFiltering]
+};
+
+function onActionBinding(e) {
+    var data = e.data;
+    var cell = e.cell;
+    var content = cell.getContent();
+    if (!content) {
+        content = document.createElement(&quot;div&quot;);
+
+        var editIcon = document.createElement(&quot;coral-icon&quot;);
+        editIcon.icon = &quot;edit&quot;;
+        editIcon.style.cursor = &quot;pointer&quot;;
+        editIcon.style.verticalAlign = &quot;middle&quot;;
+        editIcon.addEventListener(&quot;click&quot;, onEditClicked);
+
+        var deleteIcon = document.createElement(&quot;coral-icon&quot;);
+        deleteIcon.icon = &quot;trash&quot;;
+        deleteIcon.style.cursor = &quot;pointer&quot;;
+        deleteIcon.style.verticalAlign = &quot;middle&quot;;
+        deleteIcon.addEventListener(&quot;click&quot;, onRemoveClicked);
+
+        var runButton = document.createElement(&quot;coral-button&quot;);
+        runButton.textContent = &quot;Run&quot;;
+        runButton.style.verticalAlign = &quot;middle&quot;;
+        runButton.addEventListener(&quot;click&quot;, onRunClicked);
+
+        content.appendChild(editIcon);
+        content.appendChild(deleteIcon);
+        content.appendChild(runButton);
+    }
+    cell.setContent(content);
+}
+
+function onRunClicked(e) {
+    var button = e.currentTarget;
+    var pos = grid.api.getRelativePosition(e);
+    var rowIndex = pos.rowIndex;
+    alert(&quot;Click :&quot; + rowIndex);
+}
+function onRemoveClicked(e) {
+    var button = e.currentTarget;
+    var pos = grid.api.getRelativePosition(e);
+    var rowIndex = pos.rowIndex;
+    grid.api.removeRow(rowIndex);
+}
+function onEditClicked(e) {
+    var button = e.currentTarget;
+    var pos = grid.api.getRelativePosition(e);
+    var rowIndex = + pos.rowIndex;
+    inCellEditing.openEditor(0, rowIndex);
+}
+
+var grid = window.grid = document.getElementById(&quot;grid&quot;);
+grid.config = config1;
+
+var searchInput = document.getElementById(&quot;search_input&quot;);
+searchInput.addEventListener(&quot;keyup&quot;, function (e) {
+    var input = e.currentTarget;
+    if (input._prevValue !== input.value) {
+        input._prevValue = input.value;
+        rowFiltering.refresh(); // Force filter triggering
+    }
+});
+
+function filterFunc(rowData, rowId, context) {
+    var str = &quot;&quot;;
+    var val = context.input.value.toLowerCase();
+    for (var key in rowData) {
+        str += rowData[key] + &quot; &quot;;
+    }
+    return str.toLowerCase().indexOf(val) &gt; -1;
+};
+
+var context = {
+    input: searchInput
+};
+rowFiltering.addGridFilter(filterFunc, context);
+</code></pre>
+</code-sandbox><p>In the example above, we show how to create a grid for managing data. This grid lets users filter, add, edit, and remove data in the grid itself. We used three main features: row filtering, in cell editing, and row selection.</p>
+<p>Row filtering lets users type in a box to search and filter data across all columns in the grid. Row selection allows users to pick one or more rows in the grid.</p>
+<p>In cell editing is about changing the data in the grid directly. For our example, we changed the &quot;Job Name&quot; using this feature.</p>

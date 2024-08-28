@@ -1,51 +1,29 @@
-<h1 id="using-typescript-with-grid">Using TypeScript with Grid</h1>
+<h1 id="adding-typescript">Adding TypeScript</h1>
 <p><a href="https://www.typescriptlang.org/">TypeScript</a> is a typed superset of JavaScript that compiles to plain JavaScript.</p>
-<h2 id="installation">Installation</h2>
-<p>To apply Typescript for <code>EFX Grid</code>, first you are required to install <code>@refinitiv-ui/efx-grid</code> in your project.</p>
-<pre><code class="language-sh">npm install @refinitiv-ui/efx-grid
+<h2 id="atlas-blotter">Atlas Blotter</h2>
+<p>Install <code>@grid/types</code> to your project.</p>
+<pre><code class="language-bash">npm install @grid/types --save-dev
 </code></pre>
-<h2 id="usage">Usage</h2>
-<p>Use <code>import</code> syntax to import the Grid and theme into your app.</p>
-<pre><code class="language-js">// Import element and its Halo dark theme
-import &quot;@refinitiv-ui/efx-grid&quot;;
-import &quot;@refinitiv-ui/efx-grid/themes/halo/dark&quot;;
-
-// Import native styles for typography, css variables, etc.
-import &quot;@refinitiv-ui/halo-theme/dark/imports/native-elements&quot;;
+<p>Next, rename any file to be a TypeScript file (for example, <strong>src/index.js</strong> to <strong>src/index.tsx</strong>) and restart your development server.</p>
+<p>Then, add the named imports <code>Grid</code> and <code>ColumnDefinition</code> to your file.</p>
+<pre><code class="language-js">import { RealtimeGrid, ColumnDefinition } from &#39;@grid/types&#39;;
 </code></pre>
-<p>Then import types from <code>efx-grid</code> package to your file. These types are typically for properties on a configuration object or APIs defined by Grid components. You don&#39;t need to import every type, if you don&#39;t use them. All of the types are optional.</p>
-<pre><code class="language-js">import {
-    RealtimeGrid, // Provide types for api object
-    ColumnDefinition, // Provide types for column config and ColumnDefinition object
-    CoreGrid // Provide types for core object
-} from &quot;@refinitiv-ui/efx-grid&quot;;
-</code></pre>
-<p>Optionally, you can also import Grid&#39;s <a href="#/extensions/readme">extensions</a> from <code>efx-grid/extensions</code> package to extend its functionalities. </p>
-<pre><code class="language-js">import { ColumnResizing } from &quot;@refinitiv-ui/efx-grid/extensions&quot;;
-</code></pre>
-<p>To define how the grid renders its content, use <code>ColumnDefinition.Options</code> as shown below:</p>
+<p>To define how Grid renders its layout and content, use the column propertires as shown below:</p>
 <pre><code class="language-js">let columns: ColumnDefinition.Options[] = [
-    { name: &quot;Integer&quot;, field: &quot;intCol&quot; },
-    { name: &quot;String&quot;, field: &quot;strCol&quot; },
-    { name: &quot;Float&quot;, field: &quot;floatCol&quot; }
-];
-let records: Array&lt;Object&gt; = [
-    { intCol: 1, strCol: &quot;Sample data&quot;, floatCol: 1.1 },
-    { intCol: 2, strCol: &quot;Sample data&quot;, floatCol: 2.2 },
-    { intCol: 3, strCol: &quot;Sample data&quot;, floatCol: 3.3 }
+    { name: &quot;Header Text&quot;, field: &quot;For Mapping Data&quot; },
+    // ... columns data
 ];
 </code></pre>
-<p>To define a configuration object, use <code>RealtimeGrid.GridOptions</code> as shown below:</p>
+<p>To define a configuration object, define it as shown below:</p>
 <pre><code class="language-js">let configObj: RealtimeGrid.GridOptions = {
+    // ... other options
     columns: columns,
-    staticDataRows: records,
-    extensions: [
-        new ColumnResizing()
-    ]
 };
 </code></pre>
-<p>Finally assign configuration to <code>efx-grid</code> element. Note that <code>efx-grid</code> element already has type defined. There is no need to cast it to some other types.</p>
-<pre><code class="language-js">let grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
+<p>To access Grid&#39;s API, you can declare as shown below:</p>
+<pre><code class="language-js">import { RealtimeGrid, CoreGrid } from &#39;@grid/types&#39;;
+
+let grid: any = document.getElementsByTagName(&quot;atlas-blotter&quot;)[0];
 grid.addEventListener(&quot;configured&quot;, function (e: any) {
     let api: RealtimeGrid = e.detail.api;
     let core: CoreGrid = api.getCoreGrid();
@@ -53,17 +31,62 @@ grid.addEventListener(&quot;configured&quot;, function (e: any) {
     console.log(&quot;Grid has been configured.&quot;);
 });
 
-grid.config = configObj;
+grid.config: RealtimeGrid.GridOptions = {};
 </code></pre>
-<aside class="info"><p>Grid element is not immediately initialized when it is put on to the document. Only after it has been configured, then you can use its <code>api</code> to perform any runtime change or custom task.
-For a complete list of APIs, please see the <a href="./apis/readme">API document</a>.</p>
-</aside><h2 id="simple-trick-to-suppress-type-error">Simple trick to suppress type error</h2>
-<p>The TypeScript directive comment <code>// @ts-ignore</code> can be used to tell the TypeScript compiler to avoid the line of code below it. This can be helpful in situations where TypeScript compiler indicates errors but the code is correct or irrelevant to your project.</p>
-<p>Example</p>
-<pre><code class="language-js">let obj = {
-  // @ts-ignore
-  mainContent: {
-    innerMargin: 2
-  }
-}
+<p>Grid&#39;s extensions configuration are exposed out-of-the-box.</p>
+<pre><code class="language-js">import { Zoom } from &#39;@grid/zoom&#39;;
+
+let configObj: RealtimeGrid.GridOptions = {
+    // ... other options
+    zoom: {
+        // ... zoom extension properties are compatible
+    },
+    extensions: [new Zoom()]
+};
 </code></pre>
+<p>For a complete list of APIs, please see the <a href="#/apis/rt-grid/grid">API document</a>.</p>
+<h2 id="emerald-grid">Emerald Grid</h2>
+<p>Install <code>@grid/types</code> to your project.</p>
+<pre><code class="language-bash">npm install @grid/types --save-dev
+</code></pre>
+<p>Next, rename any file to be a TypeScript file (for example, <strong>src/index.js</strong> to <strong>src/index.tsx</strong>) and restart your development server.</p>
+<p>Then, use the named import <code>CompositeGrid</code> with your file. Please note that <code>CompositeGrid</code> is an engine that runs within <code>emerald-grid</code>.</p>
+<pre><code class="language-js">import { CompositeGrid } from &#39;@grid/types&#39;;
+</code></pre>
+<p>To define how the grid renders its layout and content, use the column propertires as shown below:</p>
+<pre><code class="language-js">let columns: CompositeGrid.Column[] = [
+    { title: &quot;Header Text&quot;, field: &quot;For Mapping Data&quot; },
+    // ... columns data
+];
+</code></pre>
+<p>To define a configuration object, define it as shown below:</p>
+<pre><code class="language-js">let configObj: CompositeGrid.Options = {
+    // ... other options
+    columns: columns,
+};
+</code></pre>
+<p>To access Grid&#39;s API, you can declare as shown below:</p>
+<pre><code class="language-js">import { CompositeGrid, CoreGrid, DataView } from &#39;@grid/types&#39;;
+
+let grid: any = document.getElementsByTagName(&quot;emerald-grid&quot;)[0];
+grid.addEventListener(&quot;configured&quot;, function (e: any) {
+    let api: CompositeGrid = e.detail.api;
+    let core: CoreGrid = api.getCoreGrid();
+    let dv: DataView = api.getDataView();
+
+    console.log(&quot;Grid has been configured.&quot;);
+});
+grid.config: CompositeGrid.Options = {};
+</code></pre>
+<p>Grid&#39;s extensions configuration are exposed out-of-the-box.</p>
+<pre><code class="language-js">import { Zoom } from &#39;@grid/zoom&#39;;
+
+let configObj: CompositeGrid.Options = {
+    // ... other options
+    zoom: {
+        // ... zoom extension properties are compatible
+    },
+    extensions: [new Zoom()]
+};
+</code></pre>
+<p>For a complete list of APIs, please see the <a href="#/apis/composite-grid/tr-compositegrid">API document</a>.</p>

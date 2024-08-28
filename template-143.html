@@ -1,58 +1,15 @@
-<h1 id="multi-columnthree-state-sorting">Multi-column/three-state sorting</h1>
-<p>Sorting can be done on several columns together. You need to add the <code>sorting</code> property with two sub-properties: <code>multiColumn</code> and <code>threeStateSorting</code>.</p>
-<p>The property <code>threeStatesSorting</code> allows the column to be reset to the neutral state at every third click. Turning on <code>threeStatesSorting</code> makes multi-column sorting easier to use.</p>
-<pre><code class="language-js">var config = {
-    // ... other config
-    sorting: {
-        sortableColumns: true,
-        multiColumn: true, // The value can also be a maximum number of sorted columns 
-        threeStatesSorting: true
-    }
-}
-</code></pre>
-<h2 id="sort-multiple-columns-at-the-initialization">Sort multiple columns at the initialization</h2>
-<p>It is possible to set the initial sort with <code>multiColumn</code> enabled. We can use <code>initialSort</code> to define an array of <a href="#/apis/core/sortabletitleplugin#~InitialSort">SortableTitlePlugin.InitialSort</a>.</p>
-<blockquote>
-<p>If <code>multiColumn</code> is not enabled, the <code>initialSort</code> will only take the first object of an array into consideration.</p>
-</blockquote>
-<pre><code class="language-js">var config = {
-    // any other grid&#39;s options
-    sorting: {
-        sortableColumns: true,
-        multiColumn: true,
-        initialSort: [{
-            colIndex: 0,
-            sortOrder: &quot;d&quot;
-        }, {
-            colIndex: 1,
-            sortOrder: &quot;d&quot;
-        }]
-    }
-}
-</code></pre>
-<h2 id="sort-multiple-columns-at-runtime">Sort multiple columns at runtime</h2>
-<p>To change sorting states at runtime, use <code>sortColumns</code> from the built-in SortableTitlePlugin</p>
-<pre><code class="language-js">var grid = document.getElementById(&quot;grid&quot;);
-var sort = grid.api.getCoreGrid().getPlugin(&quot;SortableTitle&quot;);
-sort.sortColumns([
-    {
-        colIndex: 0, // Column index 0 with order descending.
-        sortOrder: &quot;d&quot;
-    }, {
-        colIndex: 1, // Column index 1 with order descending
-        sortOrder: &quot;d&quot;
-    }
-]);
-</code></pre>
-<p>For all available options and APIs, please visit <a href="#/apis/core/sortabletitleplugin">SortableTitlePlugin</a></p>
+<h1 id="scrollbar-visibility">Scrollbar Visibility</h1>
+<p>Instead of fading in or out on hover (default behavior), Grid scrollbars can be set to always be visible whenever the content is scrollable.</p>
+<p>This behavior can be enabled upon grid initialization using the <code>autoHideScrollbar</code> option. The values can be <em>false</em> for always-on, and <em>true</em> for fade in/out (default).</p>
 <h2 id="example">Example</h2>
-<code-sandbox hash="51d8a41c"><pre><code class="language-css">efx-grid {
-    height: 300px;
+<code-sandbox hash="4ff7f7f"><pre><code class="language-css">atlas-blotter {
+    height: 200px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+<pre><code class="language-html">&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
 </code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
@@ -61,22 +18,16 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;group3&quot;, &quot;boolean&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 15 });
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = tr.DataGenerator.generateRecords(fields, { numRows: 10 });
 var configObj = {
-    sorting: {
-        sortableColumns: true,
-        multiColumn: 3, // Maximum of 3 sorted columns at the same time
-        threeStatesSorting: true
-    },
+    autoHideScrollbar: false,
     columns: [
-        {name: &quot;Company&quot;, field: fields[0]},
-        {name: &quot;Market&quot;, field: fields[1], width: 80},
-        {name: &quot;Group 1&quot;, field: fields[2], width: 80},
-        {name: &quot;Group 2&quot;, field: fields[3], width: 80},
-        {name: &quot;Last&quot;, field: fields[4], width: 80},
-        {name: &quot;Net. Chng&quot;, field: fields[5], width: 80},
-        {name: &quot;Industry&quot;, field: fields[6]}
+        {name: &quot;Company&quot;, field: fields[0], width: 250},
+        {name: &quot;Market&quot;, field: fields[1], width: 150},
+        {name: &quot;Last&quot;, field: fields[2], width: 150},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 150},
+        {name: &quot;Industry&quot;, field: fields[4], width: 300}
     ],
     staticDataRows: records
 };
@@ -84,4 +35,4 @@ var configObj = {
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 </code></pre>
-</code-sandbox><p><br><br><br></p>
+</code-sandbox>

@@ -1,21 +1,20 @@
 <link rel="stylesheet" href="./resources/styles/elf-template.css">
 
-<h1 id="cell-selection">Cell Selection</h1>
-<p>The Cell Selection Extension lets you select cells in Grid. By default, the extension enables copying of selected cell content through <code>Ctrl/Command + C</code> key. The copied content will be stored as a text in the system clipboard. The format of the text will be Tab Separated Values (TSV) format, and so it can be pasted on to Excel&#39;s table. </p>
-<code-sandbox hash="c5ada515"><pre><code class="language-css">efx-grid {
-    height: 200px;
-}
-textarea {
-    width: 100%;
-    height: 150px;
-    overflow: auto;
-    font-size: 1.5em;
+<h1 id="row-segmenting">Row Segmenting</h1>
+<p>The Row Segmenting Extension provides a way to group row content based on row index. By specifying a row index, the row becomes a group header. Any row below the group header can then be added as a group member. This provides more flexibility in how you define a group, unlike Row Grouping Extension where groups are based on strictly defined criteria. Nevertheless, both Row Segmenting Extension and Row Grouping Extension can produce similar looking results. This page will show the key differences in behaviors and functionalities between the two. </p>
+<code-sandbox hash="263db4ef"><pre><code class="language-css">html hr {
+    margin: 5px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-&lt;textarea placeholder=&quot;Use Ctrl+C to copy the selected cells&quot;&gt;&lt;/textarea&gt;
+<pre><code class="language-html">&lt;button id=&quot;set_btn1&quot;&gt;Toggle first segment&lt;/button&gt;
+&lt;button id=&quot;set_btn2&quot;&gt;Toggle second segment&lt;/button&gt;
+&lt;button id=&quot;set_btn3&quot;&gt;Toggle third segment&lt;/button&gt;
+&lt;button id=&quot;unset_btn&quot;&gt;Remove All Separators&lt;/button&gt;
+&lt;hr&gt;
+&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
 </code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
@@ -24,63 +23,1083 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
+var rowSegmentingExt = new tr.RowSegmentingExtension();
+var rowDraggingExt = new tr.RowDraggingExtension();
 var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 5 });
+var segmentField = &quot;SegmentId&quot;;
+var records = tr.DataGenerator.generateRecords(fields, { numRows: 14 });
+records[1][segmentField] = &quot;1&quot;;
+records[2][segmentField] = &quot;1&quot;;
+records[3][segmentField] = &quot;1&quot;;
+
+records[5][segmentField] = &quot;2&quot;;
+records[6][segmentField] = &quot;2&quot;;
+
+records[8][segmentField] = &quot;3&quot;;
+records[9][segmentField] = &quot;3&quot;;
+records[10][segmentField] = &quot;3&quot;;
+records[11][segmentField] = &quot;3&quot;;
+
 var configObj = {
-    cellSelection: {
-        autoDeselecting: false
+    rowSegmenting: {
+        segmentIdField: segmentField
     },
     columns: [
-        {name: &quot;Company&quot;, field: fields[0]},
-        {name: &quot;Market&quot;, field: fields[1], width: 120},
-        {name: &quot;Last&quot;, field: fields[2], width: 100},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
-        {name: &quot;Industry&quot;, field: fields[4]}
+        { name: &quot;Company&quot;, field: fields[0] },
+        { name: &quot;Market&quot;, field: fields[1], width: 120 },
+        { name: &quot;Last&quot;, field: fields[2], width: 100 },
+        { name: &quot;Net. Chng&quot;, field: fields[3], width: 100 },
+        { name: &quot;Industry&quot;, field: fields[4] }
     ],
     staticDataRows: records,
     extensions: [
-        new CellSelection()
+        rowSegmentingExt,
+        rowDraggingExt
     ]
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 
-grid.addEventListener(&quot;click&quot;, function onClick(e) {
-    grid.api.focus();
+document.getElementById(&quot;set_btn1&quot;).addEventListener(&quot;click&quot;, function(e) {
+    if(rowSegmentingExt.isSegmentSeparator(1)) {
+        rowSegmentingExt.setSegmentSeparator(1, false);
+    } else {
+        rowSegmentingExt.setSegmentSeparator(1, true);
+        rowSegmentingExt.addSegmentChildren(1, [2, 3]);
+    }
+});
+document.getElementById(&quot;set_btn2&quot;).addEventListener(&quot;click&quot;, function(e) {
+    if(rowSegmentingExt.isSegmentSeparator(5)) {
+        rowSegmentingExt.setSegmentSeparator(5, false);
+    } else {
+        rowSegmentingExt.setSegmentSeparator(5, true);
+        rowSegmentingExt.addSegmentChild(5, 6);
+    }
+});
+document.getElementById(&quot;set_btn3&quot;).addEventListener(&quot;click&quot;, function(e) {
+    if(rowSegmentingExt.isSegmentSeparator(8)) {
+        rowSegmentingExt.setSegmentSeparator(8, false);
+    } else {
+        rowSegmentingExt.setSegmentSeparator(8, true);
+        rowSegmentingExt.addSegmentChildren(8, [9, 10, 11, 12]);
+    }
+});
+document.getElementById(&quot;unset_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
+    rowSegmentingExt.unsetAllSegmentSeparators();
 });
 </code></pre>
 </code-sandbox><h2 id="installation-and-how-to-import-to-a-project">Installation and how to import to a project</h2>
 <p>Installation examples and details of how to import the extension to a project are available on the <a href="#/extensions/readme">Overview</a> page.</p>
-<h2 style="margin-bottom:5px" id="api-refs">API Reference</h2>
-<div id="elf-api-container"><div id="main-template" class="elf-template">    <section><header>            <h1 class="subsection-title"><span class="attribs"><span class="type-signature"></span></span>CellSelectionPlugin<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h1>            </header><article>                                                                        <h3 class="subsection-title" id="type_definitions">Type Definitions</h3>                        
-<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~Options">Options</h4><div class="description">    The options can be specified by `cellSelection` property of the main grid's options</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>mode</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    "cell"                                </td>                        <td class="description last">Available options are cell, row, and column</td>        </tr>            <tr>                            <td class="name"><code>multipleSelection</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    true                                </td>                        <td class="description last">If disabled, only single cell can be selected at time</td>        </tr>            <tr>                            <td class="name"><code>autoDeselecting</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    true                                </td>                        <td class="description last">If disabled, the cell selection will be kept after the focus on the grid element is lost</td>        </tr>            <tr>                            <td class="name"><code>tabToSelect</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">If enabled, the selection can be moved when user press tab key during the time grid is in focus</td>        </tr>            <tr>                            <td class="name"><code>selectionChanged</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Event handler</td>        </tr>            <tr>                            <td class="name"><code>copy</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Event handler</td>        </tr>            <tr>                            <td class="name"><code>beforeMouseDown</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Event handler</td>        </tr>            <tr>                            <td class="name"><code>selectableSections</code></td>                        <td class="type">                            <span class="param-type">Array</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    ["content"                                </td>                        <td class="description last">Use to set which section can be selected, if not specific then only content section can select</td>        </tr>            <tr>                            <td class="name"><code>copyDisabled</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">If enabled, there will be no dafault content copying by the extension</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            <h3 class="subsection-title" id="methods">Methods</h3>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="config"><span class="type-signature"></span>config<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                            <div class="description">        Involk when config object is set.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="deselectAll"><span class="type-signature"></span>deselectAll<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Deselect all selected cell.    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    true if there is any change</div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="disableSelection"><span class="type-signature"></span>disableSelection<span class="signature">(opt_disable<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                            <div class="description">        Disable selection    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">opt_disable</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getAnchorInfo"><span class="type-signature"></span>getAnchorInfo<span class="signature">()</span><span class="type-signature"> → {Object}</span></h4>                            <div class="description">        Get information about current selection anchor    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div><div class="sub-content-desc">    MouseInfo</div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getAutoDeselectingOnBlur"><span class="type-signature"></span>getAutoDeselectingOnBlur<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Use to get state Auto Deselecting.    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    
+<h2 id="initializing-segments">Initializing segments</h2>
+<p>Currently, there are two ways to set segment separator. The first method is using <code>segmentIdField</code> on the extension configuration object. The second method is <code>setSegmentSeparator</code> and <code>addSegmentChildren</code> functions from Grid APIs.</p>
+<aside class="warning"><p>We strongly advise against using both <code>segmentIdField</code> and <code>setSegmentSeparator</code> approaches simultaneously. Please choose one approach that suits your needs. Keep in mind that the final results will appear the same regardless of the approach chosen.</p>
+</aside><h3 id="initial-collapsing-state">Initial collapsing state</h3>
+<p>The initial segments created by the extension are expanded by default. To initially collapse all segments by default, set <code>defaultCollapsing</code> property to <code>true</code>.</p>
+<aside class="warning"><p>Once a segment is collapsed, segment children/members will be hidden and row indices of any row below the segment will be shifted up. To avoid referencing incorrect row, it&#39;s better to use row id instead of row index when using grid or extension APIs.</p>
+</aside><h3 id="initializing-segments-by-using-segment-id-field-example">Initializing segments by using segment id field example</h3>
+<p>Use <code>segmentIdField</code> to specify which value of the field in the row data to be used for segmentation. The following code snippet shows possible setups for row segmenting:</p>
+<pre><code class="language-js">var records = [ // For illustrative purpose
+    {}, // normal row
+    {}, // normal row
+    {&quot;segmentId&quot;: &quot;1&quot;}, // group header row / segment separator
+    {&quot;segmentId&quot;: &quot;1&quot;}, // row member for segment 1
+    {&quot;segmentId&quot;: &quot;1&quot;}, // row member for segment 1
+    {}, // normal row
+    {&quot;segmentId&quot;: &quot;2&quot;}, // group header row / segment separator
+    {&quot;segmentId&quot;: &quot;2&quot;}, // row member for segment 2
+    {}, // normal row
+];
+//...
+var gridConfig = {
+    rowSegmenting: {
+        segmentIdField: &quot;segmentId&quot;
+    },
+    staticDataRows: records
+};
+</code></pre>
+<p>The <code>collapsingField</code> option can be used to override collapsing state set by <code>defaultCollapsing</code> option, when using <code>segmentIdField</code> approach</p>
+<p>When the row data are updated, you can call <code>requestSeparatorRefresh</code> method to reset existing segments. This method removes all existing segments and create new segments and their children/members. The method is quite costly in term of performance, so the extension does call the method automatically on each data change.</p>
+<code-sandbox hash="571339e9"><pre><code class="language-css">html hr {
+    margin: 5px;
+}
+atlas-blotter {
+    height: 380px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
+</code></pre>
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var rowSegmentingExt = new tr.RowSegmentingExtension();
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var segmentField = &quot;SegmentId&quot;;
+var colapsingField = &quot;CollapsingField&quot;;
+var records = tr.DataGenerator.generateRecords(fields, { numRows: 14 });
+records[1][segmentField] = &quot;1&quot;;
+records[2][segmentField] = &quot;1&quot;;
+records[3][segmentField] = &quot;1&quot;;
+
+records[5][colapsingField] = false; // override default collapsing state
+records[5][segmentField] = &quot;2&quot;;
+records[6][segmentField] = &quot;2&quot;;
+
+records[8][segmentField] = &quot;3&quot;;
+records[9][segmentField] = &quot;3&quot;;
+records[10][segmentField] = &quot;3&quot;;
+records[11][segmentField] = &quot;3&quot;;
+
+var configObj = {
+    rowSegmenting: {
+        segmentIdField: segmentField,
+        collapsingField: colapsingField,
+        defaultCollapsing: true
+    },
+    columns: [
+        { name: &quot;Company&quot;, field: fields[0] },
+        { name: &quot;Market&quot;, field: fields[1], width: 120 },
+        { name: &quot;Last&quot;, field: fields[2], width: 100 },
+        { name: &quot;Net. Chng&quot;, field: fields[3], width: 100 },
+        { name: &quot;Industry&quot;, field: fields[4] }
+    ],
+    staticDataRows: records,
+    extensions: [
+        rowSegmentingExt
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h3 id="initializing-segments-by-using-api-example">Initializing segments by using API example</h3>
+<p>You can use <code>setSegmentSeparator()</code> method to specify group header at runtime. Group members need to be manually added to the new groups by using <code>addSegmentChild()</code> or <code>addSegmentChildren()</code> methods. Any row added to the group will be moved below the group header position. This means row index should not be used during the setup process because rows can be moved around in the process. Rows that are already a group member should not be added to another group before removing itself from the current group.</p>
+<p>The following code example shows how to initilize segment by using <code>setSegmentSeparator</code> in <code>configured</code> events. The example also uses row id instead of row index to ensure that collapsing state of the segments does not impact the setup.</p>
+<code-sandbox hash="7938d7e3"><pre><code class="language-css">html hr {
+    margin: 5px;
+}
+atlas-blotter {
+    height: 380px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
+</code></pre>
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var rowSegmentingExt = new tr.RowSegmentingExtension();
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var segmentField = &quot;SegmentId&quot;;
+var colapsingField = &quot;CollapsingField&quot;;
+var records = tr.DataGenerator.generateRecords(fields, { numRows: 14 });
+var onGridConfigured = function(e) { 
+    var rowDefs = e.detail.api.getAllRowDefinitions();
+    var rowIds = rowDefs.map(function(rowDef) { return rowDef.getRowId(); });
+    
+    rowSegmentingExt.setSegmentSeparator(rowIds[1], {
+        children: [rowIds[2], rowIds[3]]
+    });
+    rowSegmentingExt.setSegmentSeparator(rowIds[5], {
+        children: [rowIds[6], rowIds[3]],
+        collapsed: false // override default collapsing state
+    });
+    rowSegmentingExt.setSegmentSeparator(rowIds[8], {
+        children: [rowIds[9], rowIds[10], rowIds[11]]
+    });
+};
+
+var configObj = {
+    rowSegmenting: {
+        defaultCollapsing: true
+    },
+    columns: [
+        { name: &quot;Company&quot;, field: fields[0] },
+        { name: &quot;Market&quot;, field: fields[1], width: 120 },
+        { name: &quot;Last&quot;, field: fields[2], width: 100 },
+        { name: &quot;Net. Chng&quot;, field: fields[3], width: 100 },
+        { name: &quot;Industry&quot;, field: fields[4] }
+    ],
+    staticDataRows: records,
+    extensions: [
+        rowSegmentingExt
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+grid.addEventListener(&quot;configured&quot;, onGridConfigured);
+</code></pre>
+</code-sandbox><h2 id="group-header-segment-separator">Group header (segment separator)</h2>
+<p>The group headers in Row Segmenting Extension have their own data/content, whereas those in Row Grouping Extension have no data. Group headers in Row Segmenting Extension are actually normal row with a separator mark on it. This means you can perform sorting and filtering on the group headers.</p>
+<p>The group headers in the Row Grouping Extension have no data because they are automatically generated based on the specified criteria. So they have no place to hold their data and you will need to have a separate place to hold it. Because of this extra place to manage, it&#39;s more difficult to perform sorting and filtering on these group headers.</p>
+<h2 id="dragging-group-header">Dragging group header</h2>
+<p>The group headers in Row Segmenting Extension can be moved by dragging, if we use Row Dragging Extension. Moving group header is the same as moving row content. After moving, group headers will also move their row members along with them.</p>
+<p>The group headers in Row Grouping Extension cannot be moved freely. They can only moved or ordered by sorting operation. This is because they are automatically generated and constantly added or removed according to data updates. </p>
+<aside class="warning"><p>Note that dragging behaviors for group headers have not yet finalized and are subject to change.</p>
+</aside><h2 id="nested-segments-multi-level-segments">Nested segments (multi-level segments)</h2>
+<p>Use <code>parentIdField</code> option to specify which value of the field in the row data to be used for specifying parent of the row. <code>segmentIdField</code> still be used to specify group header/segment separator. The following code snippet shows possible setups for row segmenting:</p>
+<pre><code class="language-js">var records = [ // For illustrative purpose
+    {}, // normal row
+    {}, // normal row
+    {&quot;segmentId&quot;: &quot;1&quot;}, // segment 1
+    {&quot;segmentId&quot;: &quot;2&quot;, &quot;parentId&quot;: &quot;1&quot;}, // 2nd level segment (segment 2) is defined and have segment 1 as its parent
+    {&quot;segmentId&quot;: &quot;2&quot;, &quot;parentId&quot;: &quot;2&quot;}, // row member for segment 2
+    {&quot;segmentId&quot;: &quot;3&quot;, &quot;parentId&quot;: &quot;1&quot;}, // 2nd level segment (segment 3) is defined and have segment 1 as its parent
+    {&quot;segmentId&quot;: &quot;3&quot;, &quot;parentId&quot;: &quot;3&quot;}, // row member for segment 3
+    {}, // normal row
+];
+//...
+var gridConfig = {
+    rowSegmenting: {
+        segmentIdField: &quot;segmentId&quot;,
+        parentIdField: &quot;parentId&quot;
+    },
+    staticDataRows: records
+};
+</code></pre>
+<p>For normal rows (non segment separator rows), value from <code>segmentIdField</code> field is not required. We can simplify the above code snippet as the one below:</p>
+<pre><code class="language-js">var records = [ // For illustrative purpose
+    {}, // normal row
+    {}, // normal row
+    {&quot;segmentId&quot;: &quot;1&quot;                 }, // segment 1
+    {&quot;segmentId&quot;: &quot;2&quot;, &quot;parentId&quot;: &quot;1&quot;}, // segment 2
+    {                  &quot;parentId&quot;: &quot;2&quot;},
+    {&quot;segmentId&quot;: &quot;3&quot;, &quot;parentId&quot;: &quot;1&quot;}, // segment 3
+    {                  &quot;parentId&quot;: &quot;3&quot;},
+    {}, // normal row
+];
+//...
+var gridConfig = {
+    rowSegmenting: {
+        segmentIdField: &quot;segmentId&quot;,
+        parentIdField: &quot;parentId&quot;
+    },
+    staticDataRows: records
+}
+</code></pre>
+<aside class="important"><p>It&#39;s important to have correct row order before putting them into grid. Parent row must come before its children, as the first row with an unique segment id will be used as segment header. The order of the rows matters.</p>
+</aside><h3 id="segment-nesting-example">Segment nesting example</h3>
+<code-sandbox hash="7d48f49a"><pre><code class="language-css">html hr {
+    margin: 5px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
+</code></pre>
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var rowSegmentingExt = new tr.RowSegmentingExtension();
+var rowDraggingExt = new tr.RowDraggingExtension();
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var segmentField = &quot;SegmentId&quot;;
+var parentField = &quot;ParentId&quot;;
+
+var records = tr.DataGenerator.generateRecords(fields, { numRows: 14 });
+records[1][segmentField] = &quot;1&quot;; // segment 1
+records[2][segmentField] = &quot;2&quot;; // segment 2
+records[3][segmentField] = &quot;2&quot;;
+records[4][segmentField] = &quot;2&quot;;
+records[5][segmentField] = &quot;3&quot;; // segment 3
+records[6][segmentField] = &quot;3&quot;;
+records[7][segmentField] = &quot;3&quot;;
+records[8][segmentField] = &quot;4&quot;; // segment 4
+records[9][segmentField] = &quot;5&quot;; // segment 5
+records[10][segmentField] = &quot;5&quot;;
+records[11][segmentField] = &quot;5&quot;;
+
+records[2][parentField] = &quot;1&quot;; // segment 2 has segment 1 as its parent
+
+records[5][parentField] = &quot;1&quot;; // segment 3 has segment 1 as its parent
+
+records[9][parentField] = &quot;4&quot;; // segment 5 has segment 4 as its parent
+
+var configObj = {
+    rowSegmenting: {
+        segmentIdField: segmentField,
+        parentIdField: parentField
+    },
+    columns: [
+        { name: &quot;Company&quot;, field: fields[0] },
+        { name: &quot;Market&quot;, field: fields[1], width: 120 },
+        { name: &quot;Last&quot;, field: fields[2], width: 100 },
+        { name: &quot;Net. Chng&quot;, field: fields[3], width: 100 },
+        { name: &quot;Industry&quot;, field: fields[4] }
+    ],
+    staticDataRows: records,
+    extensions: [
+        rowSegmentingExt,
+        rowDraggingExt
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="segment-classification">Segment Classification</h2>
+<p>With Row Segmenting Extension, you can specify classfication on individual segment to add nested segments. In other words, you can make groups based specified criteria for each individual segment, like Row Grouping Extension. The criteria can be defined by using <code>setSegmentClassification</code> method with array of fields as its parameter. </p>
+<code-sandbox hash="7a2ec71"><pre><code class="language-css">html hr {
+    margin: 5px;
+}
+atlas-blotter {
+    height: 300px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;button id=&quot;set_btn1&quot;&gt;Classify by market&lt;/button&gt;
+&lt;button id=&quot;set_btn2&quot;&gt;Classify by industry&lt;/button&gt;
+&lt;button id=&quot;set_btn3&quot;&gt;Classify by market and industry&lt;/button&gt;
+&lt;button id=&quot;set_btn4&quot;&gt;Unclassify&lt;/button&gt;
+&lt;hr&gt;
+&lt;button id=&quot;data_btn1&quot;&gt;Set row 6 market to NASDAQ&lt;/button&gt;
+&lt;button id=&quot;data_btn2&quot;&gt;Set row 6 market to DJI&lt;/button&gt;
+&lt;button id=&quot;data_btn3&quot;&gt;Set row 6 industry to Investment Managers&lt;/button&gt;
+&lt;button id=&quot;data_btn4&quot;&gt;Set row 6 industry to Paper&lt;/button&gt;
+&lt;hr&gt;
+&lt;atlas-blotter&gt;&lt;/atlas-blotter&gt;
+</code></pre>
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var segmentIdx = 1;
+set_btn1.addEventListener(&quot;click&quot;, function(e) {
+    rowSegmentingExt.setSegmentClassification(segmentIdx, [&quot;market&quot;]);
+});
+set_btn2.addEventListener(&quot;click&quot;, function(e) {
+    rowSegmentingExt.setSegmentClassification(segmentIdx, [&quot;industry&quot;]);
+});
+set_btn3.addEventListener(&quot;click&quot;, function(e) {
+    rowSegmentingExt.setSegmentClassification(segmentIdx, [&quot;market&quot;, &quot;industry&quot;]);
+});
+set_btn4.addEventListener(&quot;click&quot;, function(e) {
+    rowSegmentingExt.setSegmentClassification(segmentIdx, null);
+});
+
+data_btn1.addEventListener(&quot;click&quot;, function(e) {
+    grid.api.setStaticData(row5, &quot;market&quot;, &quot;NASDAQ&quot;);
+});
+data_btn2.addEventListener(&quot;click&quot;, function(e) {
+    grid.api.setStaticData(row5, &quot;market&quot;, &quot;DJI&quot;);
+});
+data_btn3.addEventListener(&quot;click&quot;, function(e) {
+    grid.api.setStaticData(row5, &quot;industry&quot;, &quot;Investment Managers&quot;);
+});
+data_btn4.addEventListener(&quot;click&quot;, function(e) {
+    grid.api.setStaticData(row5, &quot;industry&quot;, &quot;Paper&quot;);
+});
+
+var row5 = null;
+var rowSegmentingExt = new tr.RowSegmentingExtension();
+var fields = [&quot;companyName&quot;, &quot;id&quot;, &quot;market&quot;, &quot;industry&quot;, &quot;number_2&quot;, &quot;float_1&quot;];
+var columnMap = {};
+var columns = fields.map(function(f) {
+    var column = {
+        name: f,
+        field: f
+    };
+    columnMap[f] = column;
+    return column;
+});
+columnMap[&quot;companyName&quot;].width = 200;
+columnMap[&quot;id&quot;].width = 60;
+
+var records = tr.DataGenerator.generateRecords(fields, {seed: 0, rowCount: 16});
+var configObj = {
+    columns: columns,
+    extensions: [
+        rowSegmentingExt
+    ]
+};
+
+var grid = window.grid = document.getElementsByTagName(&quot;atlas-blotter&quot;)[0];
+grid.addEventListener(&quot;configured&quot;, function(e) {
+    row5 = e.detail.api.getRowDefinition(6);
+    rowSegmentingExt.setSegmentSeparator(segmentIdx);
+    rowSegmentingExt.addSegmentChildren(segmentIdx, [2, 3, 4, 5, 6, 7, 8]);
+    
+    rowSegmentingExt.setSegmentSeparator(10);
+    rowSegmentingExt.addSegmentChildren(10, [11, 12, 13]);
+});
+grid.config = configObj;
+grid.data = records;
+</code></pre>
+</code-sandbox><h2 id="group-sorting">Group sorting</h2>
+<p>By default segment header/separator rows will not be sorted when click at the grid&#39;s top header. Only content rows will be sorted while segment header/separator rows stay in the same place regardless of the sorting states. However, header/separator rows can be sorted manually by using <code>sortSeparators</code> API from <code>SortableTitlePlugin</code>. The method can optionally take a sorting function as its first parameter. If no parameter is passed to the function, the segments will be sorted according to the current sorting states of the grid.</p>
+<aside class="info"><ul>
+<li>When clearing the grid sorting state, the segments will not return to its original order. To make it return to  original position, <code>sortSeparators</code> need to be called with a custom sorting function.</li>
+<li>Sorting segment operation only swap position between segments, therefore the content rows between the segments will not be moved to stick together at top of the grid.</li>
+</ul>
+</aside><code-sandbox hash="12e588b3"><pre><code class="language-css">html hr {
+    margin: 5px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;button id=&quot;clear_sort&quot;&gt;Clear sorting states&lt;/button&gt;
+&lt;button id=&quot;original_sort_segment&quot;&gt;Sort segments to original order&lt;/button&gt;
+&lt;hr&gt;
+&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
+</code></pre>
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var rowSegmentingExt = new tr.RowSegmentingExtension();
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = tr.DataGenerator.generateRecords(fields, { seed: 1, numRows: 15 });
+var segmentField = &quot;SegmentId&quot;;
+records[2][&quot;segmentOrder&quot;] = 1;
+records[2][segmentField] = &quot;1&quot;;
+records[3][segmentField] = &quot;1&quot;;
+records[4][segmentField] = &quot;1&quot;;
+
+records[5][&quot;segmentOrder&quot;] = 2;
+records[5][segmentField] = &quot;2&quot;;
+records[6][segmentField] = &quot;2&quot;;
+records[7][segmentField] = &quot;2&quot;;
+
+records[10][&quot;segmentOrder&quot;] = 3;
+records[10][segmentField] = &quot;3&quot;;
+records[11][segmentField] = &quot;3&quot;;
+records[12][segmentField] = &quot;3&quot;;
+
+var sortableTitlePlugin = null; // This will be available in configured event
+function sortSegments() {
+    if(sortableTitlePlugin) {
+        // Sort segments according to the current sorting states
+        sortableTitlePlugin.sortSeparators();
+    }
+}
+function originalSegmentOrder(rowA, rowB, sortOrder, field){
+    var segmentOrderA = rowA[&quot;ROW_DEF&quot;].getData(&quot;segmentOrder&quot;);
+    var segmentOrderB = rowB[&quot;ROW_DEF&quot;].getData(&quot;segmentOrder&quot;);
+    if(segmentOrderA &lt; segmentOrderB) {
+        return -1;
+    }
+    if(segmentOrderB &lt; segmentOrderA) {
+        return 1;
+    }
+    return 0;
+}
+
+document.getElementById(&quot;clear_sort&quot;).addEventListener(&quot;click&quot;, function(e) {
+    sortableTitlePlugin.clearSortState();
+});
+document.getElementById(&quot;original_sort_segment&quot;).addEventListener(&quot;click&quot;, function(e) {
+    sortableTitlePlugin.sortSeparators(originalSegmentOrder);
+});
+
+var configObj = {
+    sorting: {
+        sortableColumns: true,
+        columnSorted: sortSegments // Trigger segment sorting when a column is sorted
+    },
+    rowSegmenting: {
+        segmentIdField: segmentField
+    },
+    columns: [
+        { name: &quot;Company&quot;, field: fields[0] },
+        { name: &quot;Market&quot;, field: fields[1], width: 120 },
+        { name: &quot;Last&quot;, field: fields[2], width: 100 },
+        { name: &quot;Net. Chng&quot;, field: fields[3], width: 100 },
+        { name: &quot;Industry&quot;, field: fields[4] }
+    ],
+    staticDataRows: records,
+    extensions: [
+        rowSegmentingExt
+    ]
+};
+var grid = window.grid = document.getElementsByTagName(&quot;atlas-blotter&quot;)[0];
+grid.config = configObj;
+grid.addEventListener(&quot;configured&quot;, function(e){
+    var core = grid.api.getCoreGrid();
+    sortableTitlePlugin = core.getPlugin(&quot;SortableTitlePlugin&quot;);
+});
+</code></pre>
+</code-sandbox><h2 id="content-sorting">Content sorting</h2>
+<p>Content rows are sorted within its own group/segment. The behavior is the same for both Row Segmenting and Row Grouping Extension.</p>
+<h2 id="predefined-color-on-the-color-tags">Predefined color on the color tags</h2>
+<p>The extension supports color from the predefined colors. To do this you need to assign predefined class object to the <code>predefinedColors</code> property then specify field name of the <code>cssField</code> property.</p>
+<code-sandbox hash="47fe044"><pre><code class="language-css">html hr {
+    margin: 5px;
+}
+atlas-blotter {
+    height: 300px;
+}
+.example-container {
+    display: inline;
+}
+.example-color {
+    width: 50px;
+    height: 24px;
+    margin: 4px;
+    display: inline-block;
+    vertical-align: middle;
+    line-height: 24px;
+    color: #333;
+    text-align: center;
+}
+button {
+    vertical-align: middle;
+}
+</code></pre>
+<pre><code class="language-html">&lt;div&gt;
+    Predefined color #1
+    &lt;div id=&quot;set1&quot; class=&quot;example-container&quot;&gt;&lt;/div&gt;
+    &lt;button id=&quot;apply_btn1&quot;&gt;Apply&lt;/button&gt;
+&lt;/div&gt;
+&lt;div&gt;
+    Predefined color #2
+    &lt;div id=&quot;set2&quot; class=&quot;example-container&quot;&gt;&lt;/div&gt;
+    &lt;button id=&quot;apply_btn2&quot;&gt;Apply&lt;/button&gt;
+&lt;/div&gt;
+&lt;hr&gt;
+&lt;div&gt;
+    Change color of 6th row
+    &lt;button id=&quot;set_color_btn1&quot;&gt;color #1&lt;/button&gt;
+    &lt;button id=&quot;set_color_btn2&quot;&gt;color #2&lt;/button&gt;
+    &lt;button id=&quot;set_color_btn3&quot;&gt;color #3&lt;/button&gt;
+&lt;/div&gt;
+&lt;hr&gt;
+
+&lt;atlas-blotter&gt;&lt;/atlas-blotter&gt;
+</code></pre>
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var predefinedColorsSet1 = {
+    &quot;color-1&quot;: {
+        backgroundColor: &quot;#FF2848&quot;
+    },
+    &quot;color-2&quot;: {
+        backgroundColor: &quot;#FFB27B&quot;
+    },
+    &quot;color-3&quot;: {
+        backgroundColor: &quot;#EEF3B4&quot;
+    }
+};
+
+var predefinedColorsSet2 = {
+    &quot;color-1&quot;: {
+        backgroundColor: &quot;#64864A&quot;
+    },
+    &quot;color-2&quot;: {
+        backgroundColor: &quot;#F56093&quot;
+    },
+    &quot;color-3&quot;: {
+        backgroundColor: &quot;#FFCCCD&quot;
+    }
+};
+
+var color, el;
+var parent = document.getElementById(&quot;set1&quot;);
+var div = document.createElement(&quot;div&quot;);
+for (color in predefinedColorsSet1) {
+    el = div.cloneNode();
+    el.textContent = color;
+    el.classList.add(&quot;example-color&quot;);
+    el.style.backgroundColor = predefinedColorsSet1[color].backgroundColor;
+    parent.appendChild(el);
+}
+
+parent = document.getElementById(&quot;set2&quot;);
+for (color in predefinedColorsSet2) {
+    el = div.cloneNode();
+    el.textContent = color;
+    el.classList.add(&quot;example-color&quot;);
+    el.style.backgroundColor = predefinedColorsSet2[color].backgroundColor;
+    parent.appendChild(el);
+}
+
+var ext = new tr.RowSegmentingExtension();
+var fields = [&quot;companyName&quot;, &quot;CF_NETCHNG&quot;, &quot;CF_VOLUME&quot;];
+var columns = fields.map(function(f) {
+    return {
+        name: f,
+        field: f
+    };
+});
+
+columns.push({
+    name: &quot;color&quot;,
+    field: &quot;TAG_CSS_CLASS&quot;
+});
+
+var records = tr.DataGenerator.generateRecords(fields, {seed: 1, rowCount: 20});
+
+records[2][&quot;TAG_CSS_CLASS&quot;] = &quot;color-1&quot;;
+records[5][&quot;TAG_CSS_CLASS&quot;] = &quot;color-2&quot;;
+records[8][&quot;TAG_CSS_CLASS&quot;] = &quot;color-3&quot;;
+
+var configObj = {
+    rowSegmenting: {
+        cssField: &quot;TAG_CSS_CLASS&quot;,
+        predefinedColors: predefinedColorsSet1
+    },
+    columns: [
+        {
+            field: fields[0],
+            name: &quot;companyName&quot;
+        },
+        {
+            field: fields[1],
+            name: &quot;Net. Chng&quot;
+        },
+        {
+            field: fields[2],
+            name: &quot;Volume&quot;
+        }
+    ],
+    extensions: [
+        ext
+    ]
+};
+var grid = document.getElementsByTagName(&quot;atlas-blotter&quot;)[0];
+grid.addEventListener(&quot;configured&quot;, function(e) {
+    ext.setSegmentSeparator(2);
+    ext.setSegmentSeparator(5);
+    ext.setSegmentSeparator(8);
+    ext.fillSegments();
+});
+grid.config = configObj;
+grid.data = records;
+
+document.getElementById(&quot;apply_btn1&quot;).addEventListener(&quot;click&quot;, function(e) {
+    ext.setPredefinedColors(predefinedColorsSet1);
+});
+
+document.getElementById(&quot;apply_btn2&quot;).addEventListener(&quot;click&quot;, function(e) {
+    ext.setPredefinedColors(predefinedColorsSet2);
+});
+
+document.getElementById(&quot;set_color_btn1&quot;).addEventListener(&quot;click&quot;, function(e) {
+    grid.api.setStaticData(5, &quot;TAG_CSS_CLASS&quot;, &quot;color-1&quot;);
+});
+
+document.getElementById(&quot;set_color_btn2&quot;).addEventListener(&quot;click&quot;, function(e) {
+    grid.api.setStaticData(5, &quot;TAG_CSS_CLASS&quot;, &quot;color-2&quot;);
+});
+
+document.getElementById(&quot;set_color_btn3&quot;).addEventListener(&quot;click&quot;, function(e) {
+    grid.api.setStaticData(5, &quot;TAG_CSS_CLASS&quot;, &quot;color-3&quot;);
+});
+</code></pre>
+</code-sandbox><h2 id="saving-and-loading-segments">Saving and loading segments</h2>
+<p>Row Segmenting Extension supports save/load functionality for <code>rowSpanningField</code>, <code>predefinedColors</code>, and <code>segmentIdField</code> properties.
+We provide the user to set those properties with <code>setStaticRowData</code> or <code>setStaticData</code>.
+When you set static data to pass grid API. It will be applied API in Row Segmenting Extension too. Such as, setPredefiniedColor can be set static value with grid.api.setStaticData(0,&quot;TAG_CSS_CLASS&quot;, &quot;color1&quot;) in runtime mode.
+And also, in the initialization grid, it will get values from rows or staticDataRows, which is static data.</p>
+<p>The example of set static data, which edits values in runtime,
+we provide the use case save/load config from the grid.
+You can get the config from the grid and use this config in another grid.</p>
+<p>You can follow in below example for implement save/load functionality.
+The first example it will be grid that can be change data with click &quot;Save config&quot;. 
+And then you can paste this config on the example 2 and click &quot;Start Grid&quot; and both grids look the same. </p>
+<h3 id="saving-segments-example">Saving segments example</h3>
+<code-sandbox hash="58c1a7b5"><pre><code class="language-css">html body {
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+html hr {
+    margin: 5px;
+}
+
+atlas-blotter {
+    height: 300px;
+}
+
+#copy_success {
+    color: green;
+}
+
+input[type=&quot;number&quot;] {
+    width: 40px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;span&gt;Row Index&lt;/span&gt;
+&lt;input value=&quot;1&quot; type=&quot;number&quot; id=&quot;row_index&quot;&gt;
+&lt;hr&gt;
+&lt;span&gt; Set segment color&lt;/span&gt;
+&lt;button id=&quot;set_segment_color_1&quot;&gt; Segment color 1 &lt;/button&gt;
+&lt;button id=&quot;set_segment_color_2&quot;&gt; Segment color 2 &lt;/button&gt;
+&lt;button id=&quot;set_segment_color_3&quot;&gt; Segment color 3 &lt;/button&gt;
+&lt;button id=&quot;unset_segment_color&quot;&gt; Unset Segment Color&lt;/button&gt;
+&lt;hr&gt;
+&lt;span&gt; Toggle Spanning &lt;/span&gt;
+&lt;button id=&quot;spanning_segment_separator&quot;&gt; Toggle &lt;/button&gt;
+&lt;hr&gt;
+&lt;span&gt; Save grid config for restore &lt;/span&gt;
+&lt;button id=&quot;save_config&quot;&gt; Save config &lt;/button&gt;
+&lt;span id=&quot;copy_success&quot;&gt; &lt;/span&gt;
+&lt;atlas-blotter&gt;&lt;/atlas-blotter&gt;
+</code></pre>
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var rowSegmentingExt = window.rowSegmentingExt = new tr.RowSegmentingExtension();
+
+var fields = [&quot;companyName&quot;, &quot;industry&quot;, &quot;CF_NETCHNG&quot;, &quot;PCTCHNG&quot;, &quot;CF_VOLUME&quot;];
+
+var records = tr.DataGenerator.generateRecords(fields, { seed: 1, rowCount: 12 });
+
+// Initialize grid with segment separators
+records[1].segmentId = &quot;1&quot;;
+records[2].segmentId = &quot;1&quot;;
+records[3].segmentId = &quot;1&quot;;
+
+records[4].segmentId = &quot;3&quot;;
+records[5].segmentId = &quot;3&quot;;
+records[6].segmentId = &quot;3&quot;;
+
+records[7].segmentId = &quot;2&quot;;
+records[8].segmentId = &quot;2&quot;;
+records[9].segmentId = &quot;2&quot;;
+
+// Set colors to each segment
+records[1].rowSegmentingColoringClass = &quot;color-1&quot;;
+records[4].rowSegmentingColoringClass = &quot;color-2&quot;;
+records[7].rowSegmentingColoringClass = &quot;color-3&quot;;
+
+records[4].customGroup = &quot;Custom Group 1&quot;;
+records[4].spanning = true;
+records[7].spanning = 2;
+
+
+var predefinedColorsSet1 = {
+    &quot;color-1&quot;: {
+        backgroundColor: &quot;#FF2848&quot;
+    },
+    &quot;color-2&quot;: {
+        backgroundColor: &quot;#FFB27B&quot;
+    },
+    &quot;color-3&quot;: {
+        backgroundColor: &quot;#EEF3B4&quot;
+    }
+};
+
+var configObj = {
+    columns: [
+        {
+            name: &quot;Company Name&quot;,
+            field: fields[0],
+            width: 120
+        },
+        {
+            name: &quot;Industry&quot;,
+            field: fields[1]
+        },
+        {
+            name: &quot;Net. Chng&quot;,
+            field: fields[2]
+        },
+        {
+            name: &quot;Price. Chng&quot;,
+            field: fields[3]
+        },
+        {
+            name: &quot;Volume&quot;,
+            field: fields[4]
+        }
+    ],
+    extensions: [rowSegmentingExt],
+    rowSegmenting: {
+        cssField: &quot;rowSegmentingColoringClass&quot;,
+        predefinedColors: predefinedColorsSet1,
+        rowSpanningField: &quot;spanning&quot;,
+        segmentIdField: &quot;segmentId&quot;,
+        segmentSeparatorBinding: function (e) {
+            if (e.rowData[&quot;customGroup&quot;]) {
+                e.cell.setTextContent(e.rowData[&quot;customGroup&quot;]);
+            } else {
+                e.cell.setTextContent(e.rowData[&quot;companyName&quot;]);
+            }
+        }
+    },
+    staticDataRows: records,
+};
+
+var grid = window.grid = document.getElementsByTagName(&quot;atlas-blotter&quot;)[0];
+grid.config = configObj;
+window.grid = grid;
+
+// listening Click Events
+
+set_segment_color_1.addEventListener(&quot;click&quot;, function (e) {
+    var rowIndex = + row_index.value;
+    grid.api.setStaticData(rowIndex, &quot;rowSegmentingColoringClass&quot;, &quot;color-1&quot;);
+});
+
+set_segment_color_2.addEventListener(&quot;click&quot;, function (e) {
+    var rowIndex = + row_index.value;
+    grid.api.setStaticData(rowIndex, &quot;rowSegmentingColoringClass&quot;, &quot;color-2&quot;);
+});
+
+set_segment_color_3.addEventListener(&quot;click&quot;, function (e) {
+    var rowIndex = + row_index.value;
+    grid.api.setStaticData(rowIndex, &quot;rowSegmentingColoringClass&quot;, &quot;color-3&quot;);
+});
+
+unset_segment_color.addEventListener(&quot;click&quot;, function (e) {
+    var rowIndex = + row_index.value;
+    grid.api.setStaticData(rowIndex, &quot;rowSegmentingColoringClass&quot;, null);
+});
+
+
+spanning_segment_separator.addEventListener(&quot;click&quot;, function (e) {
+    var rowIndex = + row_index.value;
+    var rowSpanning = grid.api.getRowData(rowIndex).spanning;
+
+    var rowDef = grid.api.getRowDefinition(rowIndex);
+    rowDef.setStaticData(&quot;spanning&quot;, !rowSpanning);
+
+});
+
+save_config.addEventListener(&quot;click&quot;, function(e) {
+    var config = grid.api.getConfigObject();
+    var configStr = JSON.stringify(config, null, 2);
+    copyToClipboard(configStr);
+    copy_success.textContent = &quot;Copied grid config to clipboard success&quot;;
+    setTimeout(function(e) { copy_success.textContent = &quot;&quot; }, 5000); // clear alert user
+});
+
+function copyToClipboard(val) {
+    // tmpInput for copy text
+    var tmpInput = document.getElementById(&quot;tmp_input&quot;);
+    if(!tmpInput) {
+        tmpInput = document.createElement(&quot;textarea&quot;);
+        tmpInput.id = &quot;tmp_input&quot;;
+        document.body.appendChild(tmpInput);
+    }
+    tmpInput.style.visibility = &quot;visible&quot;;
+    tmpInput.value = val;
+    tmpInput.select();
+    document.execCommand(&quot;copy&quot;);
+    tmpInput.style.visibility = &quot;hidden&quot;;
+
+}
+</code></pre>
+</code-sandbox><h3 id="restoring-segments-example">Restoring segments example</h3>
+<code-sandbox hash="5feaf373"><pre><code class="language-css">html body {
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+html hr {
+    margin: 5px;
+}
+
+atlas-blotter {
+    height: 300px;
+}
+
+#area_config {
+    width: 100%;
+    height: 100px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;span&gt; You can load the grid config with pase in below text area and then click &quot;Start Grid&quot; &lt;/span&gt;
+&lt;hr&gt;
+&lt;button id=&quot;start_grid&quot;&gt; Start Grid &lt;/button&gt;
+&lt;hr&gt;
+&lt;textarea id=&quot;area_config&quot; placeholder=&quot;Patse grid config and click Start Grid&quot;&gt;&lt;/textarea&gt;
+&lt;hr&gt;
+&lt;atlas-blotter&gt;&lt;/atlas-blotter&gt;
+</code></pre>
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;companyName&quot;, &quot;industry&quot;, &quot;CF_NETCHNG&quot;, &quot;PCTCHNG&quot;, &quot;CF_VOLUME&quot;];
+
+function onSeparatorBinding(e) {
+    if (e.rowData[&quot;customGroup&quot;]) {
+        e.cell.setTextContent(e.rowData[&quot;customGroup&quot;]);
+    } else {
+        e.cell.setTextContent(e.rowData[&quot;companyName&quot;]);
+    }
+}
+
+start_grid.addEventListener(&quot;click&quot;, function (e) {
+    var grid = window.grid = window.grid = document.getElementsByTagName(&quot;atlas-blotter&quot;)[0];
+
+    var valueConfig = JSON.parse(area_config.value);
+    var configObj = valueConfig;
+    if(configObj.rowSegmenting) {
+        configObj.rowSegmenting[&quot;segmentSeparatorBinding&quot;] = onSeparatorBinding;
+    }
+    grid.config = configObj;
+});
+</code></pre>
+</code-sandbox><h2 id="empty-segment-filtering-and-separator-filtering">Empty segment filtering and separator filtering</h2>
+<p>By default, segment header cannot be filtered out. However, Row Filtering Extension has <code>emptySegmentFiltering</code> option that allows empty segment to be filtered out. With the option turned on, any segment whose all of its members are not present by filtering will also be hidden. Empty segment will still be visible, if there is no active filter. Collapsing of the segment does not count as having an active filter.</p>
+<p><code>separatorFiltering</code> option from Row Filtering Extension also allow separator rows to be filtered as if they were a normal row. Note that the separator rows can be filtered out, while their child rows may ramain visible.  </p>
+<code-sandbox hash="e1ff8e5d"><pre><code class="language-css">html hr {
+    margin: 5px;
+}
+atlas-blotter {
+    height: 300px;
+}
+i:empty {
+    padding-right: 20px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;label&gt;Empty segment filtering: &lt;input id=&quot;empty_segment_chk&quot; type=&quot;checkbox&quot; checked&gt;&lt;/label&gt;
+&lt;i&gt;&lt;/i&gt;
+&lt;label&gt;Separator filtering: &lt;input id=&quot;separator_chk&quot; type=&quot;checkbox&quot; checked&gt;&lt;/label&gt;
+&lt;hr&gt;
+&lt;atlas-blotter&gt;&lt;/atlas-blotter&gt;
+</code></pre>
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var chkBox = document.getElementById(&quot;empty_segment_chk&quot;);
+chkBox.addEventListener(&quot;change&quot;, function (e) {
+    var checked = e.currentTarget.checked;
+    rfExt.enableEmptySegmentFiltering(checked); // Changing mode at runtime
+});
+chkBox = document.getElementById(&quot;separator_chk&quot;);
+chkBox.addEventListener(&quot;change&quot;, function (e) {
+    var checked = e.currentTarget.checked;
+    rfExt.enableSeparatorFiltering(checked); // Changing mode at runtime
+});
+
+var fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;index4&quot;, &quot;percent&quot;, &quot;market&quot;];
+var columns = fields.map(function (f, idx) {
+    return {
+        name: &quot;Column &quot; + idx,
+        field: f
+    };
+});
+columns[0].width = 80;
+
+var segmentField = &quot;SegmentId&quot;;
+var records = tr.DataGenerator.generateRecords(fields, { seed: 0, rowCount: 15 });
+records[1][segmentField] = &quot;0&quot;; // To illustrate empty segment
+
+records[3][segmentField] = &quot;1&quot;;
+records[4][segmentField] = &quot;1&quot;;
+records[5][segmentField] = &quot;1&quot;;
+records[6][segmentField] = &quot;1&quot;;
+
+records[8][segmentField] = &quot;2&quot;;
+records[9][segmentField] = &quot;2&quot;;
+records[10][segmentField] = &quot;2&quot;;
+records[11][segmentField] = &quot;2&quot;;
+
+var fiExt = new tr.FilterInputExtension();
+var rfExt = new tr.RowFilteringExtension();
+var configObj = {
+    columns: columns,
+    rowFiltering: {
+        emptySegmentFiltering: true,
+        separatorFiltering: true
+    },
+    rowSegmenting: {
+        segmentIdField: segmentField
+    },
+    staticDataRows: records,
+    extensions: [rfExt, fiExt]
+};
+
+var grid = document.getElementsByTagName(&quot;atlas-blotter&quot;)[0];
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 style="margin-bottom:5px" id="api-refs">API Reference</h2>
+<div id="elf-api-container"><div id="main-template" class="elf-template">    <section><header>            <h1 class="subsection-title"><span class="attribs"><span class="type-signature"></span></span>RowSegmentingPlugin<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h1>            </header><article>                                                                        <h3 class="subsection-title" id="type_definitions">Type Definitions</h3>                        
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~Options">Options</h4><div class="description">    The options can be specified by `rowSegmenting` property of the main grid's options</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>spanning</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    true                                </td>                        <td class="description last">If disabled, segment separator rows will not be spanned/stretched across multiple cells</td>        </tr>            <tr>                            <td class="name"><code>colorTag</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">If not specified, the color tag will be disabled when using extension without halo theme.</td>        </tr>            <tr>                            <td class="name"><code>cssField</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    "TAG_CSS_CLASS"                                </td>                        <td class="description last">Apply CSS class based on the given field</td>        </tr>            <tr>                            <td class="name"><code>predefinedColors</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Predefined color object map for color tag</td>        </tr>            <tr>                            <td class="name"><code>clicked</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Event handler when user clicks on arrows or cells</td>        </tr>            <tr>                            <td class="name"><code>headerMenuClicked</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Event handler when user clicks on menu icon. The menu icon will be displayed if spanning option is true.</td>        </tr>            <tr>                            <td class="name"><code>segmentSeparatorBinding</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Logic that will be executed on each segment separator row</td>        </tr>            <tr>                            <td class="name"><code>nonSegmentSeparatorBinding</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Logic that will be executed for all non segment separator row</td>        </tr>            <tr>                            <td class="name"><code>sortingLogic</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Logic to be used by sortSegments method</td>        </tr>            <tr>                            <td class="name"><code>rowSpanningField</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    "ROW_SPANNING"                                </td>                        <td class="description last">Field to be used for spanning segment header rows based on the field values</td>        </tr>            <tr>                            <td class="name"><code>segmentIdField</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    ""                                </td>                        <td class="description last">Field used for initializing segments based on text id</td>        </tr>            <tr>                            <td class="name"><code>collapsingField</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    ""                                </td>                        <td class="description last">Field used for indicating that the corresponding segment row is collapsed</td>        </tr>            <tr>                            <td class="name"><code>parentIdField</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    ""                                </td>                        <td class="description last">Field used for specifying parent segment of the row</td>        </tr>            <tr>                            <td class="name"><code>defaultCollapsing</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">If enabled, any newly created segment will be collapsed by default</td>        </tr>            <tr>                            <td class="name"><code>displayColumn</code></td>                        <td class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Render tags in the given column. It can be either the column index, column ID, or field</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~SegmentDefinition">SegmentDefinition</h4><div class="description">    An object that can be passed to setSegmentSeparator method</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>children</code></td>                        <td class="type">                            <span class="param-type">Array.&lt;string&gt;</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Array of child row ids</td>        </tr>            <tr>                            <td class="name"><code>collapsed</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Initial expanding/colapssing state of the segment</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            
+<div class="item">                                <div class="item-type">typedef</div>                        <h4 class="name" id="~SortingLogic"><span class="type-signature"></span>SortingLogic<span class="signature">(rowDataA, rowDataB)</span><span class="type-signature"> → {number}</span></h4>                            <div class="description">        Comparer function for comparing the order of 2 segment separator rows. The function takes at least 2 parameters. <br> The function should return -1 if the first parameter should comes first, 1 for the other way, and 0 if they are equal.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowDataA</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    Row data of the segment separator row                </div>                    </div>                <div class="param">                            <div class="name">rowDataB</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    Row data of the segment separator row                </div>                    </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">number</span>    </div>                </div>                            <h3 class="subsection-title" id="methods">Methods</h3>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="addSegmentChild"><span class="type-signature"></span>addSegmentChild<span class="signature">(segmentRef, rowRef)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">segmentRef</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </div>                                                    <div class="description">                    Row id or row index                </div>                    </div>                <div class="param">                            <div class="name">rowRef</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </div>                                                    <div class="description">                    Row id, row index                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="addSegmentChildren"><span class="type-signature"></span>addSegmentChildren<span class="signature">(segmentRef, rowRefs)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">segmentRef</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </div>                                                    <div class="description">                    Row id or row index                </div>                    </div>                <div class="param">                            <div class="name">rowRefs</div>                        <div class="type">                            <span class="param-type">Array.&lt;(string|number)&gt;</span>                        </div>                                                    <div class="description">                    Array of row ids or row indices.  If null is given, no child will be removed.                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="collapseSegment"><span class="type-signature"></span>collapseSegment<span class="signature">(rowRef, collapsed<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Hide all members in the segment    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowRef</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    Row id or row index of the segment separator                </div>                    </div>                <div class="param">                            <div class="name">collapsed</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    Return true if there is any change</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="collapseSegments"><span class="type-signature"></span>collapseSegments<span class="signature">(rowIds, collapsed)</span><span class="type-signature"> → {boolean}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowIds</div>                        <div class="type">                            <span class="param-type">Array.&lt;string&gt;</span>                        </div>                                            </div>                <div class="param">                            <div class="name">collapsed</div>                        <div class="type">                            <span class="param-type">Array.&lt;string&gt;</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    Return true if there is any change</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="config"><span class="type-signature"></span>config<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    Grid configuration object                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="expandAllSegments"><span class="type-signature"></span>expandAllSegments<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    Return true if there is any change</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="expandSegment"><span class="type-signature"></span>expandSegment<span class="signature">(rowRef, expanded<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {boolean}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowRef</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    Row id or row index                </div>                    </div>                <div class="param">                            <div class="name">expanded</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    Return true if there is any change</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="fillSegment"><span class="type-signature"></span>fillSegment<span class="signature">(segmentRef)</span><span class="type-signature"></span></h4>                            <div class="description">        Remove existing segment children and fill the segments with all contnet rows before the next segment separator    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">segmentRef</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </div>                                                    <div class="description">                    Row id or row index                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="fillSegments"><span class="type-signature"></span>fillSegments<span class="signature">()</span><span class="type-signature"></span></h4>                            <div class="description">        Remove all existing segment children in each segment and fill the segments with all contnet rows before the next segment separator    </div>                        <div class="details">                                                            </div>                                    </div>                    
 <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getConfigObject"><span class="type-signature"></span>getConfigObject<span class="signature">(gridOptions<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Object}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">gridOptions</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getLastSelectionBounds"><span class="type-signature"></span>getLastSelectionBounds<span class="signature">(opt_ret<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Object}</span></h4>                            <div class="description">        Add left, top, right, bottom properties to the given object    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">opt_ret</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div>                </div>                    
 <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getName"><span class="type-signature"></span>getName<span class="signature">()</span><span class="type-signature"> → {string}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">string</span>    </div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getSelectedCells"><span class="type-signature"></span>getSelectedCells<span class="signature">()</span><span class="type-signature"> → {Array.&lt;Array&gt;}</span></h4>                            <div class="description">        Use to get selected cells.    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Array.&lt;Array&gt;</span>    </div><div class="sub-content-desc">    2D array of cells</div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getSelectedText"><span class="type-signature"></span>getSelectedText<span class="signature">()</span><span class="type-signature"> → {string}</span></h4>                            <div class="description">        Get text from selected cells. If no selection, return empty string. <br>Text will be converted to Tab-separated values format, representing tabular structure. <br>Newlines (\n, \r), Tab (\t) and &lt;br&gt; <br>will be converted to single space. Connecting spaces will remain intact.    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">string</span>    </div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getSelectionBounds"><span class="type-signature"></span>getSelectionBounds<span class="signature">(opt_ret<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Object}</span></h4>                            <div class="description">        Add left, top, right, bottom properties to the given object    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">opt_ret</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getSelectionCount"><span class="type-signature"></span>getSelectionCount<span class="signature">()</span><span class="type-signature"> → {number}</span></h4>                            <div class="description">        Return total number of selected cells    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">number</span>    </div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="hasMultiTableSupport"><span class="type-signature"></span>hasMultiTableSupport<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Plugin that has multi-table support means that it can have multiple hosts/tables and share its states across those hosts/tables.    </div>                        <div class="details">                    <dt class="tag-overrides">Overrides:</dt>    <dd class="tag-overrides">        <a href="#">GridPlugin#hasMultiTableSupport</a>    </dd>                                                </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="initialize"><span class="type-signature"></span>initialize<span class="signature">()</span><span class="type-signature"></span></h4>                            <div class="description">        Called by Grid plugin's initialization    </div>                        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="selectAll"><span class="type-signature"></span>selectAll<span class="signature">()</span><span class="type-signature"></span></h4>                            <div class="description">        Select all cell.    </div>                        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="selectCells"><span class="type-signature"></span>selectCells<span class="signature">(rect)</span><span class="type-signature"></span></h4>                            <div class="description">        Use to select multiple cells, can be selected by rectangle area.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rect</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    Object with rowIndex, colIndex, width, and height properties                </div>                    </div>            </div>        <div class="details">                                                            </div>                                            <h5>Example:</h5>            <pre><code>ext.selectCells({
-  colIndex: 1, rowIndex: 1, width: 2, height: 2
-});</code></pre>    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="selectNextCell"><span class="type-signature"></span>selectNextCell<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Select next cell from the current selection anchor.    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    Return true if the next cell is selected, otherwise false</div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="selectPrevCell"><span class="type-signature"></span>selectPrevCell<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Select previous cell from the current selection anchor.    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    Return true if the next cell is selected, otherwise false</div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="selectSingleCell"><span class="type-signature"></span>selectSingleCell<span class="signature">(anchor)</span><span class="type-signature"></span></h4>                            <div class="description">        Use to select single cell and deselect previous selected cells.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">anchor</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                            <h5>Example:</h5>            <pre><code>extension.selectSingleCell({colIndex: 1, rowIndex: 0});</code></pre>    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setAutoDeselectingOnBlur"><span class="type-signature"></span>setAutoDeselectingOnBlur<span class="signature">(bool)</span><span class="type-signature"></span></h4>                            <div class="description">        Use to set Auto Deselecting when blur.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">bool</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setSelectableSections"><span class="type-signature"></span>setSelectableSections<span class="signature">(types<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                            <div class="description">        Use to set which section can be selected,[ header, title, content ]    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">types</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">Array.&lt;string&gt;</span> | <span class="param-type">null</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    Use null to allow all sections to be select                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="unload"><span class="type-signature"></span>unload<span class="signature">()</span><span class="type-signature"></span></h4>                            <div class="description">        Prevent memory leak, when we leave witout unlisten.    </div>                        <div class="details">                                                            </div>                                    </div>                        <h3 class="subsection-title" id="events">Events</h3>                    
-<div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:beforeMouseDown">beforeMouseDown</h4>                            <div class="description">        Happens when mouse is down.    </div>                    <h5>Type:</h5>        <span class="param-type">Object</span>                    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>cancel</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">This property can be set to true to cancel the operation</td>        </tr>        </tbody></table></div><div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:copy">copy</h4>                            <div class="description">        Happens when Copy is triggered (e.g. Ctrl + C, or selecting copy from context menu).    </div>                            <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>grid</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                            <td class="attributes">                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Core grid instance</td>        </tr>            <tr>                            <td class="name"><code>cancel</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">This property can be set to true to cancel the operation</td>        </tr>            <tr>                            <td class="name"><code>data</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">The data to be copied to system clipboard</td>        </tr>            <tr>                            <td class="name"><code>format</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    "text/plain"                                </td>                        <td class="description last">The format of the data</td>        </tr>        </tbody></table></div><div class="details">                                                            </div>                                            <h5>Example:</h5>            <pre><code>copy: function(e) {
-  e.cancel = true; // To cancel the operation
-}</code></pre>    </div>                    
-<div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:selectionChanged">selectionChanged</h4>                            <div class="description">        Happens after mouse up event.    </div>                        <div class="details">                                                            </div>                                    </div>            </article></section></div></div>
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getRowConfigObject"><span class="type-signature"></span>getRowConfigObject<span class="signature">(rowData, rowId)</span><span class="type-signature"> → {Object}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowData</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    row config object                </div>                    </div>                <div class="param">                            <div class="name">rowId</div>                        <div class="type">                            <span class="param-type">string</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div><div class="sub-content-desc">    return row config object with update special field data</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getSegmentChildIds"><span class="type-signature"></span>getSegmentChildIds<span class="signature">(segmentRef)</span><span class="type-signature"> → {Array.&lt;string&gt;}</span></h4>                            <div class="description">        Get row ids of all children from the specified segment    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">segmentRef</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </div>                                                    <div class="description">                    Row id or row index                </div>                    </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Array.&lt;string&gt;</span>    </div><div class="sub-content-desc">    Returns array of row ids. Returns null if there is no child or no segment separator found</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getSegmentIds"><span class="type-signature"></span>getSegmentIds<span class="signature">()</span><span class="type-signature"> → {Array.&lt;string&gt;}</span></h4>                            <div class="description">        Get row ids of all segment separator    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Array.&lt;string&gt;</span>    </div><div class="sub-content-desc">    Return null if there is no segment separator</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getSegmentParentRowId"><span class="type-signature"></span>getSegmentParentRowId<span class="signature">(rowRef)</span><span class="type-signature"> → {string}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowRef</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </div>                                                    <div class="description">                    Row Id or row index                </div>                    </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">string</span>    </div><div class="sub-content-desc">    parent row id of this segmentation. If the parent row id for this segmentation cannot be found, return ""</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="hasMultiTableSupport"><span class="type-signature"></span>hasMultiTableSupport<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Plugin that has multi-table support means that it can have multiple hosts/tables and share its states across those hosts/tables.    </div>                        <div class="details">                <dt class="inherited-from">Inherited From:</dt>    <dd class="inherited-from">        <a href="#">GridPlugin#hasMultiTableSupport</a>    </dd>                                                    </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="hasSegmentation"><span class="type-signature"></span>hasSegmentation<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Check if there is at least one segment separator in the data view    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="initialize"><span class="type-signature"></span>initialize<span class="signature">(host, options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">host</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    core grid instance                </div>                    </div>                <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="isSegmentCollapsed"><span class="type-signature"></span>isSegmentCollapsed<span class="signature">(rowRef)</span><span class="type-signature"> → {boolean}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowRef</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </div>                                                    <div class="description">                    Row id or row index                </div>                    </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    Return true if only the given row is a collapsed segment separator</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="isSegmentSeparator"><span class="type-signature"></span>isSegmentSeparator<span class="signature">(rowRef)</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Check if the specified row is a segment separator    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowRef</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </div>                                                    <div class="description">                    Row id or row index (not recommended for usage)                </div>                    </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="removeAllSegmentChildren"><span class="type-signature"></span>removeAllSegmentChildren<span class="signature">()</span><span class="type-signature"></span></h4>                                            <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="removeSegmentChild"><span class="type-signature"></span>removeSegmentChild<span class="signature">(segmentRef, rowRef)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">segmentRef</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </div>                                                    <div class="description">                    Row id or row index                </div>                    </div>                <div class="param">                            <div class="name">rowRef</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </div>                                                    <div class="description">                    Row id, row index                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="removeSegmentChildren"><span class="type-signature"></span>removeSegmentChildren<span class="signature">(segmentRef, rowRefs)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">segmentRef</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </div>                                                    <div class="description">                    Row id or row index                </div>                    </div>                <div class="param">                            <div class="name">rowRefs</div>                        <div class="type">                            <span class="param-type">Array.&lt;(string|number)&gt;</span>                        </div>                                                    <div class="description">                    Array of row ids or row indices                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="requestSeparatorRefresh"><span class="type-signature"></span>requestSeparatorRefresh<span class="signature">()</span><span class="type-signature"></span></h4>                            <div class="description">        Request for updating the segment separators based on values from segment Id field in row data    </div>                        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setPredefinedColors"><span class="type-signature"></span>setPredefinedColors<span class="signature">(predefinedColors)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">predefinedColors</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    Predefined color object map                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setSegmentChildren"><span class="type-signature"></span>setSegmentChildren<span class="signature">(segmentArr)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">segmentArr</div>                        <div class="type">                            <span class="param-type">Array.&lt;Object&gt;</span>                        </div>                                                    <div class="description">                    Segment array that contain "segmentId", "rowIds" to set segment children                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setSegmentClassification"><span class="type-signature"></span>setSegmentClassification<span class="signature">(rowRef, fields)</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Set classification for the specified segment    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowRef</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </div>                                                    <div class="description">                    Row id or row index                </div>                    </div>                <div class="param">                            <div class="name">fields</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">Array.&lt;string&gt;</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setSegmentCollapsingLogic"><span class="type-signature"></span>setSegmentCollapsingLogic<span class="signature">(func)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">func</div>                        <div class="type">                            <span class="param-type">function</span>                        </div>                                                    <div class="description">                    By default, all row members are hidden in a collapsed segment                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setSegmentSeparator"><span class="type-signature"></span>setSegmentSeparator<span class="signature">(rowRef, options<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Set specified row as a segment separator    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowRef</div>                        <div class="type">                            <span class="param-type">string</span> | <span class="param-type">number</span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    Row id or row index                </div>                    </div>                <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">*</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    The segment will be created and initialized according to the given option. If the value is false, the specified segment is removed.                </div>                    </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    Return true if there is any change</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setSegmentSeparators"><span class="type-signature"></span>setSegmentSeparators<span class="signature">(rowIds, enabled<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Set specified row ids as a segment separator    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowIds</div>                        <div class="type">                            <span class="param-type">Array.&lt;string&gt;</span>                        </div>                            <div class="attributes">                                                                </div>                                            </div>                <div class="param">                            <div class="name">enabled</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    Return true if there is any change</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setSortingLogic"><span class="type-signature"></span>setSortingLogic<span class="signature">(sortFunction)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">sortFunction</div>                        <div class="type">                            <span class="param-type"><a href="#/extensions/row-segmenting#~SortingLogic">RowSegmentingPlugin~SortingLogic</a></span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="sortSegments"><span class="type-signature"></span>sortSegments<span class="signature">(sortFunction<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">sortFunction</div>                        <div class="type">                            <span class="param-type"><a href="#/extensions/row-segmenting#~SortingLogic">RowSegmentingPlugin~SortingLogic</a></span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="spanSegmentSeparator"><span class="type-signature"></span>spanSegmentSeparator<span class="signature">(rowRef, spanning)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowRef</div>                        <div class="type">                            <span class="param-type">number</span> | <span class="param-type">string</span>                        </div>                                                    <div class="description">                    rowIndex or rowId                </div>                    </div>                <div class="param">                            <div class="name">spanning</div>                        <div class="type">                            <span class="param-type">boolean</span> | <span class="param-type">null</span>                        </div>                                                    <div class="description">                    if set true when rowRef is row separator, then span that row                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="unload"><span class="type-signature"></span>unload<span class="signature">(host<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">host</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    core grid instance                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="unsetAllSegmentSeparators"><span class="type-signature"></span>unsetAllSegmentSeparators<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Clear all segment separator rows    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div><div class="sub-content-desc">    Return true if there is any change</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="updateHeaders"><span class="type-signature"></span>updateHeaders<span class="signature">()</span><span class="type-signature"></span></h4>                                            <div class="details">                                                            </div>                                    </div>                </article></section></div></div>

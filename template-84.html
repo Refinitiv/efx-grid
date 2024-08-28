@@ -1,57 +1,26 @@
-<h1 id="efx-grid">EFX Grid</h1>
-<p>EFX Grid is a <a href="https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_custom_elements">custom element</a>, providing simple ways to display and manipulate data in table layout. All HTML native properties and events are available in EFX Grid. It can be easily created by just writing the tag and setting the configuration as shown below:</p>
-<pre><code class="language-html">&lt;body&gt;
-    &lt;efx-grid&gt;&lt;/efx-grid&gt;
+<h1 id="event-listeners">Event Listeners</h1>
+<p>Since Grid is element, you can directly listen for events from it. It&#39;s recommended to listen for native events and then use the <code>getRelativePosition()</code> method to resolve which cell, area, or position are the target of the event. This is because Grid does not render every cell, and the cells are being reused across different rows. So it&#39;s important to resolve the position inside the event handler (such as, runtime resolving). You can use any native event and resolve the position by using the <code>getRelativePosition()</code> method.</p>
+<h2 id="click-and-right-click">Click and right click</h2>
+<p>If you want to do something on the click event, you could do the following code snippet:</p>
+<pre><code class="language-js">var grid = document.getElementById(&quot;grid_id&quot;);
 
-    &lt;script&gt;
-        var grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
-        grid.config = {
-            /* See the API Doc for all available options */
-        };
-    &lt;/script&gt;
-&lt;/body&gt;
-</code></pre>
-<blockquote>
-<p>For more available properties in EFX Grid element, see <a href="#/data/columns-and-data">Columns and Data Properties</a>.</p>
-</blockquote>
-<h2 id="grid-apis">Grid APIs</h2>
-<p><code>api</code> property from the grid element represents JavaScript-based Grid instance. The <code>api</code> property is an access point for all Grid APIs and for making change at runtime. The <code>api</code> property will be available only after the <code>config</code> is set and initialized. To use <code>api</code> immediately after grid has been initialized, you can listen to <code>configured</code> event as shown below:</p>
-<pre><code class="language-js">var grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
-grid.addEventListener(&quot;configured&quot;, function (e) {
-    var api = e.detail.api;
-    var gridElem = e.detail.element;
+grid.addEventListener(&quot;click&quot;, function(e){ // Notice that api property is not required here
+    var pos = grid.api.getRelativePosition(e); // Resolve the position at runtime
     
-    var core = api.getCoreGrid();
-
-    console.log(&quot;Grid has been configured.&quot;);
-});
-
-console.log(grid.api); // api instance will not be available immediately after configuration is set.
-</code></pre>
-<blockquote>
-<p>The document for the API instance can be found in the <a href="#/apis/rt-grid/grid">Grid APIs page</a>.</p>
-</blockquote>
-<h2 id="core-grid">Core Grid</h2>
-<p>As Grid grows in complexity, Core Grid is created to maintain and manage UIs for table and data display. It contains mostly low-level APIs. Any advanced features and user interactions have been moved out to the API instance and Grid extensions. In some specific cases, you may want to access Core Grid, such as managing scrollbars. To get Core Grid instance, use <code>getCoreGrid()</code> method from the <code>api</code> property as shown below:</p>
-<pre><code class="language-js">var grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
-grid.addEventListener(&quot;configured&quot;, function (e) {
-    var api = e.detail.api;
-    var core = api.getCoreGrid();
-    var section = core.getSection(&quot;content&quot;); // Content section
-    var vScrollbar = core.getVScrollbar(); // Vertical scrollbar
+    console.log(pos.sectionType, pos.colIndex, pos.rowIndex); // pos object contains a lot of information
 });
 </code></pre>
-<blockquote>
-<p>The document for the Core Grid can be found in the <a href="#/apis/core/grid">Core APIs page</a>.</p>
-</blockquote>
-<h2 id="example">Example</h2>
-<code-sandbox hash="1e0428df"><pre><code class="language-css">efx-grid {
+<p>For right click, simply use native <code>contextmenu</code> event to detect right click on the grid element. Use <code>preventDefault()</code> method to prevent default context menu behaviors from triggering.</p>
+<h3 id="listening-to-click-and-right-click-events-example">Listening to click and right click events example</h3>
+<p>The below example shows how you can click or right click on the grid element to get information about the clicked position.</p>
+<code-sandbox hash="f63b4494"><pre><code class="language-css">atlas-blotter {
     height: 300px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+<pre><code class="language-html">&lt;atlas-blotter&gt;&lt;/atlas-blotter&gt;
 </code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
@@ -60,30 +29,255 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;date1&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 200 });
-var configObj = {
-    freezeColumn: 0,
-    columns: [
-        {name: &quot;Company&quot;, field: fields[0], width: 300},
-        {name: &quot;Market&quot;, field: fields[1], width: 150},
-        {name: &quot;Last&quot;, field: fields[2], width: 120},
-        {
-            name: &quot;Pct. Chng&quot;, 
-            field: fields[3], 
-            width: 200, 
-            formatter: PercentBarFormatter.create({
-                textHidden: true
-            })
-        },
-        {name: &quot;IPO Date&quot;, field: fields[4], width: 180, alignment: &quot;center&quot;, formatType: &quot;dateTime&quot;},
-        {name: &quot;Industry&quot;, field: fields[5], width: 250}
-    ],
-    staticDataRows: records,
-    extensions: [new TextFormatting()]
-};
+var fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;market&quot;, &quot;CF_NETCHNG&quot;, &quot;CF_VOLUME&quot;];
+var columnNames = [&quot;Id&quot;, &quot;Company Name&quot;, &quot;Market&quot;, &quot;Net Chng.&quot;, &quot;Volume&quot;];
+var columns = fields.map(function(f, idx) {
+    return {
+        field: f,
+        name: columnNames[idx]
+    }
+});
+var records = tr.DataGenerator.generateRecords(fields, {seed: 1, rowCount: 20});
 
-var grid = document.getElementById(&quot;grid&quot;);
+var configObj = {
+    columns: columns,
+    staticDataRows: records
+};
+var grid = document.getElementsByTagName(&quot;atlas-blotter&quot;)[0];
 grid.config = configObj;
+
+grid.addEventListener(&quot;click&quot;, function(e) {
+    var pos = grid.api.getRelativePosition(e);
+    var ary = [
+        &quot;Clicked&quot;,
+        &quot;Field: &quot; + grid.api.getColumnField(pos.colIndex),
+        &quot;Section: &quot; + pos.sectionType,
+        &quot;Col Idx: &quot; + pos.colIndex,
+        &quot;Row Idx: &quot; + pos.rowIndex
+    ];
+    alert(ary.join(&quot;\n&quot;));
+});
+grid.addEventListener(&quot;contextmenu&quot;, function(e) {
+    var pos = grid.api.getRelativePosition(e);
+    var ary = [
+        &quot;Right clicked&quot;,
+        &quot;Field: &quot; + grid.api.getColumnField(pos.colIndex),
+        &quot;Section: &quot; + pos.sectionType,
+        &quot;Col Idx: &quot; + pos.colIndex,
+        &quot;Row Idx: &quot; + pos.rowIndex
+    ];
+    alert(ary.join(&quot;\n&quot;));
+    
+    e.preventDefault();
+    e.stopPropagation();
+});
 </code></pre>
-</code-sandbox>
+</code-sandbox><h2 id="mouse-events">Mouse events</h2>
+<p>The common native events, such as <code>mousemove</code>, <code>mouseup</code>, and <code>mousedown</code>, can be listened on the grid element.</p>
+<aside class="info"><p>Note: Grid internally divides itself into several sections. The top section is called <code>title</code> and the lower part is called <code>content</code>. So the <code>sectionType</code> from the position object can be one of the following values: <code>title</code>, <code>content</code>, <code>footer</code>.</p>
+</aside><h3 id="listening-to-mousemove-event-example">Listening to mousemove event example</h3>
+<code-sandbox hash="6ef8bf79"><pre><code class="language-css">html hr {
+    margin: 5px;
+}
+textarea {
+    width: 100%;
+    height: 80px;
+    font-size: 20px;
+}
+atlas-blotter {
+    height: 300px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;textarea id=&quot;msg_ta&quot;&gt;&lt;/textarea&gt;
+&lt;hr&gt;
+&lt;atlas-blotter&gt;&lt;/atlas-blotter&gt;
+</code></pre>
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;market&quot;, &quot;CF_NETCHNG&quot;, &quot;CF_VOLUME&quot;];
+var columnNames = [&quot;Id&quot;, &quot;Company Name&quot;, &quot;Market&quot;, &quot;Net Chng.&quot;, &quot;Volume&quot;];
+var columns = fields.map(function(f, idx) {
+    return {
+        field: f,
+        name: columnNames[idx]
+    }
+});
+var records = tr.DataGenerator.generateRecords(fields, {seed: 1, rowCount: 20});
+
+var configObj = {
+    columns: columns,
+    staticDataRows: records
+};
+var grid = document.getElementsByTagName(&quot;atlas-blotter&quot;)[0];
+grid.config = configObj;
+
+grid.addEventListener(&quot;mousemove&quot;, function(e) {
+    var pos = grid.api.getRelativePosition(e);
+    var ary = [
+        &quot;Section: &quot; + pos.sectionType,
+        &quot;Col Idx: &quot; + pos.colIndex,
+        &quot;Row Idx: &quot; + pos.rowIndex
+    ];
+    msg_ta.value = ary.join(&quot;\n&quot;);
+});
+</code></pre>
+</code-sandbox><h2 id="keyboard-events">Keyboard events</h2>
+<p>Since Grid is not an interactive element, clicking grid does not give focus to it. You will need to call <code>focus()</code> method from Grid&#39;s APIs in order to give grid element the focus, allowing it to receive keyboard inputs/events. </p>
+<h3 id="listening-to-keyup-event-example">Listening to keyup event example</h3>
+<p>The below example shows how you can listen to <code>click</code> event and give focus to grid for receiving keyboard input:</p>
+<code-sandbox hash="29e17be0"><pre><code class="language-css">html body {
+    padding: 5px;
+    box-sizing: border-box;
+}
+html hr {
+    margin: 5px;
+}
+textarea {
+    width: 100%;
+    height: 40px;
+    font-size: 20px;
+}
+atlas-blotter {
+    height: 300px;
+}
+atlas-blotter:focus-within { /* For illustrative purpose */
+    outline-width: 1px;
+    outline-style: solid;
+    outline-color: blue;
+}
+</code></pre>
+<pre><code class="language-html">&lt;textarea id=&quot;msg_ta&quot;&gt;&lt;/textarea&gt;
+&lt;hr&gt;
+&lt;atlas-blotter&gt;&lt;/atlas-blotter&gt;
+</code></pre>
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;market&quot;, &quot;CF_NETCHNG&quot;, &quot;CF_VOLUME&quot;];
+var columnNames = [&quot;Id&quot;, &quot;Company Name&quot;, &quot;Market&quot;, &quot;Net Chng.&quot;, &quot;Volume&quot;];
+var columns = fields.map(function(f, idx) {
+    return {
+        field: f,
+        name: columnNames[idx]
+    }
+});
+var records = tr.DataGenerator.generateRecords(fields, {seed: 1, rowCount: 20});
+
+var configObj = {
+    columns: columns,
+    staticDataRows: records
+};
+var grid = document.getElementsByTagName(&quot;atlas-blotter&quot;)[0];
+grid.config = configObj;
+
+grid.addEventListener(&quot;click&quot;, function(e) {
+    grid.api.focus();
+});
+grid.addEventListener(&quot;keyup&quot;, function(e) {
+    msg_ta.value = &quot;Key: &quot; + e.key + &quot;, Code: &quot; + e.code;
+});
+</code></pre>
+</code-sandbox><h2 id="getting-a-cell-and-its-content">Getting a cell and its content</h2>
+<p>With row virtualization and column virtualization, Grid only renders cells that are on the current view. So, only cells and their content that are in range of the current view can be retrieved. To retrieve cell content, use <code>getCoreGrid</code> to get core grid instance first. Then, use <code>getCell(section, colIndex, rowIndex)</code> from the core to get cell object. Finally, use <code>getContent()</code> from the cell object to get the cell content. If you want all the data content (not the content elements), please use grid <a href="#/data/read">data related APIs</a> instead.</p>
+<p>If you are inside an event listener, the corresponding cell object is already provided from the returned value of <code>getRelativePosition</code> method. You can then get cell content from the cell object using <code>getContent()</code> method. Alternatively, you can use <a href="https://developer.mozilla.org/en-US/docs/Web/API/Event/composedPath">composedPath</a> method from native event argument to get a path to actual target element.</p>
+<blockquote>
+<p>Note: Grid is a custom element which encapusulate all of its content under its shadow root. Hence, <code>target</code> property from the native Event argument will always return Grid element and not actual target element inside the grid.</p>
+</blockquote>
+<h3 id="getting-cell-content-example">Getting cell content example</h3>
+<code-sandbox hash="fa94ef88"><pre><code class="language-css">html hr {
+    margin: 5px;
+}
+textarea {
+    width: 100%;
+    height: 30px;
+    font-size: 20px;
+}
+input[type=&quot;number&quot;] {
+    width: 60px;
+}
+i:empty {
+    padding-left: 10px;
+}
+atlas-blotter {
+    height: 300px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;div&gt;
+    &lt;button id=&quot;get_btn&quot;&gt;Get cell content&lt;/button&gt;
+    &lt;label for=&quot;col_in&quot;&gt;Column index:&lt;/label&gt;
+    &lt;input id=&quot;col_in&quot; value=&quot;2&quot; type=&quot;number&quot;&gt;
+    &lt;i&gt;&lt;/i&gt;
+    &lt;label for=&quot;row_in&quot;&gt;Row index:&lt;/label&gt;
+    &lt;input id=&quot;row_in&quot; value=&quot;2&quot; type=&quot;number&quot;&gt;
+&lt;/div&gt;
+&lt;hr&gt;
+&lt;textarea id=&quot;msg_ta&quot;&gt;&lt;/textarea&gt;
+&lt;hr&gt;
+&lt;atlas-blotter&gt;&lt;/atlas-blotter&gt;
+</code></pre>
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+get_btn.addEventListener(&quot;click&quot;, function(e) {
+    var colIndex = +col_in.value || 0;
+    var rowIndex = +row_in.value || 0;
+    
+    var core = grid.api.getCoreGrid();
+    var cell = core.getCell(&quot;content&quot;, colIndex, rowIndex);
+    var cellContent = cell ? cell.getContent() : null;
+    var ary = [
+        &quot;Getting cell: &quot; + colIndex + &quot;, &quot; + rowIndex,
+        &quot;Cell content: &quot; + (cellContent ? cellContent.textContent : &quot;&quot;)
+    ];
+    alert(ary.join(&quot;\n&quot;));
+});
+
+var fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;market&quot;, &quot;CF_NETCHNG&quot;, &quot;CF_VOLUME&quot;];
+var columnNames = [&quot;Id&quot;, &quot;Company Name&quot;, &quot;Market&quot;, &quot;Net Chng.&quot;, &quot;Volume&quot;];
+var columns = fields.map(function(f, idx) {
+    return {
+        field: f,
+        name: columnNames[idx]
+    }
+});
+var records = tr.DataGenerator.generateRecords(fields, {seed: 1, rowCount: 20});
+
+var configObj = {
+    columns: columns,
+    staticDataRows: records
+};
+var grid = document.getElementsByTagName(&quot;atlas-blotter&quot;)[0];
+grid.config = configObj;
+
+grid.addEventListener(&quot;mousemove&quot;, function(e) {
+    var pos = grid.api.getRelativePosition(e);
+    var cell = pos.cell;
+    var cellContent = cell ? cell.getContent() : null;
+    msg_ta.value = cellContent ? cellContent.textContent : &quot;null&quot;;
+});
+</code></pre>
+</code-sandbox><br>
+<br>
+<br>

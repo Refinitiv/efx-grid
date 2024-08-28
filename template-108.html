@@ -1,30 +1,20 @@
-<h1 id="ef-combo-box-formatter">EF Combo Box Formatter</h1>
-<p>This formatter creates a <a href="https://ui.refinitiv.com/elements/combo-box">ef-combo-box</a> without margin. Its options come from passed <code>options.data</code>.</p>
-<h2 id="specific-options">Specific options</h2>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Type</th>
-<th>Attributes</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>data</td>
-<td>array</td>
-<td>required</td>
-<td>List of items, see <a href="https://ui.refinitiv.com/elements/combo-box">ef-combo-box</a> for more detail.</td>
-</tr>
-</tbody></table>
-<h2 id="example">Example</h2>
-<code-sandbox hash="f491a83"><pre><code class="language-css">efx-grid {
-    height: 320px;
+<h1 id="real-time-market-data-with-legacy-jet">Real-time Market Data with Legacy JET</h1>
+<blockquote>
+<p>This libary is deprecated. Please use <a href="#/realtime-data/jet">JET.Qoutes2</a> instead.</p>
+</blockquote>
+<p><code>JET.Quotes</code> is a legacy way of retrieving real-time data. The data provided from <code>JET.Quotes</code> is two-level nested data, so it cannot be consumed directly. Custom formatters are required to render the data. The data consists of two properties, which are <code>raw</code> and <code>formatted</code>. This also means you need to define custom sorting logic to sort the data through <code>sorting</code> and <code>sortLogic</code> in the configuration object.</p>
+<h2 id="jetquotes-example">JET.Quotes example</h2>
+<code-sandbox hash="7cfab8d5"><pre><code class="language-css">emerald-grid {
+    height: 250px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+<pre><code class="language-html">&lt;input id=&quot;ric_in&quot; placeholder=&quot;Enter RIC&quot; value=&quot;CHF=&quot;&gt;
+&lt;button id=&quot;insert_btn&quot;&gt;Click To Insert&lt;/button&gt;
+&lt;br&gt;&lt;br&gt;
+&lt;emerald-grid&gt;&lt;/emerald-grid&gt;
 </code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
@@ -33,37 +23,85 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var currencies = [&quot;THB&quot;, &quot;AUD&quot;, &quot;USD&quot;, &quot;YEN&quot;, &quot;TWD&quot;];
-DataGenerator.addFieldInfo(&quot;currency&quot;, { type: &quot;set&quot;, members: currencies });
+var ricList = [&quot;EUR=&quot;,&quot;JPY=&quot;,&quot;THB=&quot;,&quot;GBP=&quot;];
+var fields = [&quot;X_RIC_NAME&quot;, &quot;CF_NAME&quot;, &quot;CF_LAST&quot;, &quot;CF_BID&quot;, &quot;CF_ASK&quot;, &quot;NETCHNG_1&quot;, &quot;PCTCHNG&quot;];
 
-var fields = [&quot;number_1&quot;, &quot;boolean&quot;, &quot;currency&quot;];
-var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 20 });
+JET = new tr.MockJET(); // Use Mock for illustrative purpose only
 
-var configObj = {
-    columns: [
-        { 
-            name: &quot;Column 1&quot;,
-            field: fields[0],
-            alignment: &quot;center&quot;
-        },
-        {
-            name: &quot;Column 2&quot;,
-            field: fields[1],
-            alignment: &quot;center&quot;
-        },
-        {
-            name: &quot;Select&quot;,
-            field: fields[2],
-            alignment: &quot;center&quot;,
-            binding: EFComboBoxFormatter.create({
-                data: currencies
-            })
+document.getElementById(&#39;insert_btn&#39;).addEventListener(&quot;click&quot;, onClickInsertButton);
+
+var realtimeDataFormatter = {
+    reunder: function() {},
+    bind: function(rowIndex, columnIndex, value, cell, columnDef, dataRow, dataTable) {
+        var color = &quot;&quot;;
+        var content = &quot;&quot;;
+        if (value) { // Some RIC may not have all the fields so need to check if value is available
+            content = value.formatted;
+            var pct = dataRow[&quot;PCTCHNG&quot;] ? dataRow[&quot;PCTCHNG&quot;].raw : NaN;
+
+            if (pct &gt; 0) {
+                color = &quot;red&quot;;
+            } else if (pct &lt; 0) {
+                color = &quot;green&quot;;
+            }
         }
-    ],
-    staticDataRows: records
+        cell.setStyle(&quot;color&quot;, color);
+        cell.setContent(content);
+    }
 };
 
-var grid = document.getElementById(&quot;grid&quot;);
+var configObj = {
+    rowSelection: true,
+    sorting: {
+        sortLogic: {
+            &quot;*&quot; : function(a, b, order) { // &quot;*&quot; means this sorting logic is used for any column
+                return (a.raw - b.raw) * order;
+            },
+            &quot;X_RIC_NAME&quot;: function(a, b, order) {
+                if(b.raw &lt; a.raw) {
+                    return order
+                } else if(a.raw &lt; b.raw) {
+                    return -order;
+                }
+                return 0;
+            }
+        }
+    },
+    columns: [
+        {title: &quot;RIC&quot;, field: &quot;X_RIC_NAME&quot;, formatter: realtimeDataFormatter},
+        {title: &quot;Name&quot;, field: &quot;CF_NAME&quot;, formatter: realtimeDataFormatter},
+        {title: &quot;Last&quot;, field: &quot;CF_LAST&quot;, formatter: realtimeDataFormatter},
+        {title: &quot;Bid&quot;, field: &quot;CF_BID&quot;, formatter: realtimeDataFormatter},
+        {title: &quot;Ask&quot;, field: &quot;CF_ASK&quot;, formatter: realtimeDataFormatter},
+        {title: &quot;Net Change&quot;, field: &quot;NETCHNG_1&quot;, formatter: realtimeDataFormatter},
+        {title: &quot;Pct.Change&quot;, field: &quot;PCTCHNG&quot;, formatter: realtimeDataFormatter}
+    ]
+};
+
+var grid = document.getElementsByTagName(&quot;emerald-grid&quot;)[0];
 grid.config = configObj;
+addRics(ricList);
+
+function onSubscriptionUpdate(sub, ric, data) {
+        if (grid.api) {
+            var dt = grid.api.getDataTable();
+            dt.setRowData(ric, data);
+        }
+}
+
+function addRics(rics) {
+    var newSubscription = JET.Quotes.create().rics(rics).rawFields(fields);
+    newSubscription.onUpdate(onSubscriptionUpdate);
+    newSubscription.start();
+}
+
+function onClickInsertButton(e) {
+    var ric = document.getElementById(&quot;ric_in&quot;).value;
+    ric = ric.toUpperCase();
+    if (ric &amp;&amp; ricList.indexOf(ric) &lt; 0) {
+        ricList.push(ric);
+        addRics(ric);
+    }
+}
 </code></pre>
 </code-sandbox>

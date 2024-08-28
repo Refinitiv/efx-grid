@@ -1,0 +1,369 @@
+<h1 id="wrapper-for-angular">Wrapper for Angular</h1>
+<blockquote>
+<p>This example uses Angular&#39;s seed project and CLI.</p>
+<p>@angular/cli: 12.2.17
+@angular/compiler-cli: 12.2.16
+@angular-devkit/build-angular: 12.2.17
+@angular/animations: 12.2.16
+@angular/common: 12.2.16
+@angular/compiler: 12.2.16
+@angular/core: 12.2.16
+@angular/forms: 12.2.16
+@angular/platform-browser: 12.2.16
+@angular/platform-browser-dynamic: 12.2.16
+@angular/router: 12.2.16
+typescript: 4.1.0</p>
+<p>After completing all tutorial steps, the final app will look like this <a href="https://gitlab.dx1.lseg.com/204090/grid/angular-elf-v4-sample">angular-elf-v4-sample</a>.</p>
+</blockquote>
+<p><code>@grid/angular-grid</code> is the official wrapper of Emerald Grid and Atlas Blotter. It provides a high-performance data grid to handle a large data set and essential features such as grouping, sorting, and custom rendering.</p>
+<h2 id="installation">Installation</h2>
+<p>Create you new Angular application using the <code>ng new</code> command.</p>
+<pre><code class="language-shell">ng new my-app &amp;&amp; cd my-app
+</code></pre>
+<p>Once your app has been created you should be able to serve the default application.</p>
+<pre><code class="language-shell">npm start
+</code></pre>
+<p>The wrapper needs <code>emerald-grid</code> or <code>atlas-blotter</code> library to work. We suggest using npm to install the package.</p>
+<blockquote>
+<p>The wrapper works well with <code>emerald-grid</code>/<code>atlas-blotter</code> both v3 and v4.</p>
+</blockquote>
+<pre><code class="language-sh">npm install @elf/emerald-grid @grid/angular-grid @elf/elf-theme-halo @elf/coral-icon
+</code></pre>
+<p>Or</p>
+<pre><code class="language-sh">npm install @elf/atlas-blotter @grid/angular-grid @elf/elf-theme-halo @elf/coral-icon
+</code></pre>
+<h2 id="basic-usage">Basic Usage</h2>
+<h3 id="atlas-blotter">Atlas Blotter</h3>
+<p>Import AngularGridModule from <code>@grid/angular-grid</code> for add grid angular wrapper to your angular.
+Make the following changes to <code>./src/app/app.module.ts</code>.</p>
+<pre><code class="language-diff"> import { BrowserModule } from &#39;@angular/platform-browser&#39;;
+-import { NgModule } from &#39;@angular/core&#39;;
++import { NgModule, CUSTOM_ELEMENTS_SCHEMA } from &#39;@angular/core&#39;;
++import { AngularGridModule } from &#39;@grid/angular-grid&#39;;
+
+ import { AppComponent } from &#39;./app.component&#39;;
+
+ @NgModule({
+   declarations: [
+     AppComponent
+   ],
+   imports: [
+     BrowserModule,
+-     ReactiveFormsModule,
++     ReactiveFormsModule,
++     AngularGridModule
+   ],
+   providers: [],
+-  bootstrap: [AppComponent]
++  bootstrap: [AppComponent],
++  schemas: [CUSTOM_ELEMENTS_SCHEMA]
+</code></pre>
+<p>Next, import the components and themes directly into your component. In this case, <code>src/app/app.component.ts</code></p>
+<pre><code class="language-js">// import depended element and its theme
+import &#39;@elf/coral-icon&#39;;
+import &#39;@elf/elf-theme-halo/dark/imports/native-elements&#39;; // import native styles for typography, css variables, etc.
+import &#39;@elf/elf-theme-halo/dark/coral-icon&#39;;
+
+// import element and its theme
+import &#39;@elf/atlas-blotter&#39;;
+import &#39;@elf/atlas-blotter/themes/halo/dark/atlas-blotter&#39;;
+</code></pre>
+<p>Then, use <code>angular-atlas-blotter</code> in you template.
+In this case, <code>src/app/app.component.html</code> .</p>
+<pre><code class="language-html">    &lt;angular-atlas-blotter
+      [columns]=&quot;columns&quot;
+      [data]=&quot;data&quot;
+      [config]=&quot;config&quot;
+    &gt;
+    &lt;/angular-atlas-blotter&gt;
+</code></pre>
+<p>Then, add some data into the <code>src/app/app.component.ts</code> of the atlas-blotter.
+Finally, <code>src/app/app.component.ts</code> should look like this.</p>
+<pre><code class="language-js">// import depended element and its theme
+import &#39;@elf/coral-icon&#39;;
+import &#39;@elf/elf-theme-halo/dark/imports/native-elements&#39;; // import native styles for typography, css variables, etc.
+import &#39;@elf/elf-theme-halo/dark/coral-icon&#39;;
+
+// import element and its theme
+import &#39;@elf/atlas-blotter&#39;;
+import &#39;@elf/atlas-blotter/themes/halo/dark/atlas-blotter&#39;;
+
+@Component({
+  selector: &#39;app-root&#39;,
+  templateUrl: &#39;./app.component.html&#39;,
+  styleUrls: [&#39;./app.component.less&#39;]
+})
+export class AppComponent {
+  data = [{
+      companyName: &#39;Thompson, Bruen and Friesen&#39;,
+      market: &#39;NASDAQ&#39;,
+      words1: &#39;code, by&#39;,
+    },
+    {
+      companyName: &#39;Wehner, Howe and Brown&#39;,
+      market: &#39;NYSE&#39;,
+      words1: &#39;High Joffrey big&#39;,
+    },
+    {
+      companyName: &#39;Emard-Schuster&#39;,
+      market: &#39;HKEX&#39;,
+      words1: &#39;Tim Do and same was that&#39;,
+    }
+  ]; // Static data rows
+  columns = [{
+      name: &#39;companyName&#39;,
+      field: &#39;companyName&#39;,
+      width: 120,
+    },
+    { name: &#39;market&#39;, field: &#39;market&#39; },
+    {
+      name: &#39;words1&#39;,
+      field: &#39;words1&#39;,
+      autoTooltip: false,
+    }
+  ]; // Column definitions
+  config = {
+    // Grid configurations
+    columnReorder: true
+  };
+}
+</code></pre>
+<h3 id="emerald-grid">Emerald Grid</h3>
+<p>Import AngularGridModule from <code>@grid/angular-grid</code> for add grid angular wrapper to your angular.
+Make the following changes to <code>./src/app/app.module.ts</code>.</p>
+<pre><code class="language-diff"> import { BrowserModule } from &#39;@angular/platform-browser&#39;;
+-import { NgModule } from &#39;@angular/core&#39;;
++import { NgModule, CUSTOM_ELEMENTS_SCHEMA } from &#39;@angular/core&#39;;
++import { AngularGridModule } from &#39;@grid/angular-grid&#39;;
+
+ import { AppComponent } from &#39;./app.component&#39;;
+
+ @NgModule({
+   declarations: [
+     AppComponent
+   ],
+   imports: [
+     BrowserModule,
+-     ReactiveFormsModule,
++     ReactiveFormsModule,
++     AngularGridModule
+   ],
+   providers: [],
+-  bootstrap: [AppComponent]
++  bootstrap: [AppComponent],
++  schemas: [CUSTOM_ELEMENTS_SCHEMA]
+</code></pre>
+<p>Next, import the components and themes directly into your component. In this case, <code>src/app/app.component.ts</code></p>
+<pre><code class="language-js">// import depended element and its theme
+import &#39;@elf/coral-icon&#39;;
+import &#39;@elf/elf-theme-halo/dark/imports/native-elements&#39;; // import native styles for typography, css variables, etc.
+import &#39;@elf/elf-theme-halo/dark/coral-icon&#39;;
+
+// import element and its theme
+import &#39;@elf/emerald-grid&#39;;
+import &#39;@elf/emerald-grid/themes/halo/dark/emerald-grid&#39;;
+</code></pre>
+<p>Then, use <code>angular-emerald-grid</code> in you template.
+In this case, <code>src/app/app.component.html</code> .</p>
+<pre><code class="language-html">    &lt;angular-emerald-grid
+      [columns]=&quot;columns&quot;
+      [data]=&quot;data&quot;
+      [config]=&quot;config&quot;
+    &gt;
+    &lt;/angular-emerald-grid&gt;
+</code></pre>
+<p>Then, add some data into the <code>src/app/app.component.ts</code> of the emerald-grid.
+Finally, <code>src/app/app.component.ts</code> should look like this.</p>
+<pre><code class="language-js">// import depended element and its theme
+import &#39;@elf/coral-icon&#39;;
+import &#39;@elf/elf-theme-halo/dark/imports/native-elements&#39;; // import native styles for typography, css variables, etc.
+import &#39;@elf/elf-theme-halo/dark/coral-icon&#39;;
+
+// import element and its theme
+import &#39;@elf/emerald-grid&#39;;
+import &#39;@elf/emerald-grid/themes/halo/dark/emerald-grid&#39;;
+
+@Component({
+  selector: &#39;app-root&#39;,
+  templateUrl: &#39;./app.component.html&#39;,
+  styleUrls: [&#39;./app.component.less&#39;]
+})
+export class AppComponent {
+  data = [{
+      companyName: &#39;Thompson, Bruen and Friesen&#39;,
+      market: &#39;NASDAQ&#39;,
+      words1: &#39;code, by&#39;,
+    },
+    {
+      companyName: &#39;Wehner, Howe and Brown&#39;,
+      market: &#39;NYSE&#39;,
+      words1: &#39;High Joffrey big&#39;,
+    },
+    {
+      companyName: &#39;Emard-Schuster&#39;,
+      market: &#39;HKEX&#39;,
+      words1: &#39;Tim Do and same was that&#39;,
+    }
+  ]; // Static data rows
+  columns = [{
+      name: &#39;companyName&#39;,
+      field: &#39;companyName&#39;,
+      width: 120,
+    },
+    { name: &#39;market&#39;, field: &#39;market&#39; },
+    {
+      name: &#39;words1&#39;,
+      field: &#39;words1&#39;,
+      autoTooltip: false,
+    }
+  ]; // Column definitions
+  config = {
+    // Grid configurations
+    columnReorder: true
+  };
+}
+</code></pre>
+<h2 id="life-cycle">Life cycle</h2>
+<p><code>whenDefined</code> callback is helpful when you want to use Grid&#39;s API. Like <code>ngOnInit</code> in Angular, the whenDefined callback is called when the Grid is mounted.</p>
+<p>You can access the Grid&#39;s <code>element</code> and <code>api</code> by using its event argument in callback.</p>
+<pre><code class="language-js">// ... another import ...
+@Component({
+  template: `
+    &lt;angular-emerald-grid
+      [columns]=&quot;columns&quot;
+      [data]=&quot;data&quot;
+      [config]=&quot;config&quot;
+      [whenDefined]=&quot;onWhenDefined&quot;
+    &gt;
+    &lt;/angular-emerald-grid&gt;
+  `
+})
+export class ExampleComponent {
+  onWhenDefined = (e: any) =&gt; {
+    const elem = e.element;
+    const api = e.api;
+    api.listen(&#39;columnSorted&#39;, onSortChange);
+  }
+}
+</code></pre>
+<h2 id="referencing">Referencing</h2>
+<p>Grid has its own lifecycle, any change to its state should be done using <code>api</code>.</p>
+<blockquote>
+<p>Note: Two-way binding is not recomended.</p>
+</blockquote>
+<pre><code class="language-js">// ... another import ...
+import { Component, ViewChild } from &#39;@angular/core&#39;;
+
+@Component({
+  template: `
+    &lt;angular-emerald-grid
+      [columns]=&quot;columns&quot;
+      [data]=&quot;data&quot;
+      [config]=&quot;config&quot;
+      [whenDefined]=&quot;onWhenDefined&quot;
+      #grid
+    &gt;
+    &lt;/angular-emerald-grid&gt;
+  `
+})
+export class ExampleComponent {
+  @ViewChild(&#39;grid&#39;) grid: any;
+
+  ngAfterViewInit() {
+    this.grid.config = {
+      /* some config of grid */
+    }
+  }
+
+  someAction = () =&gt; {
+    const api = this.grid.api;
+    // Do something with grid via api
+  }
+}
+</code></pre>
+<h2 id="configuration-object">Configuration Object</h2>
+<p><code>EmeraldGrid</code> and <code>AtlasBlotter</code> components both receive the same properties. See all available options for <a href="#/apis/composite-grid/tr-compositegrid">Emerald-Grid</a> and <a href="#/apis/rt-grid/grid">Atlas-Blotter</a>.</p>
+<blockquote>
+<p>Note: Any change to config directly is not recommended. Please use Grid&#39;s API instead.</p>
+</blockquote>
+<h2 id="typescript">TypeScript</h2>
+<p>The <code>@grid/angular-grid</code> wrapper plays well with TypeScript. Both types of definition from <a href="#/apis/composite-grid/tr-compositegrid">Composite Grid</a> and <a href="#/apis/rt-grid/grid">Realtime Grid</a> can be integrated out of the box.</p>
+<p>Install types for Grid through npm command.</p>
+<pre><code class="language-sh">npm install @grid/types
+</code></pre>
+<h3 id="atlas-blotter-1">Atlas Blotter</h3>
+<pre><code class="language-js">// ... another import ...
+import { Component } from &#39;@angular/core&#39;;
+import { RealtimeGrid, ColumnDefinition } from &#39;@grid/types&#39;;
+
+@Component({
+  template: `
+    &lt;angular-atlas-blotter [columns]=&quot;columns&quot; [data]=&quot;data&quot; [config]=&quot;config&quot;&gt;&lt;/angular-atlas-blotter&gt;
+  `
+})
+export class BasicPageComponent {
+  data: any[] = []; // Static data rows
+  
+  columns: CompositeGrid.Column[] = []; // Column definitions
+
+  config: RealtimeGrid.GridOptions = {
+    columnReorder: true
+  };
+
+  someAction = () =&gt; {
+    const api: RealtimeGrid = this.api as RealtimeGrid;
+    // Do something with grid via api
+  }
+}
+</code></pre>
+<h3 id="emerald-grid-1">Emerald Grid</h3>
+<pre><code class="language-js">// ... another import ...
+import { Component } from &#39;@angular/core&#39;;
+import { CompositeGrid } from &#39;@grid/types&#39;;
+
+@Component({
+  template: `
+    &lt;angular-emerald-grid [columns]=&quot;columns&quot; [data]=&quot;data&quot; [config]=&quot;config&quot;&gt;&lt;/angular-emerald-grid&gt;
+  `
+})
+export class BasicPageComponent {
+  data: any[] = []; // Static data rows
+  
+  columns: CompositeGrid.Column[] = []; // Column definitions
+
+  config: CompositeGrid.Options = {
+    columnReorder: true
+  };
+
+  someAction = () =&gt; {
+    const api: CompositeGrid = this.api as CompositeGrid;
+    // Do something with grid via api
+  }
+}
+</code></pre>
+<h3 id="extensions-and-formatters">Extensions and Formatters</h3>
+<p><a href="#/extensions/readme">Extensions</a> and <a href="#/rendering/predefined-formatter">Formatters</a> are exported with TypeScript out of the box.</p>
+<p>The following is an example of how to use <code>getExtension</code> in TypeScript.</p>
+<pre><code class="language-js">// ... another import ...
+import { Component, ViewChild } from &#39;@angular/core&#39;;
+
+@Component({
+  template: `
+    &lt;angular-emerald-grid #grid&gt;&lt;/angular-emerald-grid&gt;
+  `
+})
+export class BasicPageComponent {
+  @ViewChild(&#39;grid&#39;) grid: any;
+
+  ngAfterViewInit() {
+    this.grid.config = {
+      /* some config of grid */
+    }
+  }
+
+  someAction() {
+    const rowSelection: RowSelection = this.grid.getExtension(&#39;RowSelection&#39;);
+    rowSelection.getSelectedRows();
+  }
+}
+</code></pre>

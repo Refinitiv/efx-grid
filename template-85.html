@@ -1,79 +1,39 @@
-<h1 id="using-efx-grid-with-react">Using EFX Grid with React</h1>
-<p>For using <code>EFX Grid</code> with React, first you are required to install <code>@refinitiv-ui/efx-grid</code> and <code>@lit-labs/react</code> in your project.</p>
-<pre><code class="language-sh">npm install @refinitiv-ui/efx-grid
-npm install @lit-labs/react
-</code></pre>
-<p>Use <code>import</code> syntax to import the Grid and theme into your app.</p>
-<pre><code class="language-js">// Import element and its Halo dark theme
-import &quot;@refinitiv-ui/efx-grid&quot;;
-import &quot;@refinitiv-ui/efx-grid/themes/halo/dark&quot;;
+<h1 id="initializing-data-in-atlas-blotter">Initializing data in Atlas Blotter</h1>
+<p>Data will be defined through <code>staticDataRows</code>. Given data format should be array of object maps. 2D Array data format is also accepted by Atlas Blotter. Atlas Blotter will automatically detect the format type from the given data.</p>
+<pre><code class="language-js">var configObj = {
+    //...
+    staticDataRows: [
+        {&quot;Field 1&quot;: 1, &quot;Field 2&quot;: 2}, // First row
+        {&quot;Field 1&quot;: 3, &quot;Field 2&quot;: 4}, // Second row
+        //...
+    ],
+    //...
+};
 
-// Import native styles for typography, css variables, etc.
-import &quot;@refinitiv-ui/halo-theme/dark/imports/native-elements&quot;;
+var configObj2 = {
+    //...
+    columns: [
+        { field: &quot;Field 1&quot; },
+        { field: &quot;Field 2&quot; },
+        // ...
+    ],
+    //...
+    staticDataRows: [
+        [1, 2], // Fields will be taken from column configuration
+        [3, 4],
+        //...
+    ],
+    //...
+};
 </code></pre>
-<p>Import <code>createComponent</code> from <code>@lit-labs/react</code>, which will be used to transform custom element into React component.</p>
-<pre><code class="language-js">import { createComponent } from &#39;@lit-labs/react&#39;;
+<p>Static data can also be defined in <code>values</code> property in the row configuration object. This is useful when we want to merge real-time data with the static data. </p>
+<pre><code class="language-js">var configObj = {
+    //...
+    rows: [
+        { ric: &quot;ABC&quot;, values: {&quot;Field 1&quot;: 1, &quot;Field 2&quot;: 2}},
+        { ric: &quot;ABC&quot;, values: {&quot;Field 1&quot;: 3, &quot;Field 2&quot;: 4}},
+    ],
+    //...
+};
 </code></pre>
-<p>Then import types from <code>efx-grid</code> package to your file. Type <code>Grid</code> is mandatory for making grid as React component and all other types are typically for properties on a configuration object or APIs defined by Grid components. You don&#39;t need to import every type, if you don&#39;t use them.</p>
-<pre><code class="language-js">import {
-    Grid, // Provide type for making EFX Grid as React component
-    RealtimeGrid, // Provide types for api object
-    ColumnDefinition, // Provide types for column config and ColumnDefinition object
-    CoreGrid // Provide types for core object
-} from &quot;@refinitiv-ui/efx-grid&quot;;
-</code></pre>
-<p>Optionally, you can also import Grid&#39;s <a href="#/extensions/readme">extensions</a> from <code>efx-grid/extensions</code> package to extend its functionalities. </p>
-<pre><code class="language-js">import { ColumnResizing } from &quot;@refinitiv-ui/efx-grid/extensions&quot;;
-</code></pre>
-<p>Define grid as React component using <code>createComponent</code>, then <code>EfxGrid</code> will be used instead of <code>efx-grid</code> in React project</p>
-<pre><code class="language-js">const EfxGrid = createComponent({
-  tagName: &#39;efx-grid&#39;,
-  elementClass: Grid,
-  react: React,
-  events: {
-    onConfigured: &#39;configured&#39; //Grid custom event handler
-  }
-});
-</code></pre>
-<p>To define how the grid renders its content. First, create a function <code>App</code> which will be the main entry point. Then use <code>ColumnDefinition.Options</code> as shown below:</p>
-<pre><code class="language-js">let columns: ColumnDefinition.Options[] = [
-    { name: &quot;Integer&quot;, field: &quot;intCol&quot; },
-    { name: &quot;String&quot;, field: &quot;strCol&quot; },
-    { name: &quot;Float&quot;, field: &quot;floatCol&quot; }
-];
-let records: Array&lt;Object&gt; = [
-    { intCol: 1, strCol: &quot;Sample data&quot;, floatCol: 1.1 },
-    { intCol: 2, strCol: &quot;Sample data&quot;, floatCol: 2.2 },
-    { intCol: 3, strCol: &quot;Sample data&quot;, floatCol: 3.3 }
-];
-</code></pre>
-<p>To define a configuration object, use type <code>RealtimeGrid.GridOptions</code> as shown below.
-Then, finally assign configuration to <code>EfxGrid</code> component by passing through <code>config</code> attribute of grid component.</p>
-<pre><code class="language-js">function gridConfigured(e: any) {
-    let api: RealtimeGrid = e.detail.api;
-    let core: CoreGrid = api.getCoreGrid();
-
-    console.log(&quot;Grid has been configured.&quot;);
-}
-
-function App() {
-    //Extensions are recommended to use with useState to prevent multiple re-initializatioin
-    const [colResizingExt, setColResizingExt] = React.useState&lt;ColumnResizing&gt;(new ColumnResizing())
-    const [configObj, setConfigObj] = React.useState&lt;RealtimeGrid.GridOptions&gt;(
-        {
-            columns: columns,
-            staticDataRows: records,
-            extensions: [
-                colResizingExt
-            ]
-        }
-    )
-    return (
-        &lt;EfxGrid config={configObj} onConfigured={gridConfigured}&gt;&lt;/EfxGrid&gt;
-    )
-} 
-</code></pre>
-<blockquote>
-<p>Grid element is not immediately initialized when it is put on to the document. Only after it has been configured, then you can use its <code>api</code> to perform any runtime change or custom task.</p>
-</blockquote>
-<p>For a complete list of APIs, please see the <a href="#/apis/readme">API document</a>.</p>
+<p>For more details about initilizing data see <a href="#/data/columns-and-data">Reseting/Clearing data page</a>.</p>

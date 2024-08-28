@@ -1,7 +1,63 @@
-<h1 id="migration-recommendation">Migration Recommendation</h1>
-<p>When it comes to grids, there are several versions available, with EFX Grid being the latest one. We highly recommend migrating to EFX Grid, whether you&#39;re currently using Emerald Grid or Atlas Blotter. This migration should seamlessly integrate with Element Framework v6 or v7 and ensure smooth functionality.</p>
-<p>You can following this guild line </p>
-<ol>
-<li><a href="#/migrating/migration-emerald-grid-to-atlas-blotter">Migrate from Emerald Grid to Atlast Blotter</a></li>
-<li><a href="#/migrating/migration-atlas-blotter-to-efx-grid">Migrate from Atlas Blotter to EFX Grid</a></li>
-</ol>
+<h1 id="atlas-blotter-to-efx-grid">Atlas Blotter to EFX Grid</h1>
+<p>After migrating to Atlas Blotter, you can now proceed to migrate to EFX Grid. Since Element Framework v4 has several limitations, we recommend transitioning to Element Framework v6, which introduces more features and functionality. For instance, in Element Framework v6, we have begun supporting Accessibility. Therefore, we strongly recommend migrating to EFX Grid to leverage the capabilities of Element Framework v6.</p>
+<h2 id="overview">Overview</h2>
+<p>On this page, our focus is on migrating from Atlas Blotter to EFX Grid. We recommend migrating Element Framework before migrating to EFX Grid.</p>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>Migration to Atlas Blotter: We suggest migrating from Emerald Grid to Atlas Blotter first and then proceeding from Atlas Blotter to EFX Grid. However, you can directly migrate from Emerald Grid to EFX Grid without going through Atlas Blotter. Just be aware that there may be some errors, which you can learn about on the <a href="#/migrating/migration-emerald-grid-to-atlas-blotter">Migration page</a>.</li>
+<li>Migrate Element Framework from v4 to <a href="https://lsegroup.sharepoint.com/teams/ElementFramework/SitePages/Element-Framework-v6-Migration-Guide.aspx">Element Framework v6</a> or <a href="https://lsegroup.sharepoint.com/teams/ElementFramework/SitePages/Element-Framework-v7-Upgrade-Guide.aspx">Element Framework v7</a></li>
+<li>Follow the <a href="https://ui.refinitiv.com/start/upgrade-guide">Upgrade Element Framework Guide</a></li>
+<li>Understand the <a href="https://ui.refinitiv.com/guides/compatibility">Compatibility</a> of bundle tools. For example, in v6, we do not directly support webpack4; if you want to use it with webpack4, you&#39;ll need to configure some extra settings in Babel. However, it supports webpack5 as well.</li>
+</ul>
+<h2 id="installation">Installation</h2>
+<p>Ensure you have installed Element Framework v6 to load themes and elements. In Element Framework v6, we have changed the package to an <code>npm</code> package. For EFX Grid, the package is <code>@refinitiv-ui/efx-grid</code>. You can install this package using the following command:
+<code>npm i @refinitiv-ui/efx-grid</code></p>
+<h2 id="setup-guide">Setup Guide</h2>
+<p>Use the <code>import</code> syntax to import Atlas Blotter, its dependent elements, and their themes into your app. EFX Grid has a different path from Atlas Blotter, so adjustments are needed.</p>
+<h3 id="grid-and-themes">Grid and Themes</h3>
+<p>In Atlas Blotter, we have the following imports:</p>
+<pre><code>// Import native styles for typography, CSS variables, etc.
+import &#39;@elf/elf-theme-halo/dark/imports/native-elements&#39;; 
+import &#39;@elf/atlas-blotter&#39;;
+import &#39;@elf/atlas-blotter/themes/halo/dark/atlas-blotter&#39;;
+</code></pre>
+<p>For EFX Grid, they need to be changed to:</p>
+<pre><code>// Import native styles for typography, CSS variables, etc.
+import &quot;@refinitiv-ui/halo-theme/dark/imports/native-elements&quot;;
+// Import the element and its Halo dark theme
+import &quot;@refinitiv-ui/efx-grid&quot;;
+import &quot;@refinitiv-ui/efx-grid/themes/halo/dark&quot;;
+</code></pre>
+<h3 id="extensions">Extensions</h3>
+<p>In Atlas Blotter, each extension has its own package. The imports look like this:</p>
+<pre><code>// import { MODULE_NAME } from &quot;PROJECT_NAME/es6&quot;;
+import { AutoTooltip } from &quot;tr-grid-auto-tooltip/es6&quot;;
+import { ColumnResizing } from &quot;tr-grid-column-resizing/es6&quot;;
+import { ColumnGrouping } from &quot;tr-grid-column-grouping/es6&quot;;
+</code></pre>
+<p>For EFX Grid, it&#39;s as follows:</p>
+<pre><code>// import { EXTENSION_NAME } from &#39;@refinitiv-ui/efx-grid/extensions&#39;;
+import { AutoTooltip, ColumnResizing, ColumnGrouping } from &quot;@refinitiv-ui/efx-grid/extensions&quot;;
+</code></pre>
+<p>As you can see, now we can import extensions from only one path.</p>
+<h3 id="formatters">Formatters</h3>
+<p>In Atlas Blotter, each formatter has its own package, which is <code>@grid/formatters</code>. When importing, we have to specify the file name, like this:</p>
+<pre><code>import CoralButtonFormatter from &quot;node_modules/@grid/formatters/es6/CoralButtonFormatter.js&quot;;
+import CoralSelectFormatter from &quot;node_modules/@grid/formatters/es6/CoralSelectFormatter.js&quot;;
+</code></pre>
+<p>For EFX Grid, it can be used in only one path, similar to extensions:</p>
+<pre><code>import { EFButtonFormatter, EFSelectFormatter } from &quot;@refinitiv-ui/efx-grid/formatters&quot;;
+</code></pre>
+<p>Please be careful with these formatters. Element Framework has changed elements from v4 to v6, so the formatters will follow the ELF element. Please follow <a href="#/rendering/predefined-formatter">Predefined Formatter</a>.</p>
+<h3 id="element-usages">Element Usages</h3>
+<p>For Atlas Blotter, we use <code>&lt;atlas-blotter&gt;&lt;/atlas-blotter&gt;</code>, while for EFX Grid, we use <code>&lt;efx-grid&gt;&lt;/efx-grid&gt;</code>.</p>
+<h2 id="post-migration-reminder">Post-Migration Reminder</h2>
+<ul>
+<li>Serve Grid: Ensure that the server application runs correctly and that the grid functions as expected.</li>
+<li>Check CSS Classes: Remember to update tags in CSS classes accordingly.</li>
+<li>Remove Atlas Blotter Dependencies: Remove any unnecessary dependencies related to Atlas Blotter.</li>
+<li>Update <code>@refinitiv-ui/efx-grid</code></li>
+<li>Add Unit Tests (if necessary): Include unit tests to ensure that all modified methods are functioning correctly.</li>
+</ul>
+<h2 id="summary">Summary</h2>
+<p>If you can serve the application now, congratulations! You have successfully migrated to EFX Grid. Thank you for following.</p>

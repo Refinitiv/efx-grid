@@ -1,18 +1,13 @@
-<h1 id="formatter-default">Formatter (default)</h1>
-<p>Formatter is what Grid uses to render content. Grid&#39;s default formatter will render any data in plain text. When data is updated, Grid will bind the data from its own internal data source to render the data in plain text using the formatter. The data given to grid can be any data type.</p>
-<blockquote>
-<p>Note: The formatter will be repeatedly executed multiple times for every update and scrolling. </p>
-</blockquote>
-<p>Default rendering is already optimized for row virtualization. This means that grid uses the same text element to render different data for different rows. It should be fast enough to handle rendering a million of rows.</p>
-<p>To update what is shown on the Grid, please use Grid&#39;s APIs to <a href="#/general-concept/accessing-data">manipulate the data</a> from the instance.</p>
-<h2 id="example">Example</h2>
-<code-sandbox hash="910e0fa0"><pre><code class="language-css">efx-grid {
-    height: 200px;
-}
+<h1 id="row-span">Row Span</h1>
+<p>Setting row span on a cell can be done through Core Grid API (e.g., <code>setCellRowSpan</code>). A cell with row span will simply be expanded on top of cells below it. Cells are not actually merged by row span, but appeared as if they are merged together.</p>
+<p>Since cells in grid are reused across multiple rows by default, <code>rowVirtualization</code> need to be turned off for row span to work properly.</p>
+<h2 id="row-virtualization-mode">Row virtualization mode</h2>
+<p>Grid does not support row span in row virtualization mode. The row virtualization mode can be set using <code>rowVirtualization: false</code> in the configs.</p>
+<h3 id="example-1-setting-row-span-after-initialization">Example 1: setting row span after initialization</h3>
+<code-sandbox hash="e5e30954"><pre><code class="language-html">&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
 </code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
@@ -21,15 +16,67 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 40 });
+var fields = [&quot;id&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = tr.DataGenerator.generateRecords(fields, { seed: 0, numRows: 10 });
 var configObj = {
+    rowVirtualization: false,
     columns: [
-        {name: &quot;Company&quot;, field: fields[0]},
-        {name: &quot;Market&quot;, field: fields[1]},
-        {name: &quot;Last&quot;, field: fields[2]},
-        {name: &quot;Net. Chng&quot;, field: fields[3]},
+        {name: &quot;Row Index&quot;, field: fields[0], width: 60},
+        {name: &quot;Market&quot;, field: fields[1], width: 120},
+        {name: &quot;Last&quot;, field: fields[2], width: 100},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
         {name: &quot;Industry&quot;, field: fields[4]}
+    ],
+    staticDataRows: records
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.addEventListener(&quot;configured&quot;, function(e) {
+    var core = e.detail.api.getCoreGrid();
+    var section = core.getSection(&#39;content&#39;);
+    section.setCellRowSpan(1, 0, 2);
+    section.setCellRowSpan(4, 4, 3);
+    section.setCellRowSpan(0, 4, 4);
+});
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h3 id="example-2-setting-row-span-in-data-binding">Example 2: setting row span in data binding</h3>
+<code-sandbox hash="8be6de76"><pre><code class="language-css">atlas-blotter {
+    height: 300px;
+    margin-bottom: 40px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
+</code></pre>
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = tr.DataGenerator.generateRecords(fields, { seed: 0, numRows: 20 });
+
+var onCustomBinding = function(e) {
+    if(e.rowIndex % 2 === 0) {
+        e.section.setCellRowSpan(e.colIndex, e.rowIndex, 2);
+    }
+    e.cell.setContent(e.data);
+};
+
+var configObj = {
+    rowVirtualization: false,
+    columns: [
+        {name: &quot;Row Index&quot;, field: fields[0], width: 60},
+        {name: &quot;Company Name&quot;, field: fields[1], width: 120, binding: onCustomBinding},
+        {name: &quot;Market&quot;, field: fields[2], width: 120, binding: onCustomBinding},
+        {name: &quot;Last&quot;, field: fields[3], width: 100},
+        {name: &quot;Net. Chng&quot;, field: fields[4], width: 100},
+        {name: &quot;Industry&quot;, field: fields[5]}
     ],
     staticDataRows: records
 };
@@ -37,16 +84,4 @@ var configObj = {
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 </code></pre>
-</code-sandbox><h2 id="internal-default-formatter-implementation">Internal Default Formatter Implementation</h2>
-<p>Internally, Grid implements the formatter as the following code: </p>
-<pre><code class="language-js">var configObj = {
-    columns: [
-        { binding: function(e){
-                e.cell.setContent(e.data);
-            }
-        }
-    ]
-};
-</code></pre>
-<h1 id="custom-formatter">Custom Formatter</h1>
-<p>If we want anything other than simple text, we need to define a custom formatter. You can find more details about this in the <a href="#/rendering/custom-formatter">Custom Formatter section</a>.</p>
+</code-sandbox><p><br><br><br></p>

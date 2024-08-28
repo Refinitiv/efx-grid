@@ -1,23 +1,94 @@
-<h1 id="initializing-data">Initializing data</h1>
-<p>Grid accepts various data formats for initializing data. Note that Grid has its own internal data structure and its own data table for performing various kinds of data transformations and operations. The formats are ways to help you initially pass the data to Grid&#39;s internal data table. </p>
-<p>Once the data is passed through the grid, the data in the configuration object will no longer have an effect on Grid&#39;s internal data. Do not try to modify the data from the configuration once the data applied. There is no two-way binding or property observer in the native JSON object. To modify and access the data, you must use Grid&#39;s APIs. This provides better overall performance for data manipulation. </p>
-<p>Data in Grid can be initialized in <code>rows</code> or <code>arrays</code> format. Data will be defined through <code>staticDataRows</code> property. Grid will automatically detect the types from the given data.</p>
-<h2 id="data-format--rows">Data format – rows</h2>
-<p>The <code>rows</code> format is an array of an object map. This is a data structure recommended for general use cases. The data object can contain any number of fields. <code>Fields</code> are not required for this format.</p>
-<pre><code class="language-js">var configObj = {
-    //...
-    staticDataRows: [
-        {&quot;Field 1&quot;: 1, &quot;Field 2&quot;: 2}, // First row
-        {&quot;Field 1&quot;: 3, &quot;Field 2&quot;: 4}, // Second row
-        //...
-    ],
-    //...
+<h1 id="basic-grid-creation">Basic Grid creation</h1>
+<p>To initialize Grid you can put the element tag on the HTML page, just like any other native element. The element works as if it were a div element (that is, an element with 100% width and the same height as its content). </p>
+<pre><code class="language-html">&lt;!-- For ELF v4 --&gt;
+&lt;atlas-blotter&gt;&lt;/atlas-blotter&gt;
+
+&lt;!-- For ELF v3 --&gt;
+&lt;emerald-grid&gt;&lt;/emerald-grid&gt;
+</code></pre>
+<p>Or you can dynamically create the element at runtime by using a standard native method like <code>document.createElement(tag-name)</code>.</p>
+<pre><code class="language-js">// For ELF v4
+var blotter = document.createElement(&quot;atlas-blotter&quot;);
+document.body.appendChild(blotter);
+
+// For ELF v3
+var grid = document.createElement(&quot;emerald-grid&quot;);
+document.body.appendChild(grid);
+</code></pre>
+<p>The element is used for positioning and sizing the grid in the document. Anything else should be done by passing a configuration object to the grid. </p>
+<blockquote>
+<p>See all available options for <a href="#/apis/rt-grid/grid">atlas-blotter</a> and <a href="#/apis/composite-grid/tr-compositegrid">emerald-grid</a>.</p>
+</blockquote>
+<p>To define how the grid renders its layout and content use the <code>columns</code> property, as shown below:</p>
+<pre><code class="language-js">// For Atlas Blotter
+var configObj = {
+    columns: [
+        {name: &quot;Header Text&quot;, field: &quot;For Mapping Data&quot;},
+        {name: &quot;Column 2&quot;,    field: &quot;Field 2&quot;}
+    ] // Two columns will be shown
+};
+
+// For Emerald Grid
+var configObj = {
+    columns: [
+        {title: &quot;Header Text&quot;, field: &quot;For Mapping Data&quot;},
+        {title: &quot;Column 2&quot;,    field: &quot;Field 2&quot;}
+    ] // Two columns will be shown
 };
 </code></pre>
-<h2 id="array-of-object-example">Array of object example</h2>
-<code-sandbox hash="5b8835d5"><pre><code class="language-html">&lt;efx-grid&gt;&lt;/efx-grid&gt;
+<p>To define initial or static data for rendering use the <code>staticDataRows</code> for Atlas Blotter or <code>dataModel</code> for Emerald Grid, as shown below:</p>
+<pre><code class="language-js">// For Atlas Blotter
+var configObj = {
+    staticDataRows: [
+        {&quot;Field 1&quot;: &quot;a&quot;, &quot;Field 2&quot;: &quot;b&quot;, &quot;Field 3&quot;: &quot;c&quot;},
+        {&quot;ABC&quot;: &quot;d&quot;,     &quot;Field 2&quot;: &quot;e&quot;, &quot;XYZ&quot;: &quot;f&quot;}
+    ] // Two rows will be shown
+};
+
+// For Emerald Grid
+var configObj = {
+    dataModel: {
+        data: [
+            {&quot;Field 1&quot;: &quot;a&quot;, &quot;Field 2&quot;: &quot;b&quot;, &quot;Field 3&quot;: &quot;c&quot;},
+            {&quot;ABC&quot;: &quot;d&quot;,     &quot;Field 2&quot;: &quot;e&quot;, &quot;XYZ&quot;: &quot;f&quot;}
+        ] // Two rows will be shown
+    }
+};
 </code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+<p>Each column definition should have a link to the data in Grid through the <code>field</code> property for rendering. Doing it this way separates the UI from the data. The data can have any number of columns, regardless of the actual number of columns being displayed in the grid. This means extra information can be stored, such as row metadata, display states, and so on. The same field can also be used to display multiple columns. </p>
+<p>The basic Grid configuration object is usually something like the following: </p>
+<pre><code class="language-js">var records = [
+    {companyName: &quot;Company A&quot;, market: &quot;Market 1&quot;},
+    {companyName: &quot;Company B&quot;, market: &quot;Market 2&quot;},
+];
+// For Atlas Blotter
+var configObj = {
+    columns: [
+        {name: &quot;Company Name&quot;, field: &quot;companyName&quot;},
+        {name: &quot;Market&quot;, field: &quot;market&quot;}
+    ],
+    staticDataRows: records
+};
+
+// For Emerald Grid
+var configObj = {
+    columns: [
+        {title: &quot;Company Name&quot;, field: &quot;companyName&quot;},
+        {title: &quot;Market&quot;, field: &quot;market&quot;}
+    ],
+    dataModel: {
+        data: records
+    }
+};
+</code></pre>
+<blockquote>
+<p>Note: you can see JavaScript details from the live example below by clicking the lower right button.</p>
+</blockquote>
+<h2 id="example">Example</h2>
+<code-sandbox hash="321c0b48"><pre><code class="language-html">&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
+</code></pre>
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
@@ -26,83 +97,38 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;f1&quot;, &quot;f2&quot;, &quot;f3&quot;, &quot;f4&quot;];
-var configObj = {
-    columns: [
-        {name: &quot;Column 1&quot;, field: fields[0]},
-        {name: &quot;Column 2&quot;, field: fields[1]},
-        {name: &quot;Column 3&quot;, field: fields[2]},
-        {name: &quot;Column 4&quot;, field: fields[3]}
-    ],
-    staticDataRows: [
-        {f1: 1, f2: 2, f3: 3, f4: &quot;Some String&quot;},
-        {f1: 1, f4: &quot;Some String&quot;}, // There is no need to have the same field each row
-        {f1: 1, f2: 2, f3: 3, f4: &quot;Some String&quot;, f5: &quot;Extra Field Can be Added&quot;},
-        {f1: 1, f2: 2, f3: 3, f4: &quot;Some String&quot;},
-        {f1: 1, f2: 2, f3: 3, f4: &quot;Some String&quot;},
-        {f1: 1, f2: 2, f3: 3, f4: &quot;Some String&quot;}
-    ]
-};
-var grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
-grid.config = configObj;
-</code></pre>
-</code-sandbox><h2 id="data-format--array">Data format – array</h2>
-<p>Use the <code>array</code> format if you want to specify the initial data in a two-dimensional array format. This format is the shortest way to write, and makes it easier to populate the data from the code. Grid will map the data to the the <code>field</code> property of the column configuration objects with order corresponding to the column order.</p>
-<pre><code class="language-js">var configObj2 = {
-    //...
-    columns: [
-        { field: &quot;Field 1&quot; },
-        { field: &quot;Field 2&quot; },
-        // ...
-    ],
-    //...
-    staticDataRows: [
-        [1, 2], // Fields will be taken from column configuration
-        [3, 4],
-        //...
-    ],
-    //...
-};
-</code></pre>
-<h2 id="2d-data-example">2D data example</h2>
-<code-sandbox hash="98fae9e4"><pre><code class="language-html">&lt;efx-grid&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = tr.DataGenerator.generateRecords(fields, { seed: 0, numRows: 5 });
 
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;f1&quot;, &quot;f2&quot;, &quot;f3&quot;, &quot;f4&quot;];
+// Drag column to move
+var columnDraggingExt = new tr.ColumnDraggingExtension();
+
+// Drag column edge to resize the column
+var columnResizingExt = new tr.ColumnResizingExtension();
+
+// Double click column edge to fit column to its content
+var columnFitterExt = new tr.ColumnFitterExtension();
+
 var configObj = {
+    sorting: { // Grid level options
+        sortableColumns: true // Make all column sortable
+    },
     columns: [
-        {name: &quot;Column 1&quot;, field: fields[0]},
-        {name: &quot;Column 2&quot;, field: fields[1]},
-        {name: &quot;Column 3&quot;, field: fields[2]},
-        {name: &quot;Column 4&quot;, field: fields[3]}
+        { name: &quot;Company&quot;, field: fields[0] },
+        { name: &quot;Market&quot;, field: fields[1], width: 120 },
+        { name: &quot;Last&quot;, field: fields[2], width: 100 },
+        { name: &quot;Net. Chng&quot;, field: fields[3], width: 100 },
+        { name: &quot;Industry&quot;, field: fields[4] }
     ],
-    staticDataRows: [
-        [1, 2, 3, &quot;Some String&quot;],
-        [1, 2, 3, &quot;Some String&quot;],
-        [1, 2, 3, &quot;Some String&quot;],
-        [1, 2, 3, &quot;Some String&quot;],
-        [1, 2, 3, &quot;Some String&quot;]
+    staticDataRows: records,
+    extensions: [
+        columnDraggingExt,
+        columnResizingExt,
+        columnFitterExt
     ]
 };
-var grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
+
+var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 </code></pre>
-</code-sandbox><h2 id="initializing-data-for-real-time-rows">Initializing data for real-time rows</h2>
-<p>Static data can also be defined in <code>values</code> property in the row configuration object. This is useful when we want to merge real-time data with the static data. </p>
-<pre><code class="language-js">var configObj = {
-    //...
-    rows: [
-        { ric: &quot;ABC&quot;, values: {&quot;Field 1&quot;: 1, &quot;Field 2&quot;: 2}},
-        { ric: &quot;ABC&quot;, values: {&quot;Field 1&quot;: 3, &quot;Field 2&quot;: 4}},
-    ],
-    //...
-};
-</code></pre>
+</code-sandbox><p><br><br><br></p>

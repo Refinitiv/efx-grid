@@ -1,30 +1,26 @@
-<h1 id="ef-select-formatter">EF Select Formatter</h1>
-<p>This formatter creates <a href="https://ui.refinitiv.com/elements/select">ef-select</a> without margin. Its options come from passed <code>options.data</code>.</p>
-<h2 id="specific-options">Specific options</h2>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Type</th>
-<th>Attributes</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>data</td>
-<td>Array</td>
-<td>required</td>
-<td>List of items, see <a href="https://ui.refinitiv.com/elements/select">ef-select</a> for more detail.</td>
-</tr>
-</tbody></table>
-<h2 id="example">Example</h2>
-<code-sandbox hash="3ff151f9"><pre><code class="language-css">efx-grid {
-    height: 320px;
+<h1 id="event-handling-and-event-listeners-in-formatter">Event handling and event listeners in formatter</h1>
+<p>If your custom formatter contains some input elements or controls, it&#39;s important to bind data back to Grid&#39;s internal data source when users input new data through the UI from your custom formatter. Remember, the same element will be used on different rows due to the row virtualization mechanic. If the data is changed by user actions, you need to update the change back to Grid&#39;s data source, or else the binding mechanism will replace what the user has changed with the data stored from the Grid&#39;s internal source. </p>
+<p>In short, data should be updated after users interact with the UI input. <code>getRelativePosition()</code> method should be used to resolve current positions relative to the grid element.</p>
+<blockquote>
+<p>APIs for data manipulation can be found <a href="#/data/update">here</a>. APIs for Grid and <code>getRelativePosition()</code> method description can be found <a href="#/apis/rt-grid/grid">here</a>.</p>
+</blockquote>
+<h2 id="the-reverted-problem">The &#39;reverted&#39; problem</h2>
+<p>When we don&#39;t set data back, row virtualization will not work properly and content will not be rendered properly. Suppose that we have a dropdown element in one of the grid columns. Any change that is done to the dropdown box will be reverted if we don&#39;t update the data.</p>
+<p>In the live example below, try the following steps to produce the problem:</p>
+<ol>
+<li>Change the selected option from the dropdown box on the first row. Remember the new selected option</li>
+<li>Scroll down to the bottom of the grid</li>
+<li>Scroll back up to the top of the grid</li>
+</ol>
+<code-sandbox hash="690a3173"><pre><code class="language-css">atlas-blotter {
+    height: 200px;
+    margin-bottom: 40px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+<pre><code class="language-html">&lt;atlas-blotter&gt;&lt;/atlas-blotter&gt;
 </code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
@@ -33,54 +29,233 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var currencies = [&quot;THB&quot;, &quot;AUD&quot;, &quot;USD&quot;, &quot;YEN&quot;, &quot;TWD&quot;];
-DataGenerator.addFieldInfo(&quot;currency&quot;, { type: &quot;set&quot;, members: currencies});
+var fields = [&quot;id&quot;, &quot;dropdownVal&quot;, &quot;boolean&quot;, &quot;text&quot;];
+// For static data initialization
+var records = [];
+for (var i = 0; i &lt; 50; i++) {
+    var record = {};
+    record[fields[0]] = i;
+    record[fields[1]] = i % 4; 
+    record[fields[2]] = i &amp; 1 ? true : false;
+    record[fields[3]] = i + &quot; Some Texts&quot;;
+    records.push(record);
+}
 
-var fields = [&quot;currency&quot;];
-var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 20    });
+var dropdownFormatter = function(e) {
+    var cell = e.cell;
+    var dropdown = cell.getContent();
+    if (!dropdown || !dropdown._myDropdown) {
+        dropdown = document.createElement(&quot;select&quot;);
+        dropdown._myDropdown = true;
+        [0, 1, 2, 3].forEach(function(val) {
+            var option = document.createElement(&quot;option&quot;);
+            option.value = val;
+            option.textContent = &quot;Value &quot; + val;
+            dropdown.appendChild(option);
+        });
+    }
+    
+    dropdown.selectedIndex = e.data;
+    cell.setContent(dropdown);
+};
 
 var configObj = {
     columns: [
-        { 
-            name: &quot;Data&quot;,
-            field: fields[0],
-            sort: fields[0],
-            alignment: &quot;c&quot;
-        },
-        { 
-            name: &quot;Simplest&quot;,
-            field: fields[0],
-            sort: fields[0],
-            alignment: &quot;c&quot;,
-            binding: EFSelectFormatter.create({
-                entries: currencies
-            })
-        },
-        { 
-            name: &quot;Some options&quot;,
-            field: fields[0],
-            sort: fields[0],
-            alignment: &quot;c&quot;,
-            binding: EFSelectFormatter.create({
-                data: currencies,
-                attributes: {
-
-                },
-                styles: {
-                    width: &quot;80px&quot;
-                },
-                events: {
-                    &quot;value-changed&quot;: function(e) {
-                        // console.log(&quot;value changed: &quot; + e.detail.value);
-                    }
-                }
-            })
-        }
+        { name: &quot;Row Index&quot;, field: fields[0], width: 80 },
+        { name: &quot;Dropdown&quot;, field: fields[1], binding: dropdownFormatter },
+        { name: &quot;Dropdown Value&quot;, field: fields[1] },
+        { name: &quot;Column 3&quot;, field: fields[2], alignment: &quot;center&quot; },
+        { name: &quot;Column 4&quot;, field: fields[3] }
     ],
     staticDataRows: records
 };
 
-var grid = document.getElementById(&quot;grid&quot;);
+var grid = document.getElementsByTagName(&quot;atlas-blotter&quot;)[0];
 grid.config = configObj;
 </code></pre>
-</code-sandbox>
+</code-sandbox><p>You will see that the selected option is reverted back to the original option.</p>
+<h2 id="the-fix">The fix</h2>
+<p>To avoid the problem, we have to add an event listener to our custom formatter for binding the change from users. You have added <code>dropdownChangeHandler</code> to fix the problem as shown below:</p>
+<code-sandbox hash="e1cb6d49"><pre><code class="language-css">atlas-blotter {
+    height: 200px;
+    margin-bottom: 40px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;atlas-blotter&gt;&lt;/atlas-blotter&gt;
+</code></pre>
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;id&quot;, &quot;dropdownVal&quot;, &quot;boolean&quot;, &quot;text&quot;];
+// For static data initialization
+var records = [];
+for (var i = 0; i &lt; 50; i++) {
+    var record = {};
+    record[fields[0]] = i;
+    record[fields[1]] = i % 4; 
+    record[fields[2]] = i &amp; 1 ? true : false;
+    record[fields[3]] = i + &quot; Some Texts&quot;;
+    records.push(record);
+}
+
+// Show how to render custom content with an event listener
+var dropdownFormatter = function(e) {
+    var cell = e.cell;
+    var dropdown = cell.getContent();
+    if (!dropdown || !dropdown._myDropdown) {
+        dropdown = document.createElement(&quot;select&quot;);
+        dropdown._myDropdown = true;
+        [0, 1, 2, 3].forEach(function(val) {
+            var option = document.createElement(&quot;option&quot;);
+            option.value = val;
+            option.textContent = &quot;Value &quot; + val;
+            dropdown.appendChild(option);
+        });
+        
+        dropdown.addEventListener(&quot;change&quot;, dropdownChangeHandler);
+    }
+    dropdown.selectedIndex = e.data;
+    cell.setContent(dropdown);
+};
+// Show how to set data based on interaction from custom content
+var dropdownChangeHandler = function(e) {
+    var dropdown = e.currentTarget;
+    var selectedIndex = +(dropdown.options[dropdown.selectedIndex].value);
+
+    var pos = grid.api.getRelativePosition(e);
+    var rowDef = grid.api.getRowDefinition(pos.rowIndex);
+    rowDef.setData(grid.api.getColumnField(pos.colIndex), selectedIndex);
+};
+
+var configObj = {
+    columns: [
+        { name: &quot;Row Index&quot;, field: fields[0], width: 80 },
+        { name: &quot;Dropdown&quot;, field: fields[1], binding: dropdownFormatter },
+        { name: &quot;Dropdown Value&quot;, field: fields[1] },
+        { name: &quot;Column 3&quot;, field: fields[2], alignment: &quot;center&quot; },
+        { name: &quot;Column 4&quot;, field: fields[3] }
+    ],
+    staticDataRows: records
+};
+
+var grid = document.getElementsByTagName(&quot;atlas-blotter&quot;)[0];
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="writing-event-listeners">Writing event listeners</h2>
+<p>Since the same element will be used on different rows, you cannot use closure variables that are created or given from the event arguments. Row index, column index, or cell reference must be resolved at runtime inside the event listener. You can resolve the position by using Grid&#39;s <code>getRelativePosition()</code> method.</p>
+<pre><code class="language-js">    var dropdownChangeHandler = function(e) {
+        var dropdown = e.currentTarget;
+        var selectedIndex = +(dropdown.options[dropdown.selectedIndex].value);
+
+        var pos = grid.api.getRelativePosition(e);
+        var rowDef = grid.api.getRowDefinition(pos.rowIndex);
+        rowDef.setData(grid.api.getColumnField(pos.colIndex), selectedIndex);
+    };
+</code></pre>
+<ul>
+<li><code>currentTarget</code> property will always give an element attached by the event listener</li>
+<li><code>getRelativePosition()</code> method resolves the position when the dropdown value is changed</li>
+</ul>
+<blockquote>
+<p>See <a href="#/data/update">this page</a> on how to update data.</p>
+</blockquote>
+<h3 id="getting-column-and-row-information-from-clicked-content-example">Getting column and row information from clicked content example</h3>
+<code-sandbox hash="b64f57e4"><pre><code class="language-css">html hr {
+    margin: 5px;
+}
+textarea {
+    width: 100%;
+    height: 80px;
+    font-size: 18px;
+}
+atlas-blotter {
+    height: 300px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;textarea id=&quot;msg_ta&quot;&gt;&lt;/textarea&gt;
+&lt;hr&gt;
+&lt;atlas-blotter&gt;&lt;/atlas-blotter&gt;
+</code></pre>
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+
+var onButtonClicked = function(e) {
+    var pos = grid.api.getRelativePosition(e);
+    var field = grid.api.getColumnField(pos.colIndex);
+    var rowDef = grid.api.getRowDefinition(pos.rowIndex);
+    
+    var ary = [
+        &quot;Field: &quot; + field,
+        &quot;Row Data: &quot; + JSON.stringify(rowDef.getRowData())
+    ];
+    msg_ta.textContent = ary.join(&quot;\n&quot;);
+};
+
+var fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;market&quot;, &quot;CF_NETCHNG&quot;];
+var columnNames = [&quot;Id&quot;, &quot;Company Name&quot;, &quot;Market&quot;, &quot;Net Chng.&quot;];
+var columns = fields.map(function(f, idx) {
+    return {
+        field: f,
+        name: columnNames[idx]
+    }
+});
+columns.push({
+    field: &quot;Field A&quot;,
+    name: &quot;Action 1&quot;,
+    width: 70,
+    alignment: &quot;c&quot;,
+    binding: function(e) {
+        var cell = e.cell;
+        var content = cell.getContent();
+        if(!content) {
+            content = document.createElement(&quot;button&quot;);
+            content.textContent = &quot;A&quot;;
+            content.addEventListener(&quot;click&quot;, onButtonClicked);
+        }
+        cell.setContent(content);
+    }
+});
+columns.push({
+    field: &quot;Field B&quot;,
+    name: &quot;Action 2&quot;,
+    width: 70,
+    alignment: &quot;c&quot;,
+    binding: function(e) {
+        var cell = e.cell;
+        var content = cell.getContent();
+        if(!content) {
+            content = document.createElement(&quot;button&quot;);
+            content.textContent = &quot;B&quot;;
+            content.addEventListener(&quot;click&quot;, onButtonClicked);
+        }
+        cell.setContent(content);
+    }
+});
+
+var records = tr.DataGenerator.generateRecords(fields, {seed: 1, rowCount: 30});
+
+var configObj = {
+    columns: columns,
+    staticDataRows: records
+};
+var grid = document.getElementsByTagName(&quot;atlas-blotter&quot;)[0];
+grid.config = configObj;
+</code></pre>
+</code-sandbox><br>
+<br>
+<br>

@@ -1,51 +1,36 @@
-<h1 id="updating-data">Updating Data</h1>
-<p>The row order can be shifted by data manipulation, such as sorting and filtering. So, the <strong>row index</strong> is not good for referencing or storing/saving operations. A <strong>RowDefinition</strong> object needs to be obtained, in order to update data at a later stage. Once you can refer to the row, then we can use <code>setRowData()</code> method to update the data. </p>
-<h2 id="updating-a-row">Updating a row</h2>
-<p>Use <code>getRowDefinition(rowRef)</code> method to retrieve RowDefinition object from Grid.</p>
-<p>Use <code>setRowData(rowData)</code> method from RowDefinition object to update the data.</p>
-<blockquote>
-<p>Note: <code>insertRow</code> method also returns reference of newly created RowDefinition object</p>
-</blockquote>
-<pre><code class="language-js">var records = [
-    {&quot;field1&quot;: &quot;a&quot;, &quot;field2&quot;: 1, &quot;field3&quot;: null},
-    {&quot;field1&quot;: &quot;b&quot;, &quot;field2&quot;: 5, &quot;field3&quot;: {&quot;someKey&quot;: 10}},
-    {&quot;field1&quot;: &quot;c&quot;, &quot;field2&quot;: 7, &quot;field3&quot;: [1, 2, 3]},
-    {&quot;field1&quot;: &quot;c&quot;, &quot;field4&quot;: &quot;some value&quot;}
-];
-var rows = records.map(function toRowOption(record) {
-    return { values: record };
-});
-grid.api.insertRows(rows);
-var rowDef = grid.api.getRowDefinition(2); // Get a reference for the third row
+<h1 id="data-conversion">Data conversion</h1>
+<p>Sometimes data adding to Grid is not sanitized, for example the value represented changed price can be -2, +4, &quot;-0.3&quot;, &quot;+5&quot; or even null. To prevent Grid from displaying unexpected data, data parser or data sanitizer need to verify data before rendering. So Grid provides <code>dataComposed</code> event and <code>autoDateConversion</code> for this kind of task.</p>
+<h2 id="datacomposed-event">dataComposed event</h2>
+<p>Once Grid receives any data, <code>dataComposed</code> event will be fired before rendering of the content. Performing any data update during the <code>dataComposed</code> event will not trigger more <code>dataChanged</code> events, and thus there won&#39;t be an infinite loop. This event is useful for modifying the received data before the actual consumption. </p>
+<p>To add event listener for <code>dataComposed</code> event, just set the listener to the <code>dataComposed</code> property of Grid&#39;s configuration like the following code snippet:</p>
+<pre><code class="language-js">    function onDataComposed(e) {
+        var grid = e.grid;
+        var rowDef = e.rowDef;
+        var values = e.changes; // Indicating latest changes in data
+        var rowData = rowDef.getRowData(); // Current data for the row
 
-console.log(rowDef.getData(&quot;field2&quot;));
+        // Parse, sanitize, or transform data here
+        var newData = rowData[&quot;Field A&quot;] + rowData[&quot;Field B&quot;];
 
-rowDef.setRowData({&quot;field2&quot;: 33, &quot;field1&quot;: &quot;aa&quot;}); // Update the third row
+        // Save the modified data through RowDefinition&#39;s API 
+        rowDef.setData(&quot;Field A + B&quot;, newData);
+        // rowDef.setRowData({&quot;Field C&quot;: 1, &quot;Field D&quot;: 2, &quot;Field E&quot;: 3});
+    }
 
-console.log(rowDef.getData(&quot;field2&quot;));
-
-setTimeout(function(){
-    rowDef.setRowData({&quot;field2&quot;: 44});
-
-    console.log(rowDef.getData(&quot;field2&quot;));
-}, 1000);
+    var config = {
+        // other grid&#39;s options
+        dataComposed: onDataComposed
+    };
 </code></pre>
-<h3 id="updating-a-row-example">Updating a row example</h3>
-<p>The following example use object to map between RIC (text) and RowDefinition created from <code>insertRow</code> method.</p>
-<code-sandbox hash="9da1556f"><pre><code class="language-css">efx-grid {
-    height: 230px;
-}
-html hr {
-    margin: 5px;
+<h3 id="converting-invalid-data-example">Converting invalid data example</h3>
+<code-sandbox hash="d4b8588c"><pre><code class="language-css">atlas-blotter {
+    height: 168px
 }
 </code></pre>
-<pre><code class="language-html">&lt;button id=&quot;realtime_btn&quot;&gt;Toggle Real-time Update&lt;/button&gt;
-&lt;button id=&quot;eur_btn&quot;&gt;Update EUR=&lt;/button&gt;
-&lt;button id=&quot;jpy_btn&quot;&gt;Update JPY=&lt;/button&gt;
-&lt;hr&gt;
-&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+<pre><code class="language-html">&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
 </code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
@@ -54,157 +39,109 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;RIC&quot;, &quot;CF_LAST&quot;, &quot;PCTCHNG&quot;, &quot;CF_NETCHNG&quot;, &quot;CF_CLOSE&quot;];
-var ricList = [&quot;EUR=&quot;, &quot;GBP=&quot;, &quot;THB=&quot;, &quot;JPY=&quot;, &quot;AUD=&quot;];
-var rowDefMap = {}; // Object for mapping
-var realtimeInterval = 0;
+var onDataComposed = function(e) {
+    var rowDef = e.rowDef;
+    var values = e.changes;
 
-document.getElementById(&quot;realtime_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
-    if (realtimeInterval) {
-        clearInterval(realtimeInterval);
-        realtimeInterval = 0;
+    if (!values) { // Indicating no change
+        return;
+    }
+
+    // Performing any data update during the event will NOT cause more dataChanged events
+    var txt = values[&quot;text&quot;];
+    if (!txt || txt === &quot;N/A&quot;) {
+        rowDef.setData(&quot;number&quot;, 0);
+        rowDef.setData(&quot;status&quot;, &quot;Invalid data&quot;);
     } else {
-        realtimeInterval = setInterval(onRealtimeUpdate, 1200); // Simulate real-time update
-        onRealtimeUpdate(); // Update data immediately after click
+        rowDef.setData(&quot;number&quot;, parseFloat(txt));
+        rowDef.setData(&quot;status&quot;, &quot;OK&quot;);
     }
-});
-document.getElementById(&quot;eur_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
-    updateGridData(getRowUpdate(&quot;EUR=&quot;));
-});
-document.getElementById(&quot;jpy_btn&quot;).addEventListener(&quot;click&quot;, function(e) {
-    updateGridData(getRowUpdate(&quot;JPY=&quot;));
-});
-
-function onRealtimeUpdate() {
-    updateGridData(getRowUpdates());
-}
-
-function updateGridData(rowUpdates) {
-    for(var ric in rowUpdates) {
-        var rowDef = rowDefMap[ric];
-        if(!rowDef) { // Check if rowDef has been created for the updated ric 
-            rowDef = rowDefMap[ric] = grid.api.insertRow({}); // Use ric as key for mapping
-        }
-        rowDef.setRowData(rowUpdates[ric]); // Update the data
-    }
-}
-
-function getFieldUpdate(dataObj) {
-    // Simulate data updates for multiple field
-    if (!dataObj) {
-        dataObj = {};
-    }
-    var fieldCount = fields.length;
-    for (var i = 1; i &lt; fieldCount; ++i) {
-        if (randInt(0, 10) &lt; 6) {
-            var field = fields[i];
-            dataObj[field] = round(randFloat(-100, 100));
-        }
-    }
-    return dataObj;
-}
-function getRowUpdate(ric, rowUpdates) {
-    // Simulate data updates for a single row
-    if (!ric) {
-        ric = ricList[randInt(0, ricList.length)];
-    }
-    if (!rowUpdates) {
-        rowUpdates = {};
-    }
-    var dataObj = getFieldUpdate(rowUpdates[ric]);
-    dataObj[fields[0]] = ric;
-
-    rowUpdates[ric] = dataObj;
-    return rowUpdates;
-}
-function getRowUpdates() {
-    // Simulate data updates for multiple rows
-    var ricCount = ricList.length;
-    var rowUpdates = {};
-    for (var i = 0; i &lt; ricCount; ++i) {
-        if (randInt(0, 10) &lt; 4) {
-            getRowUpdate(ricList[i], rowUpdates);
-        }
-    }
-    return rowUpdates;
-}
-
-function randInt(min, exclusive_max) {
-    return Math.floor(randFloat(min, exclusive_max));
-}
-function randFloat(min, exclusive_max) {
-    return Math.random() * (exclusive_max - min) + min;
-}
-function round(num) {
-    return Math.round(num * 100) / 100;
-}
-
-var configObj = {
-    sorting: {
-        sortableColumns: true
-    },
-    columns: [
-        { name: &quot;RIC&quot;, field: fields[0], width: 70 },
-        { name: &quot;Last&quot;, field: fields[1], alignment: &quot;right&quot;, blinking: true},
-        { name: &quot;Pct. Chng&quot;, field: fields[2], alignment: &quot;right&quot;, blinking: true },
-        { name: &quot;Net. Chng&quot;, field: fields[3], alignment: &quot;right&quot;, blinking: true },
-        { name: &quot;Close&quot;, field: fields[4], alignment: &quot;right&quot;, blinking: true }
-    ]
 };
 
-    var grid = document.getElementById(&quot;grid&quot;);
-    grid.config = configObj;
+var gridRows = [{ 
+    values: {
+        id: &quot;1&quot;,
+        text: &quot;58&quot;,
+        description: &quot;normal number&quot;
+    }
+}, {
+    values: {
+        id: &quot;2&quot;,
+        text: &quot;-0.78&quot;,
+        description: &quot;nagative number&quot;
+    }
+}, {
+    values: {
+        id: &quot;3&quot;,
+        text: &quot;&quot;,
+        description: &quot;empty string&quot;
+    }
+}, {
+    values: {
+        id: &quot;4&quot;,
+        text: null,
+        description: &quot;null value&quot;
+    }
+}, {
+    values: {
+        id: &quot;5&quot;,
+        text: &quot;N/A&quot;,
+        description: &quot;invalid text&quot;
+    }
+}];
+
+var configObj = {
+    columns: [
+        {
+            name: &quot;Id&quot;,
+            field: &quot;id&quot;,
+            width: 70
+        },
+        {
+            name: &quot;Description&quot;,
+            field: &quot;description&quot;,
+            width: 150
+        },
+        {
+            name: &quot;Server Text&quot;,
+            field: &quot;text&quot;,
+            width: 150
+        },
+        {
+            name: &quot;Converted number&quot;,
+            field: &quot;number&quot;,
+            width: 150
+        },
+        {
+            name: &quot;Status&quot;,
+            field: &quot;status&quot;
+        }
+    ],
+    dataComposed: onDataComposed, // Attach handler for dataComposed event
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+
+// To emitate the dalay of reqeusting data from server
+setTimeout(function(e) {
+    grid.api.insertRows(gridRows);
+}, 2000);
 </code></pre>
-</code-sandbox><h2 id="updating-multiple-rows-or-large-data-set">Updating multiple rows or large data set</h2>
-<p>Sometimes, updating a row one by one can be slow as it triggers sorting for every API calls. Some other times, we can only fetch for entire table image because real-time data service is not available. So, updating data using the method from the section above may not be very efficient. <code>updateDataSet(records, rowIdentifier)</code> API provides a way to update entire data set all at once. The second paramter, rowIdentifier, is used for mapping rows between existing data set and new data set. In addition to updating data, the method will performs the following operations:</p>
-<ul>
-<li>Remove any row that does not exist in the given data set</li>
-<li>Add new rows that do not exist before</li>
-<li>Reorder/move rows to positions according to the new data set</li>
-</ul>
-<p>If the row identifier is not specified, row index of the data will be used as the row identifier instead. The following code snippet illustrates how <code>updateDataSet</code> works:</p>
-<pre><code class="language-js">var dataSet1 = [
-    {ric: &quot;EUR&quot;, field1: 10, field2: &quot;aaa&quot;},
-    {ric: &quot;DJI&quot;, field1: 10, field2: &quot;bbb&quot;},
-    {ric: &quot;SPX&quot;, field1: 20, field2: &quot;aaa&quot;},
-];
-
-// &quot;ric&quot; field is used as row identifier as it contains a unique value for each row
-grid.api.updateDataSet(dataSet1, &quot;ric&quot;);
-
-
-var dataSet2 = [
-    {ric: &quot;SPX&quot;, field1: 30, field2: &quot;ccc&quot;, field3: true },
-    {ric: &quot;DJI&quot;, field2: &quot;ddd&quot; },
-    {ric: &quot;THB&quot;, field1: 10, field2: &quot;aaa&quot;},
-    {ric: &quot;FTSE&quot;, field1: 10, field2: &quot;aaa&quot;},
-];
-
-// 4 different things will happen after calling updateDataSet with dataSet2
-// 1. EUR row is no longer presented. It will be removed
-// 2. THB and FTSE rows get added.
-// 3. SPX and DJI rows get new updates to the given fields
-//        3.1 field1, field2, and field3 on SPX row will be updated
-//        3.2 field2 on DJI row will be updated
-// 4. All row orders will be changed according to the row order in the second data set
-grid.api.updateDataSet(dataSet2, &quot;ric&quot;);
-</code></pre>
-<h3 id="updating-large-data-set-example">Updating large data set example</h3>
-<p>The following example shows how rows are added, removed, and updated when switching between different datasets using <code>updateDataSet</code> method.</p>
-<code-sandbox hash="174ea67f"><pre><code class="language-css">efx-grid {
-    height: 400px;
+</code-sandbox><h3 id="conditional-coloringblinking-based-on-computed-values-example">Conditional coloring/blinking based on computed values example</h3>
+<code-sandbox hash="d4f5b950"><pre><code class="language-css">atlas-blotter {
+    height: 168px
 }
-html hr {
+hr {
     margin: 5px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;button id=&quot;dataset_btn1&quot;&gt;Dataset 1&lt;/button&gt;
-&lt;button id=&quot;dataset_btn2&quot;&gt;Dataset 2&lt;/button&gt;
-&lt;button id=&quot;dataset_btn3&quot;&gt;Dataset 3&lt;/button&gt;
+<pre><code class="language-html">&lt;button id=&quot;update_btn&quot;&gt;Update data&lt;/button&gt;
 &lt;hr&gt;
-&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
 </code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
@@ -213,54 +150,163 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;market&quot;];
-var rowCount = 1000;
-var dataset1 = DataGenerator.generateRecords(fields, {seed: 1, numRows: rowCount});
+var onDataComposed = function(e) {
+    var rowDef = e.rowDef;
+    var changes = e.changes;
+    var rowData = rowDef.getRowData();
 
-document.getElementById(&quot;dataset_btn1&quot;).addEventListener(&quot;click&quot;, function(e) {
-    grid.api.updateDataSet(dataset1, &quot;id&quot;);
-});
-document.getElementById(&quot;dataset_btn2&quot;).addEventListener(&quot;click&quot;, function(e) {
-    var dataset2 = dataset1.map(newRecord);
-    grid.api.updateDataSet(dataset2, &quot;id&quot;);
-});
-document.getElementById(&quot;dataset_btn3&quot;).addEventListener(&quot;click&quot;, function(e) {
-    var dataset3 = dataset1.slice(0, 5).map(newRecord);
-    var randNum = randInt(0, 5);
-    var record = dataset3.splice(randNum, 1)[0];
-    dataset3.push(record);
+    var computedValue = rowData[&quot;current_price&quot;] - rowData[&quot;previous_close&quot;];
+    var prevComputed = rowData[&quot;computed_value&quot;] || 0; // Computed value from previous dataComposed session
+    var lastChange = computedValue - prevComputed;
     
-    grid.api.updateDataSet(dataset3, &quot;id&quot;);
+    rowDef.setData(&quot;computed_value&quot;, computedValue);
+    rowDef.setData(&quot;last_change&quot;, lastChange);
+    
+    // This indicates that there is a change in data for blinking logic to pick up
+    changes[&quot;computed_value&quot;] = computedValue;
+    changes[&quot;last_change&quot;] = lastChange;
+};
+
+document.getElementById(&quot;update_btn&quot;).addEventListener(&quot;click&quot;, function(){
+    var record = tr.DataGenerator.generateRecord([&quot;current_price&quot;]);
+    grid.api.setRowData(0, record);
+});
+
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;current_price&quot;, &quot;previous_close&quot;];
+var records = tr.DataGenerator.generateRecords(fields, {seed: 0, numRows: 4});
+var columns = fields.map(function(f){
+    return {
+        field: f
+    };
+});
+columns.push({
+    field: &quot;computed_value&quot;,
+    colorText: &quot;last_change&quot;, // Change text color based on other field (last_change)
+    blinking: true
+});
+columns.push({
+    field: &quot;last_change&quot;,
+    colorText: true
 });
 
 var configObj = {
+    defaultColumnOptions: {
+        width: 120
+    },
+    columns: columns,
+    staticDataRows: records,
+    dataComposed: onDataComposed, // attach handler for dataComposed event
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="auto-date-conversion">Auto date conversion</h2>
+<p>When dealing with date-time data it may be hard to handle the various types of incoming data, which can be number, string, ISO date string, seconds or milliseconds. So it is better to enable <code>autoDateConversion</code> in the Grid&#39;s configuration and let Grid automatically convert data to JavaScript native Date object. To let Grid know that the column&#39;s data is data-time, the <code>dataType: &quot;datetime&quot;</code> should be specified in the column&#39;s options.</p>
+<code-sandbox hash="633e2b76"><pre><code class="language-html">&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
+</code></pre>
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var descriptions = [
+    &quot;ISO date-time string&quot;,
+    &quot;Native Date object&quot;,
+    &quot;Milliseconds&quot;,
+    &quot;Seconds&quot;,
+    &quot;Excel date&quot;,
+    &quot;Negative value&quot;,
+    &quot;Invalid&quot;
+];
+
+var dateSamples = [
+    &quot;2021-11-25T10:00:00&quot;,
+    new Date(),
+    Date.UTC(2021, 11, 24, 10),
+    Date.UTC(2021, 11, 24, 10)/1000,
+    1,
+    -1,
+    &quot;abc&quot;
+];
+
+var records = [];
+for (var i = 0; i &lt; descriptions.length; i++) {
+    records.push({
+        des: descriptions[i],
+        date: dateSamples[i]
+    });
+}
+
+var configObj = {
+    autoDateConversion: true,
+    defaultColumnOptions: {
+        notRealTimeField: true
+    },
     columns: [
-        { name: &quot;Id&quot;, field: fields[0], width: 70 },
-        { name: &quot;companyName&quot;, field: fields[1] },
-        { name: &quot;Last&quot;, field: fields[2], alignment: &quot;right&quot;, blinking: {level: false} },
-        { name: &quot;Net. Chng&quot;, field: fields[3], alignment: &quot;right&quot;, blinking: {level: false} },
-        { name: &quot;Market&quot;, field: fields[4] }
+        {
+            name: &quot;Description&quot;,
+            field: &quot;des&quot;,
+            width: 130
+        },
+        {
+            name: &quot;Raw data&quot;,
+            field: &quot;date_RAW&quot;, // This field is auto-generated from date field
+            width: 130
+        },
+        {
+            name: &quot;Converted data&quot;,
+            field: &quot;date&quot;,
+            dataType: &quot;datetime&quot;
+        },
+        {
+            name: &quot;Formatted data&quot;,
+            field: &quot;date&quot;,
+            dataType: &quot;datetime&quot;,
+            alignment: &quot;center&quot;,
+            width: 120,
+            formatType: {
+                formatType: &quot;DateTime&quot;,
+                dateTimeFormat: &quot;DD/MM/YYYY HH:mm&quot;,
+            }
+        },
+        {
+            name: &quot;Realtime data&quot;,
+            field: &quot;last_update&quot;,
+            dataType: &quot;datetime&quot;,
+            alignment: &quot;center&quot;,
+            width: 130,
+            formatType: {
+                formatType: &quot;DateTime&quot;,
+                dateTimeFormat: &quot;DD/MM/YYYY HH:mm:ss&quot;,
+                useUTCTime: false // Display local time instead of UTC time (default)
+            }
+        }
+    ],
+    staticDataRows: records,
+    extensions: [
+        new tr.TextFormattingExtension()
     ]
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 
-function newRecord(record, idx) {
-    var newRecord = {};
-    newRecord.id = record.id;
-    newRecord.companyName = record.companyName;
-    newRecord.CF_LAST = record.CF_LAST + randInt(-2, 3);
-    newRecord.CF_NETCHNG = record.CF_NETCHNG + randInt(-2, 3);
-    newRecord.market = record.market;
-    return newRecord;
-}
-
-function randInt(min, exclusive_max) {
-    return Math.floor(randFloat(min, exclusive_max));
-}
-function randFloat(min, exclusive_max) {
-    return Math.random() * (exclusive_max - min) + min;
-}
+var timeCount = 0;
+setInterval(function simulateRealtimeUpdates() {
+    for(var i = 0; i &lt; 5; ++i) { // Update the first 5 records
+        grid.api.setRowData(i, {
+            last_update: grid.api.getRowData(i)[&quot;date&quot;].getTime() + timeCount * 1000
+        });
+    }
+    ++timeCount;
+}, 1000);
 </code></pre>
-</code-sandbox>
+</code-sandbox><br>
+<br>
+<br>

@@ -1,187 +1,173 @@
-<h1 id="event-handling-and-event-listeners-in-formatter">Event handling and event listeners in formatter</h1>
-<p>If your custom formatter contains some input elements or controls, it&#39;s important to bind data back to Grid&#39;s internal data source when users input new data through the UI from your custom formatter. Remember, the same element will be used on different rows due to the row virtualization mechanic. If the data is changed by user actions, you need to update the change back to Grid&#39;s data source, or else the binding mechanism will replace what the user has changed with the data stored from the Grid&#39;s internal source. </p>
-<p>In short, data should be updated after users interact with the UI input. <code>getRelativePosition()</code> method should be used to resolve current positions relative to the grid element.</p>
-<blockquote>
-<p>APIs for data manipulation can be found <a href="#/data/update">here</a>. APIs for Grid and <code>getRelativePosition()</code> method description can be found <a href="#/apis/rt-grid/grid">here</a>.</p>
-</blockquote>
-<h2 id="the-reverted-problem">The &#39;reverted&#39; problem</h2>
-<p>When we don&#39;t set data back, row virtualization will not work properly and content will not be rendered properly. Suppose that we have a dropdown element in one of the grid columns. Any change that is done to the dropdown box will be reverted if we don&#39;t update the data.</p>
-<p>In the live example below, try the following steps to produce the problem:</p>
-<ol>
-<li>Change the selected option from the dropdown box on the first row. Remember the new selected option</li>
-<li>Scroll down to the bottom of the grid</li>
-<li>Scroll back up to the top of the grid</li>
-</ol>
-<code-sandbox hash="397c9c8d"><pre><code class="language-css">efx-grid {
-    height: 200px;
-    margin-bottom: 40px;
-}
-</code></pre>
-<pre><code class="language-html">&lt;efx-grid&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;id&quot;, &quot;dropdownVal&quot;, &quot;boolean&quot;, &quot;text&quot;];
-// For static data initialization
-var records = [];
-for (var i = 0; i &lt; 50; i++) {
-    var record = {};
-    record[fields[0]] = i;
-    record[fields[1]] = i % 4; 
-    record[fields[2]] = i &amp; 1 ? true : false;
-    record[fields[3]] = i + &quot; Some Texts&quot;;
-    records.push(record);
-}
-
-var dropdownFormatter = function(e) {
-    var cell = e.cell;
-    var dropdown = cell.getContent();
-    if (!dropdown || !dropdown._myDropdown) {
-        dropdown = document.createElement(&quot;select&quot;);
-        dropdown._myDropdown = true;
-        [0, 1, 2, 3].forEach(function(val) {
-            var option = document.createElement(&quot;option&quot;);
-            option.value = val;
-            option.textContent = &quot;Value &quot; + val;
-            dropdown.appendChild(option);
-        });
-    }
-    
-    dropdown.selectedIndex = e.data;
-    cell.setContent(dropdown);
-};
-
-var configObj = {
-    columns: [
-        { name: &quot;Row Index&quot;, field: fields[0], width: 80 },
-        { name: &quot;Dropdown&quot;, field: fields[1], binding: dropdownFormatter },
-        { name: &quot;Dropdown Value&quot;, field: fields[1] },
-        { name: &quot;Column 3&quot;, field: fields[2], alignment: &quot;center&quot; },
-        { name: &quot;Column 4&quot;, field: fields[3] }
-    ],
-    staticDataRows: records
-};
-
-var grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
-grid.config = configObj;
-</code></pre>
-</code-sandbox><p>You will see that the selected option is reverted back to the original option.</p>
-<h2 id="the-fix">The fix</h2>
-<p>To avoid the problem, we have to add an event listener to our custom formatter for binding the change from users. You have added <code>dropdownChangeHandler</code> to fix the problem as shown below:</p>
-<code-sandbox hash="1ab010b7"><pre><code class="language-css">efx-grid {
-    height: 200px;
-    margin-bottom: 40px;
-}
-</code></pre>
-<pre><code class="language-html">&lt;efx-grid&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var fields = [&quot;id&quot;, &quot;dropdownVal&quot;, &quot;boolean&quot;, &quot;text&quot;];
-// For static data initialization
-var records = [];
-for (var i = 0; i &lt; 50; i++) {
-    var record = {};
-    record[fields[0]] = i;
-    record[fields[1]] = i % 4; 
-    record[fields[2]] = i &amp; 1 ? true : false;
-    record[fields[3]] = i + &quot; Some Texts&quot;;
-    records.push(record);
-}
-
-// Show how to render custom content with an event listener
-var dropdownFormatter = function(e) {
-    var cell = e.cell;
-    var dropdown = cell.getContent();
-    if (!dropdown || !dropdown._myDropdown) {
-        dropdown = document.createElement(&quot;select&quot;);
-        dropdown._myDropdown = true;
-        [0, 1, 2, 3].forEach(function(val) {
-            var option = document.createElement(&quot;option&quot;);
-            option.value = val;
-            option.textContent = &quot;Value &quot; + val;
-            dropdown.appendChild(option);
-        });
-        
-        dropdown.addEventListener(&quot;change&quot;, dropdownChangeHandler);
-    }
-    dropdown.selectedIndex = e.data;
-    cell.setContent(dropdown);
-};
-// Show how to set data based on interaction from custom content
-var dropdownChangeHandler = function(e) {
-    var dropdown = e.currentTarget;
-    var selectedIndex = +(dropdown.options[dropdown.selectedIndex].value);
-
-    var pos = grid.api.getRelativePosition(e);
-    var rowDef = grid.api.getRowDefinition(pos.rowIndex);
-    rowDef.setData(grid.api.getColumnField(pos.colIndex), selectedIndex);
-};
-
-var configObj = {
-    columns: [
-        { name: &quot;Row Index&quot;, field: fields[0], width: 80 },
-        { name: &quot;Dropdown&quot;, field: fields[1], binding: dropdownFormatter },
-        { name: &quot;Dropdown Value&quot;, field: fields[1] },
-        { name: &quot;Column 3&quot;, field: fields[2], alignment: &quot;center&quot; },
-        { name: &quot;Column 4&quot;, field: fields[3] }
-    ],
-    staticDataRows: records
-};
-
-var grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
-grid.config = configObj;
-</code></pre>
-</code-sandbox><h2 id="writing-event-listeners">Writing event listeners</h2>
-<p>Since the same element will be used on different rows, you cannot use closure variables that are created or given from the event arguments. Row index, column index, or cell reference must be resolved at runtime inside the event listener. You can resolve the position by using Grid&#39;s <code>getRelativePosition()</code> method.</p>
-<pre><code class="language-js">    var dropdownChangeHandler = function(e) {
-        var dropdown = e.currentTarget;
-        var selectedIndex = +(dropdown.options[dropdown.selectedIndex].value);
-
-        var pos = grid.api.getRelativePosition(e);
-        var rowDef = grid.api.getRowDefinition(pos.rowIndex);
-        rowDef.setData(grid.api.getColumnField(pos.colIndex), selectedIndex);
-    };
-</code></pre>
+<h1 id="text-selection">Text Selection</h1>
+<p>Text selection has 2 scopes. It&#39;s grid scope and column scope. The default value of text selection is disabled, but you can enable it. If you enable it, users can select text in scope.</p>
 <ul>
-<li><code>currentTarget</code> property will always give an element attached by the event listener</li>
-<li><code>getRelativePosition()</code> method resolves the position when the dropdown value is changed</li>
+<li>The grid scope can enable by set textSelect property to <code>true</code> in configuration of <a href="#/apis/rt-grid/grid">Grid</a></li>
+<li>The column scope can enable by set textSelect property to <code>true</code> in configuration of <a href="#/apis/rt-grid/columndefinition">Columns</a></li>
 </ul>
-<blockquote>
-<p>See <a href="#/data/update">this page</a> on how to update data.</p>
-</blockquote>
-<h3 id="getting-column-and-row-information-from-clicked-content-example">Getting column and row information from clicked content example</h3>
-<code-sandbox hash="9f180ff2"><pre><code class="language-css">html hr {
+<h2 id="limitation-with-safari">Limitation with safari</h2>
+<ul>
+<li>When you use Text selection with <a href="#/extensions/tr-grid-row-dragging">Row Dragging</a>, Safari is unable to select text.</li>
+<li>Safari is unable to listening pointer events such as clicks, hovers, and so on. When you use <a href="#/rendering/custom-formatter">Custom Formatter</a> in a cell, it looks like this example.</li>
+</ul>
+<h3 id="example">Example</h3>
+<p>If you use Safari, try clicking the button in column <code>Market</code> from the sample below. You won&#39;t be able to receive the click event.</p>
+<code-sandbox hash="c4fedffe"><pre><code class="language-html">&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
+</code></pre>
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;companyName&quot;, &quot;market&quot;];
+var records = tr.DataGenerator.generateRecords(fields, { numRows: 10 });
+var buttonDisplay = {
+binding: function (e) {
+    var cellData = e.cell;
+    var buttonContent = document.createElement(&quot;button&quot;);
+    var spanContent = document.createElement(&quot;span&quot;);
+    buttonContent.addEventListener(&quot;click&quot; , () =&gt; {
+        alert(e.data);
+    });
+    spanContent.textContent = `${e.data}`;
+    buttonContent.appendChild(spanContent);
+    cellData.setContent(buttonContent);
+    }
+};
+
+var configObj = {
+    rowVirtualRendering: false,
+    textSelect : true,
+    columns: [
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market&quot;, field: fields[1], formatter: buttonDisplay , width: 120}
+    ],
+    staticDataRows: records
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="limitation-with-row-virtualization">Limitation with row virtualization</h2>
+<p>Text selection with row virtualization cannot select all data in the grid.
+In the example below, the grid has text selection enabled and uses row virtualization.
+When you try to select and copy text from the grid and paste it into a text area, you will see that not all data from the grid is obtained.
+This is because row virtualization render only the rows that is visible in the grid&#39;s viewport. 
+For example, if you have 50 rows of data, but the grid can only show the first 10 rows at a time, then when you try to select the text, it will only select the first 14 rows (10 rows + buffer rows). 
+If you want to know about row virtualization in more detail, you can refer to the <code>Understanding row virtualization</code> section in the <a href="#/rendering/custom-formatter">Custom Formatter</a> page.</p>
+<h3 id="example-1">Example</h3>
+<code-sandbox hash="48ee97c8"><pre><code class="language-css">atlas-blotter {
+    height: 300px;
+}
+textarea {
+    height: 200px;
+    width: 100%;
+}
+</code></pre>
+<pre><code class="language-html">&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
+&lt;hr&gt;
+&lt;textarea placeholder=&quot;Paste text here&quot;&gt;&lt;/textarea&gt;
+</code></pre>
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [
+    &quot;id&quot;,
+    &quot;companyName&quot;,
+    &quot;market&quot;,
+    &quot;CF_LAST&quot;,
+    &quot;CF_NETCHNG&quot;,
+    &quot;industry&quot;
+];
+var records = tr.DataGenerator.generateRecords(fields, { numRows: 50, seed: 0 });
+var config = {
+    textSelect: true,
+    columns: [
+        {
+            field: fields[0],
+            name: &quot;ID&quot;
+        },
+        {
+            field: fields[1],
+            name: &quot;Company Name&quot;
+        },
+        {
+            field: fields[2],
+            name: &quot;Market&quot;
+        },
+        {
+            field: fields[3],
+            name: &quot;Last&quot;
+        },
+        {
+            field: fields[4],
+            name: &quot;Net. Chng&quot;
+        },
+        {
+            field: fields[5],
+            name: &quot;Industry&quot;
+        },
+    ],
+    staticDataRows: records
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = config;
+window.grid = grid;
+</code></pre>
+</code-sandbox><h2 id="copying-all-content-in-the-grid-without-text-selection">Copying all content in the grid without text selection</h2>
+<p>If you want to copy all the data in the grid, you can do it by focusing on the grid element and modifying the clipboard without text selection.
+To do this, you can listen for the <code>click</code> event on the grid element and call <code>focus</code> method on the grid API to focus on the grid.
+Then, you can listen for the <code>copy</code> event on the grid element and modify the clipboard as shown in the example below.</p>
+<h3 id="example-2">Example</h3>
+<code-sandbox hash="626b88e5"><pre><code class="language-css">html body {
+    padding: 5px;
+    box-sizing: border-box;
+}
+html hr {
     margin: 5px;
+}
+atlas-blotter {
+    height: 200px;
+}
+atlas-blotter:focus-within {
+    outline-width: 1px;
+    outline-style: solid;
+    outline-color: blue;
 }
 textarea {
     width: 100%;
-    height: 80px;
-    font-size: 18px;
+    height: 200px;
 }
-efx-grid {
-    height: 300px;
+mark {
+    opacity: 0;
+    padding: 4px;
+    transition: opacity 0.5s ease-out;
 }
 </code></pre>
-<pre><code class="language-html">&lt;textarea id=&quot;msg_ta&quot;&gt;&lt;/textarea&gt;
+<pre><code class="language-html">&lt;big&gt;Try clicking grid and copying (&lt;b&gt;Ctrl/Command + C&lt;/b&gt;) grid&#39;s content.&lt;/big&gt;
+&lt;br&gt;
+&lt;big&gt;Then, paste the content on the text box below.&lt;/big&gt;
 &lt;hr&gt;
-&lt;efx-grid&gt;&lt;/efx-grid&gt;
+&lt;mark id=&quot;key_indi&quot;&gt;&lt;/mark&gt;
+&lt;hr&gt;
+&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
+&lt;hr&gt;
+&lt;textarea placeholder=&quot;Paste clipboard content here&quot;&gt;&lt;/textarea&gt;
 </code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
@@ -191,68 +177,65 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
 
-var onButtonClicked = function(e) {
-    var pos = grid.api.getRelativePosition(e);
-    var field = grid.api.getColumnField(pos.colIndex);
-    var rowDef = grid.api.getRowDefinition(pos.rowIndex);
+var fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = tr.DataGenerator.generateRecords(fields, { seed: 0, numRows: 20 });
+
+function onClick(e) {
+    grid.api.focus();
+}
+function onCopy(e) {
+    var columnNames = grid.api.getColumnNames();
+    var rows = grid.api.getMultipleRowData(); // Get all row data from existing view
     
-    var ary = [
-        &quot;Field: &quot; + field,
-        &quot;Row Data: &quot; + JSON.stringify(rowDef.getRowData())
-    ];
-    msg_ta.textContent = ary.join(&quot;\n&quot;);
-};
-
-var fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;market&quot;, &quot;CF_NETCHNG&quot;];
-var columnNames = [&quot;Id&quot;, &quot;Company Name&quot;, &quot;Market&quot;, &quot;Net Chng.&quot;];
-var columns = fields.map(function(f, idx) {
-    return {
-        field: f,
-        name: columnNames[idx]
+    // Build text in TSV format 
+    var text = columnNames.join(&quot;\t&quot;) + &quot;\n&quot; +
+        rows.map(recordToTSV).join(&quot;\n&quot;);
+    
+    e.clipboardData.setData(&quot;text/plain&quot;, text);
+    e.preventDefault();
+    
+    showKeyIndicator(&quot;Data is copied to clipboard&quot;);
+}
+function recordToTSV(record) {
+    return ([
+        record[fields[0]],
+        record[fields[1]],
+        record[fields[2]],
+        record[fields[3]],
+        record[fields[4]]
+    ]).join(&quot;\t&quot;); // TSV (Tab Separated Values)
+}
+function showKeyIndicator(text) {
+    if(text) {
+        key_indi.textContent = text;
     }
-});
-columns.push({
-    field: &quot;Field A&quot;,
-    name: &quot;Action 1&quot;,
-    width: 70,
-    alignment: &quot;c&quot;,
-    binding: function(e) {
-        var cell = e.cell;
-        var content = cell.getContent();
-        if(!content) {
-            content = document.createElement(&quot;button&quot;);
-            content.textContent = &quot;A&quot;;
-            content.addEventListener(&quot;click&quot;, onButtonClicked);
-        }
-        cell.setContent(content);
-    }
-});
-columns.push({
-    field: &quot;Field B&quot;,
-    name: &quot;Action 2&quot;,
-    width: 70,
-    alignment: &quot;c&quot;,
-    binding: function(e) {
-        var cell = e.cell;
-        var content = cell.getContent();
-        if(!content) {
-            content = document.createElement(&quot;button&quot;);
-            content.textContent = &quot;B&quot;;
-            content.addEventListener(&quot;click&quot;, onButtonClicked);
-        }
-        cell.setContent(content);
-    }
-});
-
-var records = DataGenerator.generateRecords(fields, {seed: 1, rowCount: 30});
+    key_indi.style.opacity = &quot;1&quot;;
+    setTimeout(onHideKeyIndicator, 1000);
+}
+function onHideKeyIndicator() {
+    key_indi.style.opacity = &quot;&quot;;
+}
 
 var configObj = {
-    columns: columns,
-    staticDataRows: records
+    sorting: {
+        sortableColumns: true
+    },
+    columns: [
+        { name: &quot;Id&quot;, field: fields[0], width: 40 },
+        { name: &quot;Company&quot;, field: fields[1] },
+        { name: &quot;Market&quot;, field: fields[2], width: 100 },
+        { name: &quot;Last&quot;, field: fields[3], width: 80 },
+        { name: &quot;Net. Chng&quot;, field: fields[4], width: 80 },
+        { name: &quot;Industry&quot;, field: fields[5] }
+    ],
+    staticDataRows: records,
+    extensions: []
 };
-var grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
+
+var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
+
+grid.addEventListener(&quot;click&quot;, onClick);
+grid.addEventListener(&quot;copy&quot;, onCopy);
 </code></pre>
-</code-sandbox><br>
-<br>
-<br>
+</code-sandbox><p><br><br></p>

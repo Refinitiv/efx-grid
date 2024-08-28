@@ -1,13 +1,54 @@
-<h1 id="non-overlap-scrollbars">Non-overlap Scrollbars</h1>
-<p>Normally, Grid&#39;s scrollbars are shown on top of its content. This behavior can result in scrollbars blocking the display and interaction of the content. You can work around this issue by adding extra content to allow space for the scrollbars. To do this set <code>contentRightPadding</code> and <code>contentBottomPadding</code> properties in the configuration, as shown in the example below.</p>
-<h2 id="content-padding-example">Content padding example</h2>
-<code-sandbox hash="c56d35db"><pre><code class="language-css">efx-grid {
+<h1 id="general-concepts-and-row-expansion-apis">General Concepts and Row Expansion APIs</h1>
+<p>Row expansion is an extra row that is extended directly from a normal row. It&#39;s a great place to show extra information which cannot normally be shown on a single row. </p>
+<p>It looks just like a normal row but, unlike a normal row, it has no data from the main data table associated with it. This means that the states or data of the row expansion have to come from the expanded row. Grid will not perform sorting or filtering on the row expansion, as it has no data. </p>
+<p>In effect, row expansion is completely different from row grouping, where rows are grouped based on their data. Row expansion is tightly connected to the expanded row and cannot be separated. When the expanded row is moved, the row expansion is also moved. So, be aware that operations like sorting, filtering, or pagination can still have an impact on how row expansion is displayed.</p>
+<p>To add a row expansion, call <code>addRowExpansion(rowId)</code> or <code>toggleRowExpansion(rowId)</code> from Grid&#39;s data view. <code>rowId</code> is the row ID of the row to be expanded. </p>
+<p>To remove all row expansions at once, use <code>removeAllRowExpansions()</code>. </p>
+<p>To get existing rows with an expansion, use <code>getRowsWithExpansion()</code>.</p>
+<p>To render content on the row expansion, define <code>renderer</code> property of <code>rowExpansion</code> on the grid configuration object, like so:</p>
+<pre><code class="language-js">var configObj = {
+    //...
+    rowExpansionBinding: function (e) {
+        var rowIndex = e[&quot;rowIndex&quot;];
+        var section = e[&quot;section&quot;];
+        
+        if(e.rowExpansion) {
+            // render
+            var rowData = e.originalRowData;
+            var cell = section.stretchCell(0, rowIndex);
+            var str = &quot;expanded from row \&quot;&quot; + rowData[&quot;col1&quot;] + &quot;, &quot; + rowData[&quot;col2&quot;] + &quot;, &quot; + rowData[&quot;col3&quot;] + &quot;\&quot;&quot;;
+            cell.setContent(str);
+            cell.setStyle(&quot;background-color&quot;, &quot;lightblue&quot;);
+        } else {
+            //dispose
+            var cell = section.stretchCell(0, rowIndex, false);
+            cell.setStyle(&quot;background-color&quot;, &quot;&quot;);
+        }
+    },
+    //...
+};
+</code></pre>
+<blockquote>
+<p>Note: the same cell element is used for both normal row and row expansion due to the virtualization technique. Any custom style has to be removed using the <code>dispose</code> part.</p>
+</blockquote>
+<p>The example below shows how to create row expansion when clicking on a normal row. It also shows how to save and load row expansion states.</p>
+<code-sandbox hash="11f498d1"><pre><code class="language-css">atlas-blotter {
     height: 200px;
 }
+html hr {
+    margin: 5px;
+}
 </code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+<pre><code class="language-html">&lt;button id=&quot;save_states&quot;&gt;Save&lt;/button&gt;
+&lt;button id=&quot;load_states&quot;&gt;Load&lt;/button&gt;
+&lt;button id=&quot;clear_row_expan&quot;&gt;Clear all row expansions&lt;/button&gt;
+&lt;hr&gt;
+&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
+&lt;hr&gt;
+&lt;pre id=&quot;msg&quot;&gt;&lt;/pre&gt;
 </code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
@@ -17,44 +58,211 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
 var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 20 });
+var records = tr.DataGenerator.generateRecords(fields, { seed: 1, numRows: 10 });
+
+function onCellCliked(e) {
+    var pos = grid.api.getRelativePosition(e);
+    if (pos.sectionType === &quot;content&quot;) { // Prevent clicking on header section
+        var dv = grid.api.getDataView();
+        dv.toggleRowExpansion(pos.rowIndex);
+    }
+}
+
+document.getElementById(&quot;save_states&quot;).addEventListener(&quot;click&quot;, function () {
+    var dv = grid.api.getDataView();
+    var rowWithExpansions = dv.getRowsWithExpansion();
+    var rowIds = rowWithExpansions.filter(function (id) {
+        return id;
+    });
+
+    msg.textContent = &quot;Row Ids saved:\n&quot; + JSON.stringify(rowIds, null, 4);
+    sessionStorage.setItem(&quot;row_expansion_data&quot;, JSON.stringify(rowIds));
+});
+
+document.getElementById(&quot;load_states&quot;).addEventListener(&quot;click&quot;, function () {
+    // Initial row expansion from rowId
+    var dv = grid.api.getDataView();
+    var data = sessionStorage.getItem(&quot;row_expansion_data&quot;);
+    msg.textContent = &quot;Data loaded: &quot; + data;
+    const rowIds = JSON.parse(data);
+    dv.removeAllRowExpansions();
+    for (var rowId of rowIds) {
+        dv.addRowExpansion(rowId);
+    }
+});
+
+document.getElementById(&quot;clear_row_expan&quot;).addEventListener(&quot;click&quot;, function () {
+    var dv = grid.api.getDataView();
+    dv.removeAllRowExpansions();
+    msg.textContent = &quot;Row expansions are cleared&quot;;
+});
+
 var configObj = {
-    contentRightPadding: 14,
-    contentBottomPadding: 14,
-    autoHideScrollbar: false,
+    sorting: {
+        sortableColumns: true
+    },
     columns: [
-        {name: &quot;Company&quot;, field: fields[0], width: 250},
-        {name: &quot;Market&quot;, field: fields[1], width: 150},
-        {name: &quot;Last&quot;, field: fields[2], width: 150},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 150},
-        {name: &quot;Industry&quot;, field: fields[4], width: 300}
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market&quot;, field: fields[1], width: 120},
+        {name: &quot;Last&quot;, field: fields[2], width: 100},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
+        {name: &quot;Industry&quot;, field: fields[4]}
     ],
+    rowExpansionBinding: function(e) {
+        var rowIndex = e[&quot;rowIndex&quot;];
+        var section = e[&quot;section&quot;];
+        var colCount = section.getColumnCount();
+        if (e.rowExpansion) {
+            for (var c = 0; c &lt; colCount; ++c) {
+                var cell = section.getCell(c, rowIndex);
+                cell.setContent(&quot;Row Expansion_&quot; + c);
+                cell.setStyle(&quot;backgroundColor&quot;, &quot;#cc7755&quot;);
+            }
+        } else {
+            for (var c = 0; c &lt; colCount; ++c) {
+                var cell = section.getCell(c, rowIndex);
+                cell.setStyle(&quot;backgroundColor&quot;, &quot;&quot;);
+            }
+        }
+    },
+    staticDataRows: records
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+
+grid.addEventListener(&quot;click&quot;, onCellCliked);
+</code></pre>
+</code-sandbox><h2 id="managing-states-for-row-expansion">Managing states for row expansion</h2>
+<p>Since row expansion has no row data to hold its state, the data has to be stored on the expanded row. The example below shows how you can have two different types of content based on the button being clicked.</p>
+<code-sandbox hash="14094913"><pre><code class="language-css">atlas-blotter {
+    height: 200px;
+}
+html hr {
+    margin: 5px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
+</code></pre>
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = tr.DataGenerator.generateRecords(fields, { numRows: 10 });
+
+var buttonFormatter = function (e) {
+    var cell = e[&quot;cell&quot;];
+    var content = cell.getContent();
+    if (!content || !cell._buttons) {
+        var buttonsContainer = (cell._buttons = document.createElement(&quot;div&quot;));
+        var firstButton = document.createElement(&quot;coral-button&quot;);
+        firstButton.icon = &quot;edit&quot;;
+        firstButton.addEventListener(&quot;click&quot;, onFirstClickButton);
+
+        var secondButton = document.createElement(&quot;coral-button&quot;);
+        secondButton.icon = &quot;filter&quot;;
+        secondButton.addEventListener(&quot;click&quot;, onSecondClickButton);
+        buttonsContainer.appendChild(firstButton);
+        buttonsContainer.appendChild(secondButton);
+    }
+    cell.setContent(cell._buttons);
+};
+
+var onFirstClickButton = function (e) {
+    var pos = grid.api.getRelativePosition(e);
+    var dv = grid.api.getDataView();
+
+    // Save the state to the expanded row
+    dv.setDataAt(pos.rowIndex, &quot;My_Clicked_Button&quot;, 1);
+
+    dv.toggleRowExpansion(pos.rowIndex);
+};
+
+var onSecondClickButton = function (e) {
+    var pos = grid.api.getRelativePosition(e);
+    var dv = grid.api.getDataView();
+
+    // Save the state to the expanded row
+    dv.setDataAt(pos.rowIndex, &quot;My_Clicked_Button&quot;, 2);
+
+    dv.toggleRowExpansion(pos.rowIndex);
+};
+
+var configObj = {
+    columns: [
+        {
+            name: &quot;Buttons&quot;,
+            field: &quot;btnClicked&quot;,
+            binding: buttonFormatter,
+            width: 80,
+            alignment: &quot;center&quot;
+        },
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market&quot;, field: fields[1], width: 120},
+        {name: &quot;Last&quot;, field: fields[2], width: 100},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
+        {name: &quot;Industry&quot;, field: fields[4]}
+    ],
+    rowExpansionBinding: function(e) {
+        var rowIndex = e[&quot;rowIndex&quot;];
+        var section = e[&quot;section&quot;];
+        if (e.rowExpansion) {
+            // render
+            var cell = section.stretchCell(0, rowIndex, true);
+            var rowData = e.originalRowData;
+            if (rowData[&quot;My_Clicked_Button&quot;] === 1) {
+                cell.setContent(&quot;First button was clicked&quot;);
+            } else {
+                cell.setContent(&quot;Second button was clicked&quot;);
+            }
+            cell.setStyle(&quot;backgroundColor&quot;, &quot;#cc7755&quot;);
+            cell.setStyle(&quot;textAlign&quot;, &quot;left&quot;);
+        } else {
+            // dispose
+            var cell = section.stretchCell(0, rowIndex, false);
+            cell.setStyle(&quot;backgroundColor&quot;, &quot;&quot;);
+            cell.setStyle(&quot;textAlign&quot;, &quot;&quot;);
+        }
+    },
     staticDataRows: records
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 </code></pre>
-</code-sandbox><p>This extra content may not be desirable though, as it can add to the amount of scroll distance and not actually reserve space for the scrollbars. Instead, you can change the parent of the scrollbars and reserve some space using CSS paddings. To change the parent of the scrollbars supply the parent element to the <code>scrollbarParent</code> property in the configuration object, as shown below.</p>
+</code-sandbox><h2 id="multiple-row-expansions-from-a-single-row">Multiple row expansions from a single row</h2>
+<p>You can specify the number of row expansions to be added on a single row by passing the number as the third parameter for <code>toggleRowExpansion(rowId, null, numRows)</code>. </p>
 <blockquote>
-<p>Note: <code>autoHideScrollbar</code> is turned off by default if <code>scrollbarParent</code> is supplied.</p>
+<p>Note that row expansion has no row data. So the entire data set for multiple row expansions have to be stored on the expanded row. Luckily, any data structure can be stored on the row data. For instance, you can have an array of objects representing states of row expansions, like so:</p>
 </blockquote>
-<h2 id="changing-the-scrollbar-parent-example">Changing the scrollbar parent example</h2>
-<code-sandbox hash="b806eb56"><pre><code class="language-css">#grid_container {
-    height: 200px; 
-    padding-right: 14px;
-    padding-bottom: 14px;
-    box-sizing: border-box;
+<pre><code class="language-js">dv.setData(rowId, &quot;My_Row_Expansion_States&quot;, [ 
+    {name: &quot;Row 1&quot;, value: 1},
+    {name: &quot;Row 2&quot;, value: 2},
+    // ...
+]);
+</code></pre>
+<h2 id="handling-asynchronous-content">Handling asynchronous content</h2>
+<p>Rows can be shifted and data can be updated during the asynchronous process, such as waiting for a response from a server. It is a good idea to always use the row ID for referencing a row and <strong>not</strong> assume that rows or elements stay in the same place. </p>
+<p>The example below shows how to render custom content with asynchronous data. The row ID is retrieved and used for referencing after the server response.</p>
+<code-sandbox hash="e025cd11"><pre><code class="language-css">atlas-blotter {
+    height: 200px;
 }
-efx-grid {
-    height: 100%;
+html hr {
+    margin: 5px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;div id=&quot;grid_container&quot;&gt;
-    &lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-&lt;/div&gt;
+<pre><code class="language-html">&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
+&lt;hr&gt;
 </code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
@@ -64,20 +272,104 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
 var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 20 });
+var records = tr.DataGenerator.generateRecords(fields, { numRows: 10 });
+
+var onRowExpansionBinding = function(e) {
+    var rowData = e.originalRowData;
+    var rowIndex = e[&quot;rowIndex&quot;];
+    var section = e[&quot;section&quot;];
+    if (e.rowExpansion &amp;&amp; rowData) {
+        // render
+        var cell = section.stretchCell(0, rowIndex, true);
+        cell.setStyle(&quot;backgroundColor&quot;, &quot;#cc7755&quot;);
+        section.setRowHeight(rowIndex, 72); // Customized height
+
+        var expContent = cell.getContent();
+        if (!expContent || !expContent._myExpansion) {
+            expContent = document.createElement(&quot;div&quot;);
+            expContent._myExpansion = true;
+
+            var firstLine = expContent._firstLine = document.createElement(&quot;div&quot;);
+            var secondLine = expContent._secondLine = document.createElement(&quot;div&quot;);
+            var loader = expContent._loader = document.createElement(&quot;amber-loader&quot;);
+            var button = document.createElement(&quot;button&quot;);
+            button.textContent = &quot;Column &amp; Row Index&quot;;
+            button.addEventListener(&quot;click&quot;, function (e) {
+                var pos = grid.api.getRelativePosition(e);
+                alert(pos.colIndex + &quot;, &quot; + pos.rowIndex);
+            });
+
+            secondLine.appendChild(button);
+
+            expContent.appendChild(firstLine);
+            expContent.appendChild(secondLine);
+            expContent.appendChild(loader);
+        }
+
+        var rowData = e.originalRowData;
+        if (rowData[&quot;My_Expansion_Status&quot;] === &quot;loading&quot;) {
+            expContent._firstLine.style.display = &quot;none&quot;;
+            expContent._secondLine.style.display = &quot;none&quot;;
+            expContent._loader.style.display = &quot;&quot;;
+        } else {
+            expContent._firstLine.style.display = &quot;&quot;;
+            expContent._secondLine.style.display = &quot;&quot;;
+            expContent._loader.style.display = &quot;none&quot;;
+        }
+        cell.setContent(expContent);
+    } else {
+        // dispose
+        var cell = section.stretchCell(0, rowIndex, false);
+        cell.setStyle(&quot;backgroundColor&quot;, &quot;&quot;);
+        section.setRowHeight(rowIndex, section.getDefaultRowHeight()); // Default height
+    }
+}
+
+var onCellCliked = function(e) {
+    var pos = grid.api.getRelativePosition(e);
+    if (pos.sectionType === &quot;content&quot;) { // Prevent clicking on header section
+        var rowIndex = pos.rowIndex;
+        var rowDef = grid.api.getRowDefinition(rowIndex);
+        if (rowDef) { // Prevent clicking on expanded row
+            var rowId = rowDef.getRowId();
+            var dv = grid.api.getDataView();
+            if (!dv.isRowExpansion(rowId)) {
+                if (rowDef.getData(&quot;My_Expansion_Status&quot;) == null) {
+                    rowDef.setData(&quot;My_Expansion_Status&quot;, &quot;loading&quot;);
+                    // Simulate delay from data request
+                    setTimeout(onServerResponse.bind(null, dv, rowDef), 3000); // Asynchronous
+                }
+                dv.toggleRowExpansion(pos.rowIndex);
+            }
+        }
+    }
+};
+var onServerResponse = function(dv, rowDef) {
+    if (!dv.isRowExpansion(rowDef.getRowId())) {
+        rowDef.setData(&quot;My_Expansion_Status&quot;, &quot;data received&quot;);
+    }
+    grid.api.getCoreGrid().requestRowRefresh(); // WORKAROUND: Force re-rendering
+};
+
 var configObj = {
-    scrollbarParent: document.getElementById(&quot;grid_container&quot;),
+    columnReorder: true,
+    sorting: {
+        sortableColumns: true
+    },
     columns: [
-        {name: &quot;Company&quot;, field: fields[0], width: 250},
-        {name: &quot;Market&quot;, field: fields[1], width: 150},
-        {name: &quot;Last&quot;, field: fields[2], width: 150},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 150},
-        {name: &quot;Industry&quot;, field: fields[4], width: 300}
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market&quot;, field: fields[1], width: 120},
+        {name: &quot;Last&quot;, field: fields[2], width: 100},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
+        {name: &quot;Industry&quot;, field: fields[4]}
     ],
+    rowExpansionBinding: onRowExpansionBinding,
     staticDataRows: records
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
+
+grid.addEventListener(&quot;click&quot;, onCellCliked);
 </code></pre>
 </code-sandbox>

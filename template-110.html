@@ -1,90 +1,51 @@
-<h1 id="ef-icon-formatter">EF Icon Formatter</h1>
-<p>This formatter creates a <a href="https://ui.refinitiv.com/elements/icon">ef-icon</a> from the column&#39;s field by default.</p>
+<h1 id="changing-formatter-at-runtime">Changing Formatter at Runtime</h1>
+<p>Sometimes you might want to change a custom rendering during a runtime. This can be achieved by using the internal method <code>setColumnFormatter</code>.</p>
 <blockquote>
-<p>A full list of available icons can be found <a href="https://ui.refinitiv.com/elements/icon">here</a>. </p>
+<p>APIs for Grid and the <code>setColumnFormatter()</code> method description can be found <a href="#/apis/composite-grid/tr-compositegrid">here</a>.</p>
 </blockquote>
-<h2 id="specific-options">Specific options</h2>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Type</th>
-<th>Attributes</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>icon</td>
-<td>string or object</td>
-<td>optional</td>
-<td>Icon shown in the cell</td>
-</tr>
-<tr>
-<td>size</td>
-<td>string or number</td>
-<td>optional</td>
-<td>Size of an icon in pixels</td>
-</tr>
-</tbody></table>
-<h2 id="example">Example</h2>
-<code-sandbox hash="c18996b8"><pre><code class="language-css">efx-grid {
-    height: 320px;
+<p>There are, however, some differences when dealing with the <code>Emerald-Grid</code> and <code>Atlas-Blotter</code>. See below.</p>
+<h2 id="emerald-grid">Emerald-grid</h2>
+<pre><code class="language-js">var grid = document.getElementsByTagName(&quot;emerald-grid&quot;)[0];
+
+// formatter can be a function
+var formatter = function(rowIndex, colIndex, value, cell){
+    cell.setContent(value);
+};
+/*
+// or can be an object.
+var formatter = {
+    render: function() {},
+    bind: function(rowIndex, colIndex, value, cell) {
+        cell.setContent(value);
+    }
+};
+// or can be a predefined formatter
+var formatter = SimpleLinkFormatter.create()
+*/
+function handleChangeFormatter() {
+    grid.api.setColumnFormatter(0 /* Column Index */, formatter);
+};
+</code></pre>
+<h2 id="atlas-blotter">Atlas-blotter</h2>
+<pre><code class="language-js">var grid = document.getElementsByTagName(&quot;atlas-blotter&quot;)[0];
+
+// formatter can be a function
+var formatter = function(e) {
+    var value = e.grid.getRowData(e.rowIndex)[e.field];
+    e.cell.setContent(value);
+};
+/*
+// or can be an object.
+var formatter = {
+    binding: function(e) {
+        var value = e.grid.getRowData(e.rowIndex)[e.field];
+        e.cell.setContent(value);
+    }
+};
+// or can be a predefined formatter
+var formatter = SimpleLinkFormatter.create()
+*/
+function handleChangeFormatter() {
+    grid.api.setColumnFormatter(0 /* Column Index */, formatter);
 }
 </code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var icons = [&quot;3d-surface&quot;, &quot;api&quot;, &quot;eye&quot;, &quot;conference&quot;, &quot;flame&quot;];
-DataGenerator.addFieldInfo(&quot;number&quot;, { type: &quot;number&quot;, min: 0, max: 5    });
-DataGenerator.addFieldInfo(&quot;icon&quot;, { type: &quot;set&quot;,    members: icons    });
-var fields = [&quot;number&quot;, &quot;icon&quot;];
-var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 20 });
-
-var configObj = {
-    columns: [
-        {
-            name: &quot;Static Icon&quot;,
-            alignment: &quot;c&quot;,
-            binding: EFIconFormatter.create({
-                icon: &quot;3d-surface&quot;,
-            })
-        },
-        {
-            name: &quot;Dynamic Icon With Mapper&quot;,
-            field: fields[0],
-            sort: fields[0],
-            alignment: &quot;c&quot;,
-            binding: EFIconFormatter.create({
-                icon: {
-                    0: &quot;up&quot;,
-                    1: &quot;down&quot;,
-                    2: &quot;left&quot;,
-                    3: &quot;right&quot;,
-                    4: &quot;line&quot;
-                },
-                size: 20
-            })
-        },
-        {
-            name: &quot;Dynamic Icon&quot;,
-            field: fields[1],
-            sort: fields[1],
-            alignment: &quot;c&quot;,
-            binding: EFIconFormatter.create()
-        }
-    ],
-    staticDataRows: records
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
-</code></pre>
-</code-sandbox>

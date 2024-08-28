@@ -1,13 +1,37 @@
-<h1 id="row---reordering">Row - Reordering</h1>
-<p>To allow the user to drag and reorder selected rows, add Row Dragging Extension instance to <code>extensions</code> property. The visual content of the dragged row can be rendered using the renderer function provided in the property <code>dragBoxRenderer</code> of the <code>rowDragging</code> option object. For more details, see <a href="#/extensions/tr-grid-row-dragging">Row Dragging Extension</a>.</p>
+<h1 id="simple-ticker-formatter">Simple Ticker Formatter</h1>
+<p>This formatter creates a ticker column.</p>
+<h2 id="specific-options">Specific options</h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Attributes</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>negativeColor</td>
+<td>string</td>
+<td>optional</td>
+<td>Color code</td>
+</tr>
+<tr>
+<td>positiveColor</td>
+<td>string</td>
+<td>optional</td>
+<td>Color code</td>
+</tr>
+</tbody></table>
 <h2 id="example">Example</h2>
-<code-sandbox hash="b0fe8224"><pre><code class="language-css">efx-grid {
-    height: 200px;
+<code-sandbox hash="f29fe35a"><pre><code class="language-css">atlas-blotter {
+    height: 320px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+<pre><code class="language-html">&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
 </code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
@@ -16,23 +40,63 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 6 });
+var fields = [&quot;last&quot;, &quot;changes&quot;, &quot;percent&quot;, &quot;tick_1&quot;];
+var records = new Array(40);
+for(var i = 0; i &lt; 40; ++i) {
+    var changes = i * (i % 7) - i % 13;
+    var last = 5 + i % 13;
+    var percent = (changes / last) * 100;
+    var tick;
+    if (percent &gt; 0) {
+        tick = 1;
+    } else if (percent &lt; 0) {
+        tick = -1;
+    } else {
+        tick = 0;
+    }
+    var record = records[i] = {};
+    record[fields[0]] = last;
+    record[fields[1]] = changes;
+    record[fields[2]] = percent.toFixed(2);
+    record[fields[3]] = tick;
+}
 var configObj = {
-    rowDragging: {
-        dragBoxRenderer: function(e) {
-            e.dragBox.textContent = e.dataRow[fields[0]];
-        }
+    sorting: {
+        sortableColumns: true
     },
     columns: [
-        {name: &quot;Company&quot;, field: fields[0]},
-        {name: &quot;Market&quot;, field: fields[1], width: 100},
-        {name: &quot;Last&quot;, field: fields[2], width: 80},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 80},
-        {name: &quot;Industry&quot;, field: fields[4]}
+        { 
+            name: &quot;Last&quot;,
+            field: fields[0],
+            alignment: &quot;c&quot;
+        },
+        { 
+            name: &quot;Changes&quot;,
+            field: fields[1],
+            alignment: &quot;c&quot;,
+        },
+        { 
+            name: &quot;Changes %&quot;,
+            field: fields[2],
+            alignment: &quot;c&quot;,
+        },
+        { 
+            name: &quot;Default&quot;,
+            field: fields[3],
+            alignment: &quot;c&quot;,
+            binding: tr.SimpleTickerFormatter.create()
+        },
+        { 
+            name: &quot;Custom&quot;,
+            field: fields[3],
+            alignment: &quot;c&quot;,
+            binding: tr.SimpleTickerFormatter.create({
+                negativeColor: &quot;#FF6333&quot;,
+                positiveColor: &quot;#607EFF&quot;,
+            })
+        }
     ],
-    staticDataRows: records,
-    extensions: [ new RowDragging() ]
+    staticDataRows: records
 };
 
 var grid = document.getElementById(&quot;grid&quot;);

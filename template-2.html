@@ -1,41 +1,56 @@
 <h1 id="overview">Overview</h1>
-<p>Grid API documents consist of <code>Core</code> and <code>Real-time Grid</code> libraries.
+<p>Grid API documents consist of <code>tr.Grid</code> (core grid), <code>tr.CompositeGrid</code> and <code>rt-grid</code> libraries.
 In this documents, you can find type definitions, methods and events for each class object.</p>
 <ul>
-<li><code>efx-grid</code> is also a custom element which wraps <a href="#/apis/rt-grid/grid">Real-time Grid</a>, providing an easy way to display real-time data in a tabular format. It allows you to create list of multiple instruments with multiple real-time and fundamentals columns.<ul>
-<li>To initialize the element, use <code>config</code> property to define all the options. Available options are listed in the <a href="#/apis/rt-grid/grid#~GridOptions">typeDef section</a>.</li>
-<li>The <code>api</code> property is actually a <a href="#/apis/rt-grid/grid">Real-time Grid</a> instance. The property will not be available immediately after page loaded so subsequence <code>api</code> executions should start inside or after <code>configured</code> event.</li>
-<li>For more internal APIs, use <code>api.getCoreGrid()</code> method. The method returns <a href="#/apis/core/grid">Core</a> instance.</li>
+<li><code>emerald-grid</code> is a custom element (WebComponent) that is based on JavaScript <strong>tr.CompositeGrid</strong> class. The element can be found in <a href="https://elf.int.refinitiv.com/elements/emerald-grid.html">Element Framework</a>.<ul>
+<li>To initialize the element, use <code>config</code> property to define all the options. Available options are listed in the <a href="#/apis/composite-grid/tr-compositegrid#~Options">typeDef section</a> in tr.CompositeGrid page.</li>
+<li>The <code>api</code> property is actually <a href="#/apis/composite-grid/tr-compositegrid">tr.CompositeGrid</a> instance. The property will not be available immediately after page loaded so subsequence <code>api</code> executions should start inside or after <code>configured</code> event.</li>
+<li>For more internal APIs, use <code>api.getCoreGrid()</code> method. The method returns <a href="#/apis/composite-grid/tr-grid">tr.Grid instance</a>.</li>
 </ul>
 </li>
-<li><a href="#/apis/rt-grid/grid">Real-time Grid</a> is built on top of <code>Core</code> with JET&#39;s Quotes support, providing an easy way to display real-time data in a tabular format.</li>
-<li><a href="#/apis/core/grid">Core</a> is a core engine of grid written in Javascript. It can be accessed from Real-time Grid through <code>getCoreGrid()</code> method. </li>
+<li><code>atlas-blotter</code> is also a custom element which wraps <strong>rt-grid</strong>, providing an easy way to display real-time data in a tabular format. It allows you to create list of multiple instruments with multiple real-time and fundamentals columns. Live examples can be found in <a href="https://elf.int.refinitiv.com/community-elements/blotter.html">ELF library</a>.<ul>
+<li>Element initialization is the same as <code>emerald-grid</code>. Available options are listed in the <a href="#/apis/rt-grid/grid#~GridOptions">typeDef section</a>.</li>
+<li>The <code>api</code> property is actually <code>rt-grid</code> instance and API document is available <a href="#/apis/rt-grid/grid">here</a>.</li>
 </ul>
-<h2 id="core-apis">Core APIs</h2>
+</li>
+<li><code>tr.CompositeGrid</code> is a JavaScript wrapper that wraps tr.Grid to make some of internal APIs more accessible. See <a href="#/apis/composite-grid/tr-compositegrid">tr.CompositeGrid</a>.</li>
+<li><code>rt-grid</code> (Real-time Grid) is built on top of <code>tr.Grid</code> with JET&#39;s Quotes support, providing an easy way to display real-time data in a tabular format. See <a href="#/apis/rt-grid/grid">rt-grid</a>.</li>
+<li><code>tr.Grid</code> is core of the grid. It can be accessed through <code>getCoreGrid()</code> method from tr.CompositeGrid. See <a href="#/apis/composite-grid/tr-grid">tr.Grid</a> here.</li>
+<li><code>tr.DataView</code> and <code>tr.DataTable</code> are used to manage data model within the grid. Accessing data or data manipulation should be done by these two class objects. See <a href="#/apis/composite-grid/tr-dataview">tr.DataView</a> and <a href="#/apis/composite-grid/tr-datatable">tr.DataTable</a> here.</li>
+</ul>
+<h2 id="composite-grid-apis">Composite Grid APIs</h2>
 <ul>
-<li><a href="#/apis/core/cell">Cell</a></li>
-<li><a href="#/apis/core/cellspans">CellSpans</a></li>
-<li><a href="#/apis/core/columnstats">ColumnStats</a></li>
-<li><a href="#/apis/core/datacache">DataCache</a></li>
-<li><a href="#/apis/core/datatable">DataTable</a></li>
-<li><a href="#/apis/core/dataview">DataView</a></li>
-<li><a href="#/apis/core/draganddroptitleplugin">DragAndDropTitlePlugin</a></li>
-<li><a href="#/apis/core/elementwrapper">ElementWrapper</a></li>
-<li><a href="#/apis/core/eventdispatcher">EventDispatcher</a></li>
-<li><a href="#/apis/core/grid">Grid</a></li>
-<li><a href="#/apis/core/hscrollbar">HScrollbar</a></li>
-<li><a href="#/apis/core/ilayoutgrid">ILayoutGrid</a></li>
-<li><a href="#/apis/core/layoutgrid">LayoutGrid</a></li>
-<li><a href="#/apis/core/scrollbar">Scrollbar</a></li>
-<li><a href="#/apis/core/sectionsettings">SectionSettings</a></li>
-<li><a href="#/apis/core/segment">Segment</a></li>
-<li><a href="#/apis/core/segmentcollection">SegmentCollection</a></li>
-<li><a href="#/apis/core/sortabletitleplugin">SortableTitlePlugin</a></li>
-<li><a href="#/apis/core/vscrollbar">VScrollbar</a></li>
+<li><a href="#/apis/composite-grid/tr-columnstats">tr.ColumnStats</a></li>
+<li><a href="#/apis/composite-grid/tr-compositegrid">tr.CompositeGrid</a></li>
+<li><a href="#/apis/composite-grid/tr-datacache">tr.DataCache</a></li>
+<li><a href="#/apis/composite-grid/tr-datatable">tr.DataTable</a></li>
+<li><a href="#/apis/composite-grid/tr-dataview">tr.DataView</a></li>
+<li><a href="#/apis/composite-grid/tr-elementcontrol">tr.ElementControl</a></li>
+<li><a href="#/apis/composite-grid/tr-elementwrapper">tr.ElementWrapper</a></li>
+<li><a href="#/apis/composite-grid/tr-event">tr.Event</a></li>
+<li><a href="#/apis/composite-grid/tr-eventdispatcher">tr.EventDispatcher</a></li>
+<li><a href="#/apis/composite-grid/tr-grid">tr.Grid</a></li>
+<li><a href="#/apis/composite-grid/tr-ielementcontrol">tr.IElementControl</a></li>
+<li><a href="#/apis/composite-grid/tr-ilayoutgrid">tr.ILayoutGrid</a></li>
+<li><a href="#/apis/composite-grid/tr-layoutgrid">tr.LayoutGrid</a></li>
+<li><a href="#/apis/composite-grid/tr-grid-cell">tr.grid.Cell</a></li>
+<li><a href="#/apis/composite-grid/tr-grid-cellspans">tr.grid.CellSpans</a></li>
+<li><a href="#/apis/composite-grid/tr-grid-hscrollbar">tr.grid.HScrollbar</a></li>
+<li><a href="#/apis/composite-grid/tr-grid-resizabletitleplugin">tr.grid.ResizableTitlePlugin</a></li>
+<li><a href="#/apis/composite-grid/tr-grid-scrollbar">tr.grid.Scrollbar</a></li>
+<li><a href="#/apis/composite-grid/tr-grid-sectionsettings">tr.grid.SectionSettings</a></li>
+<li><a href="#/apis/composite-grid/tr-grid-sortabletitleplugin">tr.grid.SortableTitlePlugin</a></li>
+<li><a href="#/apis/composite-grid/tr-grid-vscrollbar">tr.grid.VScrollbar</a></li>
 </ul>
 <h2 id="realtime-grid-apis">Realtime Grid APIS</h2>
 <ul>
 <li><a href="#/apis/rt-grid/columndefinition">ColumnDefinition</a></li>
 <li><a href="#/apis/rt-grid/grid">Grid</a></li>
 <li><a href="#/apis/rt-grid/rowdefinition">RowDefinition</a></li>
+</ul>
+<h2 id="reference">Reference</h2>
+<ul>
+<li>For more resources about <code>tr.Grid</code> visit the <code>tr.Grid</code> repository on DXOne <a href="https://gitlab.dx1.lseg.com/204090/grid/tr-grid">here</a>.</li>
+<li>For more resources about <code>rt-grid</code> visit the <code>rt-grid</code> repository on DXOne <a href="https://gitlab.dx1.lseg.com/204090/grid/rt-grid">here</a>.</li>
+<li>For more examples how to use <code>emerald-grid</code> or <code>tr.Grid</code> visit <code>Wiki</code> page <a href="https://gitlab.dx1.lseg.com/groups/204090/grid/-/wikis/home">here</a>.</li>
 </ul>

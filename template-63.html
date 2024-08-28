@@ -1,18 +1,16 @@
 <link rel="stylesheet" href="./resources/styles/elf-template.css">
 
-<h1 id="pagination">Pagination</h1>
-<p>The Pagination Extension provides behaviors that allow you to split a huge amount of content within your grid into smaller parts. This extension is for <strong>client side pagination</strong>, where all data is already available at the client side. For server side pagination, see our <a href="#/misc/pagination">pagination usage guide</a>. </p>
-<code-sandbox hash="2e1cccf8"><pre><code class="language-css">efx-grid {
-    height: 169px;
-}
-ef-pagination {
-    margin-bottom: 30px;
+<h1 id="filter-input">Filter Input</h1>
+<p>The Filter Input Extension provides a search UI for each column that supports text search and custom functions.
+When using this extension with <a href="#/extensions/tr-grid-row-filtering">Row Filtering Extension</a>, rows are automatically filtered when the value of input element is changeed.</p>
+<code-sandbox hash="b078bc3b"><pre><code class="language-css">atlas-blotter {
+    height: 250px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-&lt;ef-pagination id=&#39;pagination&#39;&gt;&lt;/ef-pagination&gt;
+<pre><code class="language-html">&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
 </code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
@@ -21,81 +19,445 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-DataGenerator.addFieldInfo(&quot;rowNumber&quot;, {
-    type: &quot;function&quot;,
-    generate: function(info, seed) {
-        return ++info.count;
-    },
-    count: 0,
-});
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;rowNumber&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 20 });
+var markets = [&quot;NYSE&quot;, &quot;NASDAQ&quot;, &quot;SET&quot;, &quot;DJI&quot;, &quot;HSCEI&quot;, &quot;HKEX&quot;, &quot;NIKKEI&quot;];
+var fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = tr.DataGenerator.generateRecords(fields, { seed: 1, numRows: 30 });
 var configObj = {
     columns: [
-        {name: &quot;ID&quot;, field: fields[5], alignment: &quot;center&quot;, width: 40},
-        {name: &quot;Company&quot;, field: fields[0]},
-        {name: &quot;Market&quot;, field: fields[1], width: 120},
-        {name: &quot;Last&quot;, field: fields[2], width: 100},
-        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
-        {name: &quot;Industry&quot;, field: fields[4]}
+        {
+            field: fields[0],
+            filterInput: false,
+            width: 40
+        },
+        {
+            name: &quot;Company&quot;,
+            field: fields[1]
+        },
+        {
+            name: &quot;Market&quot;,
+            field: fields[2],
+            width: 120,
+            filterInput: { 
+                type: &quot;select&quot;,
+                entries: markets
+            }
+        },
+        {
+            name: &quot;Last&quot;,
+            field: fields[3],
+            width: 100,
+            filterInput: { 
+                type: &quot;number&quot; 
+            }
+        },
+        {
+            name: &quot;Net. Chng&quot;,
+            field: fields[4],
+            width: 100,
+            filterInput: { 
+                type: &quot;number&quot; 
+            }
+        },
+        {
+            name: &quot;Industry&quot;,
+            field: fields[5]
+        }
     ],
-    staticDataRows: records,
-    pagination: {
-        element: document.getElementById(&quot;pagination&quot;),
-        page: 1,
-        pageSize: 5
+    rowFiltering: {
+        disabledUI: true
     },
+    staticDataRows: records,
     extensions: [
-        new Pagination()
+        new tr.FilterInputExtension(),
+        new tr.RowFilteringExtension()
     ]
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 </code></pre>
-</code-sandbox><blockquote>
-<p><strong>Note</strong>: If there is only one pagination element in the document, the extension is capable of finding the element automatically. However, if there are multiple pagination elements in a document, it is necessary to specify the element into the <code>element</code> field of pagination&#39;s configuration.</p>
-</blockquote>
-<h2 id="installation-and-how-to-import-to-a-project">Installation and how to import to a project</h2>
+</code-sandbox><h2 id="installation-and-how-to-import-to-a-project">Installation and how to import to a project</h2>
 <p>Installation examples and details of how to import the extension to a project are available on the <a href="#/extensions/readme">Overview</a> page.</p>
-<h3 id="required-dependencies">Required dependencies</h3>
+<h2 id="required-dependencies">Required dependencies</h2>
 <p>Details of Required dependencies for this extension are available on the <a href="#/extensions/readme">Overview</a> page.</p>
-<h2 id="performing-additional-tasks-after-page-change">Performing additional tasks after page change</h2>
-<p>After each page change, you can do some custom tasks by specifying event handler to <code>pageChanged</code> property of the extension configuration object, like so:</p>
-<pre><code class="language-js">var onPageChanged = function(e) {
-    console.log(&quot;Page is changed to &quot; + e.page);
+<h2 id="custom-ui-for-filter-input">Custom UI for filter input</h2>
+<p>You can use <code>inputCreated</code> event to replace default filter input by your custom UI element. In this case, you will need to directly interact with Row Filtering Extension and manually wire your custom UI element with filtering logic. The following example shows how to use date range element in place of default filter input:</p>
+<code-sandbox hash="b294d814"><pre><code class="language-css">atlas-blotter {
+    height: 250px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
+</code></pre>
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var filterInputExt = new tr.FilterInputExtension();
+var rowFilteringExt = new tr.RowFilteringExtension();
+
+var dateFormatter = function (e) {
+    var value = e.data;
+    var cell = e.cell;
+    var parts = value.toDateString().split(&quot; &quot;);
+    cell.setContent(parts[2] + &quot;-&quot; + parts[1] + &quot;-&quot; + parts[3]);
 };
+var onInputCreated = function (e) {
+    if (e.colIndex !== Date_Index) {
+        return;
+    }
+
+    var dateRange = document.createElement(&quot;emerald-datetime-picker&quot;);
+
+    dateRange.range = true;
+    dateRange.duplex = &quot;split&quot;;
+    dateRange.addEventListener(&quot;value-changed&quot;, onDateRangeChange);
+
+    var parentInput = e.input.parentNode;
+    parentInput.removeChild(e.input); // Completely ignore default UI input
+    parentInput.appendChild(dateRange);
+};
+var onDateRangeChange = function (e) {
+    var dateRange = e.currentTarget;
+    var rangeValues = dateRange.values;
+    if (rangeValues.length == 2) {
+        var startDate = new Date(rangeValues[0]);
+        var endDate = new Date(rangeValues[1]);
+        rowFilteringExt.setColumnFilter(
+            Date_Index,
+            myFilterLogic.bind(null, startDate, endDate)
+        );
+    } else {
+        rowFilteringExt.setColumnFilter(Date_Index, null);
+    }
+};
+var myFilterLogic = function (startDate, endDate, rowData) {
+    var dateObj = rowData.date;
+    return dateObj &gt;= startDate &amp;&amp; dateObj &lt;= endDate;
+};
+
+const fields = [&quot;date&quot;, &quot;country&quot;, &quot;currency&quot;, &quot;rate&quot;];
+const Date_Index = 0;
+const currencies = [&quot;PLN&quot;, &quot;EUR&quot;, &quot;SEK&quot;, &quot;GBP&quot;, &quot;DKK&quot;];
+
+// Build data information
+tr.DataGenerator.addFieldInfo(&quot;date&quot;, function (fInfo, seed) {
+    var dateStr = Math.floor(Math.random() * 31) + 1;
+    if (dateStr &lt; 10) {
+        dateStr = &quot;0&quot; + dateStr;
+    }
+    return [&quot;01&quot;, dateStr, &quot;2024&quot;].join(&quot;/&quot;);
+});
+tr.DataGenerator.addFieldInfo(&quot;country&quot;, {
+    type: &quot;set&quot;,
+    members: [
+        &quot;Poland&quot;,
+        &quot;Sweden&quot;,
+        &quot;Greece&quot;,
+        &quot;France&quot;,
+        &quot;Portugal&quot;,
+        &quot;Germany&quot;,
+        &quot;Belgium&quot;,
+        &quot;United Kingdom&quot;,
+        &quot;Netherlands&quot;
+    ]
+});
+tr.DataGenerator.addFieldInfo(&quot;currency&quot;, {
+    type: &quot;set&quot;,
+    members: currencies
+});
+tr.DataGenerator.addFieldInfo(&quot;rate&quot;, function (fInfo, seed) {
+    return Math.floor(Math.random() * 3000) / 100;
+});
+
+// Build column definitions
+var columns = fields.map(function (f) {
+    return {
+        name: f.charAt(0).toUpperCase() + f.slice(1),
+        field: f,
+        alignment: &quot;c&quot;
+    };
+});
+columns[Date_Index].binding = dateFormatter;
+columns[1].width = 150;
+columns[2].width = 150;
+columns[2].filterInput = {
+    type: &quot;select&quot;,
+    entries: currencies.slice()
+};
+columns[3].width = 100;
+
 var configObj = {
-    // ...
-    pagination: {
-        element: &quot;elem_id&quot;,
-        page: 1,
-        pageSize: 5,
-        pageChanged: onPageChanged
+    columns: columns,
+    rowFiltering: {
+        disabledUI: true
     },
-    // ...
+    filterInput: {
+        inputCreated: onInputCreated
+    },
+    extensions: [rowFilteringExt, filterInputExt]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+
+// Simulate fetching data from server
+setTimeout(function () {
+    var response = tr.DataGenerator.generateRecords(fields, 30);
+
+    // Convert date string to Date object
+    response.forEach(function (record) {
+        record.date = new Date(record.date);
+    });
+    
+    grid.data = response;
+}, 1500);
+</code></pre>
+</code-sandbox><h2 id="detecting-changes-made-by-end-users">Detecting changes made by end users</h2>
+<p>In case you want to perform some extra action (e.g., showing criteria) when a user changes the filter, you will need to directly listen for the change event dispatched from the input elements. Since the input elements are autogenerated by the extension, you will need to do so in the <code>inputCreated</code> event, where you have a direct reference to the input element.</p>
+<blockquote>
+<p>Note that <code>filterLogic</code> or <code>defaultLogic</code> is not the place for detecting user action. They will be executed for each of the available rows. If all rows are filtered out, the method will not be executed. </p>
+</blockquote>
+<p>The code snippet below shows how you would detect changes from the input element:</p>
+<pre><code class="language-js">var gridConfig = {
+    filterInput: {
+        inputCreated: function(e) {
+            var inputElement = e.input;
+            inputElement.addEventListener(&quot;value-changed&quot;, onChangeHandler);
+        }
+    }
 };
 </code></pre>
-<h2 style="margin-bottom:5px" id="api-refs">API Reference</h2>
-<div id="elf-api-container"><div id="main-template" class="elf-template">    <section><header>            <h1 class="subsection-title"><span class="attribs"><span class="type-signature"></span></span>PaginationPlugin<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h1>            </header><article>                                                                        <h3 class="subsection-title" id="type_definitions">Type Definitions</h3>                        
-<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~Options">Options</h4><div class="description">    The options can be specified by `pagination` property of the main grid's options</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>page</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    1                                </td>                        <td class="description last">Initial page to be shown</td>        </tr>            <tr>                            <td class="name"><code>pageSize</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    10                                </td>                        <td class="description last">Number of rows per page</td>        </tr>            <tr>                            <td class="name"><code>element</code></td>                        <td class="type">                            <span class="param-type">string</span> | <span class="param-type">Element</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">A reference to pagination element. This can be a direct pointer or element's id</td>        </tr>            <tr>                            <td class="name"><code>elements</code></td>                        <td class="type">                            <span class="param-type">Array</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Multiple references can be linked to a single grid</td>        </tr>            <tr>                            <td class="name"><code>pageChanged</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Event handler for event after page has been changed</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            <h3 class="subsection-title" id="methods">Methods</h3>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="beforeProcessOption"><span class="type-signature"></span>beforeProcessOption<span class="signature">(optionName, options)</span><span class="type-signature"> → {*}</span></h4>                            <div class="description">        Convert built-in config to pagination config    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">optionName</div>                        <div class="type">                            <span class="param-type">string</span>                        </div>                                            </div>                <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">*</span>    </div><div class="sub-content-desc">    The transformed value of the option</div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="config"><span class="type-signature"></span>config<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                            <div class="description">        Set Configurations    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="first"><span class="type-signature"></span>first<span class="signature">()</span><span class="type-signature"></span></h4>                            <div class="description">        Control pagination go to fisrt page    </div>                        <div class="details">                                                            </div>                                    </div>                    
+<code-sandbox hash="6aa6ee3f"><pre><code class="language-css">atlas-blotter {
+    height: 250px;
+}
+html hr {
+    margin: 5px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;div&gt;
+    &lt;span&gt;Active filters:&lt;/span&gt;
+    &lt;span id=&quot;active_filter_span&quot;&gt;none&lt;/span&gt;
+&lt;/div&gt;
+&lt;hr&gt;
+&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
+</code></pre>
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+function onInputValueChange(e) {
+    var filterValues = [];
+    for(var i = 0; i &lt; inputElements.length; ++i) {
+        var filterValue = inputElements[i].value;
+        if(filterValue &amp;&amp; filterValue !== &quot;No Filter&quot;) {
+            filterValues.push(filterValue);
+        }
+    }
+    active_filter_span.textContent = filterValues.length ? filterValues.join(&quot;, &quot;) : &quot;none&quot;;
+}
+
+var markets = [&quot;NYSE&quot;, &quot;NASDAQ&quot;, &quot;SET&quot;, &quot;DJI&quot;, &quot;HSCEI&quot;];
+var fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = tr.DataGenerator.generateRecords(fields, { seed: 1, numRows: 20 });
+var inputElements = [];
+var configObj = {
+    filterInput: {
+        inputCreated: function(e) {
+            var inputElement = e.input;
+            inputElement.addEventListener(&quot;value-changed&quot;, onInputValueChange);
+            inputElements.push(inputElement); // Save for later use
+        }
+    },
+    columns: [
+        {
+            field: fields[0],
+            width: 40,
+            filterInput: false
+        },
+        {
+            name: &quot;Company&quot;,
+            field: fields[1]
+        },
+        {
+            name: &quot;Market&quot;,
+            field: fields[2],
+            width: 120,
+            filterInput: { 
+                type: &quot;select&quot;,
+                entries: markets
+            }
+        },
+        {
+            name: &quot;Last&quot;,
+            field: fields[3],
+            width: 100,
+            filterInput: false
+        },
+        {
+            name: &quot;Net. Chng&quot;,
+            field: fields[4],
+            width: 100,
+            filterInput: false
+        },
+        {
+            name: &quot;Industry&quot;,
+            field: fields[5],
+            filterInput: false
+        }
+    ],
+    staticDataRows: records,
+    extensions: [
+        new tr.FilterInputExtension(),
+        new tr.RowFilteringExtension()
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="using-filter-input-for-fetching-external-data">Using filter input for fetching external data</h2>
+<p>If you want to fetch data from server side based on the value of the filter input, you can achieve this by listening to the event of the filter input element that we provide in the <code>inputCreated</code> event. You can follow the example below for guidance.</p>
+<code-sandbox hash="24db5fec"><pre><code class="language-css">atlas-blotter {
+    height: 250px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
+</code></pre>
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;id&quot;, &quot;market&quot;, &quot;sentence&quot;, &quot;CF_NETCHNG&quot;, &quot;CF_LAST&quot;];
+var filterInputExt = new tr.FilterInputExtension();
+var rowFilteringExt = new tr.RowFilteringExtension();
+
+var configObj = {
+    columns: [
+        {
+            field: fields[0],
+            name: &quot;Id&quot;,
+            width: 70
+        },
+        {
+            field: fields[1],
+            name: &quot;Market&quot;,
+            filterInput: {
+                defaultLogic: function () {
+                    // Disable default logic (disable filter to use server side filtering)
+                    return true;
+                }
+            }
+        },
+        {
+            field: fields[2],
+            name: &quot;Description&quot;
+        },
+        {
+            field: fields[3],
+            name: &quot;Net Chng.&quot;
+        },
+        {
+            field: fields[4],
+            name: &quot;Last&quot;
+        }
+    ],
+    defaultColumnOptions: {
+        filterInput: {
+            disabled: true
+        }
+    },
+    extensions: [filterInputExt, rowFilteringExt]
+};
+
+var userInput = &quot;&quot;;
+var timerId = 0; 
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+requestData();
+
+filterInputExt.addEventListener(&quot;inputCreated&quot;, function (e) {
+    var inputEl = e.input;
+    inputEl.addEventListener(&quot;value-changed&quot;, onFilterInputKeyUp);
+});
+
+function onFilterInputKeyUp(e) {
+    userInput = e.detail.value;
+    userInput = userInput.toLowerCase(); // For easy text comparison
+    requestData();
+}
+function byMatchedMarket(record) {
+    var marketText = record.market;
+    if(marketText) {
+        return marketText.toLowerCase().indexOf(userInput) &gt;= 0;
+    }
+    return false;
+}
+
+// ========== Simulate server side in below ==========
+function requestData() {
+    if(timerId) { // Prevent excessive data calls
+        clearTimeout(timerId);
+        timerId = 0;
+    }
+    
+    // Simulate delay from server request and response
+    console.log(&quot;Requesting data from the server...&quot;);
+    timerId = setTimeout(onServerResponse, 1000);
+}
+
+function onServerResponse() {
+    timerId = 0;
+    // This part should be done on the server side
+    var records = tr.DataGenerator.generateRecords(fields, {
+        numRows: 100,
+        seed: null
+    });
+
+    if (userInput) {
+        records = records.filter(byMatchedMarket);
+    }
+    
+    // This part is done on the client side
+    console.log(&quot;Data received&quot;);
+    grid.data = records;
+}
+</code></pre>
+</code-sandbox><h2 style="margin-bottom:5px" id="api-refs">API Reference</h2>
+<div id="elf-api-container"><div id="main-template" class="elf-template">    <section><header>            <h1 class="subsection-title"><span class="attribs"><span class="type-signature"></span></span>FilterInputPlugin<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h1>            </header><article>                                                                        <h3 class="subsection-title" id="type_definitions">Type Definitions</h3>                        
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~ColumnOptions">ColumnOptions</h4><div class="description">    FilterInputPlugin options available in "filterInput" property on grid's column</div>    <h5>Type:</h5>    <span class="param-type">Object</span> | <span class="param-type">boolean</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>defaultLogic</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Logic for filtering</td>        </tr>            <tr>                            <td class="name"><code>filterLogic</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Alias to `defaultLogic`</td>        </tr>            <tr>                            <td class="name"><code>disabled</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">Disable UI</td>        </tr>            <tr>                            <td class="name"><code>placeholder</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    ""                                </td>                        <td class="description last">Placeholder text inside the input</td>        </tr>            <tr>                            <td class="name"><code>type</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    "text"                                </td>                        <td class="description last">Type of UI. Available types are "number", "multiselect" ,"select", "dropdown", "date"</td>        </tr>            <tr>                            <td class="name"><code>entries</code></td>                        <td class="type">                            <span class="param-type">Array</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Entries of dropdown filters when type is "select"</td>        </tr>            <tr>                            <td class="name"><code>defaultValue</code></td>                        <td class="type">                            <span class="param-type">*</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Default value of input filter</td>        </tr>            <tr>                            <td class="name"><code>trigger</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    "keyup"                                </td>                        <td class="description last">Available types of trigger are `false | ""` (no trigger) , `"keyup"` (default) , `"enter"` (on enter key *only available for text type)</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            
+<div class="item">                                <div class="item-type">typedef</div>                        <h4 class="name" id="~FilterLogic"><span class="type-signature"></span>FilterLogic<span class="signature">()</span><span class="type-signature"></span></h4>                            <div class="description">        Logic used to filter in/out on each row    </div>                            <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>e</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">Object contains all related information provided by the extension                <h6>Properties</h6><div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>inputText</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                    <td class="description last">Text for filter</td>        </tr>            <tr>                            <td class="name"><code>input</code></td>                        <td class="type">                            <span class="param-type">Element</span>                        </td>                            <td class="attributes">                                                </td>                                    <td class="description last">Input element</td>        </tr>            <tr>                            <td class="name"><code>field</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                                </td>                                    <td class="description last">Field of the column being filtered</td>        </tr>        </tbody></table></div>            </td>        </tr>            <tr>                            <td class="name"><code>rowData</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">Row Data of the filtered row</td>        </tr>        </tbody></table></div><div class="details">                                                            </div>                                    </div>                            
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~GridColumn">GridColumn</h4><div class="description">    FilterInputPlugin options available in each individual grid's column</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>filterInput</code></td>                        <td class="type">                            <span class="param-type"><a href="#/extensions/tr-grid-filter-input#~ColumnOptions">FilterInputPlugin~ColumnOptions</a></span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last"></td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            
+<div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~Options">Options</h4><div class="description">    FilterInputPlugin options available in main grid configuration under `filterInput` property</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>inputCreated</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Handler executed after filter input is created</td>        </tr>            <tr>                            <td class="name"><code>trigger</code></td>                        <td class="type">                            <span class="param-type">string</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    "keyup"                                </td>                        <td class="description last">Available types of trigger are `false | ""` (no trigger) , `"keyup"` (default) , `"enter"` (on enter key *only available for text type)</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            <h3 class="subsection-title" id="methods">Methods</h3>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="config"><span class="type-signature"></span>config<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="disableColumnInput"><span class="type-signature"></span>disableColumnInput<span class="signature">(colIndex, disabled<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                            <div class="attributes">                                                                </div>                                            </div>                <div class="param">                            <div class="name">disabled</div>                        <div class="type">                            <span class="param-type">boolean</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="filterColumn"><span class="type-signature"></span>filterColumn<span class="signature">(colIndex, text, textMap<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                            <div class="description">        Force filtering for a single column by changing filtering text    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                            <div class="attributes">                                                                </div>                                            </div>                <div class="param">                            <div class="name">text</div>                        <div class="type">                            <span class="param-type">string</span>                        </div>                            <div class="attributes">                                                                </div>                                            </div>                <div class="param">                            <div class="name">textMap</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getColumnInput"><span class="type-signature"></span>getColumnInput<span class="signature">(colIndex)</span><span class="type-signature"> → {Element}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Element</span>    </div><div class="sub-content-desc">    Input element</div>                </div>                    
 <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getConfigObject"><span class="type-signature"></span>getConfigObject<span class="signature">(out_obj<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {Object}</span></h4>                            <div class="description">        Get a current state of grid and extension config    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">out_obj</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">Object</span>    </div>                </div>                    
 <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getName"><span class="type-signature"></span>getName<span class="signature">()</span><span class="type-signature"> → {string}</span></h4>                                            <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">string</span>    </div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getPageCount"><span class="type-signature"></span>getPageCount<span class="signature">()</span><span class="type-signature"> → {number}</span></h4>                            <div class="description">        Get total pages    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">number</span>    </div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getPageIndex"><span class="type-signature"></span>getPageIndex<span class="signature">()</span><span class="type-signature"> → {number}</span></h4>                            <div class="description">        Get current page index    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">number</span>    </div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getPageSize"><span class="type-signature"></span>getPageSize<span class="signature">()</span><span class="type-signature"> → {number}</span></h4>                            <div class="description">        Get total rows in a page    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">number</span>    </div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getTotalRows"><span class="type-signature"></span>getTotalRows<span class="signature">()</span><span class="type-signature"> → {number}</span></h4>                            <div class="description">        Get total rows number    </div>                        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">number</span>    </div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="goto"><span class="type-signature"></span>goto<span class="signature">(pageIndex)</span><span class="type-signature"></span></h4>                            <div class="description">        Go to specfic page    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">pageIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
 <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="hasMultiTableSupport"><span class="type-signature"></span>hasMultiTableSupport<span class="signature">()</span><span class="type-signature"> → {boolean}</span></h4>                            <div class="description">        Plugin that has multi-table support means that it can have multiple hosts/tables and share its states across those hosts/tables.    </div>                        <div class="details">                <dt class="inherited-from">Inherited From:</dt>    <dd class="inherited-from">        <a href="#">GridPlugin#hasMultiTableSupport</a>    </dd>                                                    </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">boolean</span>    </div>                </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="initialize"><span class="type-signature"></span>initialize<span class="signature">(host, options)</span><span class="type-signature"></span></h4>                            <div class="description">        Called by grid system when initial plugins.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">host</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    core grid object                </div>                    </div>                <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="last"><span class="type-signature"></span>last<span class="signature">()</span><span class="type-signature"></span></h4>                            <div class="description">        Control pagination go to last page    </div>                        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="next"><span class="type-signature"></span>next<span class="signature">()</span><span class="type-signature"></span></h4>                            <div class="description">        Control pagination go to next page    </div>                        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="previous"><span class="type-signature"></span>previous<span class="signature">()</span><span class="type-signature"></span></h4>                            <div class="description">        Control pagination go to previous page    </div>                        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setElement"><span class="type-signature"></span>setElement<span class="signature">(elemRef<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                            <div class="description">        Set pagination element. By default extension will try to find single pagination element within a page.    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">elemRef</div>                        <div class="type">                            <span class="param-type">*</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    Reference to pagination element(s). The reference can be a direct pointer, element's id, or an array of the references.                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setPage"><span class="type-signature"></span>setPage<span class="signature">(page)</span><span class="type-signature"></span></h4>                            <div class="description">        Go to specfic page    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">page</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
-<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setPageSize"><span class="type-signature"></span>setPageSize<span class="signature">(size)</span><span class="type-signature"></span></h4>                            <div class="description">        Set page size to grid per page    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">size</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="initialize"><span class="type-signature"></span>initialize<span class="signature">(host, options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">host</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    core grid object                </div>                    </div>                <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="refresh"><span class="type-signature"></span>refresh<span class="signature">(delayMs<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                            <div class="description">        Force filtering for every column    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">delayMs</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                        <div class="default">                                   [default: 0]                                </div>                                        <div class="description">                    Set delay in millisecond to avoid repeatedly filtering                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="removeColumnFilter"><span class="type-signature"></span>removeColumnFilter<span class="signature">(colIndex<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                            <div class="description">        Alias to <a href="#/extensions/tr-grid-filter-input#removeColumnFilters">FilterInputPlugin#removeColumnFilters</a> Clear input UI and remove all filters from the specified column    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">null</span> | <span class="param-type">number</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                        <div class="default">                                   [default: null]                                </div>                                        <div class="description">                    clear filter input at specific colIndex, if null then all input will be clear.                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="removeColumnFilters"><span class="type-signature"></span>removeColumnFilters<span class="signature">(colIndex<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                            <div class="description">        Clear input UI and remove all filters from the specified column    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">null</span> | <span class="param-type">number</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                        <div class="default">                                   [default: null]                                </div>                                        <div class="description">                    clear filter input at specific colIndex, if null then all input will be clear.                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setFilterLogic"><span class="type-signature"></span>setFilterLogic<span class="signature">(colIndex, func, ctx<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                            <div class="description">        Change filter logic or context    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                            <div class="attributes">                                                                </div>                                            </div>                <div class="param">                            <div class="name">func</div>                        <div class="type">                            <span class="param-type">function</span>                        </div>                            <div class="attributes">                                                                </div>                                            </div>                <div class="param">                            <div class="name">ctx</div>                        <div class="type">                            <span class="param-type">*</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    Context object that will be provided as the first parameter of the filter function                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="setInputValue"><span class="type-signature"></span>setInputValue<span class="signature">(colIndex, value)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                                            </div>                <div class="param">                            <div class="name">value</div>                        <div class="type">                            <span class="param-type">*</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
 <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="unload"><span class="type-signature"></span>unload<span class="signature">(host)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">host</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                                                    <div class="description">                    core grid object                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                        <h3 class="subsection-title" id="events">Events</h3>                    
-<div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:pageChanged">pageChanged</h4>                            <div class="description">        Happens after pagination was changed, next, previous, first page, last page.    </div>                        <div class="details">                                                            </div>                                    </div>            </article></section></div></div>
+<div class="item">                                <div class="item-type">event</div>                        <h4 class="name" id="event:inputCreated">inputCreated</h4>                            <div class="description">        `inputCreated` fired on each creation of filter input    </div>                    <h5>Type:</h5>        <span class="param-type">Object</span>                    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                        <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>input</code></td>                        <td class="type">                            <span class="param-type">Element</span>                        </td>                                    <td class="description last">Input element</td>        </tr>            <tr>                            <td class="name"><code>cell</code></td>                        <td class="type">                            <span class="param-type">Element</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>colIndex</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>colId</code></td>                        <td class="type">                            <span class="param-type">number</span> | <span class="param-type">null</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>rowIndex</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                                    <td class="description last"></td>        </tr>            <tr>                            <td class="name"><code>grid</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">core grid object</td>        </tr>            <tr>                            <td class="name"><code>section</code></td>                        <td class="type">                            <span class="param-type">Object</span>                        </td>                                    <td class="description last">Section(ILayoutGrid) contains all of the filter inputs</td>        </tr>        </tbody></table></div><div class="details">                                                            </div>                                    </div>            </article></section></div></div>

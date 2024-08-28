@@ -1,302 +1,95 @@
-<h1 id="data-conversion">Data conversion</h1>
-<p>Sometimes data adding to Grid is not sanitized, for example the value represented changed price can be -2, +4, &quot;-0.3&quot;, &quot;+5&quot; or even null. To prevent Grid from displaying unexpected data, data parser or data sanitizer need to verify data before rendering. So Grid provides <code>dataComposed</code> event and <code>autoDateConversion</code> for this kind of task.</p>
-<h2 id="datacomposed-event">dataComposed event</h2>
-<p>Once Grid receives any data, <code>dataComposed</code> event will be fired before rendering of the content. Performing any data update during the <code>dataComposed</code> event will not trigger more <code>dataChanged</code> events, and thus there won&#39;t be an infinite loop. This event is useful for modifying the received data before the actual consumption. </p>
-<p>To add event listener for <code>dataComposed</code> event, just set the listener to the <code>dataComposed</code> property of Grid&#39;s configuration like the following code snippet:</p>
-<pre><code class="language-js">    function onDataComposed(e) {
-        var grid = e.grid;
-        var rowDef = e.rowDef;
-        var values = e.changes; // Indicating latest changes in data
-        var rowData = rowDef.getRowData(); // Current data for the row
-
-        // Parse, sanitize, or transform data here
-        var newData = rowData[&quot;Field A&quot;] + rowData[&quot;Field B&quot;];
-
-        // Save the modified data through RowDefinition&#39;s API 
-        rowDef.setData(&quot;Field A + B&quot;, newData);
-        // rowDef.setRowData({&quot;Field C&quot;: 1, &quot;Field D&quot;: 2, &quot;Field E&quot;: 3});
-    }
-
-    var config = {
-        // other grid&#39;s options
-        dataComposed: onDataComposed
-    };
-</code></pre>
-<h3 id="converting-invalid-data-example">Converting invalid data example</h3>
-<code-sandbox hash="b0d8542c"><pre><code class="language-css">efx-grid {
-    height: 168px
-}
-</code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var onDataComposed = function(e) {
-    var rowDef = e.rowDef;
-    var values = e.changes;
-
-    if (!values) { // Indicating no change
-        return;
-    }
-
-    // Performing any data update during the event will NOT cause more dataChanged events
-    var txt = values[&quot;text&quot;];
-    if (!txt || txt === &quot;N/A&quot;) {
-        rowDef.setData(&quot;number&quot;, 0);
-        rowDef.setData(&quot;status&quot;, &quot;Invalid data&quot;);
-    } else {
-        rowDef.setData(&quot;number&quot;, parseFloat(txt));
-        rowDef.setData(&quot;status&quot;, &quot;OK&quot;);
-    }
-};
-
-var gridRows = [{ 
-    values: {
-        id: &quot;1&quot;,
-        text: &quot;58&quot;,
-        description: &quot;normal number&quot;
-    }
-}, {
-    values: {
-        id: &quot;2&quot;,
-        text: &quot;-0.78&quot;,
-        description: &quot;nagative number&quot;
-    }
-}, {
-    values: {
-        id: &quot;3&quot;,
-        text: &quot;&quot;,
-        description: &quot;empty string&quot;
-    }
-}, {
-    values: {
-        id: &quot;4&quot;,
-        text: null,
-        description: &quot;null value&quot;
-    }
-}, {
-    values: {
-        id: &quot;5&quot;,
-        text: &quot;N/A&quot;,
-        description: &quot;invalid text&quot;
-    }
-}];
-
-var configObj = {
-    columns: [
-        {
-            name: &quot;Id&quot;,
-            field: &quot;id&quot;,
-            width: 70
-        },
-        {
-            name: &quot;Description&quot;,
-            field: &quot;description&quot;,
-            width: 150
-        },
-        {
-            name: &quot;Server Text&quot;,
-            field: &quot;text&quot;,
-            width: 150
-        },
-        {
-            name: &quot;Converted number&quot;,
-            field: &quot;number&quot;,
-            width: 150
-        },
-        {
-            name: &quot;Status&quot;,
-            field: &quot;status&quot;
-        }
-    ],
-    dataComposed: onDataComposed, // Attach handler for dataComposed event
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
-
-// To emitate the dalay of reqeusting data from server
-setTimeout(function(e) {
-    grid.api.insertRows(gridRows);
-}, 2000);
-</code></pre>
-</code-sandbox><h3 id="conditional-coloringblinking-based-on-computed-values-example">Conditional coloring/blinking based on computed values example</h3>
-<code-sandbox hash="d334ded0"><pre><code class="language-css">efx-grid {
-    height: 168px
-}
-hr {
+<h1 id="data-from-http-request">Data From HTTP Request</h1>
+<p>You are free to retrieve data by any method. For instance, we can use <a href="https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch">fetch API</a>, or <a href="https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest">XMLHttpRequest</a>. Once you get data from the request, you can put them to Grid using APIs as described on <a href="#/data/create">this page</a>.</p>
+<h2 id="adding-data-in-emerald-grid-at-runtime">Adding data in Emerald Grid at runtime</h2>
+<code-sandbox hash="56919227"><pre><code class="language-css">html hr {
     margin: 5px;
 }
-</code></pre>
-<pre><code class="language-html">&lt;button id=&quot;update_btn&quot;&gt;Update data&lt;/button&gt;
-&lt;hr&gt;
-&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var onDataComposed = function(e) {
-    var rowDef = e.rowDef;
-    var changes = e.changes;
-    var rowData = rowDef.getRowData();
-
-    var computedValue = rowData[&quot;current_price&quot;] - rowData[&quot;previous_close&quot;];
-    var prevComputed = rowData[&quot;computed_value&quot;] || 0; // Computed value from previous dataComposed session
-    var lastChange = computedValue - prevComputed;
-    
-    rowDef.setData(&quot;computed_value&quot;, computedValue);
-    rowDef.setData(&quot;last_change&quot;, lastChange);
-    
-    // This indicates that there is a change in data for blinking logic to pick up
-    changes[&quot;computed_value&quot;] = computedValue;
-    changes[&quot;last_change&quot;] = lastChange;
-};
-
-document.getElementById(&quot;update_btn&quot;).addEventListener(&quot;click&quot;, function(){
-    var record = DataGenerator.generateRecord([&quot;current_price&quot;]);
-    grid.api.setRowData(0, record);
-});
-
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;current_price&quot;, &quot;previous_close&quot;];
-var records = DataGenerator.generateRecords(fields, {seed: 0, numRows: 4});
-var columns = fields.map(function(f){
-    return {
-        field: f
-    };
-});
-columns.push({
-    field: &quot;computed_value&quot;,
-    colorText: &quot;last_change&quot;, // Change text color based on other field (last_change)
-    blinking: true
-});
-columns.push({
-    field: &quot;last_change&quot;,
-    colorText: true
-});
-
-var configObj = {
-    defaultColumnOptions: {
-        width: 120
-    },
-    columns: columns,
-    staticDataRows: records,
-    dataComposed: onDataComposed, // attach handler for dataComposed event
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
-</code></pre>
-</code-sandbox><h2 id="auto-date-conversion">Auto date conversion</h2>
-<p>When dealing with date-time data it may be hard to handle the various types of incoming data, which can be number, string, ISO date string, seconds or milliseconds. So it is better to enable <code>autoDateConversion</code> in the Grid&#39;s configuration and let Grid automatically convert data to JavaScript native Date object. To let Grid know that the column&#39;s data is data-time, the <code>dataType: &quot;datetime&quot;</code> should be specified in the column&#39;s options.</p>
-<code-sandbox hash="e3ed62f3"><pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
-</code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
-await halo(); // This line is only required for demo purpose. It is not relevant for your application.
-
-/* ---------------------------------- Note ----------------------------------
-  DataGenerator, Formatters and extensions are exposed to global scope
-  in the bundle file to make it easier to create live examples.
-  Importing formatters and extensions is still required in your application. 
-  Please see the document for further information.
----------------------------------------------------------------------------*/
-var descriptions = [
-    &quot;Invalid&quot;,
-    &quot;Negative value (milliseconds)&quot;,
-    &quot;Excel date&quot;,
-    &quot;Second&quot;,
-    &quot;Millisecond&quot;,
-    &quot;Native date object (now)&quot;,
-    &quot;ISO date-time string&quot;
-];
-
-var dateSamples = [
-    &quot;abc&quot;,
-    -1,
-    1,
-    Date.UTC(2021, 11, 24, 10)/1000,
-    Date.UTC(2021, 11, 24, 10),
-    new Date(),
-    &quot;2021-11-25T10:00:00&quot;
-];
-
-var records = [];
-for (var i = 0; i &lt; descriptions.length; i++) {
-    records.push({
-        des: descriptions[i],
-        date: dateSamples[i]
-    });
+emerald-grid {
+    height: 200px;
 }
+</code></pre>
+<pre><code class="language-html">&lt;button id=&quot;fetch_btn&quot;&gt;Fetch Data&lt;/button&gt;
+&lt;big&gt;&lt;em id=&quot;msg_txt&quot;&gt;&lt;/em&gt;&lt;/big&gt;
+&lt;hr&gt;
+&lt;emerald-grid id=&quot;grid&quot;&gt;&lt;/emerald-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
 var configObj = {
-    autoDateConversion: true,
-    defaultColumnOptions: {
-        notRealTimeField: true
-    },
     columns: [
-        {
-            name: &quot;Description&quot;,
-            field: &quot;des&quot;
-        },
-        {
-            name: &quot;Raw data&quot;,
-            field: &quot;date_RAW&quot;
-        },
-        {
-            name: &quot;Converted data&quot;,
-            field: &quot;date&quot;,
-            dataType: &quot;datetime&quot;
-        },
-        {
-            name: &quot;Formatted data&quot;,
-            field: &quot;date&quot;,
-            formatType: {
-                formatType: &quot;DateTime&quot;,
-                dateTimeFormat: &quot;DD/MM/YYYY HH:mm&quot;,
-                useUTCTime: true
-            }
-        },
-        {
-            name: &quot;Realtime Data&quot;,
-            field: &quot;last_update&quot;,
-            dataType: &quot;datetime&quot;,
-            alignment: &quot;center&quot;,
-            formatType: {
-                formatType: &quot;DateTime&quot;,
-                dateTimeFormat: &quot;DD/MM/YYYY HH:mm:ss&quot;,
-                useUTCTime: true
-            }
-        }
-    ],
-    staticDataRows: records,
-    extensions: [
-        new TextFormatting()
+        {title: &quot;Company&quot;, field: fields[0]},
+        {title: &quot;Market&quot;, field: fields[1], width: 100},
+        {title: &quot;Last&quot;, field: fields[2], width: 80},
+        {title: &quot;Net. Chng&quot;, field: fields[3], width: 80},
+        {title: &quot;Industry&quot;, field: fields[4]}
     ]
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
-grid.addEventListener(&quot;configured&quot;, function(e) {
-    var api = e.detail.api;
-    var randIndex = DataGenerator.randIndex;
-    setInterval(function() {
-        var index = randIndex(records.length);
-        api.setRowData(index, {
-            last_update: Date.now()
-        });
-    }, 400);
-});
+
 grid.config = configObj;
+
+document.getElementById(&quot;fetch_btn&quot;).addEventListener(&quot;click&quot;, loadData);
+
+// To emitate fetching data from server
+function loadData() {
+    grid.api.getDataTable().removeAllRows();
+
+    msg_txt.textContent = &quot;Start Loading...&quot;;
+    
+    setTimeout(function() { // Simulate network request time by delaying the request for 2 seconds
+        var response = {
+            &quot;success&quot;: true,
+            &quot;result&quot;: [{
+                &quot;companyName&quot;: &quot;Yost-Prohaska&quot;,
+                &quot;market&quot;: &quot;HKEX&quot;,
+                &quot;CF_LAST&quot;: 686.5,
+                &quot;CF_NETCHNG&quot;: -54,
+                &quot;industry&quot;: &quot;Banks&quot;
+            }, {
+                &quot;companyName&quot;: &quot;Rempel-Bednar&quot;,
+                &quot;market&quot;: &quot;DJI&quot;,
+                &quot;CF_LAST&quot;: 668.9,
+                &quot;CF_NETCHNG&quot;: -57,
+                &quot;industry&quot;: &quot;Electrical Products&quot;
+            }, {
+                &quot;companyName&quot;: &quot;Graham, Morar and Waters&quot;,
+                &quot;market&quot;: &quot;NIKKEI&quot;,
+                &quot;CF_LAST&quot;: 289.17,
+                &quot;CF_NETCHNG&quot;: 8,
+                &quot;industry&quot;: &quot;Trucking Freight/Courier Services&quot;
+            }, {
+                &quot;companyName&quot;: &quot;Bosco-Terry&quot;,
+                &quot;market&quot;: &quot;HSCEI&quot;,
+                &quot;CF_LAST&quot;: 116.58,
+                &quot;CF_NETCHNG&quot;: -80,
+                &quot;industry&quot;: &quot;Specialty Chemicals&quot;
+            }, {
+                &quot;companyName&quot;: &quot;Braun, Kihn and Treutel&quot;,
+                &quot;market&quot;: &quot;NASDAQ&quot;,
+                &quot;CF_LAST&quot;: 419.04,
+                &quot;CF_NETCHNG&quot;: -7,
+                &quot;industry&quot;: &quot;Recreational Products/Toys&quot;
+            }]
+        };
+
+        var dt = grid.api.getDataTable();
+        dt.addRows(response.result);
+
+        msg_txt.textContent = &quot;Data received&quot;;
+    }, 1500); 
+}
 </code></pre>
-</code-sandbox>
+</code-sandbox><h2 id="getting-real-time-data-in-atlas-blotter">Getting real-time data in Atlas Blotter</h2>
+<p>By default, Atlas Blotter can retrieve real-time data, if <code>JET.Quotes2</code> exists in the page. To specify what data to be requested, you can define <code>ric</code> in row configuration and <code>field</code> in column configuration. </p>
+<p>for more information about <code>JET.Quotes2</code>, see <a href="#/realtime-data/jet">JET page</a></p>
+<p>For more information about retrieving data from <code>RTK</code>, see <a href="#/realtime-data/rtk">RTK page</a></p>

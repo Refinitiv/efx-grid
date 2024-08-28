@@ -1,13 +1,54 @@
-<h1 id="ef-text-field-formatter">EF Text Field Formatter</h1>
-<p>This formatter creates a <a href="https://ui.refinitiv.com/elements/text-field">ef-text-field</a> without a margin and 100% width. By default the input&#39;s value will be the column&#39;s field.</p>
-<h2 id="example">Example</h2>
-<code-sandbox hash="62b87ee6"><pre><code class="language-css">efx-grid {
+<h1 id="predefined-formatter">Predefined Formatter</h1>
+<p>Some formatters support all types of grids, like those listed below:</p>
+<ul>
+<li>CoralButtonFormatter</li>
+<li>CoralIconFormatter</li>
+<li>CoralSelectFormatter</li>
+<li>CoralRadioButtonFormatter</li>
+<li>CoralCheckboxFormatter</li>
+<li>PercentBarFormatter</li>
+<li>SimpleToggleFormatter</li>
+<li>and more.</li>
+</ul>
+<h2 id="installation">Installation</h2>
+<p><code>npm install @grid/formatters</code></p>
+<h2 id="how-to-import-to-your-project">How to import to your project</h2>
+<h3 id="traditional-usage">Traditional usage</h3>
+<p>Include the script on your HTML page. The path may vary depending on your project structure. All formatters prefixed with <code>tr.</code> (for example, <code>tr.CoralButtonFormatter</code>) are available at global scope.</p>
+<pre><code class="language-html">&lt;script src=&quot;node_modules/@grid/formatters/dist/formatters.js&quot;&gt;&lt;/script&gt;
+</code></pre>
+<h3 id="es6-module-usage">ES6 module usage</h3>
+<p>Use <code>import</code> syntax to import the formatter into your app.</p>
+<pre><code class="language-js">import CoralButtonFormatter from &quot;node_modules/@grid/formatters/es6/CoralButtonFormatter.js&quot;;
+import CoralSelectFormatter from &quot;node_modules/@grid/formatters/es6/CoralSelectFormatter.js&quot;;
+</code></pre>
+<h2 id="the-basics">The basics</h2>
+<p>The simplest way to get the basic formatter is by calling <code>create()</code> without options, for example <code>SimpleInputFormatter.create()</code>. Then pass it to Grid using configuration, as shown below:</p>
+<pre><code class="language-js">var config = {
+    columns: [{
+        name: &quot;Number&quot;,
+        field: &quot;number&quot;,
+        formatter: SimpleInputFormatter.create() // or tr.SimpleInputFormatter.create()
+    }, {
+        name: &quot;Currentcy&quot;,
+        field: &quot;currency&quot;,
+        formatter: CoralSelectFormatter.create() // or tr.CoralSelectFormatter.create()
+    }, {
+        name: &quot;Image&quot;,
+        field: &quot;image&quot;,
+        formatter: SimpleImageFormatter.create() // or tr.SimpleImageFormatter.create()
+    }]
+}
+</code></pre>
+<p>Formatter with default options supports basic functioning and can be used for general usage. For input formatters, like <code>SimpleInputFormatter</code>, <code>CoralSelectFormatter</code>, <code>CoralComboBoxFormatter</code>, and so on, when the value has changed the new value will be saved to the <code>dataTable</code> of Grid. See basic formatters in the below example:</p>
+<code-sandbox hash="a4cd8f45"><pre><code class="language-css">atlas-blotter {
     height: 320px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+<pre><code class="language-html">&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
 </code></pre>
-<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
 /* ---------------------------------- Note ----------------------------------
@@ -16,54 +57,240 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;number_1&quot;, &quot;word&quot;];
-var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 20 });
+// For static data initialization
+var currencies = [&quot;THB&quot;, &quot;AUD&quot;, &quot;USD&quot;, &quot;YEN&quot;, &quot;TWD&quot;];
+tr.DataGenerator.addFieldInfo(&quot;currency&quot;, { type: &quot;set&quot;, members: currencies});
 
+var fields = [&quot;number_1&quot;, &quot;currency&quot;];
+var records = tr.DataGenerator.generateRecords(fields, { numRows: 40, seed: 1 });
 var configObj = {
     columns: [
-        { 
-            name: &quot;Word&quot;,
-            field: fields[1],
-            sort: fields[1]
-        },
-        { 
-            name: &quot;Simplest&quot;,
-            field: fields[1],
-            sort: fields[1],
-            alignment: &quot;c&quot;,
-            binding: EFTextFieldFormatter.create()
-        },
-        { 
-            name: &quot;Identified field&quot;,
+        {
+            name: &quot;SimpleLink&quot;,
             field: fields[0],
-            sort: fields[0],
-            alignment: &quot;c&quot;,
-            binding: EFTextFieldFormatter.create({
-                field: fields[1]
+            alignment: &quot;center&quot;,
+            binding: tr.SimpleLinkFormatter.create()
+        },
+        {
+            name: &quot;Input&quot;,
+            field: fields[0],
+            alignment: &quot;center&quot;,
+            binding: tr.SimpleInputFormatter.create()
+        },
+        {
+            name: &quot;Select&quot;,
+            field: fields[1],
+            alignment: &quot;center&quot;,
+            binding: tr.CoralSelectFormatter.create({
+                data: currencies
             })
         },
         {
-            name: &quot;Some options&quot;,
+            name: &quot;ComboBox&quot;,
             field: fields[1],
-            sort: fields[1],
-            alignment: &quot;c&quot;,
-            binding: EFTextFieldFormatter.create({
-                attributes: {
-                    icon: &quot;edit&quot;
-                },
-                events: {
-                    &quot;value-changed&quot;: function(e) {
-                        // console.log(&quot;value changed: &quot; + e.detail.value);
-                    }
-                }
+            alignment: &quot;center&quot;,
+            binding: tr.CoralComboBoxFormatter.create({
+                data: currencies
             })
         }
     ],
-    extensions: [],
     staticDataRows: records
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 </code></pre>
-</code-sandbox>
+</code-sandbox><code-sandbox hash="d86e22cf"><pre><code class="language-css">atlas-blotter {
+    height: 320px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;atlas-blotter id=&quot;grid&quot;&gt;&lt;/atlas-blotter&gt;
+</code></pre>
+<pre><code class="language-javascript">import &#39;./resources/extensions.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;number_1&quot;, &quot;date&quot;, &quot;icon&quot;];
+tr.DataGenerator.addFieldInfo(&quot;icon&quot;, { type: &quot;set&quot;, members: [&quot;up&quot;, &quot;down&quot;, &quot;right&quot;, &quot;left&quot;]});
+var records = tr.DataGenerator.generateRecords(fields, { numRows: 40, seed: 1 });
+
+var configObj = {
+    columns: [
+        {
+            name: &quot;RadioButton&quot;,
+            field: &quot;radio&quot;,
+            alignment: &quot;center&quot;,
+            binding: tr.CoralRadioButtonFormatter.create()
+        },
+        {
+            name: &quot;Button&quot;,
+            field: fields[0],
+            alignment: &quot;center&quot;,
+            binding: tr.CoralButtonFormatter.create()
+        },
+        {
+            name: &quot;Icon&quot;,
+            field: fields[2],
+            alignment: &quot;center&quot;,
+            binding: tr.CoralIconFormatter.create()
+        },
+        {
+            name: &quot;DatePicker&quot;,
+            field: fields[1],
+            alignment: &quot;center&quot;,
+            binding: tr.EmeraldDateTimePickerFormatter.create()
+        }
+    ],
+    staticDataRows: records
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="advance-usage">Advance usage</h2>
+<p>Customizations are allowed through various options, as detailed in the following sections.</p>
+<h3 id="common-options">Common options</h3>
+<p>There are some options that are available for all formatters, see the below table for more details.</p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Attributes</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>attributes</td>
+<td>Object</td>
+<td>optional</td>
+<td>List of attributes name and values</td>
+</tr>
+<tr>
+<td>styles</td>
+<td>Object</td>
+<td>optional</td>
+<td>List of inline styles for the element</td>
+</tr>
+<tr>
+<td>events</td>
+<td>Object</td>
+<td>optional</td>
+<td>List of event names and listeners</td>
+</tr>
+<tr>
+<td>disablingField</td>
+<td>string</td>
+<td>optional</td>
+<td>Field to be used for representing disabled attribute of the element</td>
+</tr>
+<tr>
+<td>errorField</td>
+<td>string</td>
+<td>optional</td>
+<td>Field to be used for representing error attribute of the element</td>
+</tr>
+<tr>
+<td>onElementRendered</td>
+<td>Function</td>
+<td>optional</td>
+<td>Event handler after default rendering. It is useful for additional styling</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>Note: The available value for each option is dependent on the type of element. In the case of the ELF element, more information about attributes and events can be found <a href="https://elf.int.refinitiv.com/">here</a>.</p>
+</blockquote>
+<p>Below is an example of showing a button with a label, icon, light coral background color, and listen for click and active-changed event.</p>
+<pre><code class="language-js">var config = {
+    columns: [{
+        name: &quot;Number&quot;,
+        field: &quot;number&quot;,
+        binding: CoralButtonFormatter.create({
+            label: &quot;More detail&quot;,
+            attributes: {
+                &quot;icon&quot;: &quot;info&quot;
+            },
+            styles: {
+                &quot;background&quot;: &quot;lightcoral&quot;
+            },
+            events: {
+                &quot;active-changed&quot;: function(e, context) { // Custom event exposed by the element
+
+                },
+                &quot;click&quot;: function(e, context) { // Native events are also supported
+
+                }
+            },
+            onElementRendered: function(element, context) {
+
+            }
+        })
+    }]
+}
+</code></pre>
+<h3 id="event-listeners-parameters">Event listener&#39;s parameters</h3>
+<p>Available parameters for all listeners are described below:</p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>event</td>
+<td>Event</td>
+<td>Native event argument object</td>
+</tr>
+<tr>
+<td>context</td>
+<td>Object</td>
+<td>Context object, contains all kind of information and methods</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>Context object also contains information about the position of the element (the same information from <a href="#/apis/composite-grid/tr-compositegrid">getRelativePosition</a> method).</p>
+</blockquote>
+<h3 id="context-object-methods">Context object methods</h3>
+<p>Context object also provides helper methods as shown below:</p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>getData(field)</td>
+<td>Get field value from the current row</td>
+</tr>
+<tr>
+<td>setData(field, value)</td>
+<td>Set field value to the current row</td>
+</tr>
+<tr>
+<td>isElementDisabled()</td>
+<td>Get data from the disablingField of the current row</td>
+</tr>
+<tr>
+<td>disableElement(bool)</td>
+<td>Set data to the disablingField of the current row</td>
+</tr>
+<tr>
+<td>getError()</td>
+<td>Get data from the errorField of the current row</td>
+</tr>
+<tr>
+<td>setError(value)</td>
+<td>Set data to the errorField of the current row</td>
+</tr>
+</tbody></table>
+<h3 id="specific-options">Specific Options</h3>
+<p>The specific options for each formatters are separately described on each formatter page.</p>
