@@ -201,7 +201,7 @@ grid.config = configObj;
 </code></pre>
 </code-sandbox><h2 id="auto-date-conversion">Auto date conversion</h2>
 <p>When dealing with date-time data it may be hard to handle the various types of incoming data, which can be number, string, ISO date string, seconds or milliseconds. So it is better to enable <code>autoDateConversion</code> in the Grid&#39;s configuration and let Grid automatically convert data to JavaScript native Date object. To let Grid know that the column&#39;s data is data-time, the <code>dataType: &quot;datetime&quot;</code> should be specified in the column&#39;s options.</p>
-<code-sandbox hash="e3ed62f3"><pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+<code-sandbox hash="acfdc259"><pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
@@ -213,23 +213,23 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
 var descriptions = [
-    &quot;Invalid&quot;,
-    &quot;Negative value (milliseconds)&quot;,
+    &quot;ISO date-time string&quot;,
+    &quot;Native Date object&quot;,
+    &quot;Milliseconds&quot;,
+    &quot;Seconds&quot;,
     &quot;Excel date&quot;,
-    &quot;Second&quot;,
-    &quot;Millisecond&quot;,
-    &quot;Native date object (now)&quot;,
-    &quot;ISO date-time string&quot;
+    &quot;Negative value&quot;,
+    &quot;Invalid&quot;
 ];
 
 var dateSamples = [
-    &quot;abc&quot;,
-    -1,
-    1,
-    Date.UTC(2021, 11, 24, 10)/1000,
-    Date.UTC(2021, 11, 24, 10),
+    &quot;2021-11-25T10:00:00&quot;,
     new Date(),
-    &quot;2021-11-25T10:00:00&quot;
+    Date.UTC(2021, 11, 24, 10),
+    Date.UTC(2021, 11, 24, 10)/1000,
+    1,
+    -1,
+    &quot;abc&quot;
 ];
 
 var records = [];
@@ -248,11 +248,13 @@ var configObj = {
     columns: [
         {
             name: &quot;Description&quot;,
-            field: &quot;des&quot;
+            field: &quot;des&quot;,
+            width: 130
         },
         {
             name: &quot;Raw data&quot;,
-            field: &quot;date_RAW&quot;
+            field: &quot;date_RAW&quot;, // This field is auto-generated from date field
+            width: 130
         },
         {
             name: &quot;Converted data&quot;,
@@ -262,21 +264,24 @@ var configObj = {
         {
             name: &quot;Formatted data&quot;,
             field: &quot;date&quot;,
+            dataType: &quot;datetime&quot;,
+            alignment: &quot;center&quot;,
+            width: 120,
             formatType: {
                 formatType: &quot;DateTime&quot;,
                 dateTimeFormat: &quot;DD/MM/YYYY HH:mm&quot;,
-                useUTCTime: true
             }
         },
         {
-            name: &quot;Realtime Data&quot;,
+            name: &quot;Realtime data&quot;,
             field: &quot;last_update&quot;,
             dataType: &quot;datetime&quot;,
             alignment: &quot;center&quot;,
+            width: 130,
             formatType: {
                 formatType: &quot;DateTime&quot;,
                 dateTimeFormat: &quot;DD/MM/YYYY HH:mm:ss&quot;,
-                useUTCTime: true
+                useUTCTime: false // Display local time instead of UTC time (default)
             }
         }
     ],
@@ -287,16 +292,18 @@ var configObj = {
 };
 
 var grid = document.getElementById(&quot;grid&quot;);
-grid.addEventListener(&quot;configured&quot;, function(e) {
-    var api = e.detail.api;
-    var randIndex = DataGenerator.randIndex;
-    setInterval(function() {
-        var index = randIndex(records.length);
-        api.setRowData(index, {
-            last_update: Date.now()
-        });
-    }, 400);
-});
 grid.config = configObj;
+
+var timeCount = 0;
+setInterval(function simulateRealtimeUpdates() {
+    for(var i = 0; i &lt; 5; ++i) { // Update the first 5 records
+        grid.api.setRowData(i, {
+            last_update: grid.api.getRowData(i)[&quot;date&quot;].getTime() + timeCount * 1000
+        });
+    }
+    ++timeCount;
+}, 1000);
 </code></pre>
-</code-sandbox>
+</code-sandbox><br>
+<br>
+<br>

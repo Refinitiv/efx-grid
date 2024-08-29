@@ -273,6 +273,69 @@ var configObj = {
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 </code></pre>
+</code-sandbox><h2 id="displaying-local-date-time">Displaying local date time</h2>
+<p>By default, Text Formatting Extension will take UTC time from the given Date object, format it, and display the formatted date in UTC time. To display the formatted date in local time, set <code>useUTCTime</code> option to <code>false</code> on the <code>formatType</code> property in the column configuration object. </p>
+<code-sandbox hash="3f44b5be"><pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+
+var records = [
+    {&quot;des&quot;: &quot;Current time&quot;, &quot;date&quot;: new Date()}
+];
+var configObj = {
+    columns: [
+        {
+            name: &quot;Description&quot;,
+            field: &quot;des&quot;,
+            width: 120
+        },
+        {
+            name: &quot;Date Object&quot;,
+            field: &quot;date&quot;
+        },
+        {
+            name: &quot;Formatted UTC&quot;,
+            field: &quot;date&quot;,
+            alignment: &quot;center&quot;,
+            width: 130,
+            formatType: {
+                formatType: &quot;DateTime&quot;,
+                dateTimeFormat: &quot;DD/MM/YYYY HH:mm:ss&quot;
+            }
+        },
+        {
+            name: &quot;Formatted local&quot;,
+            field: &quot;date&quot;,
+            alignment: &quot;center&quot;,
+            width: 130,
+            formatType: {
+                formatType: &quot;DateTime&quot;,
+                dateTimeFormat: &quot;DD/MM/YYYY HH:mm:ss&quot;,
+                useUTCTime: false // Display local time instead of UTC time (default)
+            }
+        }
+    ],
+    staticDataRows: records,
+    extensions: [
+        new TextFormatting()
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+
+setInterval(function simulateRealtimeUpdates() {
+    grid.api.setRowData(0, { date: new Date() });
+}, 1000);
+</code></pre>
 </code-sandbox><h2 style="margin-bottom:5px" id="api-refs">API Reference</h2>
 <div id="elf-api-container"><div id="main-template" class="elf-template">    <section><header>            <h1 class="subsection-title"><span class="attribs"><span class="type-signature"></span></span>TextFormattingPlugin<span class="signature">()</span><span class="type-signature"></span></h1>            </header><article>                                                                        <h3 class="subsection-title" id="type_definitions">Type Definitions</h3>                        
 <div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~ColumnOptions">ColumnOptions</h4><div class="description">    Available options that can be specified on the column configuration object</div>    <h5>Type:</h5>    <span class="param-type"><a href="#/extensions/tr-grid-textformatting#~FormatOptions">TextFormattingPlugin~FormatOptions</a></span><div class="details">                                                            </div></div>                            

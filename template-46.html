@@ -288,7 +288,8 @@ var gridConfig = {
     staticDataRows: records
 }
 </code></pre>
-<h3 id="segment-nesting-example">Segment nesting example</h3>
+<aside class="important"><p>It&#39;s important to have correct row order before putting them into grid. Parent row must come before its children, as the first row with an unique segment id will be used as segment header. The order of the rows matters.</p>
+</aside><h3 id="segment-nesting-example">Segment nesting example</h3>
 <code-sandbox hash="a8f0b3ec"><pre><code class="language-css">html hr {
     margin: 5px;
 }
@@ -444,12 +445,12 @@ grid.config = configObj;
 grid.data = records;
 </code></pre>
 </code-sandbox><h2 id="group-sorting">Group sorting</h2>
-<p>Row segmenting can be sorted manually through an API <code>sortSeparators</code> from <code>SortableTitlePlugin</code>. The method accept a sorting function as parameter. If no parameter is passed to the function, the segments will be sorted according to the current sorting states of the grid.</p>
+<p>By default segment header/separator rows will not be sorted when click at the grid&#39;s top header. Only content rows will be sorted while segment header/separator rows stay in the same place regardless of the sorting states. However, header/separator rows can be sorted manually by using <code>sortSeparators</code> API from <code>SortableTitlePlugin</code>. The method can optionally take a sorting function as its first parameter. If no parameter is passed to the function, the segments will be sorted according to the current sorting states of the grid.</p>
 <aside class="info"><ul>
 <li>When clearing the grid sorting state, the segments will not return to its original order. To make it return to  original position, <code>sortSeparators</code> need to be called with a custom sorting function.</li>
 <li>Sorting segment operation only swap position between segments, therefore the content rows between the segments will not be moved to stick together at top of the grid.</li>
 </ul>
-</aside><code-sandbox hash="972210b7"><pre><code class="language-css">html hr {
+</aside><code-sandbox hash="e52e494a"><pre><code class="language-css">html hr {
     margin: 5px;
 }
 </code></pre>
@@ -469,7 +470,7 @@ await halo(); // This line is only required for demo purpose. It is not relevant
 ---------------------------------------------------------------------------*/
 var rowSegmentingExt = new RowSegmenting();
 var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 15 });
+var records = DataGenerator.generateRecords(fields, { seed: 1, numRows: 15 });
 var segmentField = &quot;SegmentId&quot;;
 records[2][&quot;segmentOrder&quot;] = 1;
 records[2][segmentField] = &quot;1&quot;;
@@ -486,7 +487,14 @@ records[10][segmentField] = &quot;3&quot;;
 records[11][segmentField] = &quot;3&quot;;
 records[12][segmentField] = &quot;3&quot;;
 
-var originalSortFunc = function(rowA, rowB){
+var sortableTitlePlugin = null; // This will be available in configured event
+function sortSegments() {
+    if(sortableTitlePlugin) {
+        // Sort segments according to the current sorting states
+        sortableTitlePlugin.sortSeparators();
+    }
+}
+function originalSegmentOrder(rowA, rowB, sortOrder, field){
     var segmentOrderA = rowA[&quot;ROW_DEF&quot;].getData(&quot;segmentOrder&quot;);
     var segmentOrderB = rowB[&quot;ROW_DEF&quot;].getData(&quot;segmentOrder&quot;);
     if(segmentOrderA &lt; segmentOrderB) {
@@ -498,14 +506,17 @@ var originalSortFunc = function(rowA, rowB){
     return 0;
 }
 
+document.getElementById(&quot;clear_sort&quot;).addEventListener(&quot;click&quot;, function(e) {
+    sortableTitlePlugin.clearSortState();
+});
+document.getElementById(&quot;original_sort_segment&quot;).addEventListener(&quot;click&quot;, function(e) {
+    sortableTitlePlugin.sortSeparators(originalSegmentOrder);
+});
+
 var configObj = {
     sorting: {
         sortableColumns: true,
-        // After regular rows are sorted
-        // Sort segments by current grid sorting states
-        columnSorted: function (e) {
-            e.sender.sortSeparators();
-        }
+        columnSorted: sortSegments // Trigger segment sorting when a column is sorted
     },
     rowSegmenting: {
         segmentIdField: segmentField
@@ -524,17 +535,13 @@ var configObj = {
 };
 var grid = window.grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
 grid.config = configObj;
-document.getElementById(&quot;clear_sort&quot;).addEventListener(&quot;click&quot;, function(e) {
-    var stPlugin = grid.api.getCoreGrid().getPlugin(&quot;SortableTitlePlugin&quot;);
-    stPlugin.clearSortState();
-});
-document.getElementById(&quot;original_sort_segment&quot;).addEventListener(&quot;click&quot;, function(e) {
-    var stPlugin = grid.api.getCoreGrid().getPlugin(&quot;SortableTitlePlugin&quot;);
-    stPlugin.sortSeparators(originalSortFunc);
+grid.addEventListener(&quot;configured&quot;, function(e){
+    var core = grid.api.getCoreGrid();
+    sortableTitlePlugin = core.getPlugin(&quot;SortableTitlePlugin&quot;);
 });
 </code></pre>
 </code-sandbox><h2 id="content-sorting">Content sorting</h2>
-<p>Row content is sorted within its own group. The behavior is the same for both Row Segmenting and Row Grouping Extension.</p>
+<p>Content rows are sorted within its own group/segment. The behavior is the same for both Row Segmenting and Row Grouping Extension.</p>
 <h2 id="predefined-color-on-the-color-tags">Predefined color on the color tags</h2>
 <p>The extension supports color from the predefined colors. To do this you need to assign predefined class object to the <code>predefinedColors</code> property then specify field name of the <code>cssField</code> property.</p>
 <code-sandbox hash="3cac1f63"><pre><code class="language-css">html hr {
