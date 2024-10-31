@@ -2,7 +2,7 @@
 
 <h1 id="cell-selection">Cell Selection</h1>
 <p>The Cell Selection Extension lets you select cells in Grid. By default, the extension enables copying of selected cell content through <code>Ctrl/Command + C</code> key. The copied content will be stored as a text in the system clipboard. The format of the text will be Tab Separated Values (TSV) format, and so it can be pasted on to Excel&#39;s table. </p>
-<code-sandbox hash="c5ada515"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="cc024a0c"><pre><code class="language-css">efx-grid {
     height: 200px;
 }
 textarea {
@@ -27,9 +27,6 @@ await halo(); // This line is only required for demo purpose. It is not relevant
 var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
 var records = DataGenerator.generateRecords(fields, { numRows: 5 });
 var configObj = {
-    cellSelection: {
-        autoDeselecting: false
-    },
     columns: [
         {name: &quot;Company&quot;, field: fields[0]},
         {name: &quot;Market&quot;, field: fields[1], width: 120},
@@ -45,10 +42,47 @@ var configObj = {
 
 var grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="keyboard-navigation">Keyboard navigation</h2>
+<p>You can use arrow keys to move the cell selection and use <code>Shift</code> + arrow keys to do multiple cell selection from the anchor point.</p>
+<code-sandbox hash="1341e280"><pre><code class="language-css">html hr {
+    margin: 5px;
+}
+efx-grid {
+    height: 280px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;big&gt;Use arrow keys (e.g., left, right, up, down keys) to move cell selection&lt;/big&gt;
+&lt;hr&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
 
-grid.addEventListener(&quot;click&quot;, function onClick(e) {
-    grid.api.focus();
-});
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+var records = DataGenerator.generateRecords(fields, { numRows: 30 });
+var configObj = {
+    columns: [
+        {name: &quot;Company&quot;, field: fields[0]},
+        {name: &quot;Market&quot;, field: fields[1], width: 120},
+        {name: &quot;Last&quot;, field: fields[2], width: 100},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
+        {name: &quot;Industry&quot;, field: fields[4]}
+    ],
+    staticDataRows: records,
+    extensions: [
+        new CellSelection()
+    ]
+};
+
+var grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
 </code></pre>
 </code-sandbox><h2 id="installation-and-how-to-import-to-a-project">Installation and how to import to a project</h2>
 <p>Installation examples and details of how to import the extension to a project are available on the <a href="#/extensions/readme">Overview</a> page.</p>

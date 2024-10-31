@@ -1,25 +1,22 @@
 <h1 id="custom-sort-logic">Custom Sort Logic</h1>
-<p>There are several cases where the data stored in each field in the data model is not a primitive type. Sorting this data requires a special approach with custom sorting logic.</p>
-<blockquote>
-<p>Note: comparison functions receive the same argument as <code>Array.prototype.sort</code>.</p>
-</blockquote>
-<p>To set custom sort logic for each column, do the following:</p>
-<pre><code class="language-js">var config = {
-    // any other grid&#39;s options
-    columns: [
-        { name: &quot;Column 1&quot;, field: &quot;field1&quot;, sortLogic: function(a, b, order) {/* Some compare function */} },
-        { name: &quot;Column 2&quot;, field: &quot;field2&quot; },
-    ],
-}
-</code></pre>
-<p>The callback will also receive extra information about the column being sorted from the fourth parameter.</p>
-<pre><code class="language-js">var myCustomSorting = function(valA, valB, order, contextObj) {
-    // contextObj provide more information about the column being sorted such as colIndex and field
+<h2 id="row-sorting-mode-default">Row sorting mode (default)</h2>
+<p>You can specify custom sort logic by using <code>sortLogic</code> option on the column configuration object. The method for sort logic should take RowDefinition objects for the first two parameters and return number to inidicate the results of the comparison. The third parameter is sorting order which can be used to determine sorting direction. The below code snippet shows the method signature as well as various ways to retrieve data:</p>
+<pre><code class="language-js">let myCustomSorting = function(rowDefA, rowDefB, order, contextObj) {
+    // You can access any data from any column within the row
+    let valA = rowDefA.getData(contextObj.field);
+    let valB = rowDefB.getData(contextObj.field);
+    
+    let extraInfoA = rowDefA.getData(&quot;some other field&quot;);
+    let extraInfoB = rowDefB.getData(&quot;some other field&quot;);
+    
+    let rowDataA = rowDefA.getRowData();
+    let rowDataB = rowDefB.getRowData();
+    
     // ...
-    return valA - valB;
+    return number;
 };
 
-var config = {
+let config = {
     // any other grid&#39;s options
     columns: [
         { name: &quot;Column 1&quot;, field: &quot;field1&quot;, sortLogic: myCustomSorting},
@@ -27,30 +24,169 @@ var config = {
     ],
 }
 </code></pre>
-<p>You can enable <code>rowSorting</code> to use RowDefinition object for sorting comparison. This is useful when we want to compare data other than the data from the column being sorted.</p>
-<pre><code class="language-js">var myCustomSorting = function(rowDefA, rowDefB, order, contextObj) {
-    // Now we can access any data within a row from the RowDefinition object
-    var valA = rowDefA.getData(contextObj.field);
-    var valB = rowDefB.getData(contextObj.field);
-    var extraInfoA = rowDefA.getData(&quot;some other field&quot;);
-    var extraInfoB = rowDefB.getData(&quot;some other field&quot;);
-    // ...
-    return number;
+<blockquote>
+<ul>
+<li>Returning negative value from the sort logic indicates that row A (the first parameter) is less than row B (the second parameter) and should be placed on top of row B.</li>
+<li>Returning positive value from the sort logic indicates that row A is greater than row B and should be placed under row B.</li>
+<li>Returning zero from the sort logic indicates that both row A and row B are equal and should stay in the same position.</li>
+</ul>
+</blockquote>
+<h3 id="custom-sorting-based-on-multiple-columns-example">Custom sorting based on multiple columns example</h3>
+<code-sandbox hash="371beed0"><pre><code class="language-css">efx-grid {
+    height: 300px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+function byMultipleColumns(rowDefA, rowDefB, order, contextObj) {
+    let rowA = rowDefA.getRowData();
+    let rowB = rowDefB.getRowData();
+    let numA = rowA.x + rowA.y;
+    let numB = rowB.x + rowB.y;
+    
+    return (numA - numB) * order;
+}
+
+let fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;x&quot;, &quot;y&quot;];
+let records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 10 });
+
+let extraColumns = [ // For illustrative purpose
+    { x: 1, y: 1 },
+    { x: 5, y: 2 },
+    { x: 2, y: 3 },
+    { x: 4, y: 2 },
+    { x: 3, y: 3 },
+    { x: 1, y: 4 },
+    { x: 4, y: 3 },
+    { x: 1, y: 2 },
+    { x: 5, y: 1 },
+    { x: 2, y: 2 }
+];
+records.forEach(function(record, idx) {
+    let info = extraColumns[idx];
+    record.x = info.x;
+    record.y = info.y;
+});
+let configObj = {
+    freezeColumn: 0,
+    columns: [
+        {name: &quot;Id&quot;, field: fields[0], width: 80},
+        {name: &quot;Market&quot;, field: fields[2], width: 150},
+        {name: &quot;Last&quot;, field: fields[3], width: 120},
+        {name: &quot;Custom Sorting (x + y)&quot;, field: fields[1], sortLogic: byMultipleColumns},
+        {field: fields[4], width: 80},
+        {field: fields[5], width: 80},
+    ],
+    staticDataRows: records
 };
 
-var config = {
+let grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h3 id="custom-sorting-for-complex-data-type-example">Custom sorting for complex data type example</h3>
+<code-sandbox hash="e833d92d"><pre><code class="language-css">efx-grid {
+    height: 300px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+function complexObjectSorter(rowDefA, rowDefB, order, contextObj) {
+    let objA = rowDefA.getData(contextObj.field);
+    let objB = rowDefB.getData(contextObj.field);
+    let numA = objA.x + objA.y;
+    let numB = objB.x + objB.y;
+    
+    return (numA - numB) * order;
+}
+function bindComplexObject(e) {
+    let text = &quot;&quot;;
+    try {
+        text = JSON.stringify(e.data)
+    } catch {};
+    e.cell.setContent(text);
+}
+
+// Initial data set
+let records = [
+    { col1: &quot;A&quot;, num1: 40, complexObject: {x: 1, y: 1} },
+    { col1: &quot;B&quot;, num1: 22, complexObject: {x: 5, y: 2} },
+    { col1: &quot;C&quot;, num1: 55, complexObject: {x: 2, y: 3} },
+    { col1: &quot;D&quot;, num1: 11, complexObject: {x: 4, y: 2} },
+    { col1: &quot;E&quot;, num1: 33, complexObject: {x: 3, y: 3} },
+    { col1: &quot;F&quot;, num1: 66, complexObject: {x: 1, y: 4} },
+    { col1: &quot;G&quot;, num1: 44, complexObject: {x: 4, y: 3} },
+    { col1: &quot;H&quot;, num1: 22, complexObject: {x: 1, y: 2} },
+    { col1: &quot;I&quot;, num1: 11, complexObject: {x: 5, y: 1} },
+    { col1: &quot;J&quot;, num1: 10, complexObject: {x: 2, y: 2} }
+];
+let configObj = {
+    columns: [
+        {
+            name: &quot;Column 1&quot;,
+            field: &quot;col1&quot;,
+            width: 100
+        },
+        {
+            name: &quot;Default Sorting&quot;,
+            field: &quot;num1&quot;,
+            textAlign: &quot;right&quot;
+        },
+        {
+            name: &quot;Complex Object&quot;,
+            field: &quot;complexObject&quot;,
+            binding: bindComplexObject,
+            sortingLogic: complexObjectSorter
+        },
+        {
+            name: &quot;Not Sortable&quot;,
+            field: &quot;Some Field&quot;,
+            sortable: false,
+            width: 150
+        }
+    ],
+    extensions: [],
+    staticDataRows: records
+};
+
+let grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="value-sorting-mode">Value sorting mode</h2>
+<p>In case you want to define simpler sort logic, you can set <code>rowSorting</code> option to <code>false</code> on the <code>sorting</code> configuration object. The sort logic will have values from the sorted column instead of RowDefinition object for the first two parameters. The method signature will be similar to that of <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort">Array.prototype.sort</a>. The method will also receive extra information about the column being sorted from the fourth parameter. The below code snippet shows the configuration for this mode:</p>
+<pre><code class="language-js">let myCustomSorting = function(valA, valB, order, contextObj) {
+    // contextObj provide more information about the column being sorted such as colIndex and field
+    // ...
+    return (valA - valB) * order;
+};
+
+let config = {
     // any other grid&#39;s options
     columns: [
-        { name: &quot;Column 1&quot;, field: &quot;field1&quot;, rowSorting: true, sortLogic: myCustomSorting},
+        { name: &quot;Column 1&quot;, field: &quot;field1&quot;, rowSorting: false, sortLogic: myCustomSorting},
         { name: &quot;Column 2&quot;, field: &quot;field2&quot; },
     ],
 }
 </code></pre>
-<blockquote>
-<p>For <code>notRealTimeField</code> column, the default comparison method is row sorting. If you still want to sort by data instead of RowDefinition object, set <code>rowSorting</code> to false to override the default behavior.</p>
-</blockquote>
-<h2 id="example">Example</h2>
-<code-sandbox hash="2f71ac07"><pre><code class="language-css">efx-grid {
+<h3 id="custom-sorting-for-handling-invalid-value-example">Custom sorting for handling invalid value example</h3>
+<code-sandbox hash="103d48a0"><pre><code class="language-css">efx-grid {
     height: 300px;
 }
 </code></pre>
@@ -66,16 +202,16 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
 function sortTextAsNumber(valA, valB, order, contextObj) {
-    var numA = +valA; // Convert string to number
-    var numB = Number(valB); // Another way to convert string to number
+    let numA = +valA; // Convert string to number
+    let numB = Number(valB); // Another way to convert string to number
     if(numA !== numA) { // Fastest way to check for NaN value
         if(isNaN(numB)) { // Traditional and slower way to check for NaN value
             return 0;
         } else {
-            return 1; // Always put NaN value at the bottom
+            return 1; // Put row A at the bottom
         }
     } else if(numB !== numB) {
-        return -1; // Always put NaN value at the bottom
+        return -1; // Put row B at the bottom
     }
     if(numA &lt; numB) {
         return -order;
@@ -88,11 +224,11 @@ function sortTextAsNumber(valA, valB, order, contextObj) {
 }
 
 // Initial data set
-var records = [
+let records = [
     { col1: &quot;A&quot;, num1: 40, text: &quot;100&quot; },
     { col1: &quot;B&quot;, num1: 22, text: &quot;200&quot; },
     { col1: &quot;C&quot;, num1: 55, text: &quot;-10&quot; },
-    { col1: &quot;D&quot;, num1: 11, text: &quot;This is Text&quot; },
+    { col1: &quot;D&quot;, num1: 11, text: &quot;Invalid value&quot; },
     { col1: &quot;E&quot;, num1: 33, text: &quot;120&quot; },
     { col1: &quot;F&quot;, num1: 66, text: &quot;-20&quot; },
     { col1: &quot;G&quot;, num1: 44, text: &quot;N/A&quot; },
@@ -100,10 +236,9 @@ var records = [
     { col1: &quot;I&quot;, num1: 11, text: &quot;240&quot; },
     { col1: &quot;J&quot;, num1: 10, text: &quot;100&quot; }
 ];
-var configObj = {
+let configObj = {
     sorting: {
-        multiColumn: true,
-        threeStatesSorting: true
+        threeStatesSorting: true // For illustrative purpose
     },
     columns: [
         {
@@ -119,6 +254,7 @@ var configObj = {
         {
             name: &quot;Custom Sorting&quot;,
             field: &quot;text&quot;,
+            rowSorting: false,
             sortingLogic: sortTextAsNumber
         },
         {
@@ -132,7 +268,9 @@ var configObj = {
     staticDataRows: records
 };
 
-var grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
+let grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
 grid.config = configObj;
 </code></pre>
-</code-sandbox>
+</code-sandbox><br>
+<br>
+<br>
