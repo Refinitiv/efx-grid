@@ -5,7 +5,7 @@
 <blockquote>
 <p>Note that this extension does not provide any UI to do filtering. If you want to have UIs for end users to do filtering, you need to include either <a href="#/extensions/tr-grid-filter-input">Filter Input Extension</a> or <a href="#/widgets/filter-dialog">Filter Dialog Widget</a> in addition to this extension.</p>
 </blockquote>
-<code-sandbox hash="e186c753"><pre><code class="language-css">html hr {
+<code-sandbox hash="58f3bf53"><pre><code class="language-css">html hr {
     margin: 5px;
 }
 html body {
@@ -26,9 +26,9 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 50 });
-var configObj = {
+let fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+let records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 50 });
+let configObj = {
     columns: [
         { name: &quot;Company&quot;, field: fields[0] },
         { name: &quot;Market&quot;, field: fields[1], width: 120 },
@@ -45,7 +45,7 @@ var configObj = {
     ]
 };
 
-var grid = document.getElementById(&quot;grid&quot;);
+let grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 </code></pre>
 </code-sandbox><h2 id="installation-and-how-to-import-to-a-project">Installation and how to import to a project</h2>
@@ -59,7 +59,7 @@ grid.config = configObj;
 <li>Function (e.g., <code>function(rowData) { return rowData[&quot;PCTCHNG&quot;] &lt; 0}</code>)</li>
 </ul>
 <p>The first two formats are recommended for most of the use cases as they are serializable and well understood by both Row Filtering Extension and <a href="#/widgets/filter-dialog">Filter Dialog</a>.</p>
-<code-sandbox hash="b2d9e3b9"><pre><code class="language-css">html hr {
+<code-sandbox hash="3d821821"><pre><code class="language-css">html hr {
     margin: 5px;
 }
 efx-grid {
@@ -77,23 +77,23 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var objMapFilter = {
+let objMapFilter = {
     HKEX: true,
     NASDAQ: true
 };
-var ary2DFilter = [
+let ary2DFilter = [
     [&quot;GT&quot;, 100, &quot;AND&quot;],
     [&quot;LT&quot;, 400]
 ];
-var textFilter = &quot;[CF_NETCHNG] &gt; 0&quot;;
-var funcFilter = function(rowData) {
+let textFilter = &quot;[CF_NETCHNG] &gt; 0&quot;;
+let funcFilter = function(rowData) {
     return rowData[&quot;industry&quot;].indexOf(&quot;a&quot;) &gt;= 0;
 };
 
-var rowFilterExt = new RowFiltering();
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 50 });
-var configObj = {
+let rowFilterExt = new RowFiltering();
+let fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+let records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 50 });
+let configObj = {
     columns: [
         { name: &quot;Company&quot;, field: fields[0] },
         { name: &quot;Market&quot;, field: fields[1], width: 120, filter: objMapFilter },
@@ -110,7 +110,7 @@ var configObj = {
     ]
 };
 
-var grid = document.getElementById(&quot;grid&quot;);
+let grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 </code></pre>
 </code-sandbox><h2 id="managing-column-filter-at-runtime">Managing column filter at runtime</h2>
@@ -149,7 +149,7 @@ grid.config = configObj;
 <blockquote>
 <p>The <code>addGridFilter</code> can recieve any type in the second parameter. The given input will be passed to the third argument in filter function.</p>
 </blockquote>
-<code-sandbox hash="a3ccbb0d"><pre><code class="language-css">html hr {
+<code-sandbox hash="a781595"><pre><code class="language-css">html hr {
     margin: 5px;
 }
 efx-grid {
@@ -173,10 +173,10 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var rowFilterExt = new RowFiltering();
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, {  seed: 0, numRows: 50 });
-var configObj = {
+let rowFilterExt = new RowFiltering();
+let fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+let records = DataGenerator.generateRecords(fields, {  seed: 0, numRows: 50 });
+let configObj = {
     columns: [
         { name: &quot;Company&quot;, field: fields[0] },
         { name: &quot;Market&quot;, field: fields[1], width: 120 },
@@ -190,12 +190,12 @@ var configObj = {
     ]
 };
 
-var grid = document.getElementById(&quot;grid&quot;);
+let grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 
-var searchInput = document.getElementById(&quot;search_input&quot;);
+let searchInput = document.getElementById(&quot;search_input&quot;);
 searchInput.addEventListener(&quot;keyup&quot;, function(e) {
-    var input = e.currentTarget;
+    let input = e.currentTarget;
     if (input._prevValue !== input.value) {
         input._prevValue = input.value;
         rowFilterExt.refresh(); // Force filter triggering
@@ -203,21 +203,21 @@ searchInput.addEventListener(&quot;keyup&quot;, function(e) {
 });
 
 function filterFunc(rowData, rowId, context) {
-    var str = &quot;&quot;;
-    var val = context.input.value.toLowerCase();
-    for (var key in rowData) {
+    let str = &quot;&quot;;
+    let val = context.input.value.toLowerCase();
+    for (let key in rowData) {
         str += rowData[key] + &quot; &quot;;
     }
     return str.toLowerCase().indexOf(val) &gt; -1;
 };
 
-var context = {
+let context = {
     input: searchInput
 };
 rowFilterExt.addGridFilter(filterFunc, context);
 </code></pre>
 </code-sandbox><h3 id="basic-filtering-example">Basic filtering example</h3>
-<code-sandbox hash="ba4d6858"><pre><code class="language-css">html hr {
+<code-sandbox hash="1faf32c0"><pre><code class="language-css">html hr {
     margin: 5px;
 }
 efx-grid {
@@ -241,10 +241,10 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var rowFilterExt = new RowFiltering();
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 50 });
-var configObj = {
+let rowFilterExt = new RowFiltering();
+let fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+let records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 50 });
+let configObj = {
     columns: [
         { name: &quot;Company&quot;, field: fields[0] },
         { name: &quot;Market&quot;, field: fields[1], width: 120 },
@@ -258,7 +258,7 @@ var configObj = {
     ]
 };
 
-var grid = document.getElementById(&quot;grid&quot;);
+let grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 
 document.getElementById(&quot;filter_btn1&quot;).addEventListener(&quot;click&quot;, function() {
@@ -297,7 +297,7 @@ function findServices(rowData, rowId, ctx) {
 </code></pre>
 </code-sandbox><h2 id="filter-icon-activation-modes">Filter icon activation modes</h2>
 <p>Filter icon activation controls the behavior on how to render filter icon in header cells of the grid. You can specify the mode on <code>iconActivation</code> property on the extension configuration object (<code>rowFiltering</code>). If <code>iconActivation</code> is not specified, the <code>onActiveFilter</code> will be used.</p>
-<pre><code class="language-js">var gridConfig = {
+<pre><code class="language-js">let gridConfig = {
     // ... other config
     rowFiltering: {
         iconActivation: &quot;onHover&quot;
@@ -333,7 +333,7 @@ function findServices(rowData, rowId, ctx) {
 </tr>
 </tbody></table>
 <h3 id="changing-icon-activation-at-runtime-example">Changing icon activation at runtime example</h3>
-<code-sandbox hash="40c5cd45"><pre><code class="language-css">html hr {
+<code-sandbox hash="33079cdd"><pre><code class="language-css">html hr {
     margin: 5px;
 }
 efx-grid {
@@ -356,10 +356,10 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var rowFilterExt = new RowFiltering();
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 50 });
-var configObj = {
+let rowFilterExt = new RowFiltering();
+let fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+let records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 50 });
+let configObj = {
     columns: [
         { name: &quot;Company&quot;, field: fields[0] },
         { name: &quot;Market&quot;, field: fields[1], width: 120 },
@@ -376,7 +376,7 @@ var configObj = {
     ]
 };
 
-var grid = document.getElementById(&quot;grid&quot;);
+let grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 
 document.getElementById(&quot;mode_always&quot;).addEventListener(&quot;click&quot;, function(e) { 
@@ -407,14 +407,15 @@ document.getElementById(&quot;mode_none&quot;).addEventListener(&quot;click&quot
 <p>When dealing with date and time, you should consider how you want to manage time zone. Sometimes source date may have different time zone from what is being displayed on user local time zone. The date used for filtering will be in local time. So, the filter results should be the same as what users would see on their screen. If difference in time zone between source date and displayed date creates unexpected filter results, you should convert/transform the date in <code>dataComposed</code> accordingly.</p>
 <p>By default, <a href="#/widgets/filter-dialog">Filter Dialog</a> treats data as string. To indicate that the column needs to be filtered as date, you can set <code>dataType</code> to <code>datetime</code> on the column configuration object.</p>
 <h3 id="date-filtering-and-data-conversion-example">Date filtering and data conversion example</h3>
-<code-sandbox hash="3f0aa2a4"><pre><code class="language-css">html hr {
+<code-sandbox hash="f421a0fe"><pre><code class="language-css">html hr {
     margin: 5px;
 }
 efx-grid {
     height: 500px;
 }
 </code></pre>
-<pre><code class="language-html">&lt;hr&gt;
+<pre><code class="language-html">&lt;big&gt;Click condition tab in Filter Dialog to see date pickers for column with datetime data type&lt;/big&gt;
+&lt;hr&gt;
 &lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
@@ -426,24 +427,24 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var rowFilterExt = new RowFiltering();
-var fields = [&quot;companyName&quot;, &quot;market&quot;];
-var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 50 });
+let rowFilterExt = new RowFiltering();
+let fields = [&quot;companyName&quot;, &quot;market&quot;];
+let records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 50 });
 // Populate string date for illustrative purpose
-var todayDate = new Date();
+let todayDate = new Date();
 records.forEach(function(record, idx) {
-    var dateObj = new Date(todayDate.getTime() - (idx * 24 * 3600 * 1000));
+    let dateObj = new Date(todayDate.getTime() - (idx * 24 * 3600 * 1000));
     record[&quot;dateText&quot;] = dateObj.toISOString().slice(0, 10);
 });
 
-var configObj = {
+let configObj = {
     rowFiltering:{
         iconActivation: &quot;always&quot;
     },
     dataComposed: function(e) {
-        var rowDef = e.rowDef;
-        var values = e.changes; // Indicating latest changes in data
-        var dateText = values[&quot;dateText&quot;];
+        let rowDef = e.rowDef;
+        let values = rowDef.getRowData();
+        let dateText = values[&quot;dateText&quot;];
         
         if(dateText != null) {
             rowDef.setData(&quot;dateObject&quot;, new Date(dateText));
@@ -462,7 +463,7 @@ var configObj = {
     ]
 };
 
-var grid = document.getElementById(&quot;grid&quot;);
+let grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 </code></pre>
 </code-sandbox><h2 style="margin-bottom:5px" id="api-refs">API Reference</h2>

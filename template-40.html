@@ -4,26 +4,26 @@
 <p>Once Grid receives any data, <code>dataComposed</code> event will be fired before rendering of the content. Performing any data update during the <code>dataComposed</code> event will not trigger more <code>dataChanged</code> events, and thus there won&#39;t be an infinite loop. This event is useful for modifying the received data before the actual consumption. </p>
 <p>To add event listener for <code>dataComposed</code> event, just set the listener to the <code>dataComposed</code> property of Grid&#39;s configuration like the following code snippet:</p>
 <pre><code class="language-js">    function onDataComposed(e) {
-        var grid = e.grid;
-        var rowDef = e.rowDef;
-        var values = e.changes; // Indicating latest changes in data
-        var rowData = rowDef.getRowData(); // Current data for the row
+        let grid = e.grid;
+        let rowDef = e.rowDef;
+        let values = e.changes; // Indicating latest changes in data
+        let rowData = rowDef.getRowData(); // Current data for the row
 
         // Parse, sanitize, or transform data here
-        var newData = rowData[&quot;Field A&quot;] + rowData[&quot;Field B&quot;];
+        let newData = rowData[&quot;Field A&quot;] + rowData[&quot;Field B&quot;];
 
         // Save the modified data through RowDefinition&#39;s API 
         rowDef.setData(&quot;Field A + B&quot;, newData);
         // rowDef.setRowData({&quot;Field C&quot;: 1, &quot;Field D&quot;: 2, &quot;Field E&quot;: 3});
     }
 
-    var config = {
+    let config = {
         // other grid&#39;s options
         dataComposed: onDataComposed
     };
 </code></pre>
 <h3 id="converting-invalid-data-example">Converting invalid data example</h3>
-<code-sandbox hash="b0d8542c"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="cdfa8868"><pre><code class="language-css">efx-grid {
     height: 168px
 }
 </code></pre>
@@ -38,16 +38,15 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var onDataComposed = function(e) {
-    var rowDef = e.rowDef;
-    var values = e.changes;
-
-    if (!values) { // Indicating no change
+let onDataComposed = function(e) {
+    if (!e.changes) { // Indicating no change
         return;
     }
 
+    let rowDef = e.rowDef;
+    let values = rowDef.getRowData();
     // Performing any data update during the event will NOT cause more dataChanged events
-    var txt = values[&quot;text&quot;];
+    let txt = values[&quot;text&quot;];
     if (!txt || txt === &quot;N/A&quot;) {
         rowDef.setData(&quot;number&quot;, 0);
         rowDef.setData(&quot;status&quot;, &quot;Invalid data&quot;);
@@ -57,7 +56,7 @@ var onDataComposed = function(e) {
     }
 };
 
-var gridRows = [{ 
+let gridRows = [{ 
     values: {
         id: &quot;1&quot;,
         text: &quot;58&quot;,
@@ -89,7 +88,7 @@ var gridRows = [{
     }
 }];
 
-var configObj = {
+let configObj = {
     columns: [
         {
             name: &quot;Id&quot;,
@@ -119,7 +118,7 @@ var configObj = {
     dataComposed: onDataComposed, // Attach handler for dataComposed event
 };
 
-var grid = document.getElementById(&quot;grid&quot;);
+let grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 
 // To emitate the dalay of reqeusting data from server
@@ -128,7 +127,7 @@ setTimeout(function(e) {
 }, 2000);
 </code></pre>
 </code-sandbox><h3 id="conditional-coloringblinking-based-on-computed-values-example">Conditional coloring/blinking based on computed values example</h3>
-<code-sandbox hash="d334ded0"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="5452ae48"><pre><code class="language-css">efx-grid {
     height: 168px
 }
 hr {
@@ -148,14 +147,14 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var onDataComposed = function(e) {
-    var rowDef = e.rowDef;
-    var changes = e.changes;
-    var rowData = rowDef.getRowData();
+let onDataComposed = function(e) {
+    let rowDef = e.rowDef;
+    let changes = e.changes;
+    let rowData = rowDef.getRowData();
 
-    var computedValue = rowData[&quot;current_price&quot;] - rowData[&quot;previous_close&quot;];
-    var prevComputed = rowData[&quot;computed_value&quot;] || 0; // Computed value from previous dataComposed session
-    var lastChange = computedValue - prevComputed;
+    let computedValue = rowData[&quot;current_price&quot;] - rowData[&quot;previous_close&quot;];
+    let prevComputed = rowData[&quot;computed_value&quot;] || 0; // Computed value from previous dataComposed session
+    let lastChange = computedValue - prevComputed;
     
     rowDef.setData(&quot;computed_value&quot;, computedValue);
     rowDef.setData(&quot;last_change&quot;, lastChange);
@@ -166,13 +165,13 @@ var onDataComposed = function(e) {
 };
 
 document.getElementById(&quot;update_btn&quot;).addEventListener(&quot;click&quot;, function(){
-    var record = DataGenerator.generateRecord([&quot;current_price&quot;]);
+    let record = DataGenerator.generateRecord([&quot;current_price&quot;]);
     grid.api.setRowData(0, record);
 });
 
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;current_price&quot;, &quot;previous_close&quot;];
-var records = DataGenerator.generateRecords(fields, {seed: 0, numRows: 4});
-var columns = fields.map(function(f){
+let fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;current_price&quot;, &quot;previous_close&quot;];
+let records = DataGenerator.generateRecords(fields, {seed: 0, numRows: 4});
+let columns = fields.map(function(f){
     return {
         field: f
     };
@@ -187,7 +186,7 @@ columns.push({
     colorText: true
 });
 
-var configObj = {
+let configObj = {
     defaultColumnOptions: {
         width: 120
     },
@@ -196,12 +195,12 @@ var configObj = {
     dataComposed: onDataComposed, // attach handler for dataComposed event
 };
 
-var grid = document.getElementById(&quot;grid&quot;);
+let grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 </code></pre>
 </code-sandbox><h2 id="auto-date-conversion">Auto date conversion</h2>
 <p>When dealing with date-time data it may be hard to handle the various types of incoming data, which can be number, string, ISO date string, seconds or milliseconds. So it is better to enable <code>autoDateConversion</code> in the Grid&#39;s configuration and let Grid automatically convert data to JavaScript native Date object. To let Grid know that the column&#39;s data is data-time, the <code>dataType: &quot;datetime&quot;</code> should be specified in the column&#39;s options.</p>
-<code-sandbox hash="acfdc259"><pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+<code-sandbox hash="4b02ce59"><pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
@@ -212,7 +211,7 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var descriptions = [
+let descriptions = [
     &quot;ISO date-time string&quot;,
     &quot;Native Date object&quot;,
     &quot;Milliseconds&quot;,
@@ -222,7 +221,7 @@ var descriptions = [
     &quot;Invalid&quot;
 ];
 
-var dateSamples = [
+let dateSamples = [
     &quot;2021-11-25T10:00:00&quot;,
     new Date(),
     Date.UTC(2021, 11, 24, 10),
@@ -232,15 +231,15 @@ var dateSamples = [
     &quot;abc&quot;
 ];
 
-var records = [];
-for (var i = 0; i &lt; descriptions.length; i++) {
+let records = [];
+for (let i = 0; i &lt; descriptions.length; i++) {
     records.push({
         des: descriptions[i],
         date: dateSamples[i]
     });
 }
 
-var configObj = {
+let configObj = {
     autoDateConversion: true,
     defaultColumnOptions: {
         notRealTimeField: true
@@ -291,12 +290,12 @@ var configObj = {
     ]
 };
 
-var grid = document.getElementById(&quot;grid&quot;);
+let grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 
-var timeCount = 0;
+let timeCount = 0;
 setInterval(function simulateRealtimeUpdates() {
-    for(var i = 0; i &lt; 5; ++i) { // Update the first 5 records
+    for(let i = 0; i &lt; 5; ++i) { // Update the first 5 records
         grid.api.setRowData(i, {
             last_update: grid.api.getRowData(i)[&quot;date&quot;].getTime() + timeCount * 1000
         });

@@ -170,7 +170,9 @@ let grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
 grid.config = configObj;
 </code></pre>
 </code-sandbox><h2 id="value-sorting-mode">Value sorting mode</h2>
-<p>In case you want to define simpler sort logic, you can set <code>rowSorting</code> option to <code>false</code> on the <code>sorting</code> configuration object. The sort logic will have values from the sorted column instead of RowDefinition object for the first two parameters. The method signature will be similar to that of <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort">Array.prototype.sort</a>. The method will also receive extra information about the column being sorted from the fourth parameter. The below code snippet shows the configuration for this mode:</p>
+<p>In case you want to define simpler sort logic, you can set <code>rowSorting</code> option to <code>false</code> on the column configuration object. The sort logic will have values from the sorted column instead of RowDefinition object for the first two parameters. The method signature will be similar to that of <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort">Array.prototype.sort</a>. The method will also receive extra information about the column being sorted from the fourth parameter. </p>
+<aside class="info"><p>Default <code>rowSorting</code> is <code>true</code>. Setting it to <code>false</code> will enable value sorting mode.</p>
+</aside><p>The below code snippet shows basic configuration for this mode:</p>
 <pre><code class="language-js">let myCustomSorting = function(valA, valB, order, contextObj) {
     // contextObj provide more information about the column being sorted such as colIndex and field
     // ...
@@ -180,8 +182,8 @@ grid.config = configObj;
 let config = {
     // any other grid&#39;s options
     columns: [
-        { name: &quot;Column 1&quot;, field: &quot;field1&quot;, rowSorting: false, sortLogic: myCustomSorting},
-        { name: &quot;Column 2&quot;, field: &quot;field2&quot; },
+        { field: &quot;field1&quot;, rowSorting: false, sortLogic: myCustomSorting},
+        { field: &quot;field2&quot; },
     ],
 }
 </code></pre>

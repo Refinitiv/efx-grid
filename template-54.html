@@ -1,12 +1,9 @@
 <link rel="stylesheet" href="./resources/styles/elf-template.css">
 
 <h1 id="column-resizing">Column Resizing</h1>
-<p>The Column Resizing Extension provides drag-to-resize for columns and double-click to fit a column to its content (when using with the <a href="#/extensions/tr-grid-column-fitter">Column Fitter Extension</a>.</p>
-<code-sandbox hash="8f898692"><pre><code class="language-css">efx-grid {
-    height: 169px;
-}
-</code></pre>
-<pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+<p>The Column Resizing Extension provides drag-to-resize for columns and double-click to fit a column to its content (when using with the <a href="#/extensions/tr-grid-column-fitter">Column Fitter Extension</a>. The column can be resized by dragging from the right edge of the column. </p>
+<aside class="warning"><p>Once the column is resized by this extension, the column with dynamic/percentage size will become a fixed size column, losing its ability to scale with the Grid&#39;s size.</p>
+</aside><code-sandbox hash="422507fb"><pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
@@ -17,9 +14,9 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 5 });
-var configObj = {
+let fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+let records = DataGenerator.generateRecords(fields, { numRows: 5 });
+let configObj = {
     columns: [
         {name: &quot;Company&quot;, field: fields[0]},
         {name: &quot;Market&quot;, field: fields[1], width: 120},
@@ -33,14 +30,65 @@ var configObj = {
     ]
 };
 
-var grid = document.getElementById(&quot;grid&quot;);
+let grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 </code></pre>
 </code-sandbox><h2 id="installation-and-how-to-import-to-a-project">Installation and how to import to a project</h2>
 <p>Installation examples and details of how to import the extension to a project are available on the <a href="#/extensions/readme">Overview</a> page.</p>
-<h2 id="preserving-grid-size">Preserving Grid Size</h2>
-<p>The extension has ability to keep Grid&#39;s size which can be achieved by passing <code>preserveGridSize</code> as <code>true</code> in the extension&#39;s option. With this mode Grid will try to calculate the proper column width for resizing columns so the horizontal scrollbar will never show. In the case that the setting widths are making Grid overflowed, all another columns&#39; width will be reset to <code>defaultWidth</code> to ensure that all columns can be fitted to Grid. If width of resizing column is quite large compared to another columns, some columns will be hidden. To prevent column from hiding <code>minWidth</code> should be specified in the column&#39;s option.</p>
-<h2 style="margin-bottom:5px" id="api-refs">API Reference</h2>
+<h2 id="preserving-column-proportion">Preserving column proportion</h2>
+<p>In case you want to maintain ability to scale the resized column when Grid&#39;s size is changed, you can set <code>preserveProportion</code> to <code>true</code> on the extension configuration object. The option will make the extension recalculate the weight or ratio of all scalable columns after the resizing. </p>
+<aside class="info"><p>In this mode, the resized column will still keep their sizing type after resizing operation (i.e., a fixed size column remains fixed size).</p>
+</aside><h2 id="preserving-grids-size">Preserving Grid&#39;s size</h2>
+<p>The extension has ability to keep Grid&#39;s size which can be achieved by passing <code>preserveGridSize</code> as <code>true</code> on the extension configuration object. With this mode Grid will try to calculate the proper column width for the resized column, so that the horizontal scrollbar will never be shown. In the case of the resized column causing an overflow in Grid (i.e., not enough space for all columns), all other columns will be reset to their <code>defaultWidth</code> size, to ensure that all columns can be fitted to Grid. If there is still not enough space, the other columns will be hidden until the resized column is accommodated. To prevent the columns from being hidden by resizing operation, <code>minWidth</code> should be specified on the column configuration object.</p>
+<aside class="info"><p>Default <code>minWidth</code> for the column is 0 pixel.</p>
+</aside><p>The common setups to keep grid and column sizes would look similar to the following code:</p>
+<pre><code>let gridConfig = {
+    columnResizing: {
+        preserveProportion: true,
+        preserveGridSize: true
+    },
+    columns: [
+        {name: &quot;Column 1&quot;, minWidth: 30},
+        {name: &quot;Column 2&quot;, minWidth: 30, width: 100},
+        {name: &quot;Column 3&quot;, minWidth: 30},
+    ]
+}
+</code></pre>
+<code-sandbox hash="71820fb3"><pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+let fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+let records = DataGenerator.generateRecords(fields, { numRows: 5 });
+let configObj = {
+    columnResizing: {
+        preserveProportion: true,
+        preserveGridSize: true
+    },
+    columns: [
+        {name: &quot;Company&quot;, field: fields[0], minWidth: 30},
+        {name: &quot;Market&quot;, field: fields[1], minWidth: 30},
+        {name: &quot;Fixed width column&quot;, field: fields[2], width: 130, minWidth: 30},
+        {name: &quot;Net. Chng&quot;, field: fields[3], minWidth: 30},
+        {name: &quot;Industry&quot;, field: fields[4], minWidth: 30}
+    ],
+    staticDataRows: records,
+    extensions: [
+        new ColumnResizing()
+    ]
+};
+
+let grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 style="margin-bottom:5px" id="api-refs">API Reference</h2>
 <div id="elf-api-container"><div id="main-template" class="elf-template">    <section><header>            <h1 class="subsection-title"><span class="attribs"><span class="type-signature"></span></span>ColumnResizingPlugin<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h1>            </header><article>                                                                        <h3 class="subsection-title" id="type_definitions">Type Definitions</h3>                        
 <div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~ColumnOptions">ColumnOptions</h4><div class="description">    The column options can be specified on each individual grid's column option:</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>noResizing</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">If enabled, it will disable an ability to drag and resize the column</td>        </tr>            <tr>                            <td class="name"><code>defaultWidth</code></td>                        <td class="type">                            <span class="param-type">number</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                </td>                        <td class="description last">Specified default width used when user double clicks the column edge</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            
 <div class="item">            <div class="item-type">typedef</div>    <h4 class="name" id="~Options">Options</h4><div class="description">    The options can be specified by `columnResizing` property of the main grid's options</div>    <h5>Type:</h5>    <span class="param-type">Object</span>    <h5>Properties:</h5>    <div class="props"><table>    <thead>    <tr>                <th>Name</th>                <th>Type</th>                <th>Attributes</th>                        <th>Default</th>                <th class="last">Description</th>    </tr>    </thead>    <tbody>            <tr>                            <td class="name"><code>preserveProportion</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">By setting this to true, it will try to preserve proportion of the resized column compared to other columns</td>        </tr>            <tr>                            <td class="name"><code>preserveGridSize</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">By setting this to true, grid size will not change after double click to resize column</td>        </tr>            <tr>                            <td class="name"><code>noResizing</code></td>                        <td class="type">                            <span class="param-type">boolean</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    false                                </td>                        <td class="description last">If enabled, all columns cannot be dragged to resize (column can still be resized programmatically). This overrides column config.</td>        </tr>            <tr>                            <td class="name"><code>columnResized</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Event handler</td>        </tr>            <tr>                            <td class="name"><code>dblClicked</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Event handler</td>        </tr>            <tr>                            <td class="name"><code>dragStart</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Event handler</td>        </tr>            <tr>                            <td class="name"><code>dragEnd</code></td>                        <td class="type">                            <span class="param-type">function</span>                        </td>                            <td class="attributes">                                    &lt;optional&gt;<br>                                                </td>                                        <td class="default">                                    null                                </td>                        <td class="description last">Event handler</td>        </tr>        </tbody></table></div><div class="details">                                                            </div></div>                            <h3 class="subsection-title" id="methods">Methods</h3>                    

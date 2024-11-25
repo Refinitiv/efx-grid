@@ -1,10 +1,10 @@
 <h1 id="custom-formatter">Custom Formatter</h1>
 <p>Since Grid utilizes a row virtualization technique, where the same cell is reused across different rows, you cannot simply just create any content and stop there. With row virtualization the custom content that you are trying to create or render will be reused in the different rows. So you have to create the content once and reuse it from the cache. Then, you need to bind data from Grid&#39;s data store to the content for each data update and scrolling.</p>
 <p>The process for writing the formatter is usually something like the following code:</p>
-<pre><code class="language-js">var formatter = function(e) {
-    var cell = e.cell;
+<pre><code class="language-js">let formatter = function(e) {
+    let cell = e.cell;
     // Cache checking part (Reuse the same element)
-    var element = cell.getContent();
+    let element = cell.getContent();
     if (!element) {
         // Element creation part
         element = document.createElement(&#39;tag-name&#39;);
@@ -23,7 +23,7 @@
 </code></pre>
 <h2 id="defining-the-formatter">Defining the formatter</h2>
 <p>The formatter can be specified as a function on the <code>binding</code> property of the column configuration object.</p>
-<pre><code class="language-js">var configObj = {
+<pre><code class="language-js">let configObj = {
     ...
     columns: [
         {
@@ -40,41 +40,105 @@
 <aside class="info"><p>For displaying simple text, you do not need to create a custom formatter, as Grid already has simple text as its default formatter.</p>
 </aside><h3 id="common-form-and-structure">Common form and structure</h3>
 <p><code>binding</code> method will be called multiple times during user scrolling. The key here is to create a DOM element only once, reuse the same element and update the data every time the method is called. </p>
-<p>In general, the steps are as the following steps:</p>
+<p>In general, the formatter will be constructed by the following steps:</p>
 <ol>
-<li>Check if the content already exists</li>
-<li>If it exists, skip to the next step. If the content does not exist, create the content</li>
-<li>Update the data to the content</li>
-<li>Set the content to the cell</li>
+<li>Retrieve existing content from the cell.</li>
+<li>Create the content, if it does not exist. During the content creation, add static styling and event listeners as needed.</li>
+<li>Modify the content according to any runtime changes. This includes data update and styling.</li>
+<li>Set the content back to the cell.</li>
 </ol>
 <p>Below is the most common form of formatter. It is recommended to write most custom formatters in this form and structure. </p>
-<pre><code class="language-js">var formatter = function(e){
-    var cell = e.cell;
-    var content = cell.getContent(); // Utilize cache
+<pre><code class="language-js">let formatter = function(e){
+    let cell = e.cell;
+    
+    // Step 1: Utilizing cache
+    let content = cell.getContent(); 
     if (!content) { // Check if cache exists
+        // Step 2: Content creation
         content = document.createElement(&quot;xxx-xxxx&quot;);
-        // Initialize element once
-        var subContent = document.createElement(&quot;yyyy&quot;);
+
+        let subContent = document.createElement(&quot;yyyy&quot;);
         subContent.style.color = &quot;brown&quot;; 
         
-        var subContent2 = document.createElement(&quot;zz-zzz&quot;);
+        let subContent2 = document.createElement(&quot;zz-zzz&quot;);
+        subContent2.addEventListener(&quot;click&quot;, eventHandler);
         content._myContent = subContent2;
         
         content.appendChild(subContent);
         content.appendChild(subContent2);
     }
     
-    content._myContent.textContent = e.data; // IMPORTANT
+    // Step 3: Data update 
+    content._myContent.textContent = e.data;
     
-    cell.setContent(content); // Always set the content to allow multiple types of content in the same column
+    // Step 4: Storing cache for later calls
+    cell.setContent(content);
+};
+</code></pre>
+<h4 id="updating-content-example">Updating content example</h4>
+<pre><code class="language-js">let goodFormatter = function(e){
+    let cell = e.cell;
+    let content = cell.getContent();
+    if (!content) {
+        content = document.createElement(&quot;div&quot;);
+    }
+    
+    // This area will be executed for each data update and scrolling
+    content.textContent = e.data;
+    cell.setContent(content);
+};
+
+let badFormatter = function(e){
+    let cell = e.cell;
+    let content = cell.getContent();
+    if (!content) {
+        // This area will be executed once per content creation
+        content = document.createElement(&quot;div&quot;);
+        // Since content are reused on different rows, 
+        // this causes incorrect display of content when a user start to scroll
+        content.textContent = e.data;
+    }
+    
+    cell.setContent(content);
+};
+</code></pre>
+<h4 id="adding-click-event-listener-example">Adding click event listener example</h4>
+<pre><code class="language-js">let goodFormatter = function(e){
+    let cell = e.cell;
+    let content = cell.getContent();
+    if (!content) {
+        // This area will be executed once per content creation
+        content = document.createElement(&quot;button&quot;);
+        content.addEventListener(&quot;click&quot;, function(){ console.log(&quot;clicked&quot;) });
+    }
+    
+    content.textContent = e.data;
+    
+    cell.setContent(content);
+};
+
+let badFormatter = function(e){
+    let cell = e.cell;
+    let content = cell.getContent();
+    if (!content) {
+        content = document.createElement(&quot;button&quot;);
+    }
+    
+    // This area will be executed multiple times in grid life cycle
+    // The event listeners will be accumulated over time, 
+    // resulting in large memory consumption
+    content.addEventListener(&quot;click&quot;, function(){ console.log(&quot;clicked&quot;) });
+    content.textContent = e.data;
+    
+    cell.setContent(content);
 };
 </code></pre>
 <h3 id="setting-styles-in-the-formatter">Setting styles in the formatter</h3>
 <p>When making any type of modification in the <code>binding</code> method, you must reset the value back because the same cell will be reused by different rows.</p>
-<pre><code class="language-js">var formatter = function(e){
-    var cell = e.cell;
-    var data = e.data;
-    var content = cell.getContent();
+<pre><code class="language-js">let formatter = function(e){
+    let cell = e.cell;
+    let data = e.data;
+    let content = cell.getContent();
     if (!content) {
         content = document.createElement(&quot;span&quot;);
         content.style.color = &quot;salmon&quot;; // Static styling
@@ -96,16 +160,16 @@
 </code></pre>
 <h3 id="interactive-content">Interactive content</h3>
 <p>States must be saved back to Grid after users make changes to the content. This is because Grid&#39;s row virtualization will reuse the same content during the scroll. Also note that user interaction does not happen during the data binding. User interaction is an asynchronous operation. So do not rely on closure variables or inline functions. </p>
-<p>Contexts and values may be a different. You will need to resolve the position or context at runtime by using [getRelativePosition(./rendering/).</p>
-<pre><code class="language-js">var formatter = function(e){
-    var cell = e.cell;
-    var dropdown = cell.getContent();
+<p>Contexts and values may be a different. You will need to resolve the position or context at runtime by using <a href="#/general-concept/event-listeners">getRelativePosition</a>.</p>
+<pre><code class="language-js">let formatter = function(e){
+    let cell = e.cell;
+    let dropdown = cell.getContent();
     if (!dropdown) {
         dropdown = document.createElement(&quot;select&quot;);
         dropdown.addEventListener(&quot;change&quot;, dropdownChangeHandler); // Handle user interaction
         
-        for(var i = 0; i &lt; 3; ++i) {
-            var option = document.createElement(&quot;option&quot;);
+        for(let i = 0; i &lt; 3; ++i) {
+            let option = document.createElement(&quot;option&quot;);
             option.value = i;
             option.textContent = &quot;Value &quot; + i;
             dropdown.appendChild(option);
@@ -115,12 +179,12 @@
     dropdown.selectedIndex = e.data;
     cell.setContent(dropdown);
 };
-var dropdownChangeHandler = function(e) {
-    var dropdown = e.currentTarget;
-    var selectedIndex = dropdown.selectedIndex;
+let dropdownChangeHandler = function(e) {
+    let dropdown = e.currentTarget;
+    let selectedIndex = dropdown.selectedIndex;
     
-    var pos = grid.api.getRelativePosition(e);
-    var rowDef = grid.api.getRowDefinition(pos.rowIndex);
+    let pos = grid.api.getRelativePosition(e);
+    let rowDef = grid.api.getRowDefinition(pos.rowIndex);
     
     rowDef.setData(&quot;Field XXXX&quot;, selectedIndex); // It is important to set the new data
 };
@@ -129,22 +193,22 @@ var dropdownChangeHandler = function(e) {
 </aside><h3 id="content-with-multiple-states">Content with multiple states</h3>
 <p>Content with multiple states (for example, colors, disabled and invalid states) must have all states stored in the Grid. You can have as many columns&#39; data or fields as we want in order to represent the content. </p>
 <p>The example below shows input with multiple states depending on the data on other fields.</p>
-<pre><code class="language-js">var formatter = function(e){
-    var cell = e.cell;
-    var rowData = e.rowData;
-    var inputElem = cell.getContent();
+<pre><code class="language-js">let formatter = function(e){
+    let cell = e.cell;
+    let rowData = e.rowData;
+    let inputElem = cell.getContent();
     if (!inputElem) {
         inputElem = document.createElement(&quot;input&quot;);
     }
     
-    var state1 = rowData[&quot;someField&quot;];
+    let state1 = rowData[&quot;someField&quot;];
     if(state1) {
         inputElem.setAttribute(&quot;disabled&quot;, &quot;&quot;);
     } else {
         inputElem.removeAttribute(&quot;disabled&quot;);
     }
     
-    var state2 = rowData[&quot;anotherField&quot;];
+    let state2 = rowData[&quot;anotherField&quot;];
     if(state2) {
         inputElem.setAttribute(&quot;error&quot;, &quot;&quot;);
     } else {
@@ -172,7 +236,7 @@ var dropdownChangeHandler = function(e) {
 <p>A web page will get slower as more content/elements are put into the DOM tree. So it&#39;s better to reuse the same element whenever possible.</p>
 <h2 id="custom-formatter-example">Custom formatter example</h2>
 <p>The below example shows some basic custom formatters in a virtualized grid:</p>
-<code-sandbox hash="3acfda77"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="ba4d5fef"><pre><code class="language-css">efx-grid {
     height: 200px;
 }
 </code></pre>
@@ -187,16 +251,16 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var rangeBarFormatter = function(e) {
-    var cell = e.cell;
-    var bar = cell.getContent(); // Utilize caching
+let rangeBarFormatter = function(e) {
+    let cell = e.cell;
+    let bar = cell.getContent(); // Utilize caching
     if(!bar) {
         bar = document.createElement(&quot;div&quot;);
         bar.style.height = &quot;8px&quot;;
         bar.style.position = &quot;relative&quot;;
         bar.style.backgroundColor = &quot;#EA7D22&quot;;
         
-        var indi = bar.indi = document.createElement(&quot;div&quot;);
+        let indi = bar.indi = document.createElement(&quot;div&quot;);
         indi.style.position = &quot;absolute&quot;;
         indi.style.top = &quot;0&quot;;
         indi.style.left = &quot;10px&quot;;
@@ -209,20 +273,20 @@ var rangeBarFormatter = function(e) {
     bar.indi.style.left = (e.data * 100)+&quot;%&quot;;
 };
 
-var capitalizer = function(e) {
+let capitalizer = function(e) {
     e.cell.setContent(e.data.toString().toUpperCase());
 };
 
-var yearDisplay = function(e) {
-    var cell = e.cell;
+let yearDisplay = function(e) {
+    let cell = e.cell;
     cell.setStyle(&quot;color&quot;, &quot;black&quot;);
     cell.setStyle(&quot;background-color&quot;, &quot;#EA7D22&quot;);
     cell.setContent(&quot;Year &quot; + e.data.getFullYear());
 };
 
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;float_1&quot;, &quot;ISODate&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 40 });
-var configObj = {
+let fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;float_1&quot;, &quot;ISODate&quot;];
+let records = DataGenerator.generateRecords(fields, { numRows: 40 });
+let configObj = {
     columns: [
         {name: &quot;Company&quot;, field: fields[0], binding: capitalizer},
         {name: &quot;Market&quot;, field: fields[1], width: 100},
@@ -233,7 +297,7 @@ var configObj = {
     staticDataRows: records
 };
 
-var grid = document.getElementById(&quot;grid&quot;);
+let grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 </code></pre>
 </code-sandbox><h2 id="formatting-custom-content-with-text-formatting-extension">Formatting custom content with Text Formatting Extension</h2>
@@ -245,7 +309,7 @@ grid.config = configObj;
 <h3 id="avoid-using-innerhtml-and-innertext">Avoid using innerHTML and innerText</h3>
 <p><strong>innerHTML</strong> and <strong>innerText</strong> from native elements involve text parsing and element creation, both of which are computationally expensive. You can improve performance by avoiding using them.</p>
 <pre><code class="language-js">function binding1(e) {
-    var content = document.createElement(&quot;div&quot;); // Unneccessary creation as it will be called and created multiple times
+    let content = document.createElement(&quot;div&quot;); // Unneccessary creation as it will be called and created multiple times
     content.innerHTML = &quot;&lt;span&gt;&quot; + e.data + &quot;&lt;/span&gt;&lt;span&gt;2&lt;/span&gt;&quot;; // Slow due to text parsing and element creations
     
     e.cell.setContent(content);
@@ -253,12 +317,12 @@ grid.config = configObj;
 
 // The above function can be re-writen as the following function
 function binding2(e) {
-    var cell = e.cell;
-    var content = cell.getContent();
+    let cell = e.cell;
+    let content = cell.getContent();
     if(!content) {
         content = document.createElement(&quot;div&quot;);
-        var span1 = content._span1 = document.createElement(&quot;span&quot;); 
-        var span2 = document.createElement(&quot;span&quot;);
+        let span1 = content._span1 = document.createElement(&quot;span&quot;); 
+        let span2 = document.createElement(&quot;span&quot;);
         span2.textContent = 2;
         
         content.appendChild(span1);
@@ -271,7 +335,7 @@ function binding2(e) {
 <h3 id="avoid-creating-an-element-for-simple-text">Avoid creating an element for simple text</h3>
 <p><code>setContent</code> method is already optimized for simple text.</p>
 <pre><code class="language-js">function binding1(e) {
-    var content = document.createElement(&quot;div&quot;); // Unneccessary creation
+    let content = document.createElement(&quot;div&quot;); // Unneccessary creation
     content.textContent = e.data + &quot; text&quot;;
     
     e.cell.setContent(content);
@@ -285,15 +349,15 @@ function binding2(e) {
 <h3 id="reuse-the-same-content-to-avoid-element-creation">Reuse the same content to avoid element creation</h3>
 <p>Bind method will be executed repeatedly and multiple times during data update and scrolling. Minimize element creation by using cache.</p>
 <pre><code class="language-js">function binding1(e) {
-    var content = document.createElement(&quot;input&quot;); // Slow
+    let content = document.createElement(&quot;input&quot;); // Slow
     content.value = e.data;
     e.cell.setContent(content);
 }
 
 // The above function can be re-writen as the following function
 function binding2(e) {
-    var cell = e.cell;
-    var content = cell.getContent(); // Get previous content
+    let cell = e.cell;
+    let content = cell.getContent(); // Get previous content
     if(!content) {
         content = document.createElement(&quot;input&quot;);
     }
@@ -304,30 +368,30 @@ function binding2(e) {
 <h3 id="store-element-in-a-variable-for-easy-access">Store element in a variable for easy access</h3>
 <p>For complex structure content, it is faster and easier to use a variable for referencing rather than navigating through a DOM tree.</p>
 <pre><code class="language-js">function binding1(e) {
-    var cell = e.cell;
-    var content = cell.getContent();
+    let cell = e.cell;
+    let content = cell.getContent();
     if(!content) {
         content = document.createElement(&quot;div&quot;);
-        var span1 = document.createElement(&quot;span&quot;);
-        var span2 = document.createElement(&quot;span&quot;);
+        let span1 = document.createElement(&quot;span&quot;);
+        let span2 = document.createElement(&quot;span&quot;);
         
         content.appendChild(span1);
         content.appendChild(span2);
     }
     cell.setContent(content);
-    var spans = content.getElementsByTagName(&quot;span&quot;); // Slow
+    let spans = content.getElementsByTagName(&quot;span&quot;); // Slow
     spans[0].textContent = e.data % 5;
     spans[1].textContent = e.data % 3;
 }
 
 // The above function can be re-writen as the following function
 function binding2(e) {
-    var cell = e.cell;
-    var content = cell.getContent();
+    let cell = e.cell;
+    let content = cell.getContent();
     if(!content) {
         content = document.createElement(&quot;div&quot;);
-        var span1 = content._span1 = document.createElement(&quot;span&quot;);
-        var span2 = content._span2 = document.createElement(&quot;span&quot;);
+        let span1 = content._span1 = document.createElement(&quot;span&quot;);
+        let span2 = content._span2 = document.createElement(&quot;span&quot;);
         
         content.appendChild(span1);
         content.appendChild(span2);
@@ -341,8 +405,8 @@ function binding2(e) {
 </aside><h3 id="use-rowdefinition-object-for-asynchronous-operation">Use RowDefinition object for asynchronous operation</h3>
 <p>When dealing with asynchronous operations such as server request and response, it is important to use the correct context and data. Row index, cell element, and page can all be changed during the waiting time. Sorting, filtering, grouping, and pagination can also affect row order. So the most reliable way to identify Grid&#39;s row is to use RowDefinition object. </p>
 <pre><code class="language-js">function binding1(e) {
-    var cell = e.cell;
-    var content = cell.getContent();
+    let cell = e.cell;
+    let content = cell.getContent();
     if(!content) {
         content = document.createElement(&quot;button&quot;);
         content.addEventListener(&quot;click&quot;, onRequestingData);
@@ -351,8 +415,8 @@ function binding2(e) {
 }
 
 function onRequestingData(e) {
-    var pos = grid.api.getRelativePosition(e);
-    var rowDef = grid.api.getRowDefinition(pos.rowIndex);
+    let pos = grid.api.getRelativePosition(e);
+    let rowDef = grid.api.getRowDefinition(pos.rowIndex);
     
     requestServerData({}, onServerResponse.bind(null, rowDef));
 }
