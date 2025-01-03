@@ -1,12 +1,10 @@
 <h1 id="job-manager">Job Manager</h1>
-<code-sandbox hash="12bc7387"><pre><code class="language-css">body {
+<code-sandbox hash="1b92040e"><pre><code class="language-css">body {
     padding: 24px;
 }
-
 efx-grid {
     height: 300px;
 }
-
 hr {
     margin: 8px;
 }
@@ -14,7 +12,7 @@ hr {
     width: 100%;
 }
 </code></pre>
-<pre><code class="language-html">&lt;input id=&quot;search_input&quot; placeholder=&quot;Search Anything...&quot; type=&quot;search&quot;&gt;
+<pre><code class="language-html">&lt;input id=&quot;search_input&quot; placeholder=&quot;Search anything...&quot; type=&quot;search&quot;&gt;
 &lt;hr&gt;
 &lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
@@ -58,22 +56,28 @@ DataGenerator.addFieldInfo(&quot;jobName&quot;, {
     ]
 });
 
-var rowSelection = new RowSelection();
-var inCellEditing = new InCellEditing();
-var rowFiltering = new RowFiltering();
 // Extensions
-var fields = [&quot;jobName&quot;, &quot;status&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 50, seed: 0 });
-var config1 = {
+let rowSelection = new RowSelection();
+let inCellEditing = new InCellEditing();
+let rowFiltering = new RowFiltering();
+
+let fields = [&quot;id&quot;, &quot;jobName&quot;, &quot;status&quot;];
+let records = DataGenerator.generateRecords(fields, { numRows: 5000, seed: 0 });
+let config1 = {
     columns: [
         {
-            title: &quot;Job Name&quot;,
+            title: &quot;Id&quot;,
             field: fields[0],
+            width: 70,
+        },
+        {
+            title: &quot;Job Name&quot;,
+            field: fields[1],
             editableContent: true
         },
         {
             title: &quot;Status&quot;,
-            field: fields[1],
+            field: fields[2],
             width: 100
         },
         {
@@ -91,25 +95,29 @@ var config1 = {
 };
 
 function onActionBinding(e) {
-    var data = e.data;
-    var cell = e.cell;
-    var content = cell.getContent();
+    let data = e.data;
+    let cell = e.cell;
+    let content = cell.getContent();
     if (!content) {
         content = document.createElement(&quot;div&quot;);
+        content.style.display = &quot;flex&quot;;
+        content.style.alignItems = &quot;center&quot;;
+        content.style.justifyContent = &quot;center&quot;;
+        content.style.gap = &quot;8px&quot;;
 
-        var editIcon = document.createElement(&quot;ef-icon&quot;);
+        let editIcon = document.createElement(&quot;ef-icon&quot;);
         editIcon.icon = &quot;edit&quot;;
         editIcon.style.cursor = &quot;pointer&quot;;
         editIcon.style.verticalAlign = &quot;middle&quot;;
         editIcon.addEventListener(&quot;click&quot;, onEditClicked);
 
-        var deleteIcon = document.createElement(&quot;ef-icon&quot;);
+        let deleteIcon = document.createElement(&quot;ef-icon&quot;);
         deleteIcon.icon = &quot;trash&quot;;
         deleteIcon.style.cursor = &quot;pointer&quot;;
         deleteIcon.style.verticalAlign = &quot;middle&quot;;
         deleteIcon.addEventListener(&quot;click&quot;, onRemoveClicked);
 
-        var runButton = document.createElement(&quot;ef-button&quot;);
+        let runButton = document.createElement(&quot;ef-button&quot;);
         runButton.textContent = &quot;Run&quot;;
         runButton.style.verticalAlign = &quot;middle&quot;;
         runButton.addEventListener(&quot;click&quot;, onRunClicked);
@@ -122,50 +130,59 @@ function onActionBinding(e) {
 }
 
 function onRunClicked(e) {
-    var button = e.currentTarget;
-    var pos = grid.api.getRelativePosition(e);
-    var rowIndex = pos.rowIndex;
+    let button = e.currentTarget;
+    let pos = grid.api.getRelativePosition(e);
+    let rowIndex = pos.rowIndex;
     alert(&quot;Click :&quot; + rowIndex);
 }
 function onRemoveClicked(e) {
-    var button = e.currentTarget;
-    var pos = grid.api.getRelativePosition(e);
-    var rowIndex = pos.rowIndex;
+    let button = e.currentTarget;
+    let pos = grid.api.getRelativePosition(e);
+    let rowIndex = pos.rowIndex;
     grid.api.removeRow(rowIndex);
 }
 function onEditClicked(e) {
-    var button = e.currentTarget;
-    var pos = grid.api.getRelativePosition(e);
-    var rowIndex = + pos.rowIndex;
+    let button = e.currentTarget;
+    let pos = grid.api.getRelativePosition(e);
+    let rowIndex = + pos.rowIndex;
     inCellEditing.openEditor(0, rowIndex);
 }
 
-var grid = window.grid = document.getElementById(&quot;grid&quot;);
+let grid = window.grid = document.getElementById(&quot;grid&quot;);
 grid.config = config1;
 
-var searchInput = document.getElementById(&quot;search_input&quot;);
+let searchInput = document.getElementById(&quot;search_input&quot;);
+let filterContext = {
+    searchedText: &quot;&quot;
+};
 searchInput.addEventListener(&quot;keyup&quot;, function (e) {
-    var input = e.currentTarget;
-    if (input._prevValue !== input.value) {
-        input._prevValue = input.value;
+    let input = e.currentTarget;
+    let inputVal = input.value;
+    if (input._prevValue !== inputVal) {
+        input._prevValue = inputVal;
+        filterContext.searchedText = inputVal.toLowerCase();
         rowFiltering.refresh(); // Force filter triggering
     }
 });
 
 function filterFunc(rowData, rowId, context) {
-    var str = &quot;&quot;;
-    var val = context.input.value.toLowerCase();
-    for (var key in rowData) {
+    if(!context.searchedText) {
+        return true; // No text to be searched
+    }
+    
+    let str = &quot;&quot;;
+    for (let key in rowData) {
         str += rowData[key] + &quot; &quot;;
     }
-    return str.toLowerCase().indexOf(val) &gt; -1;
+    return str.toLowerCase().indexOf(context.searchedText) &gt;= 0;
 };
 
-var context = {
-    input: searchInput
-};
-rowFiltering.addGridFilter(filterFunc, context);
+
+rowFiltering.addGridFilter(filterFunc, filterContext);
 </code></pre>
-</code-sandbox><p>In the example above, we show how to create a grid for managing data. This grid lets users filter, add, edit, and remove data in the grid itself. We used three main features: row filtering, in cell editing, and row selection.</p>
-<p>Row filtering lets users type in a box to search and filter data across all columns in the grid. Row selection allows users to pick one or more rows in the grid.</p>
-<p>In cell editing is about changing the data in the grid directly. For our example, we changed the &quot;Job Name&quot; using this feature.</p>
+</code-sandbox><p>The above example illustrates how we can use Grid to manage large amount of data (5,000 rows). This grid lets users filter, add, edit, and remove data in the grid itself. We use three main features/extensions: row filtering, in-cell editing, and row selection. </p>
+<ul>
+<li>Row Filtering extension lets users type in an input box to search and filter data across all columns in the grid. </li>
+<li>Row Selection extension allows users to pick one or more rows in the grid. You may replace this type of selection by using Checkbox extension instead.</li>
+<li>In-Cell Editing extension is about directly changing the data in the grid. For example, user can click the pencil icon to change data on the &quot;Job Name&quot; column.</li>
+</ul>

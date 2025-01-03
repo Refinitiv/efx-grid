@@ -1,13 +1,17 @@
-<h1 id="insert-column">Insert Column</h1>
+<h1 id="inserting-a-column">Inserting a column</h1>
 <p>Columns can be inserted dynamically at runtime. The definition of the column to be inserted is the same as in the column array specified at initialization.</p>
-<p>Use the <code>insertColumn()</code> methods to insert a column with its configuration.</p>
-<h2 id="example">Example</h2>
-<code-sandbox hash="d03375ab"><pre><code class="language-css">efx-grid {
+<p>Use the <code>insertColumn(columnConfig)</code> method to insert a column with its configuration.</p>
+<h2 id="adding-a-column-with-custom-styles-example">Adding a column with custom styles example</h2>
+<code-sandbox hash="2234da5c"><pre><code class="language-css">efx-grid {
     height: 200px;
 }
+html hr {
+    margin: 5px;
+}
 </code></pre>
-<pre><code class="language-html">&lt;button id=&quot;insert_col_btn&quot;&gt;Insert Column&lt;/button&gt;
-&lt;br&gt;&lt;br&gt;
+<pre><code class="language-html">&lt;button id=&quot;normal_col_btn&quot;&gt;Insert a normal column&lt;/button&gt;
+&lt;button id=&quot;styled_col_btn&quot;&gt;Insert a column with custom styles&lt;/button&gt;
+&lt;hr&gt;
 &lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
@@ -19,35 +23,170 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;id&quot;];
-var records = DataGenerator.generateRecords(fields, { numRows: 6 });
-var configObj = {
-    columns: [
-        {name: &quot;Column 1&quot;, minWidth: 100, field: fields[0]},
-        {name: &quot;Column 2&quot;, minWidth: 100, field: fields[0]}
-    ],
-    staticDataRows: records
-};
-
-var grid = document.getElementById(&quot;grid&quot;);
-grid.config = configObj;
-
-var idRunner = 2;
-
-addingStyles = {
-    backgroundColor: &quot;#32ab60&quot;,
-    color: &quot;white&quot;
-};
-
-insertingStyles = {
+let runningId = 0;
+const customStyles = {
     backgroundColor: &quot;#db4052&quot;,
     color: &quot;white&quot;
 };
 
-document.getElementById(&quot;insert_col_btn&quot;).addEventListener(&quot;click&quot;, function() {
-    idRunner++;
-    var lastIndex = grid.api.getColumnCount - 1;
-    grid.api.insertColumn({name: &quot;Column &quot;+idRunner, minWidth: 100, field: fields[0], styles: insertingStyles}, lastIndex);
+document.getElementById(&quot;normal_col_btn&quot;).addEventListener(&quot;click&quot;, function() {
+    let columnConfig = {
+        name: &quot;Inserted col&quot; + runningId++, 
+        field: fields[runningId] || (&quot;col &quot; + runningId)
+    };
+
+    grid.api.insertColumn(columnConfig);
 });
+
+document.getElementById(&quot;styled_col_btn&quot;).addEventListener(&quot;click&quot;, function() {
+    let columnConfig = {
+        name: &quot;Inserted col&quot; + runningId++, 
+        field: fields[runningId] || (&quot;col &quot; + runningId),
+        styles: customStyles
+    };
+
+    grid.api.insertColumn(columnConfig);
+});
+
+let fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;market&quot;, &quot;industry&quot;, &quot;date&quot;];
+let records = DataGenerator.generateRecords(fields, { numRows: 6 });
+
+let configObj = {
+    columns: [
+        {name: &quot;Column 1&quot;, field: fields[0]},
+        {name: &quot;Column 2&quot;, field: fields[1]}
+    ],
+    staticDataRows: records
+};
+
+let grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
 </code></pre>
-</code-sandbox>
+</code-sandbox><h2 id="inserting-a-column-at-different-places-example">Inserting a column at different places example</h2>
+<code-sandbox hash="ec7c026a"><pre><code class="language-css">efx-grid {
+    height: 200px;
+}
+html hr {
+    margin: 5px;
+}
+.header {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;div class=&quot;header&quot;&gt;
+    &lt;big&gt;Inserting a column at:&lt;/big&gt;
+    &lt;button id=&quot;front_btn&quot;&gt;Front&lt;/button&gt;
+    &lt;button id=&quot;middle_btn&quot;&gt;Middle&lt;/button&gt;
+    &lt;button id=&quot;back_btn&quot;&gt;Back&lt;/button&gt;
+&lt;/div&gt;
+&lt;hr&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+let runningId = 0;
+
+document.getElementById(&quot;front_btn&quot;).addEventListener(&quot;click&quot;, function() {
+    let columnConfig = {
+        name: &quot;Front col&quot; + runningId++, 
+        field: fields[runningId] || (&quot;col &quot; + runningId)
+    };
+
+    grid.api.insertColumn(columnConfig, 0);
+});
+
+document.getElementById(&quot;middle_btn&quot;).addEventListener(&quot;click&quot;, function() {
+    let columnConfig = {
+        name: &quot;Middle col&quot; + runningId++, 
+        field: fields[runningId] || (&quot;col &quot; + runningId)
+    };
+    let columnCount = grid.api.getColumnCount();
+    
+    grid.api.insertColumn(columnConfig, Math.floor(columnCount / 2));
+});
+
+document.getElementById(&quot;back_btn&quot;).addEventListener(&quot;click&quot;, function() {
+    let columnConfig = {
+        name: &quot;Middle col&quot; + runningId++, 
+        field: fields[runningId] || (&quot;col &quot; + runningId)
+    };
+    
+    // The column is inserted at the end by default
+    grid.api.insertColumn(columnConfig);
+});
+
+let fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;market&quot;, &quot;industry&quot;, &quot;date&quot;];
+let records = DataGenerator.generateRecords(fields, { numRows: 6 });
+
+let configObj = {
+    columns: [
+        {name: &quot;Column 1&quot;, field: fields[0]},
+        {name: &quot;Column 2&quot;, field: fields[1]}
+    ],
+    staticDataRows: records
+};
+
+let grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h2 id="inserting-a-scalable-column-with-minimum-width-example">Inserting a scalable column with minimum width example</h2>
+<p>In this example, a column will be inserted with minimum width. The effect is that, when there are low number of columns (i.e., the total minimum width is less than grid size), the columns will fill in available space to fit entire grid. When there are large number of columns (i.e., the total minimum width is larger than grid size), the columns will be shrunk to their own minimum width and grid will show horizontal scrollbar.</p>
+<code-sandbox hash="1c590a05"><pre><code class="language-css">efx-grid {
+    height: 200px;
+}
+html hr {
+    margin: 5px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;button id=&quot;add_btn&quot;&gt;Add a column&lt;/button&gt;
+&lt;hr&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+let runningId = 0;
+
+document.getElementById(&quot;add_btn&quot;).addEventListener(&quot;click&quot;, function() {
+    let columnConfig = {
+        name: &quot;Scalable column&quot; + runningId++, 
+        field: fields[runningId] || (&quot;col &quot; + runningId),
+        minWidth: 150
+    };
+
+    grid.api.insertColumn(columnConfig);
+});
+
+let fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;market&quot;, &quot;industry&quot;, &quot;date&quot;];
+let records = DataGenerator.generateRecords(fields, { numRows: 6 });
+
+let configObj = {
+    columns: [
+        {name: &quot;Column 1&quot;, field: fields[0], minWidth: 150},
+        {name: &quot;Column 2&quot;, field: fields[1], minWidth: 150}
+    ],
+    staticDataRows: records
+};
+
+let grid = document.getElementById(&quot;grid&quot;);
+grid.config = configObj;
+</code></pre>
+</code-sandbox><br>
+<br>
+<br>
