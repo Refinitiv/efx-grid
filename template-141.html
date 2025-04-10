@@ -31,7 +31,51 @@ let config = {
 <li>Returning zero from the sort logic indicates that both row A and row B are equal and should stay in the same position.</li>
 </ul>
 </blockquote>
-<h3 id="custom-sorting-based-on-multiple-columns-example">Custom sorting based on multiple columns example</h3>
+<h3 id="custom-sorting-for-a-date-column-example">Custom sorting for a date column example</h3>
+<p>By default, Grid supports sorting data with primitive data types (e.g., texts and numbers). For sorting data with non-primitive data types like <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date">Date object</a>, you need to specify custom sort logic in order to sort data based on their value.</p>
+<code-sandbox hash="c137c611"><pre><code class="language-css">efx-grid {
+    height: 300px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;efx-grid&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+function dateSorting(rowDefA, rowDefB, order, contextObj) {
+    let rowA = rowDefA.getRowData();
+    let rowB = rowDefB.getRowData();
+    let timeA = rowA.date ? rowA.date.getTime() : 0;
+    let timeB = rowB.date ? rowB.date.getTime() : 0;
+    
+    return (timeA - timeB) * order;
+}
+
+let fields = [&quot;id&quot;, &quot;companyName&quot;, &quot;market&quot;, &quot;CF_NETCHNG&quot;, &quot;date&quot;];
+let records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 10 });
+
+let configObj = {
+    columns: [
+        {name: &quot;Id&quot;, field: fields[0], width: 50},
+        {name: &quot;Company&quot;, field: fields[1], width: 120},
+        {name: &quot;Market&quot;, field: fields[2], width: 100},
+        {name: &quot;Net. Chng&quot;, field: fields[3], width: 100},
+        {name: &quot;Date&quot;, field: fields[4], sortLogic: dateSorting},
+    ],
+    staticDataRows: records
+};
+
+let grid = document.getElementsByTagName(&quot;efx-grid&quot;)[0];
+grid.config = configObj;
+</code></pre>
+</code-sandbox><h3 id="custom-sorting-based-on-multiple-columns-example">Custom sorting based on multiple columns example</h3>
+<p>The example below uses both <code>x</code> and <code>y</code> fields in the same row to determine order of the row</p>
 <code-sandbox hash="371beed0"><pre><code class="language-css">efx-grid {
     height: 300px;
 }

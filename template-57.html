@@ -2,7 +2,7 @@
 
 <h1 id="conditional-coloring">Conditional Coloring</h1>
 <p>The Conditional Coloring Extension provides a conditional coloring for a column&#39;s field, which will be triggered when a condition is met. Use <code>conditions</code> property to define how styles will be applied to a cell by what condition. The following code snippet shows how <code>conditions</code> might be defined:</p>
-<pre><code class="language-js">var conditions = [ // For example, fill green when the value is more than zero. 
+<pre><code class="language-js">let conditions = [ // For example, fill green when the value is more than zero. 
     { // If a field value is greater than 0, set text color to green
         expression: [&quot;GT&quot;, 0], 
         color: &quot;green&quot;,
@@ -18,7 +18,7 @@
     }
 ];
 </code></pre>
-<code-sandbox hash="9d914111"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="b88f3b89"><pre><code class="language-css">efx-grid {
     height: 208px;
 }
 </code></pre>
@@ -33,7 +33,7 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var records = [
+let records = [
     {&quot;c1&quot;:  10, &quot;c2&quot;: -10,    &quot;c3&quot;: 4},
     {&quot;c1&quot;:   2, &quot;c2&quot;: 10,     &quot;c3&quot;: 1},
     {&quot;c1&quot;:   0, &quot;c2&quot;: -50,    &quot;c3&quot;: 2},
@@ -47,7 +47,7 @@ var records = [
     {&quot;c1&quot;: -40, &quot;c2&quot;: 1.3,    &quot;c3&quot;: 0},
     {&quot;c1&quot;: 100, &quot;c2&quot;: -0.1,   &quot;c3&quot;: 0}
 ];
-var configObj = {
+let configObj = {
     sorting: {
         sortableColumns: true
     },
@@ -92,7 +92,7 @@ var configObj = {
     ]
 };
 
-var grid = document.getElementById(&quot;grid&quot;);
+let grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 </code></pre>
 </code-sandbox><h2 id="installation-and-how-to-import-to-a-project">Installation and how to import to a project</h2>
@@ -101,7 +101,7 @@ grid.config = configObj;
 <p>You can change text color based on its own numeric value by setting <code>colorText</code> to <code>true</code> on the column configuration object. With <code>colorText</code> option, any positive value will have up color from the current theme. Negative value will have down color from the current theme. This is useful for displaying the current state of the value by using different colors, such as showing net change of a stock price.</p>
 <p>You can briefly blink a cell when content value is changed by setting <code>blinking</code> to <code>true</code> on the column configuration object. This is useful for displaying the change, such as showing change of a stock price.</p>
 <h3 id="default-text-coloring-with-theme-colors-example">Default text coloring with theme colors example</h3>
-<code-sandbox hash="d3334d69"><pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+<code-sandbox hash="978ecdf1"><pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
 <pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
 await halo(); // This line is only required for demo purpose. It is not relevant for your application.
@@ -112,9 +112,9 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
-var records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 10 });
-var configObj = {
+let fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;];
+let records = DataGenerator.generateRecords(fields, { seed: 0, numRows: 10 });
+let configObj = {
     columns: [
         { name: &quot;Company&quot;, field: fields[0] },
         { name: &quot;Market&quot;, field: fields[1], width: 120 },
@@ -128,13 +128,13 @@ var configObj = {
     ]
 };
 
-var grid = document.getElementById(&quot;grid&quot;);
+let grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 
 setInterval(function() { // Simulate real-time data updates
-    var randBetween = DataGenerator.randBetween;
-    var rowCount = grid.api.getRowCount();
-    for(var i = 0; i &lt; rowCount; ++i) {
+    let randBetween = DataGenerator.randBetween;
+    let rowCount = grid.api.getRowCount();
+    for(let i = 0; i &lt; rowCount; ++i) {
         if(randBetween(0, 3) === 1) {
             grid.api.getRowDefinition(i).setRowData(
                 DataGenerator.generateRecord([&quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;])
@@ -145,7 +145,7 @@ setInterval(function() { // Simulate real-time data updates
 </code></pre>
 </code-sandbox><h3 id="advanced-blinking-example">Advanced blinking example</h3>
 <p>The example below shows various ways on how to define <code>blinking</code> options. All available options for blinking can be find in the Type Definitions section on this page.</p>
-<code-sandbox hash="e2deb3be"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="fea64826"><pre><code class="language-css">efx-grid {
     height: 208px;
 }
 </code></pre>
@@ -160,12 +160,12 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var conditionalColoringExt = new ConditionalColoring();
+let conditionalColoringExt = new ConditionalColoring();
 
-var charA = (&quot;A&quot;).charCodeAt(0);
-var charZ = (&quot;Z&quot;).charCodeAt(0);
+let charA = (&quot;A&quot;).charCodeAt(0);
+let charZ = (&quot;Z&quot;).charCodeAt(0);
 
-var randBetween = DataGenerator.randBetween;
+let randBetween = DataGenerator.randBetween;
 
 DataGenerator.addFieldInfo(&quot;num1&quot;, { type: &quot;number&quot;, min: -10, max: 11 });
 DataGenerator.addFieldInfo(&quot;num2&quot;, { type: &quot;number&quot;, min: -1, max: 11 });
@@ -176,10 +176,10 @@ DataGenerator.addFieldInfo(&quot;char&quot;, function() {
     return randBetween(charA, charZ);
 });
 
-var fields = [&quot;num1&quot;, &quot;num2&quot;, &quot;num3&quot;, &quot;num4&quot;, &quot;num5&quot;, &quot;char&quot;];
-var records = DataGenerator.generateRecords(fields, 15);
+let fields = [&quot;num1&quot;, &quot;num2&quot;, &quot;num3&quot;, &quot;num4&quot;, &quot;num5&quot;, &quot;char&quot;];
+let records = DataGenerator.generateRecords(fields, 15);
 
-var configObj = {
+let configObj = {
     sorting: {
         sortableColumns: true
     },
@@ -269,32 +269,157 @@ var configObj = {
     ]
 };
 
-var grid = document.getElementById(&quot;grid&quot;);
+let grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 
 setInterval(function() { // Slow Update for testing
-    var record = DataGenerator.generateRecord(fields);
+    let record = DataGenerator.generateRecord(fields);
     grid.api.setRowData(0, record);
 }, 2000);
 
 setInterval(function() { // Fast Updates
-    var record = DataGenerator.generateRecord(fields);
+    let record = DataGenerator.generateRecord(fields);
 
     // remove some fields randomly
-    for(var key in record) {
+    for(let key in record) {
         if(randBetween(0, 10) &gt; 3) {
             delete record[key];
         }
     }
 
-    var rowCount = grid.api.getRowCount();
-    var at = randBetween(1, rowCount);
+    let rowCount = grid.api.getRowCount();
+    let at = randBetween(1, rowCount);
     grid.api.setRowData(at, record);
 }, 200);
 </code></pre>
+</code-sandbox><h3 id="blinking-a-cell-in-the-group-header-rows">Blinking a cell in the group header rows</h3>
+<p>When using Row Grouping Extension, group header rows are automatically generated based on the given data. These group header rows have no actual row data, and thus Conditional Coloring Extension cannot process these rows as there is no data to meet the coloring criteria. However, you can still manually call <code>blinkCell(cell, colIndex, blinkSignal)</code> method to forcefully blink a specific cell. The example below illustrates how to manage group header data outside of grid and blink specific cells based on the changes of the data.</p>
+<code-sandbox hash="d1692ce1"><pre><code class="language-css">efx-grid {
+    height: 360px;
+}
+hr {
+    margin: 5px;
+}
+</code></pre>
+<pre><code class="language-html">&lt;button id=&quot;gen_btn&quot;&gt;Update group header data&lt;/button&gt;
+&lt;hr&gt;
+&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
+</code></pre>
+<pre><code class="language-javascript">import { halo } from &#39;./theme-loader.js&#39;; // This line is only required for demo purpose. It is not relevant for your application.
+await halo(); // This line is only required for demo purpose. It is not relevant for your application.
+
+/* ---------------------------------- Note ----------------------------------
+  DataGenerator, Formatters and extensions are exposed to global scope
+  in the bundle file to make it easier to create live examples.
+  Importing formatters and extensions is still required in your application. 
+  Please see the document for further information.
+---------------------------------------------------------------------------*/
+    let conditionalColoringExt = new ConditionalColoring();
+
+    const groupingField = &quot;market&quot;; // Field used for grouping
+    let groupHeaderRecords = {}; // A map representing current group header data. Record&lt;string, Record&lt;string, unknown&gt;&gt;
+    let comingHeaderRecords = null;
+    
+    function onGroupAdded(e) { // For data simulation. This is not needed in the actual app
+        const groupId = e.newGroup.getGroupId();
+        if(!groupHeaderRecords[groupId]) {
+            groupHeaderRecords[groupId] = {};
+        }
+    }
+    
+    function onGroupHeaderBinding(e) {
+        const groupId = e.groupId;
+        // const rows = e.dataSource.getAllRowData();
+        // const rowCount = rows.length;
+        const section = e.section;
+        const rowIndex = e.rowIndex;
+        const colCount = e.api.getColumnCount();
+        const groupRecords = comingHeaderRecords || groupHeaderRecords;
+        const groupRecord = groupRecords[groupId] || {};
+        
+        for (let c = 0; c &lt; colCount; c++) {
+            const field = e.api.getColumnField(c);
+            const data = field !== groupingField ? groupRecord[field] : groupId;
+            
+            const cell = section.getCell(c, rowIndex);
+            
+            if(columns[c].blinking) {
+                // Determine blink signal based on the difference between current data and previous data
+                const prevRecord = groupHeaderRecords[groupId] || {};
+                const prevData = prevRecord[field];
+                
+                if(prevData != null) {
+                    conditionalColoringExt.blinkCell(cell, c, (data - prevData) || 0);
+                }
+            }
+            
+            cell.setContent(data);
+        }
+    }
+    function onAfterContentBinding(e) {
+        if(comingHeaderRecords) {
+            groupHeaderRecords = comingHeaderRecords;
+            comingHeaderRecords = null;
+        }
+    }
+    
+    function generateGroupHeaderRecord(groupId) {
+        const record = DataGenerator.generateRecord(fields);
+        record[groupingField] = groupId;
+        return record;
+    }
+    
+    gen_btn.addEventListener(&quot;click&quot;, function(e) {
+        const groupIds = Object.keys(groupHeaderRecords);
+        const groupCount = groupIds.length;
+        
+        if(!groupCount) {
+            return;
+        }
+        // Simulate new group header data update
+        comingHeaderRecords = {};
+        for(let i = 0; i &lt; groupCount; ++i) {
+            const groupId = groupIds[i];
+            comingHeaderRecords[groupId] = generateGroupHeaderRecord(groupId);
+        }
+        
+        // Since group header data is updated without grid knowing it, we need to rerender grid
+        grid.api.requestRowRefresh();
+    });
+    
+    let fields = [&quot;id&quot;, &quot;market&quot;, &quot;companyName&quot;, &quot;num1&quot;, &quot;index4&quot;, &quot;industry&quot;];
+    let columns = fields.map(function(f) {
+        return {
+            field: f
+        };
+    });
+    columns[0].width = 50; // id
+    columns[3].blinking = true; // num1
+    columns[4].blinking = true; // index4
+    
+    let records = DataGenerator.generateRecords(fields, {seed: 100, numRows: 7});
+    
+    let configObj = {
+        rowGrouping: {
+            groupBy: groupingField,
+            headerSpanning: false,
+            groupHeaderBinding: onGroupHeaderBinding,
+            groupAdded: onGroupAdded,
+            displayColumn: 1
+        },
+        afterContentBinding: onAfterContentBinding,
+        columns: columns,
+        staticDataRows: records,
+        extensions: [
+            conditionalColoringExt,
+            new RowGrouping()
+        ]
+    };
+    grid.config = configObj;
+</code></pre>
 </code-sandbox><h2 id="predefined-color-mode">Predefined color mode</h2>
 <p>The extension also allows you select text and background colors from a set of predefined colors. To do so, add a preset color object to the <code>predefinedColors</code> property and then set the condition object&#39;s <code>cssClass</code> properties to the color name rather than the background and color value.</p>
-<code-sandbox hash="5b7a7062"><pre><code class="language-css">efx-grid {
+<code-sandbox hash="7e6f1962"><pre><code class="language-css">efx-grid {
     height: 169px;
 }
 fieldset {
@@ -341,7 +466,7 @@ await halo(); // This line is only required for demo purpose. It is not relevant
   Importing formatters and extensions is still required in your application. 
   Please see the document for further information.
 ---------------------------------------------------------------------------*/
-var predefinedColorsSet1 = {
+let predefinedColorsSet1 = {
     &quot;color-1&quot;: {
         color: &quot;lightgrey&quot;,
         backgroundColor: &quot;#FF2848&quot;
@@ -356,7 +481,7 @@ var predefinedColorsSet1 = {
     }
 };
 
-var predefinedColorsSet2 = {
+let predefinedColorsSet2 = {
     &quot;color-1&quot;: {
         color: &quot;#FFFFFF&quot;,
         backgroundColor: &quot;#64864A&quot;
@@ -371,7 +496,7 @@ var predefinedColorsSet2 = {
     }
 };
 
-var conditions = [{
+let conditions = [{
     expression: &quot;[CF_NETCHNG] &gt; 30&quot;,
     cssClass: &quot;color-1&quot;
 },{
@@ -382,11 +507,11 @@ var conditions = [{
     cssClass: &quot;color-3&quot;
 }];
 
-var conditionalColoringExt = new ConditionalColoring();
+let conditionalColoringExt = new ConditionalColoring();
 
-var fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;id&quot;];
-var records = DataGenerator.generateRecords(fields, { seed: 10, numRows: 10 });
-var configObj = {
+let fields = [&quot;companyName&quot;, &quot;market&quot;, &quot;CF_LAST&quot;, &quot;CF_NETCHNG&quot;, &quot;industry&quot;, &quot;id&quot;];
+let records = DataGenerator.generateRecords(fields, { seed: 10, numRows: 10 });
+let configObj = {
     rowHighlighting: false,
     columns: [
         {
@@ -424,7 +549,7 @@ var configObj = {
     ]
 };
 
-var grid = document.getElementById(&quot;grid&quot;);
+let grid = document.getElementById(&quot;grid&quot;);
 grid.config = configObj;
 
 document.getElementById(&quot;set_color_1_btn&quot;).addEventListener(&quot;click&quot; , function(e) {
@@ -461,10 +586,10 @@ document.getElementById(&quot;set_color_2_btn&quot;).addEventListener(&quot;clic
 <li>&quot;DTB&quot; - Date is before</li>
 </ul>
 <p>The following array expressions can be parsed by the extension:</p>
-<pre><code class="language-js">var expression1 = [&quot;GT&quot;, 10];
+<pre><code class="language-js">let expression1 = [&quot;GT&quot;, 10];
 
-// The below condition will be satisfied when a value is greater than or equal to 10 and less than or equal to 20
-var expression2 = [ 
+// The condition below will be satisfied when a value is greater than or equal to 10 and less than or equal to 20
+let expression2 = [ 
     [&quot;GTE&quot;, 10, &quot;AND&quot;],
     [&quot;LTE&quot;, 20]
 ];
@@ -501,9 +626,9 @@ var expression2 = [
 </code></pre>
 <h2 id="defining-coloring-condition-as-a-function-complex-expression">Defining coloring condition as a function (complex expression)</h2>
 <p>Since text expression support is very limited, the extension allows the expression to be defined by a function. The expression function takes one parameter which is row data object, and should return boolean value. The code snippet below shows how to define expression in a function form:</p>
-<pre><code class="language-js">var invalidExpression = &quot;[field1] != null&quot;; // This kind of expression is not supported
+<pre><code class="language-js">let invalidExpression = &quot;[field1] != null&quot;; // This kind of expression is not supported
 
-var validExpression = function(rowData) {
+let validExpression = function(rowData) {
     return rowData[&quot;field1&quot;] != null;
 };
 </code></pre>
@@ -535,6 +660,7 @@ let conditions3 = [ // Add text color for any fieldA value that is not equal to 
 <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id=".setThemeColors"><span class="type-signature"></span>setThemeColors<span class="signature">(colors)</span><span class="type-signature"></span></h4>                            <div class="description">        Deprecated:: Should use reloadThemeColors instead    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colors</div>                        <div class="type">                            <span class="param-type">Object.&lt;string, string&gt;</span>                        </div>                                                    <div class="description">                    Name/Value pair object                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
 <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="applyColor"><span class="type-signature"></span>applyColor<span class="signature">(colIndex, cell, rowData<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                            <div class="description">        Apply color to a cell base on input column index    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    Coloring condition from this column index will be used                </div>                    </div>                <div class="param">                            <div class="name">cell</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    Target grid cell to apply color to                </div>                    </div>                <div class="param">                            <div class="name">rowData</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    A row data which will be used to determine a color together with a colIndex                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
 <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="beforeProcessOption"><span class="type-signature"></span>beforeProcessOption<span class="signature">(optionName, optionVal)</span><span class="type-signature"> → {*}</span></h4>                            <div class="description">        Remove redundant built-in feature    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">optionName</div>                        <div class="type">                            <span class="param-type">string</span>                        </div>                                            </div>                <div class="param">                            <div class="name">optionVal</div>                        <div class="type">                            <span class="param-type">*</span>                        </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type">*</span>    </div><div class="sub-content-desc">    The transformed value of the option</div>                </div>                    
+<div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="blinkCell"><span class="type-signature"></span>blinkCell<span class="signature">(cell, colIndex, blinkSignal, rowData<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                            <div class="description">        Blink the specified cell based on the specified column's blink configuration    </div>                            <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">cell</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    Cell instance to be blinked                </div>                    </div>                <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                            <div class="attributes">                                                                </div>                                                    <div class="description">                    Column index of the column in which blink configuration will be used. If blinking is not enabled for the column, this method has no effect                </div>                    </div>                <div class="param">                            <div class="name">blinkSignal</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                            <div class="attributes">                                                                </div>                                            </div>                <div class="param">                            <div class="name">rowData</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    Row data source for restoring existing conditional color of the cell                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
 <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="blinkRow"><span class="type-signature"></span>blinkRow<span class="signature">(rowIndex, blinkSignal, host<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">rowIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                            <div class="attributes">                                                                </div>                                            </div>                <div class="param">                            <div class="name">blinkSignal</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                            <div class="attributes">                                                                </div>                                            </div>                <div class="param">                            <div class="name">host</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                                    <div class="description">                    core grid object                </div>                    </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
 <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="config"><span class="type-signature"></span>config<span class="signature">(options<span class="signature-attributes">opt</span>)</span><span class="type-signature"></span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                    </div>                    
 <div class="item">                                <div class="item-type">function</div>                        <h4 class="name" id="getColumnColoring"><span class="type-signature"></span>getColumnColoring<span class="signature">(colIndex, options<span class="signature-attributes">opt</span>)</span><span class="type-signature"> → {<a href="#/extensions/tr-grid-conditional-coloring#~ColumnOptions">ConditionalColoringPlugin~ColumnOptions</a>}</span></h4>                                                <h5>Parameters:</h5>        <div class="params">        <div class="param">                            <div class="name">colIndex</div>                        <div class="type">                            <span class="param-type">number</span>                        </div>                            <div class="attributes">                                                                </div>                                            </div>                <div class="param">                            <div class="name">options</div>                        <div class="type">                            <span class="param-type">Object</span>                        </div>                            <div class="attributes">                                    &lt;optional&gt;                                                                </div>                                            </div>            </div>        <div class="details">                                                            </div>                                <h5>Returns:</h5>                    <div class="sub-content">        <span class="param-type"><a href="#/extensions/tr-grid-conditional-coloring#~ColumnOptions">ConditionalColoringPlugin~ColumnOptions</a></span>    </div>                </div>                    
