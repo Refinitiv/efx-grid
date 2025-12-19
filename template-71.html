@@ -82,17 +82,19 @@ grid.config = configObj;
 </code></pre>
 </code-sandbox><h2 id="installation-and-how-to-import-to-a-project">Installation and how to import to a project</h2>
 <p>Installation examples and details of how to import the extension to a project are available on the <a href="#/extensions/readme">Overview</a> page.</p>
-<h2 id="formatting-types">Formatting Types</h2>
-<p>There are 5 formatting types you can use to format your data. They are &quot;freetext&quot;, &quot;number&quot;, &quot;scaled&quot;, &quot;percent&quot;,and &quot;datetime&quot;.</p>
-<ul>
-<li>number</li>
-<li>scaled (scaledvalue) - number with scaling unit (e.g., 10M or 3.2B)</li>
-<li>percent - number with percent sign</li>
-<li>datetime (date, time, date-time, or time-date) - date and time text</li>
-<li>freetext (formula) - number from a calculation. Very small fraction will be removed (e.g., 3.0000000001 is converted to 3)</li>
-</ul>
+<aside class="info"><p>For lagacy grid users, Text Formatting Extension has a slightly different package name compared to other extensions. Its package name is <code>tr-grid-textformatting</code> instead of <code>tr-grid-text-formatting</code>.</p>
+</aside><h2 id="formatting-types">Formatting Types</h2>
+<p>There are five formatting types you can use to format your data:</p>
+<ol>
+<li><strong>number</strong> (default). Displays the value as a plain number.</li>
+<li><strong>scaled</strong> (alias: <strong>scaledvalue</strong>). Displays the number with a scaling unit (e.g., 10M, 3.2B).</li>
+<li><strong>percent</strong>. Displays the number as a percentage (e.g., 75%).</li>
+<li><strong>datetime</strong> (aliases: <strong>date</strong>, <strong>time</strong>, <strong>date-time</strong>, <strong>time-date</strong>). Formats the value as a date and/or time string.</li>
+<li><strong>freetext</strong> (alias: <strong>formula</strong>). Displays the result of a calculation. Very small fractions are trimmed (e.g., 3.0000000001 becomes 3).</li>
+</ol>
 <p>To change formatting type, set <code>formatType</code> to an object containing <code>formatType</code> property in the column configuration. In case of advance formatting, please see <code>FormatOptions</code> for further properties that can be specified in <code>formatType</code>.</p>
-<h2 id="default-format-property">Default format property</h2>
+<aside class="warning"><p>Due to historical reasons, TypeScript type for <code>formatType</code> has <code>string</code> data type. You can safely ignore the TypeScript warnings as they will not affect the behaviors. It is still recommended to use object instead of <code>string</code>.</p>
+</aside><h2 id="default-format-property">Default format property</h2>
 <table>
 <thead>
 <tr>
@@ -141,10 +143,8 @@ grid.config = configObj;
 <p>Grid provides ability for data conversion. Please see the page <a href="#/data/data-conversion">Data conversion</a> for more details.</p>
 <h2 id="formatting-custom-content">Formatting custom content</h2>
 <p>Text Formatting Extension work by overwritten any existing cell content with a formatted text. By default, any use of <a href="#/rendering/custom-formatter">custom rendering or formatters</a> will not work with Text Formatting Extension (i.e., custom content is replaced with a formatted text). There are two ways to apply formatted text on a custom content.</p>
-<blockquote>
-<p>Note: more details about custom rendering can be found <a href="#/rendering/custom-formatter">here</a></p>
-</blockquote>
-<h3 id="formatting-custom-content-by-using-formatlogic">Formatting custom content by using <code>formatLogic</code></h3>
+<aside class="info"><p>More details about custom rendering can be found <a href="#/rendering/custom-formatter">here</a></p>
+</aside><h3 id="formatting-custom-content-by-using-formatlogic">Formatting custom content by using <code>formatLogic</code></h3>
 <p>The first way is to use <code>formatLogic</code>. You can specify a function on how to apply formatted text to your custom content. <code>formattedText</code> and <code>cell</code> will be provided through the event argument when <code>formatLogic</code> is executed. Inside the function, you can then put formatted text in your custom content at the appropriate place, as illustrated below:</p>
 <code-sandbox hash="26322446"><pre><code class="language-html">&lt;efx-grid id=&quot;grid&quot;&gt;&lt;/efx-grid&gt;
 </code></pre>
